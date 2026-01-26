@@ -142,28 +142,33 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 
 | ID | 태스크 | 설명 | 의존성 | 참조 |
 |----|--------|------|--------|------|
-| P1-01 | 대화 세션 관리 | ChatHistory, 세션 생성/종료 | P0-06 | [research-01#1.1](./research/research-01.md) |
-| P1-02 | Agent 기본 루프 | "nO" 스타일 단일 스레드 마스터 루프 | P1-01 | [research-01#1.1](./research/research-01.md), [research-02#2.1](./research/research-02.md) |
-| P1-03 | gpustack 연동 검증 | gpustack/로컬 모델 연동 테스트 | P1-01 | - |
-| P1-04 | AIFunction 도구 시스템 | AIFunctionFactory 기반 도구 등록/호출 | P1-02 | [research-01#4](./research/research-01.md) |
-| P1-05 | 내장 도구: Read | 파일 읽기 도구 | P1-04 | [research-01#1.4](./research/research-01.md) |
-| P1-06 | 내장 도구: Write | 파일 쓰기 + **DiffPlex 컬러 diff** | P1-04 | [ref.md#2](../dev-docs/ref.md) |
-| P1-07 | 내장 도구: Shell | 명령 실행 (Process 기반, 샌드박싱) | P1-04 | [research-02#6.1](./research/research-02.md) |
-| P1-08 | 내장 도구: Glob/Grep | **MS.Ext.FileSystemGlobbing** 사용 | P1-04 | [ref.md#3](../dev-docs/ref.md) |
+| P1-01 | ~~대화 세션 관리~~ | ✅ ChatHistory, 세션 생성/종료 | P0-06 | [research-01#1.1](./research/research-01.md) |
+| P1-02 | ~~Agent 기본 루프~~ | ✅ "nO" 스타일 단일 스레드 마스터 루프 | P1-01 | [research-01#1.1](./research/research-01.md), [research-02#2.1](./research/research-02.md) |
+| P1-03 | ~~gpustack 연동 검증~~ | ✅ gpustack/로컬 모델 연동 테스트 | P1-01 | - |
+| P1-04 | ~~AIFunction 도구 시스템~~ | ✅ AIFunctionFactory 기반 도구 등록/호출 | P1-02 | [research-01#4](./research/research-01.md) |
+| P1-05 | ~~내장 도구: Read~~ | ✅ 파일 읽기 도구 | P1-04 | [research-01#1.4](./research/research-01.md) |
+| P1-06 | ~~내장 도구: Write~~ | ✅ 파일 쓰기 + **DiffPlex 컬러 diff** | P1-04 | [ref.md#2](../dev-docs/ref.md) |
+| P1-07 | ~~내장 도구: Shell~~ | ✅ 명령 실행 (Process 기반, 샌드박싱) | P1-04 | [research-02#6.1](./research/research-02.md) |
+| P1-08 | ~~내장 도구: Glob/Grep~~ | ✅ **MS.Ext.FileSystemGlobbing** 사용 | P1-04 | [ref.md#3](../dev-docs/ref.md) |
 | P1-09 | 스트리밍 출력 | IAsyncEnumerable + Spectre.Console | P1-02 | - |
 | P1-10 | 진행률 표시 | 토큰 사용량, 예상 비용 (**TokenMeter** 서브모듈) | P1-09 | [ref.md#5](../dev-docs/ref.md), [TokenMeter](https://github.com/iyulab/TokenMeter) |
 | P1-11 | 인터럽트 처리 | Ctrl+C graceful shutdown | P1-02 | [research-01#2.2](./research/research-01.md) |
-| P1-12 | 단일 명령 모드 | `ironhive -p "prompt"` 지원 | P1-02 | - |
+| P1-12 | ~~단일 명령 모드~~ | ✅ `ironhive -p "prompt"` 지원 | P1-02 | - |
 | P1-13 | 🧪 에이전트 루프 단위 테스트 | MockChatClient로 도구 호출 시퀀스 검증 | P0-10, P1-02 | - |
-| P1-14 | 🧪 도구 실행 테스트 | 각 내장 도구의 정상/에러 케이스 | P1-05~P1-08 | - |
+| P1-14 | ~~🧪 도구 실행 테스트~~ | ✅ 각 내장 도구의 정상/에러 케이스 (11 tests) | P1-05~P1-08 | - |
 | P1-15 | 🧪 시뮬레이션 시나리오 | 파일 생성 → 수정 → 삭제 전체 흐름 | P1-13, P1-14 | - |
 
 ### 산출물
-- 기본적인 대화형 에이전트 동작
-- 파일 읽기/쓰기/검색, 명령 실행 가능
-- **gpustack/로컬 모델 연동 확인**
-- **파일 변경 시 컬러 diff 표시**
-- **에이전트 루프 테스트 커버리지 80%+**
+- ✅ 기본적인 대화형 에이전트 동작
+- ✅ 파일 읽기/쓰기/검색, 명령 실행 가능
+- ✅ **gpustack/로컬 모델 연동 확인**
+- ✅ **ironbees 멀티에이전트 통합** (선행 완료)
+- ⏳ 파일 변경 시 컬러 diff 표시
+- ⏳ 에이전트 루프 테스트 커버리지 80%+
+
+### 진행 상황
+- **완료**: P1-01~P1-08, P1-12, P1-14 (10/15 태스크)
+- **남은 작업**: P1-09 (스트리밍), P1-10 (진행률), P1-11 (인터럽트), P1-13/P1-15 (테스트)
 
 ---
 
@@ -317,17 +322,21 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 
 | ID | 태스크 | 설명 | 의존성 | 참조 |
 |----|--------|------|--------|------|
-| P5b-01 | ironbees 통합 | 멀티에이전트 관리 연동 | P3-03 | [github-ref](./coding-agent-github-ref.md) |
+| P5b-01 | ~~ironbees 통합~~ | ✅ 멀티에이전트 관리 연동 (선행 완료) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
 | P5b-02 | 🧪 실제 LLM 통합 테스트 | OpenAI/Azure/gpustack 실제 연동 검증 | P5a-07 | - |
 | P5b-03 | 🧪 회귀 테스트 자동화 | CI에서 전체 테스트 스위트 실행 | P5a-07, P0-05 | - |
 | P5b-04 | 문서화 | 사용자 가이드, API 문서, 플러그인 개발 가이드 | - | - |
 | P5b-05 | 릴리스 자동화 | GitHub Release, NuGet/dotnet tool 배포 | P0-05 | - |
 
 ### 산출물
-- ironbees 기반 멀티에이전트 지원
-- 완전한 문서화
-- **자동화된 릴리스 파이프라인**
-- **dotnet tool 배포**: `dotnet tool install -g ironhive`
+- ✅ ironbees 기반 멀티에이전트 지원 (선행 완료)
+- ⏳ 완전한 문서화
+- ⏳ **자동화된 릴리스 파이프라인**
+- ⏳ **dotnet tool 배포**: `dotnet tool install -g ironhive`
+
+### 진행 상황
+- **완료**: P5b-01 (ironbees 통합)
+- **남은 작업**: P5b-02~P5b-05 (테스트, 문서화, 릴리스)
 
 ---
 
@@ -352,19 +361,21 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 ## 마일스톤 요약
 
 ```
-v0.1.0 ─── Phase 0: 프로젝트 초기화 + 테스트 인프라
+v0.1.0 ─── Phase 0: 프로젝트 초기화 + 테스트 인프라     ✅ 완료
    │
-v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동
+v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  🔄 진행중 (67%)
+   │       └── P1-01~P1-08,P1-12,P1-14 완료, P1-09~P1-11,P1-13,P1-15 남음
    │
-v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run
+v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ⏳ 대기
    │
-v0.4.0 ─── Phase 3: MCP 플러그인 시스템
+v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 ⏳ 대기
    │
-v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱
+v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ⏳ 대기
    │
-v0.6.0 ─── Phase 5a: 안정화 + E2E 테스트
+v0.6.0 ─── Phase 5a: 안정화 + E2E 테스트               ⏳ 대기
    │
-v0.7.0 ─── Phase 5b: 생태계 통합 + 릴리스 자동화
+v0.7.0 ─── Phase 5b: 생태계 통합 + 릴리스 자동화        🔄 부분 완료
+   │       └── P5b-01 ironbees 통합 선행 완료
    │
 v0.8.0+ ── Future: Repo Map, Sub-agent, 분산 실행
 ```
