@@ -1,8 +1,11 @@
-using System.Globalization;
+using IndexThinking.Agents;
+using IndexThinking.Extensions;
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Memory;
+using IronHive.Cli.Core.Providers;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using OpenAI.Chat;
 
 namespace IronHive.Cli.Infrastructure;
 
@@ -16,141 +19,150 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddIronHiveServices(this IServiceCollection services)
     {
-        // Register configuration
-        services.AddSingleton<IronHiveConfig>();
+        // Load configuration from .env file
+        var config = EnvConfigLoader.Load();
+        services.AddSingleton(config);
 
-        // Register IChatClient factory
-        services.AddSingleton<IChatClientFactory, ChatClientFactory>();
+        // Register providers with fallback chain
+        RegisterProviders(services, config);
 
-        // Register agent loop
+        // Register IChatClient from provider
+        services.AddSingleton<IChatClient>(sp =>
+        {
+            var provider = sp.GetRequiredService<IChatClientProvider>();
+            return provider.GetChatClient();
+        });
+
+        // Register IndexThinking services
+        services.AddIndexThinkingAgents();
+        services.AddIndexThinkingInMemoryStorage();
+
+        // Register Memory services (MemoryIndexer integration)
+        services.AddIronHiveMemory();
+
+        // Register agent loop with IndexThinking support
         services.AddTransient<IAgentLoop>(sp =>
         {
-            var config = sp.GetRequiredService<IronHiveConfig>();
-            var clientFactory = sp.GetRequiredService<IChatClientFactory>();
-            var chatClient = clientFactory.Create(config);
+            var chatClient = sp.GetRequiredService<IChatClient>();
+            var turnManager = sp.GetRequiredService<IThinkingTurnManager>();
 
-            return new AgentLoop(chatClient, new AgentOptions
-            {
-                SystemPrompt = config.SystemPrompt,
-                Temperature = config.Temperature,
-                MaxTokens = config.MaxTokens
-            });
+            return new ThinkingAgentLoop(
+                chatClient,
+                turnManager,
+                new IronHive.Cli.Core.Agent.AgentOptions
+                {
+                    SystemPrompt = "You are a helpful AI assistant.",
+                    Temperature = 0.7f,
+                    MaxTokens = 4096
+                });
         });
 
         return services;
     }
-}
 
-/// <summary>
-/// IronHive CLI configuration.
-/// </summary>
-public class IronHiveConfig
-{
-    /// <summary>
-    /// The model provider (e.g., "openai", "azure", "ollama", "gpustack").
-    /// </summary>
-    public string Provider { get; set; } = "openai";
-
-    /// <summary>
-    /// The model name/ID to use.
-    /// </summary>
-    public string Model { get; set; } = "gpt-4o-mini";
-
-    /// <summary>
-    /// API key for the provider.
-    /// </summary>
-    public string? ApiKey { get; set; }
-
-    /// <summary>
-    /// Base URL for custom endpoints (Ollama, gpustack, etc.).
-    /// </summary>
-    public string? BaseUrl { get; set; }
-
-    /// <summary>
-    /// System prompt for the agent.
-    /// </summary>
-    public string? SystemPrompt { get; set; }
-
-    /// <summary>
-    /// Temperature for response generation.
-    /// </summary>
-    public float? Temperature { get; set; }
-
-    /// <summary>
-    /// Maximum tokens for response generation.
-    /// </summary>
-    public int? MaxTokens { get; set; }
-
-    /// <summary>
-    /// Formats temperature as string with invariant culture.
-    /// </summary>
-    public string? GetTemperatureString() =>
-        Temperature?.ToString(CultureInfo.InvariantCulture);
-
-    /// <summary>
-    /// Formats max tokens as string with invariant culture.
-    /// </summary>
-    public string? GetMaxTokensString() =>
-        MaxTokens?.ToString(CultureInfo.InvariantCulture);
-}
-
-/// <summary>
-/// Factory interface for creating IChatClient instances.
-/// </summary>
-public interface IChatClientFactory
-{
-    /// <summary>
-    /// Creates an IChatClient based on the configuration.
-    /// </summary>
-    IChatClient Create(IronHiveConfig config);
-}
-
-/// <summary>
-/// Default implementation of IChatClientFactory.
-/// </summary>
-public class ChatClientFactory : IChatClientFactory
-{
-    public IChatClient Create(IronHiveConfig config)
+    private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
-        return config.Provider.ToLowerInvariant() switch
+        // GpuStack providers (primary)
+        if (config.GpuStack.IsConfigured)
         {
-            "openai" => CreateOpenAIClient(config),
-            "ollama" or "gpustack" => CreateOllamaCompatibleClient(config),
-            _ => throw new NotSupportedException($"Provider '{config.Provider}' is not supported.")
-        };
-    }
+            services.AddSingleton<GpuStackChatClientProvider>(sp =>
+                new GpuStackChatClientProvider(config.GpuStack));
 
-    private static IChatClient CreateOpenAIClient(IronHiveConfig config)
-    {
-        var apiKey = config.ApiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            services.AddSingleton<GpuStackEmbeddingProvider>(sp =>
+                new GpuStackEmbeddingProvider(config.GpuStack));
 
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            throw new InvalidOperationException("OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide it in config.");
+            services.AddSingleton<GpuStackRerankProvider>(sp =>
+                new GpuStackRerankProvider(config.GpuStack));
         }
 
-        var chatClient = new ChatClient(config.Model, apiKey);
-        return chatClient.AsIChatClient();
-    }
-
-    private static IChatClient CreateOllamaCompatibleClient(IronHiveConfig config)
-    {
-        var baseUrl = config.BaseUrl ?? config.Provider switch
+        // LMSupply providers (fallback)
+        if (config.LMSupply.Enabled)
         {
-            "ollama" => "http://localhost:11434",
-            "gpustack" => "http://localhost:8000",
-            _ => throw new InvalidOperationException($"Base URL is required for provider '{config.Provider}'.")
-        };
+            services.AddSingleton<LMSupplyChatClientProvider>(sp =>
+                new LMSupplyChatClientProvider(config.LMSupply));
 
-        // Use OpenAI-compatible endpoint for Ollama/gpustack
-        var openAiClient = new OpenAI.OpenAIClient(
-            credential: new System.ClientModel.ApiKeyCredential(config.ApiKey ?? "not-needed"),
-            options: new OpenAI.OpenAIClientOptions
+            services.AddSingleton<LMSupplyEmbeddingProvider>(sp =>
+                new LMSupplyEmbeddingProvider(config.LMSupply));
+
+            services.AddSingleton<LMSupplyRerankProvider>(sp =>
+                new LMSupplyRerankProvider(config.LMSupply));
+        }
+
+        // Fallback providers (composite)
+        services.AddSingleton<IChatClientProvider>(sp =>
+        {
+            var providers = new List<IChatClientProvider>();
+
+            var gpuStack = sp.GetService<GpuStackChatClientProvider>();
+            if (gpuStack?.IsAvailable == true)
             {
-                Endpoint = new Uri($"{baseUrl.TrimEnd('/')}/v1")
-            });
+                providers.Add(gpuStack);
+            }
 
-        var chatClient = openAiClient.GetChatClient(config.Model);
-        return chatClient.AsIChatClient();
+            var lmSupply = sp.GetService<LMSupplyChatClientProvider>();
+            if (lmSupply is not null && config.LMSupply.Enabled)
+            {
+                providers.Add(lmSupply);
+            }
+
+            if (providers.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No chat providers configured. Set GPUSTACK_* environment variables or enable LMSupply.");
+            }
+
+            return new FallbackChatClientProvider(providers.ToArray());
+        });
+
+        services.AddSingleton<IEmbeddingProvider>(sp =>
+        {
+            var providers = new List<IEmbeddingProvider>();
+
+            var gpuStack = sp.GetService<GpuStackEmbeddingProvider>();
+            if (gpuStack?.IsAvailable == true)
+            {
+                providers.Add(gpuStack);
+            }
+
+            var lmSupply = sp.GetService<LMSupplyEmbeddingProvider>();
+            if (lmSupply is not null && config.LMSupply.Enabled)
+            {
+                providers.Add(lmSupply);
+            }
+
+            if (providers.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No embedding providers configured. Set GPUSTACK_* environment variables or enable LMSupply.");
+            }
+
+            return new FallbackEmbeddingProvider(providers.ToArray());
+        });
+
+        services.AddSingleton<IRerankProvider>(sp =>
+        {
+            var providers = new List<IRerankProvider>();
+
+            var gpuStack = sp.GetService<GpuStackRerankProvider>();
+            if (gpuStack?.IsAvailable == true)
+            {
+                providers.Add(gpuStack);
+            }
+
+            var lmSupply = sp.GetService<LMSupplyRerankProvider>();
+            if (lmSupply is not null && config.LMSupply.Enabled)
+            {
+                providers.Add(lmSupply);
+            }
+
+            if (providers.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No rerank providers configured. Set GPUSTACK_* environment variables or enable LMSupply.");
+            }
+
+            return new FallbackRerankProvider(providers.ToArray());
+        });
     }
 }
+

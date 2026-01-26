@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Agent;
@@ -57,24 +58,27 @@ public class AgentLoop : IAgentLoop
         _history.Add(new ChatMessage(ChatRole.User, prompt));
 
         var chatOptions = CreateChatOptions();
-        var fullResponse = new List<ChatMessage>();
+        var responseBuilder = new StringBuilder();
+        var toolCalls = new List<FunctionCallContent>();
 
         await foreach (var update in _chatClient.GetStreamingResponseAsync(_history, chatOptions, cancellationToken))
         {
-            // Yield text content
+            // Yield and collect text content
             if (!string.IsNullOrEmpty(update.Text))
             {
+                responseBuilder.Append(update.Text);
                 yield return new AgentResponseChunk
                 {
                     TextDelta = update.Text
                 };
             }
 
-            // Yield tool call updates
+            // Yield and collect tool call updates
             if (update.Contents.OfType<FunctionCallContent>().Any())
             {
                 foreach (var functionCall in update.Contents.OfType<FunctionCallContent>())
                 {
+                    toolCalls.Add(functionCall);
                     yield return new AgentResponseChunk
                     {
                         ToolCallDelta = new ToolCallChunk
@@ -88,8 +92,16 @@ public class AgentLoop : IAgentLoop
             }
         }
 
-        // Note: In streaming mode, we need to aggregate the full response
-        // and add it to history. This is handled by the caller or a wrapper.
+        // Add complete assistant response to history for multi-turn conversations
+        var assistantMessage = new ChatMessage(ChatRole.Assistant, responseBuilder.ToString());
+        if (toolCalls.Count > 0)
+        {
+            foreach (var toolCall in toolCalls)
+            {
+                assistantMessage.Contents.Add(toolCall);
+            }
+        }
+        _history.Add(assistantMessage);
     }
 
     private ChatOptions CreateChatOptions()

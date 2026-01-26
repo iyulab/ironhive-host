@@ -1,6 +1,5 @@
 using System.ComponentModel;
-using System.Globalization;
-using IronHive.Cli.Infrastructure;
+using IronHive.Cli.Core.Config;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -50,17 +49,32 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
     {
         var table = new Table()
             .Border(TableBorder.Rounded)
+            .AddColumn("Section")
             .AddColumn("Key")
             .AddColumn("Value");
 
-        table.AddRow("provider", _config.Provider);
-        table.AddRow("model", _config.Model);
-        table.AddRow("api_key", string.IsNullOrEmpty(_config.ApiKey) ? "[grey](not set)[/]" : "[green](set)[/]");
-        table.AddRow("base_url", _config.BaseUrl ?? "[grey](default)[/]");
-        table.AddRow("temperature", _config.Temperature?.ToString(CultureInfo.InvariantCulture) ?? "[grey](default)[/]");
-        table.AddRow("max_tokens", _config.MaxTokens?.ToString(CultureInfo.InvariantCulture) ?? "[grey](default)[/]");
+        // GpuStack configuration
+        table.AddRow("GpuStack", "endpoint", _config.GpuStack.Endpoint ?? "[grey](not set)[/]");
+        table.AddRow("GpuStack", "api_key", string.IsNullOrEmpty(_config.GpuStack.ApiKey) ? "[grey](not set)[/]" : "[green](set)[/]");
+        table.AddRow("GpuStack", "model", _config.GpuStack.Model ?? "[grey](not set)[/]");
+        table.AddRow("GpuStack", "embedding_model", _config.GpuStack.EmbeddingModel ?? "[grey](not set)[/]");
+        table.AddRow("GpuStack", "rerank_model", _config.GpuStack.RerankModel ?? "[grey](not set)[/]");
+        table.AddRow("GpuStack", "configured", _config.GpuStack.IsConfigured ? "[green]Yes[/]" : "[yellow]No[/]");
+
+        // LMSupply configuration
+        table.AddRow("LMSupply", "enabled", _config.LMSupply.Enabled ? "[green]Yes[/]" : "[grey]No[/]");
+        table.AddRow("LMSupply", "embedder_model", _config.LMSupply.EmbedderModel);
+        table.AddRow("LMSupply", "reranker_model", _config.LMSupply.RerankerModel);
+        table.AddRow("LMSupply", "generator_model", _config.LMSupply.GeneratorModel);
 
         AnsiConsole.Write(table);
+
+        // Show environment variable hints
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[bold]Environment Variables:[/]");
+        AnsiConsole.MarkupLine("[grey]  GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, GPUSTACK_MODEL[/]");
+        AnsiConsole.MarkupLine("[grey]  LMSUPPLY_ENABLED, LMSUPPLY_EMBEDDER_MODEL, etc.[/]");
+
         return 0;
     }
 
@@ -71,11 +85,20 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
             ".ironhive");
 
         var globalConfig = Path.Combine(configDir, "config.yaml");
-        var projectConfig = Path.Combine(Environment.CurrentDirectory, ".ironhive", "config.yaml");
+        var envFile = Path.Combine(Environment.CurrentDirectory, ".env");
 
         AnsiConsole.MarkupLine("[bold]Configuration paths:[/]");
-        AnsiConsole.MarkupLine($"  Global:  [blue]{globalConfig}[/]");
-        AnsiConsole.MarkupLine($"  Project: [blue]{projectConfig}[/]");
+        AnsiConsole.MarkupLine($"  Global config:  [blue]{globalConfig}[/]");
+        AnsiConsole.MarkupLine($"  Project .env:   [blue]{envFile}[/]");
+
+        if (File.Exists(envFile))
+        {
+            AnsiConsole.MarkupLine($"  Status:         [green].env found[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"  Status:         [yellow].env not found[/]");
+        }
 
         return 0;
     }

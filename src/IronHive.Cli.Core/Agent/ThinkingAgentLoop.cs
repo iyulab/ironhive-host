@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using IndexThinking.Agents;
 using IndexThinking.Client;
 using IndexThinking.Core;
@@ -72,11 +73,14 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
         _history.Add(new ChatMessage(ChatRole.User, prompt));
 
         var chatOptions = CreateChatOptions();
+        var responseBuilder = new StringBuilder();
+        var toolCalls = new List<FunctionCallContent>();
 
         await foreach (var update in _thinkingClient.GetStreamingResponseAsync(_history, chatOptions, cancellationToken))
         {
             if (!string.IsNullOrEmpty(update.Text))
             {
+                responseBuilder.Append(update.Text);
                 yield return new AgentResponseChunk
                 {
                     TextDelta = update.Text
@@ -87,6 +91,7 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
             {
                 foreach (var functionCall in update.Contents.OfType<FunctionCallContent>())
                 {
+                    toolCalls.Add(functionCall);
                     yield return new AgentResponseChunk
                     {
                         ToolCallDelta = new ToolCallChunk
@@ -99,6 +104,17 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
                 }
             }
         }
+
+        // Add complete assistant response to history for multi-turn conversations
+        var assistantMessage = new ChatMessage(ChatRole.Assistant, responseBuilder.ToString());
+        if (toolCalls.Count > 0)
+        {
+            foreach (var toolCall in toolCalls)
+            {
+                assistantMessage.Contents.Add(toolCall);
+            }
+        }
+        _history.Add(assistantMessage);
     }
 
     private ChatOptions CreateChatOptions()
