@@ -45,6 +45,6 @@ public sealed class AgentLoopFactory : IAgentLoopFactory
         };
 
         // Create ThinkingAgentLoop with IndexThinking support
-        return new ThinkingAgentLoop(chatClient, _turnManager, agentOptions);
+        return new ThinkingAgentLoop(chatClient, _turnManager, agentOptions, options.ThinkingOptions);
     }
 }

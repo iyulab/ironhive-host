@@ -1,3 +1,5 @@
+using IndexThinking.Client;
+
 namespace IronHive.Cli.Core.Agent;
 
 /// <summary>
@@ -48,4 +50,9 @@ public record AgentLoopFactoryOptions
     /// Maximum tokens for response generation.
     /// </summary>
     public int? MaxTokens { get; init; }
+
+    /// <summary>
+    /// Options for thinking/reasoning extraction. If null, uses defaults.
+    /// </summary>
+    public ThinkingChatClientOptions? ThinkingOptions { get; init; }
 }
