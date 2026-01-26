@@ -30,6 +30,9 @@
     <PackageReference Include="LMSupply.Embedder" />
     <PackageReference Include="LMSupply.Reranker" />
     <PackageReference Include="LMSupply.Generator" />
+
+    <!-- IndexThinking (token management, reasoning) -->
+    <PackageReference Include="IndexThinking" />
   </ItemGroup>
 
 </Project>

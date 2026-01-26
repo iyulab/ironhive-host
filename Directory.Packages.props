@@ -41,6 +41,9 @@
     <PackageVersion Include="LMSupply.Reranker" Version="0.10.0" />
     <PackageVersion Include="LMSupply.Generator" Version="0.10.0" />
 
+    <!-- IndexThinking (token management, reasoning extraction) -->
+    <PackageVersion Include="IndexThinking" Version="0.15.0" />
+
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />

@@ -39,3 +39,6 @@ logs/
 appsettings.local.json
 .env
 .env.local
+
+# Local NuGet packages
+local-packages/

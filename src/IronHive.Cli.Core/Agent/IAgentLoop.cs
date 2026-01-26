@@ -42,6 +42,27 @@ public record AgentResponse
     /// Token usage statistics.
     /// </summary>
     public TokenUsage? Usage { get; init; }
+
+    /// <summary>
+    /// Thinking/reasoning content extracted from the response (if available).
+    /// </summary>
+    public ThinkingContent? ThinkingContent { get; init; }
+}
+
+/// <summary>
+/// Thinking/reasoning content from the LLM's chain-of-thought process.
+/// </summary>
+public record ThinkingContent
+{
+    /// <summary>
+    /// The thinking/reasoning text content.
+    /// </summary>
+    public string? Content { get; init; }
+
+    /// <summary>
+    /// Estimated token count for the thinking content.
+    /// </summary>
+    public int? TokenCount { get; init; }
 }
 
 /// <summary>
