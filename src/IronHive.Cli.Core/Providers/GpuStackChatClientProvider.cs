@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.Collections.Concurrent;
 using IronHive.Cli.Core.Config;
 using Microsoft.Extensions.AI;
 using OpenAI;
@@ -11,7 +12,7 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class GpuStackChatClientProvider : IChatClientProvider
 {
     private readonly GpuStackConfig _config;
-    private readonly Dictionary<string, IChatClient> _clientCache = new();
+    private readonly ConcurrentDictionary<string, IChatClient> _clientCache = new();
     private bool _disposed;
 
     public GpuStackChatClientProvider(GpuStackConfig config)
@@ -38,21 +39,17 @@ public sealed class GpuStackChatClientProvider : IChatClientProvider
 
         var model = modelOverride ?? _config.Model!;
 
-        if (!_clientCache.TryGetValue(model, out var chatClient))
+        return _clientCache.GetOrAdd(model, m =>
         {
             var endpoint = new Uri(_config.Endpoint!);
             var credential = new ApiKeyCredential(_config.ApiKey!);
             var options = new OpenAIClientOptions { Endpoint = endpoint };
 
             var openAiClient = new OpenAIClient(credential, options);
-            chatClient = openAiClient
-                .GetChatClient(model)
+            return openAiClient
+                .GetChatClient(m)
                 .AsIChatClient();
-
-            _clientCache[model] = chatClient;
-        }
-
-        return chatClient;
+        });
     }
 
     /// <inheritdoc />

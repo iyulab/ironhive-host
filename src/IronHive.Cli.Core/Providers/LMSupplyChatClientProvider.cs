@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using IronHive.Cli.Core.Config;
 using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
@@ -12,9 +13,10 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class LMSupplyChatClientProvider : IChatClientProvider
 {
     private readonly LMSupplyConfig _config;
-    private readonly Dictionary<string, (IGeneratorModel generator, LMSupplyChatClient client)> _clientCache = new();
+    private readonly ConcurrentDictionary<string, (IGeneratorModel generator, LMSupplyChatClient client)> _clientCache = new();
+    private readonly SemaphoreSlim _initLock = new(1, 1);
     private string? _defaultModel;
-    private bool _initialized;
+    private volatile bool _initialized;
     private bool _disposed;
 
     public LMSupplyChatClientProvider(LMSupplyConfig config)
@@ -34,19 +36,35 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
     /// <inheritdoc />
     public IChatClient GetChatClient(string? modelOverride)
     {
+        // Lazy initialization - automatically initialize if not done
         if (!_initialized)
         {
-            throw new InvalidOperationException("Provider not initialized. Call CheckHealthAsync first.");
+            EnsureInitializedAsync(CancellationToken.None).GetAwaiter().GetResult();
         }
 
         var model = modelOverride ?? _defaultModel!;
 
+        // Try to get from cache, or load dynamically
         if (!_clientCache.TryGetValue(model, out var cached))
         {
-            throw new InvalidOperationException($"Model '{model}' not initialized. Only default model is available.");
+            // Load new model dynamically
+            cached = LoadModelSync(model);
         }
 
         return cached.client;
+    }
+
+    /// <summary>
+    /// Synchronously loads a model (used when GetChatClient is called with a new model).
+    /// </summary>
+    private (IGeneratorModel generator, LMSupplyChatClient client) LoadModelSync(string modelId)
+    {
+        return _clientCache.GetOrAdd(modelId, id =>
+        {
+            var generator = BuildGeneratorAsync(id, CancellationToken.None).GetAwaiter().GetResult();
+            var client = new LMSupplyChatClient(generator);
+            return (generator, client);
+        });
     }
 
     /// <inheritdoc />
@@ -75,14 +93,28 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
             return;
         }
 
-        var modelId = _config.GeneratorModel;
-        _defaultModel = modelId;
+        await _initLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Double-check after acquiring lock
+            if (_initialized)
+            {
+                return;
+            }
 
-        var generator = await BuildGeneratorAsync(modelId, cancellationToken);
-        var chatClient = new LMSupplyChatClient(generator);
+            var modelId = _config.GeneratorModel;
+            _defaultModel = modelId;
 
-        _clientCache[modelId] = (generator, chatClient);
-        _initialized = true;
+            var generator = await BuildGeneratorAsync(modelId, cancellationToken);
+            var chatClient = new LMSupplyChatClient(generator);
+
+            _clientCache[modelId] = (generator, chatClient);
+            _initialized = true;
+        }
+        finally
+        {
+            _initLock.Release();
+        }
     }
 
     private static async Task<IGeneratorModel> BuildGeneratorAsync(string modelId, CancellationToken cancellationToken)
@@ -119,6 +151,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
         }
 
         _clientCache.Clear();
+        _initLock.Dispose();
         _disposed = true;
     }
 }

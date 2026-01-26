@@ -137,5 +137,13 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
             return 1;
         }
+        finally
+        {
+            // Dispose agent loop if it implements IAsyncDisposable
+            if (agentLoop is IAsyncDisposable disposable)
+            {
+                await disposable.DisposeAsync();
+            }
+        }
     }
 }

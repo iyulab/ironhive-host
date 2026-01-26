@@ -49,29 +49,40 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             Model = settings.Model
         });
 
-        // Show configuration info
-        if (settings.Model is not null || settings.Provider is not null)
+        try
         {
-            var info = new List<string>();
-            if (settings.Provider is not null)
+            // Show configuration info
+            if (settings.Model is not null || settings.Provider is not null)
             {
-                info.Add($"provider: [cyan]{settings.Provider}[/]");
+                var info = new List<string>();
+                if (settings.Provider is not null)
+                {
+                    info.Add($"provider: [cyan]{settings.Provider}[/]");
+                }
+                if (settings.Model is not null)
+                {
+                    info.Add($"model: [cyan]{settings.Model}[/]");
+                }
+                AnsiConsole.MarkupLine($"[grey]Using {string.Join(", ", info)}[/]");
             }
-            if (settings.Model is not null)
-            {
-                info.Add($"model: [cyan]{settings.Model}[/]");
-            }
-            AnsiConsole.MarkupLine($"[grey]Using {string.Join(", ", info)}[/]");
-        }
 
-        // Single prompt mode
-        if (!string.IsNullOrWhiteSpace(settings.Prompt))
+            // Single prompt mode
+            if (!string.IsNullOrWhiteSpace(settings.Prompt))
+            {
+                return await RunSinglePromptAsync(settings.Prompt, settings, agentLoop);
+            }
+
+            // Interactive mode
+            return await RunInteractiveAsync(settings, agentLoop);
+        }
+        finally
         {
-            return await RunSinglePromptAsync(settings.Prompt, settings, agentLoop);
+            // Dispose agent loop if it implements IAsyncDisposable
+            if (agentLoop is IAsyncDisposable disposable)
+            {
+                await disposable.DisposeAsync();
+            }
         }
-
-        // Interactive mode
-        return await RunInteractiveAsync(settings, agentLoop);
     }
 
     private static async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop)

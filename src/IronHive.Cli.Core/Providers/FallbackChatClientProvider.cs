@@ -9,7 +9,8 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class FallbackChatClientProvider : IChatClientProvider
 {
     private readonly IChatClientProvider[] _providers;
-    private IChatClientProvider? _activeProvider;
+    private readonly object _lock = new();
+    private volatile IChatClientProvider? _activeProvider;
 
     public FallbackChatClientProvider(params IChatClientProvider[] providers)
     {
@@ -33,17 +34,32 @@ public sealed class FallbackChatClientProvider : IChatClientProvider
     /// <inheritdoc />
     public IChatClient GetChatClient(string? modelOverride)
     {
-        if (_activeProvider != null)
+        var active = _activeProvider;
+        if (active != null)
         {
-            return _activeProvider.GetChatClient(modelOverride);
+            return active.GetChatClient(modelOverride);
         }
 
-        foreach (var provider in _providers)
+        // Auto-initialize: try to find and initialize a provider
+        lock (_lock)
         {
-            if (provider.IsAvailable)
+            // Double-check after lock
+            if (_activeProvider != null)
             {
-                _activeProvider = provider;
-                return provider.GetChatClient(modelOverride);
+                return _activeProvider.GetChatClient(modelOverride);
+            }
+
+            foreach (var provider in _providers)
+            {
+                if (provider.IsAvailable)
+                {
+                    // Try to initialize the provider
+                    if (provider.CheckHealthAsync(CancellationToken.None).GetAwaiter().GetResult())
+                    {
+                        _activeProvider = provider;
+                        return provider.GetChatClient(modelOverride);
+                    }
+                }
             }
         }
 
