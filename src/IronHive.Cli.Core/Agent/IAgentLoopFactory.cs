@@ -55,4 +55,9 @@ public record AgentLoopFactoryOptions
     /// Options for thinking/reasoning extraction. If null, uses defaults.
     /// </summary>
     public ThinkingChatClientOptions? ThinkingOptions { get; init; }
+
+    /// <summary>
+    /// Working directory for built-in tools. If null, uses current directory.
+    /// </summary>
+    public string? WorkingDirectory { get; init; }
 }

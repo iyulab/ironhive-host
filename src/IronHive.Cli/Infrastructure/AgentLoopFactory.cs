@@ -2,6 +2,7 @@ using IndexThinking.Agents;
 using IndexThinking.Client;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Providers;
+using IronHive.Cli.Core.Tools;
 
 namespace IronHive.Cli.Infrastructure;
 
@@ -36,12 +37,15 @@ public sealed class AgentLoopFactory : IAgentLoopFactory
             ? _clientFactory.Create(options.Provider, options.Model)
             : _clientFactory.Create(options.Model);
 
-        // Create agent options
+        // Create agent options with built-in tools
+        var tools = BuiltInTools.GetAll(options.WorkingDirectory ?? Directory.GetCurrentDirectory());
+
         var agentOptions = new IronHive.Cli.Core.Agent.AgentOptions
         {
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,
             Temperature = options.Temperature ?? DefaultTemperature,
-            MaxTokens = options.MaxTokens ?? DefaultMaxTokens
+            MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
+            Tools = tools
         };
 
         // Create ThinkingAgentLoop with IndexThinking support
