@@ -36,6 +36,7 @@
 
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageReference Include="MemoryIndexer" />
+    <PackageReference Include="MemoryIndexer.Sdk" />
   </ItemGroup>
 
 </Project>
