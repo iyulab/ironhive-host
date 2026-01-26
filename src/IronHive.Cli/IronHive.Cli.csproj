@@ -5,10 +5,10 @@
     <AssemblyName>ironhive</AssemblyName>
     <Description>IronHive CLI - Universal CLI Agent Core</Description>
 
-    <!-- Native AOT support -->
-    <PublishAot>true</PublishAot>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
+    <!-- Native AOT support (disabled for now - Spectre.Console.Cli doesn't fully support AOT) -->
+    <PublishAot>false</PublishAot>
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- <TrimMode>full</TrimMode> -->
     <InvariantGlobalization>true</InvariantGlobalization>
 
     <!-- Single file deployment -->
