@@ -174,9 +174,9 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 | P1-06 | ~~내장 도구: Write~~ | ✅ 파일 쓰기 + **DiffPlex 컬러 diff** | P1-04 | [ref.md#2](../dev-docs/ref.md) |
 | P1-07 | ~~내장 도구: Shell~~ | ✅ 명령 실행 (Process 기반, 샌드박싱) | P1-04 | [research-02#6.1](./research/research-02.md) |
 | P1-08 | ~~내장 도구: Glob/Grep~~ | ✅ **MS.Ext.FileSystemGlobbing** 사용 | P1-04 | [ref.md#3](../dev-docs/ref.md) |
-| P1-09 | 스트리밍 출력 | IAsyncEnumerable + Spectre.Console | P1-02 | - |
+| P1-09 | ~~스트리밍 출력~~ | ✅ IAsyncEnumerable + Console.Write 실시간 출력 | P1-02 | - |
 | P1-10 | 진행률 표시 | 토큰 사용량, 예상 비용 (**TokenMeter** 서브모듈) | P1-09 | [ref.md#5](../dev-docs/ref.md), [TokenMeter](https://github.com/iyulab/TokenMeter) |
-| P1-11 | 인터럽트 처리 | Ctrl+C graceful shutdown | P1-02 | [research-01#2.2](./research/research-01.md) |
+| P1-11 | ~~인터럽트 처리~~ | ✅ Ctrl+C graceful shutdown, per-request cancellation | P1-02 | [research-01#2.2](./research/research-01.md) |
 | P1-12 | ~~단일 명령 모드~~ | ✅ `ironhive -p "prompt"` 지원 | P1-02 | - |
 | P1-13 | 🧪 에이전트 루프 단위 테스트 | MockChatClient로 도구 호출 시퀀스 검증 | P0-10, P1-02 | - |
 | P1-14 | ~~🧪 도구 실행 테스트~~ | ✅ 각 내장 도구의 정상/에러 케이스 (11 tests) | P1-05~P1-08 | - |
@@ -195,9 +195,9 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 - ⏳ **TokenMeter/ToolCallParser 서브모듈 통합**
 
 ### 진행 상황
-- **완료**: P1-01~P1-08, P1-12, P1-14 (10/18 태스크)
+- **완료**: P1-01~P1-09, P1-11, P1-12, P1-14 (12/18 태스크)
 - **남은 작업**:
-  - P1-09~P1-11: 스트리밍, 진행률, 인터럽트
+  - P1-10: 진행률 표시 (TokenMeter 의존)
   - P1-13, P1-15: 에이전트 루프 테스트, 시뮬레이션
   - P1-16~P1-18: 서브모듈 개발 및 통합
 
@@ -394,9 +394,9 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 ```
 v0.1.0 ─── Phase 0: 프로젝트 초기화 + 테스트 인프라     ✅ 완료
    │
-v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  🔄 진행중 (56%)
-   │       └── P1-01~P1-08,P1-12,P1-14 완료 (10/18)
-   │       └── 남음: P1-09~P1-11 (UX), P1-13,P1-15 (테스트), P1-16~P1-18 (서브모듈)
+v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  🔄 진행중 (67%)
+   │       └── P1-01~P1-09, P1-11, P1-12, P1-14 완료 (12/18)
+   │       └── 남음: P1-10 (진행률), P1-13,P1-15 (테스트), P1-16~P1-18 (서브모듈)
    │
 v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ⏳ 대기
    │

@@ -38,6 +38,10 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("--show-thinking")]
         [Description("Show thinking/reasoning content from the model")]
         public bool ShowThinking { get; init; }
+
+        [CommandOption("--no-stream")]
+        [Description("Disable streaming output (wait for complete response)")]
+        public bool NoStream { get; init; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
@@ -66,14 +70,23 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 AnsiConsole.MarkupLine($"[grey]Using {string.Join(", ", info)}[/]");
             }
 
+            // Set up Ctrl+C handler for graceful shutdown
+            using var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (_, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+                AnsiConsole.MarkupLine("\n[yellow]Interrupting...[/]");
+            };
+
             // Single prompt mode
             if (!string.IsNullOrWhiteSpace(settings.Prompt))
             {
-                return await RunSinglePromptAsync(settings.Prompt, settings, agentLoop);
+                return await RunSinglePromptAsync(settings.Prompt, settings, agentLoop, cts.Token);
             }
 
             // Interactive mode
-            return await RunInteractiveAsync(settings, agentLoop);
+            return await RunInteractiveAsync(settings, agentLoop, cts.Token);
         }
         finally
         {
@@ -85,49 +98,119 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
-    private static async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop)
+    private static async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken = default)
     {
         try
         {
-            AnsiConsole.MarkupLine("[grey]Running prompt...[/]");
-
-            var response = await agentLoop.RunAsync(prompt);
-
-            // Show thinking content if available and requested
-            if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+            // Non-streaming mode
+            if (settings.NoStream)
             {
-                AnsiConsole.WriteLine();
-                AnsiConsole.Write(new Panel(Markup.Escape(response.ThinkingContent.Content))
-                    .Header("[yellow]Thinking[/]")
-                    .Border(BoxBorder.Rounded)
-                    .BorderColor(Color.Yellow));
-
-                if (response.ThinkingContent.TokenCount.HasValue)
-                {
-                    AnsiConsole.MarkupLine($"[grey]Thinking tokens: {response.ThinkingContent.TokenCount.Value}[/]");
-                }
+                return await RunSinglePromptNonStreamingAsync(prompt, settings, agentLoop, cancellationToken);
             }
 
+            // Streaming mode (default)
+            return await RunSinglePromptStreamingAsync(prompt, settings, agentLoop, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
             AnsiConsole.WriteLine();
-            AnsiConsole.Write(new Panel(response.Content)
-                .Border(BoxBorder.Rounded)
-                .BorderColor(Color.Blue));
-
-            if (settings.ShowTokens && response.Usage is not null)
-            {
-                AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
-            }
-
-            return 0;
+            AnsiConsole.MarkupLine("[yellow]Cancelled.[/]");
+            return 130; // Standard exit code for Ctrl+C
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]Error: {ex.Message}[/]");
+            AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(ex.Message)}[/]");
             return 1;
         }
     }
 
-    private static async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop)
+    private static async Task<int> RunSinglePromptNonStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
+    {
+        AgentResponse response;
+
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .SpinnerStyle(Style.Parse("blue"))
+            .StartAsync("Thinking...", async ctx =>
+            {
+                response = await agentLoop.RunAsync(prompt, cancellationToken);
+            });
+
+        response = await agentLoop.RunAsync(prompt, cancellationToken);
+
+        // Show thinking content if available and requested
+        if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(new Panel(Markup.Escape(response.ThinkingContent.Content))
+                .Header("[yellow]Thinking[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderColor(Color.Yellow));
+
+            if (response.ThinkingContent.TokenCount.HasValue)
+            {
+                AnsiConsole.MarkupLine($"[grey]Thinking tokens: {response.ThinkingContent.TokenCount.Value}[/]");
+            }
+        }
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Panel(response.Content)
+            .Border(BoxBorder.Rounded)
+            .BorderColor(Color.Blue));
+
+        if (settings.ShowTokens && response.Usage is not null)
+        {
+            AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
+        }
+
+        return 0;
+    }
+
+    private static async Task<int> RunSinglePromptStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
+    {
+        AnsiConsole.WriteLine();
+        AnsiConsole.Markup("[blue]");
+
+        var hasOutput = false;
+        var toolCallsInProgress = new Dictionary<string, string>();
+
+        await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
+        {
+            // Handle text output
+            if (!string.IsNullOrEmpty(chunk.TextDelta))
+            {
+                if (!hasOutput)
+                {
+                    hasOutput = true;
+                }
+                // Write text directly without markup escaping for real-time feel
+                Console.Write(chunk.TextDelta);
+            }
+
+            // Handle tool calls
+            if (chunk.ToolCallDelta is not null)
+            {
+                var toolCall = chunk.ToolCallDelta;
+                if (!string.IsNullOrEmpty(toolCall.NameDelta))
+                {
+                    if (hasOutput)
+                    {
+                        AnsiConsole.WriteLine();
+                    }
+                    AnsiConsole.MarkupLine($"[/][grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/][blue]");
+                    toolCallsInProgress[toolCall.Id] = toolCall.NameDelta;
+                    hasOutput = true;
+                }
+            }
+        }
+
+        AnsiConsole.Markup("[/]"); // Close blue markup
+        AnsiConsole.WriteLine();
+
+        return 0;
+    }
+
+    private static async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(new FigletText("IronHive")
             .Color(Color.Yellow));
@@ -137,21 +220,28 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         {
             AnsiConsole.MarkupLine("[grey]Thinking mode: [yellow]enabled[/][/]");
         }
+        if (!settings.NoStream)
+        {
+            AnsiConsole.MarkupLine("[grey]Streaming: [green]enabled[/] (use --no-stream to disable)[/]");
+        }
         AnsiConsole.WriteLine();
 
-        using var cts = new CancellationTokenSource();
+        // Create a linked token source for per-request cancellation
+        using var requestCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        Console.CancelKeyPress += (_, e) =>
+        while (!cancellationToken.IsCancellationRequested)
         {
-            e.Cancel = true;
-            cts.Cancel();
-        };
-
-        while (!cts.Token.IsCancellationRequested)
-        {
-            var prompt = AnsiConsole.Prompt(
-                new TextPrompt<string>("[green]>[/] ")
-                    .AllowEmpty());
+            string prompt;
+            try
+            {
+                prompt = AnsiConsole.Prompt(
+                    new TextPrompt<string>("[green]>[/] ")
+                        .AllowEmpty());
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
 
             if (string.IsNullOrWhiteSpace(prompt))
             {
@@ -166,39 +256,25 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
             try
             {
-                var response = await agentLoop.RunAsync(prompt, cts.Token);
-
-                // Show thinking content if available and requested
-                if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+                if (settings.NoStream)
                 {
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.Write(new Panel(Markup.Escape(response.ThinkingContent.Content))
-                        .Header("[yellow]Thinking[/]")
-                        .Border(BoxBorder.Rounded)
-                        .BorderColor(Color.Yellow)
-                        .Collapse());
-
-                    if (response.ThinkingContent.TokenCount.HasValue)
-                    {
-                        AnsiConsole.MarkupLine($"[grey]Thinking tokens: {response.ThinkingContent.TokenCount.Value}[/]");
-                    }
+                    // Non-streaming mode
+                    var response = await agentLoop.RunAsync(prompt, cancellationToken);
+                    DisplayNonStreamingResponse(response, settings);
                 }
-
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine($"[blue]{Markup.Escape(response.Content)}[/]");
-                AnsiConsole.WriteLine();
-
-                if (settings.ShowTokens && response.Usage is not null)
+                else
                 {
-                    AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
+                    // Streaming mode
+                    await DisplayStreamingResponseAsync(agentLoop, prompt, settings, cancellationToken);
                 }
-
-                AnsiConsole.WriteLine();
             }
             catch (OperationCanceledException)
             {
-                AnsiConsole.MarkupLine("[yellow]Cancelled.[/]");
-                break;
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("[yellow]Request cancelled. Ready for next input.[/]");
+                AnsiConsole.WriteLine();
+                // Continue the loop - don't exit on single request cancellation
+                continue;
             }
             catch (Exception ex)
             {
@@ -208,5 +284,76 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
         AnsiConsole.MarkupLine("[grey]Goodbye![/]");
         return 0;
+    }
+
+    private static void DisplayNonStreamingResponse(AgentResponse response, Settings settings)
+    {
+        // Show thinking content if available and requested
+        if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(new Panel(Markup.Escape(response.ThinkingContent.Content))
+                .Header("[yellow]Thinking[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderColor(Color.Yellow)
+                .Collapse());
+
+            if (response.ThinkingContent.TokenCount.HasValue)
+            {
+                AnsiConsole.MarkupLine($"[grey]Thinking tokens: {response.ThinkingContent.TokenCount.Value}[/]");
+            }
+        }
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"[blue]{Markup.Escape(response.Content)}[/]");
+        AnsiConsole.WriteLine();
+
+        if (settings.ShowTokens && response.Usage is not null)
+        {
+            AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
+        }
+
+        AnsiConsole.WriteLine();
+    }
+
+    private static async Task DisplayStreamingResponseAsync(IAgentLoop agentLoop, string prompt, Settings settings, CancellationToken cancellationToken)
+    {
+        AnsiConsole.WriteLine();
+        AnsiConsole.Markup("[blue]");
+
+        var hasOutput = false;
+
+        await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
+        {
+            // Handle text output
+            if (!string.IsNullOrEmpty(chunk.TextDelta))
+            {
+                if (!hasOutput)
+                {
+                    hasOutput = true;
+                }
+                // Write text directly for real-time streaming
+                Console.Write(chunk.TextDelta);
+            }
+
+            // Handle tool calls
+            if (chunk.ToolCallDelta is not null)
+            {
+                var toolCall = chunk.ToolCallDelta;
+                if (!string.IsNullOrEmpty(toolCall.NameDelta))
+                {
+                    if (hasOutput)
+                    {
+                        AnsiConsole.WriteLine();
+                    }
+                    AnsiConsole.MarkupLine($"[/][grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/][blue]");
+                    hasOutput = true;
+                }
+            }
+        }
+
+        AnsiConsole.Markup("[/]"); // Close blue markup
+        AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine();
     }
 }
