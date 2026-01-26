@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Agent;
@@ -85,7 +86,9 @@ public class AgentLoop : IAgentLoop
                         {
                             Id = functionCall.CallId,
                             NameDelta = functionCall.Name,
-                            ArgumentsDelta = functionCall.Arguments?.ToString()
+                            ArgumentsDelta = functionCall.Arguments is not null
+                                ? JsonSerializer.Serialize(functionCall.Arguments)
+                                : null
                         }
                     };
                 }
@@ -125,7 +128,9 @@ public class AgentLoop : IAgentLoop
                 results.Add(new ToolCallResult
                 {
                     ToolName = content.Name,
-                    Arguments = content.Arguments?.ToString() ?? "{}",
+                    Arguments = content.Arguments is not null
+                        ? JsonSerializer.Serialize(content.Arguments)
+                        : "{}",
                     Result = string.Empty, // Will be filled after execution
                     Success = true
                 });

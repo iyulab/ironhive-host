@@ -144,4 +144,163 @@ public class AgentLoopTests
         await Assert.ThrowsAsync<OperationCanceledException>(
             () => agentLoop.RunAsync("Test", cts.Token));
     }
+
+    [Fact]
+    public async Task RunAsync_WithToolCall_ExtractsToolCallInfo()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueToolCallResponse("read_file", """{"path": "test.txt"}""", "Reading file...");
+
+        var agentLoop = new AgentLoop(mockClient);
+
+        // Act
+        var response = await agentLoop.RunAsync("Read the test.txt file");
+
+        // Assert
+        Assert.Single(response.ToolCalls);
+        Assert.Equal("read_file", response.ToolCalls[0].ToolName);
+        Assert.Contains("test.txt", response.ToolCalls[0].Arguments);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithMultipleToolCalls_ExtractsAllToolCalls()
+    {
+        // Arrange - Create a response with multiple tool calls
+        var mockClient = new MockChatClient();
+
+        // First enqueue a tool call, then a final response
+        mockClient.EnqueueToolCallResponse("list_directory", """{"path": "."}""");
+        mockClient.EnqueueToolCallResponse("read_file", """{"path": "README.md"}""");
+
+        var agentLoop = new AgentLoop(mockClient);
+
+        // Act - First call returns tool call
+        var response1 = await agentLoop.RunAsync("List directory and read README");
+
+        // Assert
+        Assert.Single(response1.ToolCalls);
+        Assert.Equal("list_directory", response1.ToolCalls[0].ToolName);
+    }
+
+    [Fact]
+    public async Task RunStreamingAsync_YieldsTextChunks()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("Hello, how can I help you today?");
+
+        var agentLoop = new AgentLoop(mockClient);
+
+        // Act
+        var chunks = new List<AgentResponseChunk>();
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Hello"))
+        {
+            chunks.Add(chunk);
+        }
+
+        // Assert
+        Assert.NotEmpty(chunks);
+        var textChunks = chunks.Where(c => c.TextDelta != null).ToList();
+        Assert.NotEmpty(textChunks);
+
+        // Verify all text is captured
+        var fullText = string.Join("", textChunks.Select(c => c.TextDelta));
+        Assert.Equal("Hello, how can I help you today?", fullText);
+    }
+
+    [Fact]
+    public async Task RunStreamingAsync_WithToolCall_YieldsToolCallChunk()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueToolCallResponse("write_file", """{"path": "output.txt", "content": "Hello"}""");
+
+        var agentLoop = new AgentLoop(mockClient);
+
+        // Act
+        var chunks = new List<AgentResponseChunk>();
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Write hello to output.txt"))
+        {
+            chunks.Add(chunk);
+        }
+
+        // Assert
+        var toolCallChunks = chunks.Where(c => c.ToolCallDelta != null).ToList();
+        Assert.NotEmpty(toolCallChunks);
+        Assert.Equal("write_file", toolCallChunks[0].ToolCallDelta!.NameDelta);
+    }
+
+    [Fact]
+    public async Task RunStreamingAsync_UpdatesHistory()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("Streaming response");
+
+        var agentLoop = new AgentLoop(mockClient);
+
+        // Act
+        await foreach (var _ in agentLoop.RunStreamingAsync("Test prompt"))
+        {
+            // Consume all chunks
+        }
+
+        // Assert - History should be updated after streaming completes
+        Assert.Equal(2, agentLoop.History.Count); // User + Assistant
+        Assert.Equal(ChatRole.User, agentLoop.History[0].Role);
+        Assert.Equal("Test prompt", agentLoop.History[0].Text);
+        Assert.Equal(ChatRole.Assistant, agentLoop.History[1].Role);
+    }
+
+    [Fact]
+    public async Task RunStreamingAsync_WithCancellation_StopsStreaming()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("This is a long response that should be cancelled");
+
+        var agentLoop = new AgentLoop(mockClient);
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        var chunks = new List<AgentResponseChunk>();
+        var enumerator = agentLoop.RunStreamingAsync("Test", cts.Token).GetAsyncEnumerator();
+
+        // Get first chunk then cancel
+        if (await enumerator.MoveNextAsync())
+        {
+            chunks.Add(enumerator.Current);
+            cts.Cancel();
+        }
+
+        // Try to get more - should throw (TaskCanceledException is a subclass of OperationCanceledException)
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            async () => await enumerator.MoveNextAsync());
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOptions_UsesProvidedSettings()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("Response");
+
+        var options = new AgentOptions
+        {
+            Temperature = 0.5f,
+            MaxTokens = 1000,
+            SystemPrompt = "Be concise"
+        };
+
+        var agentLoop = new AgentLoop(mockClient, options);
+
+        // Act
+        await agentLoop.RunAsync("Test");
+
+        // Assert - Verify system prompt was included
+        var history = agentLoop.History;
+        Assert.Equal(3, history.Count);
+        Assert.Equal("Be concise", history[0].Text);
+    }
 }
