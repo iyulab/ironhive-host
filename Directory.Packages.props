@@ -13,12 +13,12 @@
     <PackageVersion Include="OpenAI" Version="2.8.0" />
 
     <!-- DI & Hosting (.NET 10) -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
 
     <!-- CLI & Console -->
     <PackageVersion Include="Spectre.Console" Version="0.50.0" />
@@ -43,6 +43,9 @@
 
     <!-- IndexThinking (token management, reasoning extraction) -->
     <PackageVersion Include="IndexThinking" Version="0.15.0" />
+
+    <!-- MemoryIndexer (conversation memory, session management) -->
+    <PackageVersion Include="MemoryIndexer" Version="0.13.0" />
 
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />

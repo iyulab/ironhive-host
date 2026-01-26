@@ -33,6 +33,9 @@
 
     <!-- IndexThinking (token management, reasoning) -->
     <PackageReference Include="IndexThinking" />
+
+    <!-- MemoryIndexer (conversation memory, session management) -->
+    <PackageReference Include="MemoryIndexer" />
   </ItemGroup>
 
 </Project>

@@ -109,13 +109,14 @@ services.AddSingleton<IChatClient>(sp =>
 
 ### 태스크
 
-| ID | 태스크 | 설명 |
-|----|--------|------|
-| MI-01 | memory-indexer 패키지 추가 | nuget 참조 |
-| MI-02 | IMemoryService DI 등록 | 서비스 설정 |
-| MI-03 | 세션 관리 구현 | 시작/종료/재개 |
-| MI-04 | 컨텍스트 압축 | 92% 임계치 자동 압축 |
-| MI-05 | ~/.ironhive/memory.db | SQLite 저장소 |
+| ID | 태스크 | 설명 | 상태 |
+|----|--------|------|------|
+| MI-01 | memory-indexer 패키지 추가 | nuget 참조 | ✅ 완료 |
+| MI-02 | 어댑터 클래스 구현 | IEmbeddingService, ITextCompletionService | ✅ 완료 |
+| MI-03 | ISessionMemoryService 인터페이스 | 세션 메모리 서비스 | ✅ 완료 |
+| MI-04 | 세션 관리 구현 | 시작/종료/재개 | ⏳ 대기 |
+| MI-05 | 컨텍스트 압축 | 92% 임계치 자동 압축 | ⏳ 대기 |
+| MI-06 | ~/.ironhive/memory.db | SQLite 저장소 | ⏳ 대기 |
 
 ## Phase 3: FileFlux 통합 (v0.4.0)
 
