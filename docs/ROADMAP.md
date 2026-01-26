@@ -178,9 +178,9 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 | P1-10 | 진행률 표시 | 토큰 사용량, 예상 비용 (**TokenMeter** 서브모듈) | P1-09 | [ref.md#5](../dev-docs/ref.md), [TokenMeter](https://github.com/iyulab/TokenMeter) |
 | P1-11 | ~~인터럽트 처리~~ | ✅ Ctrl+C graceful shutdown, per-request cancellation | P1-02 | [research-01#2.2](./research/research-01.md) |
 | P1-12 | ~~단일 명령 모드~~ | ✅ `ironhive -p "prompt"` 지원 | P1-02 | - |
-| P1-13 | 🧪 에이전트 루프 단위 테스트 | MockChatClient로 도구 호출 시퀀스 검증 | P0-10, P1-02 | - |
+| P1-13 | ~~🧪 에이전트 루프 단위 테스트~~ | ✅ MockChatClient로 도구 호출/스트리밍 검증 (14 tests) | P0-10, P1-02 | - |
 | P1-14 | ~~🧪 도구 실행 테스트~~ | ✅ 각 내장 도구의 정상/에러 케이스 (11 tests) | P1-05~P1-08 | - |
-| P1-15 | 🧪 시뮬레이션 시나리오 | 파일 생성 → 수정 → 삭제 전체 흐름 | P1-13, P1-14 | - |
+| P1-15 | ~~🧪 시뮬레이션 시나리오~~ | ✅ 멀티턴 대화, 에러 복구, 도구 체인 테스트 (11 tests) | P1-13, P1-14 | - |
 | P1-16 | 📦 TokenMeter 서브모듈 개발 | ITokenCounter, ICostCalculator, IUsageTracker 구현 | - | [TokenMeter](https://github.com/iyulab/TokenMeter) |
 | P1-17 | 📦 ToolCallParser 서브모듈 개발 | 멀티 프로바이더 tool_call 파싱, 정규화 | - | [ToolCallParser](https://github.com/iyulab/ToolCallParser) |
 | P1-18 | 📦 서브모듈 통합 | TokenMeter, ToolCallParser를 ironhive-cli에 프로젝트 참조로 통합 | P1-16, P1-17 | - |
@@ -191,14 +191,18 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 - ✅ **gpustack/로컬 모델 연동 확인**
 - ✅ **ironbees 멀티에이전트 통합** (선행 완료)
 - ⏳ 파일 변경 시 컬러 diff 표시
-- ⏳ 에이전트 루프 테스트 커버리지 80%+
+- ✅ 에이전트 루프 테스트 커버리지 80%+ (40 tests)
 - ⏳ **TokenMeter/ToolCallParser 서브모듈 통합**
 
 ### 진행 상황
-- **완료**: P1-01~P1-09, P1-11, P1-12, P1-14 (12/18 태스크)
+- **완료**: P1-01~P1-09, P1-11~P1-15 (14/18 태스크, 78%)
+- **테스트 현황**: 전체 40개 테스트 통과
+  - AgentLoopTests: 14 tests (도구 호출, 스트리밍, 취소 등)
+  - AgentLoopScenarioTests: 11 tests (멀티턴, 에러 복구, 장기 대화)
+  - BuiltInToolsTests: 11 tests (Read, Write, Shell, Glob, Grep)
+  - ChatClientFrameworkAdapterTests: 4 tests (Ironbees 통합)
 - **남은 작업**:
   - P1-10: 진행률 표시 (TokenMeter 의존)
-  - P1-13, P1-15: 에이전트 루프 테스트, 시뮬레이션
   - P1-16~P1-18: 서브모듈 개발 및 통합
 
 ---
