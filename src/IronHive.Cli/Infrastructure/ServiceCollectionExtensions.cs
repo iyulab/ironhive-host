@@ -26,11 +26,21 @@ public static class ServiceCollectionExtensions
         // Register providers with fallback chain
         RegisterProviders(services, config);
 
-        // Register IChatClient from provider
+        // Register IChatClient from provider, wrapped with FunctionInvokingChatClient
+        // This enables automatic tool/function execution in the chat loop
         services.AddSingleton<IChatClient>(sp =>
         {
             var provider = sp.GetRequiredService<IChatClientProvider>();
-            return provider.GetChatClient();
+            var innerClient = provider.GetChatClient();
+
+            // Wrap with FunctionInvokingChatClient for automatic tool execution
+            // The actual tools are provided via ChatOptions.Tools at runtime
+            return new FunctionInvokingChatClient(innerClient)
+            {
+                MaximumIterationsPerRequest = 10,
+                MaximumConsecutiveErrorsPerRequest = 3,
+                IncludeDetailedErrors = true
+            };
         });
 
         // Register IndexThinking services

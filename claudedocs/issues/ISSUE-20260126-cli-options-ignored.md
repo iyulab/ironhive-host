@@ -61,3 +61,59 @@ public override async Task<int> ExecuteAsync(CommandContext context, Settings se
 
 ## 우선순위
 P2 - 사용성 개선
+
+## 구현 방향 (향후 작업)
+
+### 권장 방안: IAgentLoopFactory 패턴
+
+```csharp
+// 1. Factory 인터페이스
+public interface IAgentLoopFactory
+{
+    IAgentLoop Create(AgentLoopOptions? options = null);
+}
+
+public record AgentLoopOptions
+{
+    public string? Model { get; init; }
+    public string? Provider { get; init; }
+}
+
+// 2. Command에서 사용
+public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
+{
+    private readonly IAgentLoopFactory _factory;
+
+    public DefaultCommand(IAgentLoopFactory factory)
+    {
+        _factory = factory;
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    {
+        var agentLoop = _factory.Create(new AgentLoopOptions
+        {
+            Model = settings.Model,
+            Provider = settings.Provider
+        });
+
+        // ...
+    }
+}
+```
+
+### 대안: IChatClientProvider 확장
+
+Provider 인터페이스에 모델 오버라이드 메서드 추가:
+
+```csharp
+public interface IChatClientProvider
+{
+    IChatClient GetChatClient();
+    IChatClient GetChatClient(string? modelOverride);
+}
+```
+
+### 복잡도
+- IAgentLoopFactory: Medium (새 인터페이스 + 구현 + DI 변경)
+- Provider 확장: Low (기존 인터페이스 확장)

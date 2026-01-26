@@ -1,5 +1,8 @@
 # AgentLoop: Tool 실행 로직 누락
 
+## 상태
+**RESOLVED** (2026-01-26)
+
 ## 요약
 `AgentLoop.ExtractToolCalls()`가 응답에서 tool call을 추출하지만 실제 실행은 하지 않음.
 
@@ -67,3 +70,29 @@ public async Task<AgentResponse> RunAsync(string prompt, CancellationToken ct)
 
 ## 우선순위
 P0 - Core agent 기능
+
+## 해결 방법
+
+직접 구현 대신 Microsoft.Extensions.AI의 `FunctionInvokingChatClient` 데코레이터 패턴 활용:
+
+```csharp
+// ServiceCollectionExtensions.cs
+services.AddSingleton<IChatClient>(sp =>
+{
+    var provider = sp.GetRequiredService<IChatClientProvider>();
+    var innerClient = provider.GetChatClient();
+
+    return new FunctionInvokingChatClient(innerClient)
+    {
+        MaximumIterationsPerRequest = 10,
+        MaximumConsecutiveErrorsPerRequest = 3,
+        IncludeDetailedErrors = true
+    };
+});
+```
+
+**이점**:
+- 공식 Microsoft 패턴 사용
+- 자동 tool 실행 루프
+- 동시성, 에러 핸들링, 루프 제한 기본 제공
+- AgentLoop 코드 단순성 유지
