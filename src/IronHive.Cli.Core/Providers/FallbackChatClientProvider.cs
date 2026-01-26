@@ -28,11 +28,14 @@ public sealed class FallbackChatClientProvider : IChatClientProvider
     public bool IsAvailable => _providers.Any(p => p.IsAvailable);
 
     /// <inheritdoc />
-    public IChatClient GetChatClient()
+    public IChatClient GetChatClient() => GetChatClient(null);
+
+    /// <inheritdoc />
+    public IChatClient GetChatClient(string? modelOverride)
     {
         if (_activeProvider != null)
         {
-            return _activeProvider.GetChatClient();
+            return _activeProvider.GetChatClient(modelOverride);
         }
 
         foreach (var provider in _providers)
@@ -40,7 +43,7 @@ public sealed class FallbackChatClientProvider : IChatClientProvider
             if (provider.IsAvailable)
             {
                 _activeProvider = provider;
-                return provider.GetChatClient();
+                return provider.GetChatClient(modelOverride);
             }
         }
 

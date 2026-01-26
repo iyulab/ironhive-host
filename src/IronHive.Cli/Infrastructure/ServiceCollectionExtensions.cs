@@ -50,7 +50,7 @@ public static class ServiceCollectionExtensions
         // Register Memory services (MemoryIndexer integration)
         services.AddIronHiveMemory();
 
-        // Register agent loop with IndexThinking support
+        // Register agent loop with IndexThinking support (default instance)
         services.AddTransient<IAgentLoop>(sp =>
         {
             var chatClient = sp.GetRequiredService<IChatClient>();
@@ -65,6 +65,15 @@ public static class ServiceCollectionExtensions
                     Temperature = 0.7f,
                     MaxTokens = 4096
                 });
+        });
+
+        // Register IAgentLoopFactory for runtime model/provider selection
+        services.AddSingleton<IAgentLoopFactory>(sp =>
+        {
+            var clientFactory = sp.GetRequiredService<IChatClientFactory>();
+            var turnManager = sp.GetRequiredService<IThinkingTurnManager>();
+
+            return new AgentLoopFactory(clientFactory, turnManager);
         });
 
         return services;
@@ -122,6 +131,37 @@ public static class ServiceCollectionExtensions
             }
 
             return new FallbackChatClientProvider(providers.ToArray());
+        });
+
+        // Register IChatClientFactory for runtime model/provider selection
+        services.AddSingleton<IChatClientFactory>(sp =>
+        {
+            var providersDict = new Dictionary<string, IChatClientProvider>();
+
+            var gpuStack = sp.GetService<GpuStackChatClientProvider>();
+            if (gpuStack?.IsAvailable == true)
+            {
+                providersDict["gpustack"] = gpuStack;
+            }
+
+            var lmSupply = sp.GetService<LMSupplyChatClientProvider>();
+            if (lmSupply is not null && config.LMSupply.Enabled)
+            {
+                providersDict["lmsupply"] = lmSupply;
+            }
+
+            var defaultProvider = sp.GetRequiredService<IChatClientProvider>();
+
+            // Decorator for FunctionInvokingChatClient
+            IChatClient ClientDecorator(IChatClient inner) =>
+                new FunctionInvokingChatClient(inner)
+                {
+                    MaximumIterationsPerRequest = 10,
+                    MaximumConsecutiveErrorsPerRequest = 3,
+                    IncludeDetailedErrors = true
+                };
+
+            return new ChatClientFactory(providersDict, defaultProvider, ClientDecorator);
         });
 
         services.AddSingleton<IEmbeddingProvider>(sp =>

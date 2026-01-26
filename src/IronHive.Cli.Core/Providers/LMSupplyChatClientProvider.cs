@@ -12,8 +12,8 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class LMSupplyChatClientProvider : IChatClientProvider
 {
     private readonly LMSupplyConfig _config;
-    private IGeneratorModel? _generator;
-    private LMSupplyChatClient? _chatClient;
+    private readonly Dictionary<string, (IGeneratorModel generator, LMSupplyChatClient client)> _clientCache = new();
+    private string? _defaultModel;
     private bool _initialized;
     private bool _disposed;
 
@@ -29,14 +29,24 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
     public bool IsAvailable => _config.Enabled;
 
     /// <inheritdoc />
-    public IChatClient GetChatClient()
+    public IChatClient GetChatClient() => GetChatClient(null);
+
+    /// <inheritdoc />
+    public IChatClient GetChatClient(string? modelOverride)
     {
         if (!_initialized)
         {
             throw new InvalidOperationException("Provider not initialized. Call CheckHealthAsync first.");
         }
 
-        return _chatClient!;
+        var model = modelOverride ?? _defaultModel!;
+
+        if (!_clientCache.TryGetValue(model, out var cached))
+        {
+            throw new InvalidOperationException($"Model '{model}' not initialized. Only default model is available.");
+        }
+
+        return cached.client;
     }
 
     /// <inheritdoc />
@@ -65,9 +75,20 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
             return;
         }
 
+        var modelId = _config.GeneratorModel;
+        _defaultModel = modelId;
+
+        var generator = await BuildGeneratorAsync(modelId, cancellationToken);
+        var chatClient = new LMSupplyChatClient(generator);
+
+        _clientCache[modelId] = (generator, chatClient);
+        _initialized = true;
+    }
+
+    private static async Task<IGeneratorModel> BuildGeneratorAsync(string modelId, CancellationToken cancellationToken)
+    {
         var builder = TextGeneratorBuilder.Create();
 
-        var modelId = _config.GeneratorModel;
         if (modelId == "auto" || modelId == "gguf:default")
         {
             builder.WithDefaultModel();
@@ -81,9 +102,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
             builder.WithHuggingFaceModel(modelId);
         }
 
-        _generator = await builder.BuildAsync(cancellationToken);
-        _chatClient = new LMSupplyChatClient(_generator);
-        _initialized = true;
+        return await builder.BuildAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -94,11 +113,12 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
             return;
         }
 
-        if (_generator != null)
+        foreach (var (generator, _) in _clientCache.Values)
         {
-            await _generator.DisposeAsync();
+            await generator.DisposeAsync();
         }
 
+        _clientCache.Clear();
         _disposed = true;
     }
 }

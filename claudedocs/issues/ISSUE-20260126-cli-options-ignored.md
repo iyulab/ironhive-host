@@ -1,5 +1,8 @@
 # CLI 옵션 --model, --provider 무시됨
 
+## 상태
+**RESOLVED** (2026-01-26)
+
 ## 요약
 커맨드에서 `--model`과 `--provider` 옵션을 정의하지만 실제로 적용되지 않음.
 

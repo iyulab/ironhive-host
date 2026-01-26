@@ -10,11 +10,11 @@ namespace IronHive.Cli.Commands;
 /// </summary>
 public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 {
-    private readonly IAgentLoop _agentLoop;
+    private readonly IAgentLoopFactory _factory;
 
-    public DefaultCommand(IAgentLoop agentLoop)
+    public DefaultCommand(IAgentLoopFactory factory)
     {
-        _agentLoop = agentLoop;
+        _factory = factory;
     }
 
     public class Settings : CommandSettings
@@ -42,23 +42,45 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
+        // Create agent loop with optional model/provider override
+        var agentLoop = _factory.Create(new AgentLoopFactoryOptions
+        {
+            Provider = settings.Provider,
+            Model = settings.Model
+        });
+
+        // Show configuration info
+        if (settings.Model is not null || settings.Provider is not null)
+        {
+            var info = new List<string>();
+            if (settings.Provider is not null)
+            {
+                info.Add($"provider: [cyan]{settings.Provider}[/]");
+            }
+            if (settings.Model is not null)
+            {
+                info.Add($"model: [cyan]{settings.Model}[/]");
+            }
+            AnsiConsole.MarkupLine($"[grey]Using {string.Join(", ", info)}[/]");
+        }
+
         // Single prompt mode
         if (!string.IsNullOrWhiteSpace(settings.Prompt))
         {
-            return await RunSinglePromptAsync(settings.Prompt, settings);
+            return await RunSinglePromptAsync(settings.Prompt, settings, agentLoop);
         }
 
         // Interactive mode
-        return await RunInteractiveAsync(settings);
+        return await RunInteractiveAsync(settings, agentLoop);
     }
 
-    private async Task<int> RunSinglePromptAsync(string prompt, Settings settings)
+    private static async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop)
     {
         try
         {
             AnsiConsole.MarkupLine("[grey]Running prompt...[/]");
 
-            var response = await _agentLoop.RunAsync(prompt);
+            var response = await agentLoop.RunAsync(prompt);
 
             // Show thinking content if available and requested
             if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
@@ -94,7 +116,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
-    private async Task<int> RunInteractiveAsync(Settings settings)
+    private static async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop)
     {
         AnsiConsole.Write(new FigletText("IronHive")
             .Color(Color.Yellow));
@@ -133,7 +155,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
             try
             {
-                var response = await _agentLoop.RunAsync(prompt, cts.Token);
+                var response = await agentLoop.RunAsync(prompt, cts.Token);
 
                 // Show thinking content if available and requested
                 if (settings.ShowThinking && response.ThinkingContent?.Content is not null)

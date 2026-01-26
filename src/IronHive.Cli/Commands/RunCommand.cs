@@ -13,11 +13,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly IAgentLoop _agentLoop;
+    private readonly IAgentLoopFactory _factory;
 
-    public RunCommand(IAgentLoop agentLoop)
+    public RunCommand(IAgentLoopFactory factory)
     {
-        _agentLoop = agentLoop;
+        _factory = factory;
     }
 
     public class Settings : CommandSettings
@@ -33,6 +33,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [CommandOption("-m|--model <MODEL>")]
         [Description("Model to use")]
         public string? Model { get; init; }
+
+        [CommandOption("--provider <PROVIDER>")]
+        [Description("Provider (gpustack, lmsupply)")]
+        public string? Provider { get; init; }
 
         [CommandOption("--json")]
         [Description("Output response as JSON")]
@@ -60,9 +64,16 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             return 1;
         }
 
+        // Create agent loop with optional model/provider override
+        var agentLoop = _factory.Create(new AgentLoopFactoryOptions
+        {
+            Provider = settings.Provider,
+            Model = settings.Model
+        });
+
         try
         {
-            var response = await _agentLoop.RunAsync(prompt);
+            var response = await agentLoop.RunAsync(prompt);
 
             if (settings.Json)
             {

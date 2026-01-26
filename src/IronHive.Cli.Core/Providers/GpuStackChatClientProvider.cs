@@ -11,7 +11,7 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class GpuStackChatClientProvider : IChatClientProvider
 {
     private readonly GpuStackConfig _config;
-    private IChatClient? _chatClient;
+    private readonly Dictionary<string, IChatClient> _clientCache = new();
     private bool _disposed;
 
     public GpuStackChatClientProvider(GpuStackConfig config)
@@ -26,26 +26,33 @@ public sealed class GpuStackChatClientProvider : IChatClientProvider
     public bool IsAvailable => _config.IsConfigured;
 
     /// <inheritdoc />
-    public IChatClient GetChatClient()
+    public IChatClient GetChatClient() => GetChatClient(null);
+
+    /// <inheritdoc />
+    public IChatClient GetChatClient(string? modelOverride)
     {
         if (!IsAvailable)
         {
             throw new InvalidOperationException("GpuStack is not configured.");
         }
 
-        if (_chatClient == null)
+        var model = modelOverride ?? _config.Model!;
+
+        if (!_clientCache.TryGetValue(model, out var chatClient))
         {
             var endpoint = new Uri(_config.Endpoint!);
             var credential = new ApiKeyCredential(_config.ApiKey!);
             var options = new OpenAIClientOptions { Endpoint = endpoint };
 
             var openAiClient = new OpenAIClient(credential, options);
-            _chatClient = openAiClient
-                .GetChatClient(_config.Model!)
+            chatClient = openAiClient
+                .GetChatClient(model)
                 .AsIChatClient();
+
+            _clientCache[model] = chatClient;
         }
 
-        return _chatClient;
+        return chatClient;
     }
 
     /// <inheritdoc />
@@ -81,7 +88,7 @@ public sealed class GpuStackChatClientProvider : IChatClientProvider
             return ValueTask.CompletedTask;
         }
 
-        _chatClient = null;
+        _clientCache.Clear();
         _disposed = true;
 
         return ValueTask.CompletedTask;

@@ -18,9 +18,15 @@ public interface IChatClientProvider : IAsyncDisposable
     bool IsAvailable { get; }
 
     /// <summary>
-    /// Gets the IChatClient instance for this provider.
+    /// Gets the IChatClient instance for this provider using the default model.
     /// </summary>
     IChatClient GetChatClient();
+
+    /// <summary>
+    /// Gets the IChatClient instance for this provider with an optional model override.
+    /// </summary>
+    /// <param name="modelOverride">Model to use instead of the default. If null, uses the default model.</param>
+    IChatClient GetChatClient(string? modelOverride);
 
     /// <summary>
     /// Checks if the provider's backend service is reachable.
