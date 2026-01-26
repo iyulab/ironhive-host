@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>ironhive</AssemblyName>
+    <Description>IronHive CLI - Universal CLI Agent Core</Description>
+
+    <!-- Native AOT support -->
+    <PublishAot>true</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Single file deployment -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IronHive.Cli.Core\IronHive.Cli.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- CLI -->
+    <PackageReference Include="Spectre.Console" />
+    <PackageReference Include="Spectre.Console.Cli" />
+
+    <!-- Hosting -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+
+    <!-- AI Providers -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+
+    <!-- Config -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="NetEscapades.Configuration.Yaml" />
+  </ItemGroup>
+
+</Project>
