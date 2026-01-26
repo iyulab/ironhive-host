@@ -38,6 +38,30 @@ submodules/
 └── ToolCallParser/   # 멀티 프로바이더 tool_call 파싱 → NuGet 배포 예정
 ```
 
+#### 서브모듈 활용 계획
+
+| 서브모듈 | 용도 | 통합 Phase | 통합 방식 |
+|----------|------|------------|-----------|
+| **TokenMeter** | 토큰 카운팅, 비용 계산, 사용량 추적 | P1-10 | 프로젝트 참조 → NuGet 전환 |
+| **ToolCallParser** | 멀티 프로바이더 tool_call 파싱 | P1-02 | 프로젝트 참조 → NuGet 전환 |
+
+**TokenMeter 활용**:
+- `ITokenCounter`: 실시간 토큰 카운팅
+- `ICostCalculator`: 모델별 비용 계산
+- `IUsageTracker`: 세션/일/월 사용량 추적
+- Phase 1-10 (진행률 표시)에서 통합
+
+**ToolCallParser 활용**:
+- `IToolCallParser`: OpenAI/Anthropic/Azure 등 멀티 프로바이더 tool_call 파싱
+- `IToolCallNormalizer`: 표준 형식으로 정규화
+- Phase 1-02 (Agent 기본 루프)에서 통합 예정
+
+**개발 순서**:
+1. 서브모듈 초기 구조 개발 (별도 진행)
+2. ironhive-cli에서 프로젝트 참조로 통합
+3. 안정화 후 NuGet 패키지로 배포
+4. 프로젝트 참조 → NuGet 참조로 전환
+
 ### 조사 필요
 
 | 영역 | 조사 항목 | 후보 |
@@ -157,6 +181,9 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 | P1-13 | 🧪 에이전트 루프 단위 테스트 | MockChatClient로 도구 호출 시퀀스 검증 | P0-10, P1-02 | - |
 | P1-14 | ~~🧪 도구 실행 테스트~~ | ✅ 각 내장 도구의 정상/에러 케이스 (11 tests) | P1-05~P1-08 | - |
 | P1-15 | 🧪 시뮬레이션 시나리오 | 파일 생성 → 수정 → 삭제 전체 흐름 | P1-13, P1-14 | - |
+| P1-16 | 📦 TokenMeter 서브모듈 개발 | ITokenCounter, ICostCalculator, IUsageTracker 구현 | - | [TokenMeter](https://github.com/iyulab/TokenMeter) |
+| P1-17 | 📦 ToolCallParser 서브모듈 개발 | 멀티 프로바이더 tool_call 파싱, 정규화 | - | [ToolCallParser](https://github.com/iyulab/ToolCallParser) |
+| P1-18 | 📦 서브모듈 통합 | TokenMeter, ToolCallParser를 ironhive-cli에 프로젝트 참조로 통합 | P1-16, P1-17 | - |
 
 ### 산출물
 - ✅ 기본적인 대화형 에이전트 동작
@@ -165,10 +192,14 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 - ✅ **ironbees 멀티에이전트 통합** (선행 완료)
 - ⏳ 파일 변경 시 컬러 diff 표시
 - ⏳ 에이전트 루프 테스트 커버리지 80%+
+- ⏳ **TokenMeter/ToolCallParser 서브모듈 통합**
 
 ### 진행 상황
-- **완료**: P1-01~P1-08, P1-12, P1-14 (10/15 태스크)
-- **남은 작업**: P1-09 (스트리밍), P1-10 (진행률), P1-11 (인터럽트), P1-13/P1-15 (테스트)
+- **완료**: P1-01~P1-08, P1-12, P1-14 (10/18 태스크)
+- **남은 작업**:
+  - P1-09~P1-11: 스트리밍, 진행률, 인터럽트
+  - P1-13, P1-15: 에이전트 루프 테스트, 시뮬레이션
+  - P1-16~P1-18: 서브모듈 개발 및 통합
 
 ---
 
@@ -363,8 +394,9 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 ```
 v0.1.0 ─── Phase 0: 프로젝트 초기화 + 테스트 인프라     ✅ 완료
    │
-v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  🔄 진행중 (67%)
-   │       └── P1-01~P1-08,P1-12,P1-14 완료, P1-09~P1-11,P1-13,P1-15 남음
+v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  🔄 진행중 (56%)
+   │       └── P1-01~P1-08,P1-12,P1-14 완료 (10/18)
+   │       └── 남음: P1-09~P1-11 (UX), P1-13,P1-15 (테스트), P1-16~P1-18 (서브모듈)
    │
 v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ⏳ 대기
    │
