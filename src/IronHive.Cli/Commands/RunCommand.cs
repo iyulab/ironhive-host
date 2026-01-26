@@ -38,6 +38,14 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [Description("Output response as JSON")]
         public bool Json { get; init; }
 
+        [CommandOption("--show-tokens")]
+        [Description("Show token usage statistics")]
+        public bool ShowTokens { get; init; }
+
+        [CommandOption("--show-thinking")]
+        [Description("Show thinking/reasoning content from the model")]
+        public bool ShowThinking { get; init; }
+
         public string? GetPrompt() => PromptArg ?? PromptOption;
     }
 
@@ -61,6 +69,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 var json = JsonSerializer.Serialize(new
                 {
                     content = response.Content,
+                    thinking = settings.ShowThinking && response.ThinkingContent is not null ? new
+                    {
+                        content = response.ThinkingContent.Content,
+                        token_count = response.ThinkingContent.TokenCount
+                    } : null,
                     usage = response.Usage is not null ? new
                     {
                         input_tokens = response.Usage.InputTokens,
@@ -73,7 +86,26 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             }
             else
             {
+                // Show thinking content if available and requested
+                if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+                {
+                    Console.WriteLine("=== Thinking ===");
+                    Console.WriteLine(response.ThinkingContent.Content);
+                    if (response.ThinkingContent.TokenCount.HasValue)
+                    {
+                        Console.WriteLine($"(Thinking tokens: {response.ThinkingContent.TokenCount.Value})");
+                    }
+                    Console.WriteLine("================");
+                    Console.WriteLine();
+                }
+
                 Console.WriteLine(response.Content);
+
+                if (settings.ShowTokens && response.Usage is not null)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total");
+                }
             }
 
             return 0;

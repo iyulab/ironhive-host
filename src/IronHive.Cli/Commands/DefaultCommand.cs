@@ -30,6 +30,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("--provider <PROVIDER>")]
         [Description("Provider (openai, ollama, gpustack)")]
         public string? Provider { get; init; }
+
+        [CommandOption("--show-tokens")]
+        [Description("Show token usage statistics")]
+        public bool ShowTokens { get; init; }
+
+        [CommandOption("--show-thinking")]
+        [Description("Show thinking/reasoning content from the model")]
+        public bool ShowThinking { get; init; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
@@ -37,14 +45,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         // Single prompt mode
         if (!string.IsNullOrWhiteSpace(settings.Prompt))
         {
-            return await RunSinglePromptAsync(settings.Prompt);
+            return await RunSinglePromptAsync(settings.Prompt, settings);
         }
 
         // Interactive mode
-        return await RunInteractiveAsync();
+        return await RunInteractiveAsync(settings);
     }
 
-    private async Task<int> RunSinglePromptAsync(string prompt)
+    private async Task<int> RunSinglePromptAsync(string prompt, Settings settings)
     {
         try
         {
@@ -52,14 +60,29 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
             var response = await _agentLoop.RunAsync(prompt);
 
+            // Show thinking content if available and requested
+            if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.Write(new Panel(Markup.Escape(response.ThinkingContent.Content))
+                    .Header("[yellow]Thinking[/]")
+                    .Border(BoxBorder.Rounded)
+                    .BorderColor(Color.Yellow));
+
+                if (response.ThinkingContent.TokenCount.HasValue)
+                {
+                    AnsiConsole.MarkupLine($"[grey]Thinking tokens: {response.ThinkingContent.TokenCount.Value}[/]");
+                }
+            }
+
             AnsiConsole.WriteLine();
             AnsiConsole.Write(new Panel(response.Content)
                 .Border(BoxBorder.Rounded)
                 .BorderColor(Color.Blue));
 
-            if (response.Usage is not null)
+            if (settings.ShowTokens && response.Usage is not null)
             {
-                AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out[/]");
+                AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
             }
 
             return 0;
@@ -71,12 +94,16 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
-    private async Task<int> RunInteractiveAsync()
+    private async Task<int> RunInteractiveAsync(Settings settings)
     {
         AnsiConsole.Write(new FigletText("IronHive")
             .Color(Color.Yellow));
 
         AnsiConsole.MarkupLine("[grey]Type 'exit' or press Ctrl+C to quit.[/]");
+        if (settings.ShowThinking)
+        {
+            AnsiConsole.MarkupLine("[grey]Thinking mode: [yellow]enabled[/][/]");
+        }
         AnsiConsole.WriteLine();
 
         using var cts = new CancellationTokenSource();
@@ -108,13 +135,29 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             {
                 var response = await _agentLoop.RunAsync(prompt, cts.Token);
 
+                // Show thinking content if available and requested
+                if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
+                {
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.Write(new Panel(Markup.Escape(response.ThinkingContent.Content))
+                        .Header("[yellow]Thinking[/]")
+                        .Border(BoxBorder.Rounded)
+                        .BorderColor(Color.Yellow)
+                        .Collapse());
+
+                    if (response.ThinkingContent.TokenCount.HasValue)
+                    {
+                        AnsiConsole.MarkupLine($"[grey]Thinking tokens: {response.ThinkingContent.TokenCount.Value}[/]");
+                    }
+                }
+
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine($"[blue]{Markup.Escape(response.Content)}[/]");
                 AnsiConsole.WriteLine();
 
-                if (response.Usage is not null)
+                if (settings.ShowTokens && response.Usage is not null)
                 {
-                    AnsiConsole.MarkupLine($"[grey]({response.Usage.TotalTokens} tokens)[/]");
+                    AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
                 }
 
                 AnsiConsole.WriteLine();

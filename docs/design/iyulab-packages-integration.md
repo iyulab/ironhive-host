@@ -84,8 +84,8 @@ services.AddSingleton<IChatClient>(sp =>
 |----|--------|------|------|
 | IT-01 | IndexThinking 패키지 추가 | nuget 참조 | ✅ 완료 |
 | IT-02 | ChatClient 래퍼 통합 | ThinkingAgentLoop 구현 | ✅ 완료 |
-| IT-03 | 토큰 사용량 표시 | CLI에 토큰 정보 출력 | ⏳ 대기 |
-| IT-04 | 추론 추출 옵션 | --show-thinking 플래그 | ⏳ 대기 |
+| IT-03 | 토큰 사용량 표시 | --show-tokens 플래그 | ✅ 완료 |
+| IT-04 | 추론 추출 옵션 | --show-thinking 플래그 | ✅ 완료 |
 
 ## Phase 2: Memory Indexer 통합 (v0.3.0)
 
