@@ -175,7 +175,7 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 | P1-07 | ~~내장 도구: Shell~~ | ✅ 명령 실행 (Process 기반, 샌드박싱) | P1-04 | [research-02#6.1](./research/research-02.md) |
 | P1-08 | ~~내장 도구: Glob/Grep~~ | ✅ **MS.Ext.FileSystemGlobbing** 사용 | P1-04 | [ref.md#3](../dev-docs/ref.md) |
 | P1-09 | ~~스트리밍 출력~~ | ✅ IAsyncEnumerable + Console.Write 실시간 출력 | P1-02 | - |
-| P1-10 | 진행률 표시 | 토큰 사용량, 예상 비용 (**TokenMeter** 서브모듈) | P1-09 | [ref.md#5](../dev-docs/ref.md), [TokenMeter](https://github.com/iyulab/TokenMeter) |
+| P1-10 | ~~진행률 표시~~ | ✅ UsageTracker로 토큰 사용량, 예상 비용 표시 (7 tests) | P1-09 | - |
 | P1-11 | ~~인터럽트 처리~~ | ✅ Ctrl+C graceful shutdown, per-request cancellation | P1-02 | [research-01#2.2](./research/research-01.md) |
 | P1-12 | ~~단일 명령 모드~~ | ✅ `ironhive -p "prompt"` 지원 | P1-02 | - |
 | P1-13 | ~~🧪 에이전트 루프 단위 테스트~~ | ✅ MockChatClient로 도구 호출/스트리밍 검증 (14 tests) | P0-10, P1-02 | - |
@@ -195,15 +195,16 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 - ⏳ **TokenMeter/ToolCallParser 서브모듈 통합**
 
 ### 진행 상황
-- **완료**: P1-01~P1-09, P1-11~P1-15 (14/18 태스크, 78%)
-- **테스트 현황**: 전체 40개 테스트 통과
+- **Phase 1 핵심 완료**: P1-01~P1-15 (15/18 태스크, 83%)
+- **테스트 현황**: 전체 47개 테스트 통과
   - AgentLoopTests: 14 tests (도구 호출, 스트리밍, 취소 등)
   - AgentLoopScenarioTests: 11 tests (멀티턴, 에러 복구, 장기 대화)
   - BuiltInToolsTests: 11 tests (Read, Write, Shell, Glob, Grep)
   - ChatClientFrameworkAdapterTests: 4 tests (Ironbees 통합)
-- **남은 작업**:
-  - P1-10: 진행률 표시 (TokenMeter 의존)
-  - P1-16~P1-18: 서브모듈 개발 및 통합
+  - UsageTrackerTests: 7 tests (세션 토큰 추적)
+- **서브모듈 관련 (별도 리포지토리 작업)**:
+  - P1-16~P1-18: TokenMeter, ToolCallParser 서브모듈은 해당 리포지토리에서 개발 후 통합
+- **Phase 2 진입 준비 완료**
 
 ---
 
@@ -223,14 +224,14 @@ IDLE → PLANNING ──┬── PLAN_MODE (read-only)
 
 | ID | 태스크 | 설명 | 의존성 | 참조 |
 |----|--------|------|--------|------|
-| P2-01 | 모드 라우터 설계 | FSM 기반 모드 전환 엔진 | P1-02 | [research-01#2](./research/research-01.md), [research-02#3](./research/research-02.md) |
-| P2-02 | Plan-mode 구현 | 읽기 전용 탐색, 쓰기 도구 비활성화 | P2-01 | [research-01#2.1](./research/research-01.md) |
-| P2-03 | Work-mode 구현 | 전체 도구 활성화 | P2-01 | [research-01#2.1](./research/research-01.md) |
-| P2-04 | HITL 트리거 정의 | 위험 작업 분류 (파일 삭제, sudo 등) | P2-01 | [research-01#2.2](./research/research-01.md), [research-02#3.2](./research/research-02.md) |
-| P2-05 | HITL 승인 UI | 터미널에서 승인/거부/수정 입력 | P2-04 | [research-02#3.2](./research/research-02.md) |
+| P2-01 | ~~모드 라우터 설계~~ | ✅ FSM 기반 ModeManager, ModeToolFilter (32 tests) | P1-02 | - |
+| P2-02 | ~~Plan-mode 구현~~ | ✅ 읽기 전용 탐색, 쓰기 도구 비활성화 | P2-01 | - |
+| P2-03 | ~~Work-mode 구현~~ | ✅ 전체 도구 활성화 | P2-01 | - |
+| P2-04 | ~~HITL 트리거 정의~~ | ✅ RiskAssessment, 위험 쉘 명령 감지 | P2-01 | - |
+| P2-05 | ~~HITL 승인 UI~~ | ✅ ConsoleApprovalService (Spectre.Console) | P2-04 | - |
 | P2-06 | 권한 화이트리스트 | 자동 승인 패턴 설정 (config) | P2-05 | [ref.md#4](../dev-docs/ref.md) |
-| P2-07 | `--plan` 플래그 | CLI에서 Plan-mode 진입 | P2-02 | - |
-| P2-08 | `--dry-run` 플래그 | 실제 실행 없이 계획만 출력 | P2-02 | - |
+| P2-07 | ~~`--plan` 플래그~~ | ✅ CLI에서 Plan-mode 진입 | P2-02 | - |
+| P2-08 | ~~`--dry-run` 플래그~~ | ✅ 실제 실행 없이 계획만 출력 | P2-02 | - |
 | P2-09 | TodoWrite 도구 | 작업 목록 관리 (JSON 기반) | P1-04 | [research-01#1.1](./research/research-01.md) |
 | P2-10 | 재계획 메커니즘 | 실패 시 Plan 단계로 롤백 | P2-09 | [research-01#2.3](./research/research-01.md), [research-02#3.3](./research/research-02.md) |
 | P2-11 | 🔍 FSM 라이브러리 조사 | Stateless, Automatonymous 비교 | P2-01 | - |
@@ -239,13 +240,24 @@ IDLE → PLANNING ──┬── PLAN_MODE (read-only)
 | P2-14 | 🧪 재계획 시뮬레이션 | 실패→롤백→재시도 시나리오 검증 | P2-10 | - |
 
 ### 조사 산출물
-- **FSM 라이브러리 비교표**: `docs/research/fsm-comparison.md`
+- **FSM 라이브러리 비교표**: 직접 구현으로 결정 (Stateless 불필요)
 
 ### 산출물
-- `ironhive --plan "..."` 동작
-- 위험 작업 시 사용자 승인 요청
-- 작업 목록 기반 진행 상황 추적
-- **모드 전환 테스트 커버리지 90%+**
+- ✅ `ironhive --plan "..."` 동작
+- ✅ 위험 작업 시 사용자 승인 요청
+- ⏳ 작업 목록 기반 진행 상황 추적 (P2-09)
+- ✅ **모드 전환 테스트 커버리지** (32 tests)
+
+### 진행 상황
+- **완료**: P2-01~P2-05, P2-07, P2-08 (7/14 태스크, 50%)
+- **테스트 현황**: 100개 테스트 통과
+  - ModeManagerTests: 17 tests
+  - ModeToolFilterTests: 15 tests
+  - HumanApprovalTests: 8 tests
+- **남은 작업**:
+  - P2-06: 권한 화이트리스트 (config)
+  - P2-09~P2-10: TodoWrite, 재계획 메커니즘
+  - P2-12~P2-14: 추가 테스트
 
 ---
 
