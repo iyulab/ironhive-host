@@ -87,11 +87,10 @@ public static class EnvConfigLoader
         var rerankerModel = GetEnvVar("LMSUPPLY_RERANKER_MODEL");
         var generatorModel = GetEnvVar("LMSUPPLY_GENERATOR_MODEL");
 
-        // LMSupply is always enabled as fallback unless explicitly disabled
-        // LMSUPPLY_ENABLED=false → disabled
-        // LMSUPPLY_ENABLED not set or =true → enabled
-        var isEnabled = string.IsNullOrEmpty(enabled) ||
-                        !enabled.Equals("false", StringComparison.OrdinalIgnoreCase);
+        // LMSupply is available as an optional local provider (not fallback)
+        // Must be explicitly enabled with LMSUPPLY_ENABLED=true
+        var isEnabled = !string.IsNullOrEmpty(enabled) &&
+                        enabled.Equals("true", StringComparison.OrdinalIgnoreCase);
 
         return new LMSupplyConfig
         {

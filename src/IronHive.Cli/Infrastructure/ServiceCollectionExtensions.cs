@@ -133,42 +133,33 @@ public static class ServiceCollectionExtensions
                 new LMSupplyRerankProvider(config.LMSupply));
         }
 
-        // Fallback providers (composite)
+        // LMSupply is always registered for /model command selection
+        // (even if not in fallback chain)
+        services.AddSingleton<LMSupplyChatClientProvider>(sp =>
+            new LMSupplyChatClientProvider(new LMSupplyConfig { Enabled = true }));
+
+        // Primary provider (no fallback - fail fast if unavailable)
         services.AddSingleton<IChatClientProvider>(sp =>
         {
-            var providers = new List<IChatClientProvider>();
-
             var gpuStack = sp.GetService<GpuStackChatClientProvider>();
             if (gpuStack?.IsAvailable == true)
             {
-                providers.Add(gpuStack);
+                return gpuStack;
             }
 
-            var lmSupply = sp.GetService<LMSupplyChatClientProvider>();
-            if (lmSupply is not null && config.LMSupply.Enabled)
-            {
-                providers.Add(lmSupply);
-            }
-
-            if (providers.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    "No API provider configured.\n" +
-                    "\n" +
-                    "Please configure one of the following options:\n" +
-                    "  1. Create a .env file with GPUSTACK_* or OPENAI_* variables\n" +
-                    "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
-                    "\n" +
-                    "See .env.example for configuration examples.");
-            }
-
-            return new FallbackChatClientProvider(providers.ToArray());
+            throw new InvalidOperationException(
+                "No API provider configured or available.\n" +
+                "\n" +
+                "Please configure GPUSTACK_* or OPENAI_* variables in .env file.\n" +
+                "Use '/model local' or '--provider lmsupply' for local inference.\n" +
+                "\n" +
+                "See .env.example for configuration examples.");
         });
 
         // Register IChatClientFactory for runtime model/provider selection
         services.AddSingleton<IChatClientFactory>(sp =>
         {
-            var providersDict = new Dictionary<string, IChatClientProvider>();
+            var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
 
             var gpuStack = sp.GetService<GpuStackChatClientProvider>();
             if (gpuStack?.IsAvailable == true)
@@ -176,11 +167,10 @@ public static class ServiceCollectionExtensions
                 providersDict["gpustack"] = gpuStack;
             }
 
-            var lmSupply = sp.GetService<LMSupplyChatClientProvider>();
-            if (lmSupply is not null && config.LMSupply.Enabled)
-            {
-                providersDict["lmsupply"] = lmSupply;
-            }
+            // LMSupply is always available for explicit selection via /model command
+            var lmSupply = sp.GetRequiredService<LMSupplyChatClientProvider>();
+            providersDict["lmsupply"] = lmSupply;
+            providersDict["local"] = lmSupply;  // Alias for convenience
 
             var defaultProvider = sp.GetRequiredService<IChatClientProvider>();
 

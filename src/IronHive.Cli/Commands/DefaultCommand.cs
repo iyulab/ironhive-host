@@ -113,11 +113,21 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
             // Set up Ctrl+C handler for graceful shutdown
             using var cts = new CancellationTokenSource();
+            var cancelCount = 0;
             Console.CancelKeyPress += (_, e) =>
             {
+                cancelCount++;
+                if (cancelCount >= 2)
+                {
+                    // Force exit on second Ctrl+C
+                    AnsiConsole.MarkupLine("\n[red]Force exit.[/]");
+                    Environment.Exit(130);
+                    return;
+                }
+
                 e.Cancel = true;
                 cts.Cancel();
-                AnsiConsole.MarkupLine("\n[yellow]Interrupting...[/]");
+                AnsiConsole.MarkupLine("\n[yellow]Interrupting... (press Ctrl+C again to force exit)[/]");
             };
 
             // Single prompt mode
@@ -339,6 +349,28 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 prompt.Equals("quit", StringComparison.OrdinalIgnoreCase))
             {
                 break;
+            }
+
+            // Handle /model command
+            if (prompt.StartsWith("/model", StringComparison.OrdinalIgnoreCase))
+            {
+                AnsiConsole.MarkupLine("[yellow]To change provider, restart with --provider option:[/]");
+                AnsiConsole.MarkupLine("  [cyan]ironhive --provider gpustack[/]  (remote API)");
+                AnsiConsole.MarkupLine("  [cyan]ironhive --provider local[/]     (local LMSupply)");
+                AnsiConsole.MarkupLine("  [cyan]ironhive --provider lmsupply[/]  (local LMSupply)");
+                AnsiConsole.WriteLine();
+                continue;
+            }
+
+            // Handle /help command
+            if (prompt.StartsWith("/help", StringComparison.OrdinalIgnoreCase))
+            {
+                AnsiConsole.MarkupLine("[yellow]Available commands:[/]");
+                AnsiConsole.MarkupLine("  [cyan]/model[/]  - Show provider options");
+                AnsiConsole.MarkupLine("  [cyan]/help[/]   - Show this help");
+                AnsiConsole.MarkupLine("  [cyan]exit[/]    - Exit the program");
+                AnsiConsole.WriteLine();
+                continue;
             }
 
             try
