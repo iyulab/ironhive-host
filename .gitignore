@@ -39,4 +39,4 @@ logs/
 appsettings.local.json
 .env
 .env.local
-
+claudedocs/
