@@ -41,7 +41,12 @@ public sealed class GpuStackChatClientProvider : IChatClientProvider, IDisposabl
 
         return _clientCache.GetOrAdd(model, m =>
         {
-            var endpoint = new Uri(_config.Endpoint!);
+            // GpuStack uses /v1-openai/ path for OpenAI-compatible API
+            var baseEndpoint = _config.Endpoint!.TrimEnd('/');
+            var endpoint = baseEndpoint.EndsWith("/v1-openai", StringComparison.OrdinalIgnoreCase)
+                ? new Uri(baseEndpoint)
+                : new Uri($"{baseEndpoint}/v1-openai");
+
             var credential = new ApiKeyCredential(_config.ApiKey!);
             var options = new OpenAIClientOptions { Endpoint = endpoint };
 
@@ -65,8 +70,10 @@ public sealed class GpuStackChatClientProvider : IChatClientProvider, IDisposabl
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(5);
 
+            // GpuStack uses /v1-openai/ path
+            var baseEndpoint = _config.Endpoint!.TrimEnd('/');
             var response = await httpClient.GetAsync(
-                $"{_config.Endpoint}/v1/models",
+                $"{baseEndpoint}/v1-openai/models",
                 cancellationToken);
 
             return response.IsSuccessStatusCode;
