@@ -9,7 +9,7 @@ namespace IronHive.Cli.Core.Providers;
 /// GpuStack/OpenAI-compatible API reranking provider.
 /// Note: Reranking is not standard OpenAI API, this uses a common extension format.
 /// </summary>
-public sealed class GpuStackRerankProvider : IRerankProvider
+public sealed class GpuStackRerankProvider : IRerankProvider, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -88,15 +88,20 @@ public sealed class GpuStackRerankProvider : IRerankProvider
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
         if (_disposed)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         _httpClient.Dispose();
         _disposed = true;
-
-        return ValueTask.CompletedTask;
     }
 
     private sealed record RerankRequest

@@ -8,7 +8,7 @@ namespace IronHive.Cli.Core.Providers;
 /// <summary>
 /// GpuStack/OpenAI-compatible API embedding provider.
 /// </summary>
-public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider
+public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -99,15 +99,20 @@ public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
         if (_disposed)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         _httpClient.Dispose();
         _disposed = true;
-
-        return ValueTask.CompletedTask;
     }
 
     private sealed record EmbeddingRequest

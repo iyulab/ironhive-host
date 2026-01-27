@@ -6,7 +6,7 @@ namespace IronHive.Cli.Core.Providers;
 /// <summary>
 /// LMSupply-based reranking provider for local inference.
 /// </summary>
-public sealed class LMSupplyRerankProvider : IRerankProvider
+public sealed class LMSupplyRerankProvider : IRerankProvider, IDisposable
 {
     private readonly LMSupplyConfig _config;
     private IRerankerModel? _model;
@@ -72,6 +72,22 @@ public sealed class LMSupplyRerankProvider : IRerankProvider
         if (_model != null)
         {
             await _model.DisposeAsync();
+        }
+
+        _disposed = true;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_model is IDisposable disposable)
+        {
+            disposable.Dispose();
         }
 
         _disposed = true;

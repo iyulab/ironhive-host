@@ -10,7 +10,7 @@ namespace IronHive.Cli.Core.Providers;
 /// LMSupply-based chat client provider for local inference.
 /// Wraps LMSupply.Generator to implement IChatClient.
 /// </summary>
-public sealed class LMSupplyChatClientProvider : IChatClientProvider
+public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposable
 {
     private readonly LMSupplyConfig _config;
     private readonly ConcurrentDictionary<string, (IGeneratorModel generator, LMSupplyChatClient client)> _clientCache = new();
@@ -148,6 +148,27 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider
         foreach (var (generator, _) in _clientCache.Values)
         {
             await generator.DisposeAsync();
+        }
+
+        _clientCache.Clear();
+        _initLock.Dispose();
+        _disposed = true;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        foreach (var (generator, _) in _clientCache.Values)
+        {
+            if (generator is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
 
         _clientCache.Clear();

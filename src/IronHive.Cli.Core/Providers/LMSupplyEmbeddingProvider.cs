@@ -6,7 +6,7 @@ namespace IronHive.Cli.Core.Providers;
 /// <summary>
 /// LMSupply-based embedding provider for local inference.
 /// </summary>
-public sealed class LMSupplyEmbeddingProvider : IEmbeddingProvider
+public sealed class LMSupplyEmbeddingProvider : IEmbeddingProvider, IDisposable
 {
     private readonly LMSupplyConfig _config;
     private IEmbeddingModel? _model;
@@ -69,6 +69,22 @@ public sealed class LMSupplyEmbeddingProvider : IEmbeddingProvider
         if (_model != null)
         {
             await _model.DisposeAsync();
+        }
+
+        _disposed = true;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_model is IDisposable disposable)
+        {
+            disposable.Dispose();
         }
 
         _disposed = true;

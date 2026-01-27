@@ -9,7 +9,7 @@ namespace IronHive.Cli.Core.Providers;
 /// <summary>
 /// GpuStack/OpenAI-compatible API chat client provider.
 /// </summary>
-public sealed class GpuStackChatClientProvider : IChatClientProvider
+public sealed class GpuStackChatClientProvider : IChatClientProvider, IDisposable
 {
     private readonly GpuStackConfig _config;
     private readonly ConcurrentDictionary<string, IChatClient> _clientCache = new();
@@ -80,14 +80,19 @@ public sealed class GpuStackChatClientProvider : IChatClientProvider
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
         if (_disposed)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         _clientCache.Clear();
         _disposed = true;
-
-        return ValueTask.CompletedTask;
     }
 }
