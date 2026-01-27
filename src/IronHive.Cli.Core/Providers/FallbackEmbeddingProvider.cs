@@ -4,7 +4,7 @@ namespace IronHive.Cli.Core.Providers;
 /// Composite embedding provider with automatic fallback.
 /// Tries providers in order until one succeeds.
 /// </summary>
-public sealed class FallbackEmbeddingProvider : IEmbeddingProvider
+public sealed class FallbackEmbeddingProvider : IEmbeddingProvider, IDisposable
 {
     private readonly IEmbeddingProvider[] _providers;
     private IEmbeddingProvider? _activeProvider;
@@ -85,6 +85,18 @@ public sealed class FallbackEmbeddingProvider : IEmbeddingProvider
         foreach (var provider in _providers)
         {
             await provider.DisposeAsync();
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        foreach (var provider in _providers)
+        {
+            if (provider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
     }
 }

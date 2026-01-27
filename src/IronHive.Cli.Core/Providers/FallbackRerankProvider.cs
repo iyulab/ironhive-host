@@ -4,7 +4,7 @@ namespace IronHive.Cli.Core.Providers;
 /// Composite rerank provider with automatic fallback.
 /// Tries providers in order until one succeeds.
 /// </summary>
-public sealed class FallbackRerankProvider : IRerankProvider
+public sealed class FallbackRerankProvider : IRerankProvider, IDisposable
 {
     private readonly IRerankProvider[] _providers;
     private IRerankProvider? _activeProvider;
@@ -79,6 +79,18 @@ public sealed class FallbackRerankProvider : IRerankProvider
         foreach (var provider in _providers)
         {
             await provider.DisposeAsync();
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        foreach (var provider in _providers)
+        {
+            if (provider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
     }
 }

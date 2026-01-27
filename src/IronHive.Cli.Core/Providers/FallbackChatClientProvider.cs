@@ -6,7 +6,7 @@ namespace IronHive.Cli.Core.Providers;
 /// Composite chat client provider with automatic fallback.
 /// Tries providers in order until one succeeds.
 /// </summary>
-public sealed class FallbackChatClientProvider : IChatClientProvider
+public sealed class FallbackChatClientProvider : IChatClientProvider, IDisposable
 {
     private readonly IChatClientProvider[] _providers;
     private readonly object _lock = new();
@@ -119,6 +119,18 @@ public sealed class FallbackChatClientProvider : IChatClientProvider
         foreach (var provider in _providers)
         {
             await provider.DisposeAsync();
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        foreach (var provider in _providers)
+        {
+            if (provider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
     }
 }

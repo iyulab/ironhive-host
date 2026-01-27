@@ -104,6 +104,19 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
+        // Early validation: check if any provider is configured
+        if (!config.GpuStack.IsConfigured && !config.LMSupply.Enabled)
+        {
+            throw new InvalidOperationException(
+                "No API provider configured.\n" +
+                "\n" +
+                "Please configure one of the following options:\n" +
+                "  1. Create a .env file with GPUSTACK_* or OPENAI_* variables\n" +
+                "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
+                "\n" +
+                "See .env.example for configuration examples.");
+        }
+
         // GpuStack providers (primary)
         if (config.GpuStack.IsConfigured)
         {
@@ -150,7 +163,13 @@ public static class ServiceCollectionExtensions
             if (providers.Count == 0)
             {
                 throw new InvalidOperationException(
-                    "No chat providers configured. Set GPUSTACK_* environment variables or enable LMSupply.");
+                    "No API provider configured.\n" +
+                    "\n" +
+                    "Please configure one of the following options:\n" +
+                    "  1. Create a .env file with GPUSTACK_* or OPENAI_* variables\n" +
+                    "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
+                    "\n" +
+                    "See .env.example for configuration examples.");
             }
 
             return new FallbackChatClientProvider(providers.ToArray());
@@ -206,7 +225,13 @@ public static class ServiceCollectionExtensions
             if (providers.Count == 0)
             {
                 throw new InvalidOperationException(
-                    "No embedding providers configured. Set GPUSTACK_* environment variables or enable LMSupply.");
+                    "No embedding provider configured.\n" +
+                    "\n" +
+                    "Please configure one of the following options:\n" +
+                    "  1. Set GPUSTACK_EMBEDDING_MODEL in your .env file\n" +
+                    "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
+                    "\n" +
+                    "See .env.example for configuration examples.");
             }
 
             return new FallbackEmbeddingProvider(providers.ToArray());
@@ -231,7 +256,13 @@ public static class ServiceCollectionExtensions
             if (providers.Count == 0)
             {
                 throw new InvalidOperationException(
-                    "No rerank providers configured. Set GPUSTACK_* environment variables or enable LMSupply.");
+                    "No rerank provider configured.\n" +
+                    "\n" +
+                    "Please configure one of the following options:\n" +
+                    "  1. Set GPUSTACK_RERANK_MODEL in your .env file\n" +
+                    "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
+                    "\n" +
+                    "See .env.example for configuration examples.");
             }
 
             return new FallbackRerankProvider(providers.ToArray());
