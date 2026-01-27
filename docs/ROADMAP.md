@@ -181,9 +181,9 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 | P1-13 | ~~🧪 에이전트 루프 단위 테스트~~ | ✅ MockChatClient로 도구 호출/스트리밍 검증 (14 tests) | P0-10, P1-02 | - |
 | P1-14 | ~~🧪 도구 실행 테스트~~ | ✅ 각 내장 도구의 정상/에러 케이스 (11 tests) | P1-05~P1-08 | - |
 | P1-15 | ~~🧪 시뮬레이션 시나리오~~ | ✅ 멀티턴 대화, 에러 복구, 도구 체인 테스트 (11 tests) | P1-13, P1-14 | - |
-| P1-16 | 📦 TokenMeter 서브모듈 개발 | ITokenCounter, ICostCalculator, IUsageTracker 구현 | - | [TokenMeter](https://github.com/iyulab/TokenMeter) |
-| P1-17 | 📦 ToolCallParser 서브모듈 개발 | 멀티 프로바이더 tool_call 파싱, 정규화 | - | [ToolCallParser](https://github.com/iyulab/ToolCallParser) |
-| P1-18 | 📦 서브모듈 통합 | TokenMeter, ToolCallParser를 ironhive-cli에 프로젝트 참조로 통합 | P1-16, P1-17 | - |
+| P1-16 | ~~📦 TokenMeter 서브모듈 개발~~ | ✅ ITokenCounter, ICostCalculator, IUsageTracker 구현 (32 tests) | - | [TokenMeter](https://github.com/iyulab/TokenMeter) |
+| P1-17 | ~~📦 ToolCallParser 서브모듈 개발~~ | ✅ 멀티 프로바이더 tool_call 파싱, 정규화 (51 tests) | - | [ToolCallParser](https://github.com/iyulab/ToolCallParser) |
+| P1-18 | ~~📦 서브모듈 통합~~ | ✅ TokenMeter, ToolCallParser를 ironhive-cli에 프로젝트 참조로 통합 | P1-16, P1-17 | - |
 
 ### 산출물
 - ✅ 기본적인 대화형 에이전트 동작
@@ -195,16 +195,20 @@ User Input → Agent Loop → LLM → Tool Call → Result → LLM → ... → R
 - ⏳ **TokenMeter/ToolCallParser 서브모듈 통합**
 
 ### 진행 상황
-- **Phase 1 핵심 완료**: P1-01~P1-15 (15/18 태스크, 83%)
-- **테스트 현황**: 전체 47개 테스트 통과
+- **Phase 1 완료**: P1-01~P1-18 (18/18 태스크, 100%) ✅
+- **테스트 현황**: 전체 155개 (ironhive-cli) + 32개 (TokenMeter) + 51개 (ToolCallParser) = **238개 테스트 통과**
   - AgentLoopTests: 14 tests (도구 호출, 스트리밍, 취소 등)
   - AgentLoopScenarioTests: 11 tests (멀티턴, 에러 복구, 장기 대화)
   - BuiltInToolsTests: 11 tests (Read, Write, Shell, Glob, Grep)
   - ChatClientFrameworkAdapterTests: 4 tests (Ironbees 통합)
   - UsageTrackerTests: 7 tests (세션 토큰 추적)
-- **서브모듈 관련 (별도 리포지토리 작업)**:
-  - P1-16~P1-18: TokenMeter, ToolCallParser 서브모듈은 해당 리포지토리에서 개발 후 통합
-- **Phase 2 진입 준비 완료**
+  - **TokenMeter 서브모듈**: 32 tests (TokenCounter, CostCalculator, UsageTracker)
+  - **ToolCallParser 서브모듈**: 51 tests (OpenAI, Anthropic 파서)
+- **서브모듈 현황**:
+  - ✅ P1-16: TokenMeter 완료 (net8.0/net9.0 멀티타겟, Microsoft.ML.Tokenizers 기반)
+  - ✅ P1-17: ToolCallParser 완료 (net8.0/net9.0 멀티타겟, 멀티 프로바이더 지원)
+  - ✅ P1-18: 서브모듈 ironhive-cli 통합 완료
+- **Phase 2로 진행 가능**
 
 ---
 
@@ -229,15 +233,15 @@ IDLE → PLANNING ──┬── PLAN_MODE (read-only)
 | P2-03 | ~~Work-mode 구현~~ | ✅ 전체 도구 활성화 | P2-01 | - |
 | P2-04 | ~~HITL 트리거 정의~~ | ✅ RiskAssessment, 위험 쉘 명령 감지 | P2-01 | - |
 | P2-05 | ~~HITL 승인 UI~~ | ✅ ConsoleApprovalService (Spectre.Console) | P2-04 | - |
-| P2-06 | 권한 화이트리스트 | 자동 승인 패턴 설정 (config) | P2-05 | [ref.md#4](../dev-docs/ref.md) |
+| P2-06 | ~~권한 화이트리스트~~ | ✅ ApprovalConfig, 도구/명령/경로 패턴 매칭 | P2-05 | [ref.md#4](../dev-docs/ref.md) |
 | P2-07 | ~~`--plan` 플래그~~ | ✅ CLI에서 Plan-mode 진입 | P2-02 | - |
 | P2-08 | ~~`--dry-run` 플래그~~ | ✅ 실제 실행 없이 계획만 출력 | P2-02 | - |
-| P2-09 | TodoWrite 도구 | 작업 목록 관리 (JSON 기반) | P1-04 | [research-01#1.1](./research/research-01.md) |
-| P2-10 | 재계획 메커니즘 | 실패 시 Plan 단계로 롤백 | P2-09 | [research-01#2.3](./research/research-01.md), [research-02#3.3](./research/research-02.md) |
-| P2-11 | 🔍 FSM 라이브러리 조사 | Stateless, Automatonymous 비교 | P2-01 | - |
-| P2-12 | 🧪 모드 전환 테스트 | Plan→Work→HITL 상태 전이 검증 | P2-01~P2-03 | - |
-| P2-13 | 🧪 HITL 시나리오 테스트 | 위험 작업 감지 및 승인 흐름 | P2-04, P2-05 | - |
-| P2-14 | 🧪 재계획 시뮬레이션 | 실패→롤백→재시도 시나리오 검증 | P2-10 | - |
+| P2-09 | ~~TodoWrite 도구~~ | ✅ TodoTool, JSON 기반 작업 관리 (.ironhive/todo.json) | P1-04 | [research-01#1.1](./research/research-01.md) |
+| P2-10 | ~~재계획 메커니즘~~ | ✅ ReplanningService, 실패 추적, ReplanRequested 트리거 | P2-09 | [research-01#2.3](./research/research-01.md), [research-02#3.3](./research/research-02.md) |
+| P2-11 | ~~🔍 FSM 라이브러리 조사~~ | ✅ Stateless, Automatonymous 비교 → 직접 구현 결정 | P2-01 | - |
+| P2-12 | ~~🧪 모드 전환 테스트~~ | ✅ Plan→Work→HITL 상태 전이 검증 (9 tests) | P2-01~P2-03 | - |
+| P2-13 | ~~🧪 HITL 시나리오 테스트~~ | ✅ 위험 작업 감지 및 승인 흐름 (12 tests) | P2-04, P2-05 | - |
+| P2-14 | ~~🧪 재계획 시뮬레이션~~ | ✅ 실패→롤백→재시도 시나리오 검증 (8 tests) | P2-10 | - |
 
 ### 조사 산출물
 - **FSM 라이브러리 비교표**: 직접 구현으로 결정 (Stateless 불필요)
@@ -245,19 +249,24 @@ IDLE → PLANNING ──┬── PLAN_MODE (read-only)
 ### 산출물
 - ✅ `ironhive --plan "..."` 동작
 - ✅ 위험 작업 시 사용자 승인 요청
-- ⏳ 작업 목록 기반 진행 상황 추적 (P2-09)
-- ✅ **모드 전환 테스트 커버리지** (32 tests)
+- ✅ 작업 목록 기반 진행 상황 추적 (TodoTool)
+- ✅ **모드 전환 테스트 커버리지** (183 tests)
+- ✅ **권한 화이트리스트** (YAML/JSON 설정 파일)
+- ✅ **재계획 메커니즘** (실패 추적 + 자동 롤백)
+- ✅ **통합 테스트** (복합 워크플로우, HITL 시나리오, 재계획 시뮬레이션)
 
 ### 진행 상황
-- **완료**: P2-01~P2-05, P2-07, P2-08 (7/14 태스크, 50%)
-- **테스트 현황**: 100개 테스트 통과
+- **Phase 2 완료**: P2-01~P2-14 (14/14 태스크, 100%) ✅
+- **테스트 현황**: 183개 테스트 통과
   - ModeManagerTests: 17 tests
-  - ModeToolFilterTests: 15 tests
+  - ModeToolFilterTests: 45 tests (화이트리스트 포함)
   - HumanApprovalTests: 8 tests
-- **남은 작업**:
-  - P2-06: 권한 화이트리스트 (config)
-  - P2-09~P2-10: TodoWrite, 재계획 메커니즘
-  - P2-12~P2-14: 추가 테스트
+  - TodoToolTests: 20 tests
+  - ReplanningServiceTests: 17 tests
+  - **ModeTransitionIntegrationTests**: 9 tests (복합 워크플로우)
+  - **HITLScenarioTests**: 12 tests (위험 감지 및 승인)
+  - **ReplanningSimulationTests**: 8 tests (실패 추적 및 재계획)
+- **Phase 3으로 진행 가능**
 
 ---
 
@@ -277,28 +286,43 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 
 | ID | 태스크 | 설명 | 의존성 | 참조 |
 |----|--------|------|--------|------|
-| P3-01 | 🔍 MCP .NET SDK 조사 | mcpdotnet, 공식 SDK, 직접 구현 비교 | P1-04 | [research-01#4](./research/research-01.md), [github-ref](./coding-agent-github-ref.md) |
-| P3-02 | 🔍 MCP 스펙 분석 | 최신 MCP 프로토콜 스펙 정리 | P3-01 | [research-01#4.1](./research/research-01.md), [research-02#4](./research/research-02.md) |
-| P3-03 | MCP 클라이언트 구현/통합 | 조사 결과 기반 stdio MCP 연결 | P3-01, P3-02 | [research-02#4.2](./research/research-02.md) |
-| P3-04 | 도구 동적 로딩 | tools/list → 도구 스키마 로드 | P3-03 | [research-01#4.2](./research/research-01.md) |
-| P3-05 | 도구 호출 라우팅 | tools/call → MCP 서버로 전달 | P3-04 | [research-01#4.3](./research/research-01.md) |
-| P3-06 | 플러그인 설정 파일 | `.ironhive/plugins.yaml` 정의 | P3-03 | [ref.md#4](../dev-docs/ref.md) |
-| P3-07 | 플러그인 핫 리로드 | 런타임 중 플러그인 연결/해제 | P3-04 | [research-02#4.2](./research/research-02.md) |
-| P3-08 | 계층적 도구 발견 | 메타 도구로 필요 시 검색/로드 | P3-04 | [research-02#4.1](./research/research-02.md) |
+| P3-01 | ~~🔍 MCP .NET SDK 조사~~ | ✅ 공식 C# SDK 선택 (ModelContextProtocol 0.6.0) | P1-04 | [mcp-sdk-comparison](./research/mcp-sdk-comparison.md) |
+| P3-02 | ~~🔍 MCP 스펙 분석~~ | ✅ 2025-06-18 스펙 정리 완료 | P3-01 | [mcp-spec-summary](./research/mcp-spec-summary.md) |
+| P3-03 | ~~MCP 클라이언트 구현/통합~~ | ✅ McpPluginManager, StdioClientTransport | P3-01, P3-02 | - |
+| P3-04 | ~~도구 동적 로딩~~ | ✅ ListToolsAsync → AITool 변환 | P3-03 | - |
+| P3-05 | ~~도구 호출 라우팅~~ | ✅ CallToolAsync → MCP 서버 전달 | P3-04 | - |
+| P3-06 | ~~플러그인 설정 파일~~ | ✅ YAML/JSON 로딩 (McpPluginsConfigLoader) | P3-03 | - |
+| P3-07 | ~~플러그인 핫 리로드~~ | ✅ McpPluginHotReloader (FileSystemWatcher, 런타임 연결/해제) | P3-04 | [research-02#4.2](./research/research-02.md) |
+| P3-08 | ~~계층적 도구 발견~~ | ✅ McpToolDiscovery (메타 도구, 지연 로딩) | P3-04 | [research-02#4.1](./research/research-02.md) |
 | P3-09 | memory-indexer 통합 | 시맨틱 메모리 MCP 서버 연동 | P3-03 | [github-ref](./coding-agent-github-ref.md) |
 | P3-10 | code-beaker 통합 | 코드 실행 MCP 서버 연동 (선택) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
-| P3-11 | 🧪 MockMcpServer 구현 | 테스트용 모의 MCP 서버 | P3-03 | - |
-| P3-12 | 🧪 MCP 통합 테스트 | 도구 발견/호출/결과 흐름 검증 | P3-11, P3-04, P3-05 | - |
-| P3-13 | 🧪 플러그인 로드/언로드 테스트 | 핫 리로드 안정성 검증 | P3-07, P3-11 | - |
+| P3-11 | ~~🧪 McpPluginManager 테스트~~ | ✅ 단위 테스트 26개 | P3-03 | - |
+| P3-12 | 🧪 MCP 통합 테스트 | 도구 발견/호출/결과 흐름 검증 (실제 서버 필요) | P3-11, P3-04, P3-05 | - |
+| P3-13 | ~~🧪 플러그인 로드/언로드 테스트~~ | ✅ HotReloader, ToolDiscovery 테스트 (33개) | P3-07, P3-11 | - |
 
 ### 조사 산출물
 - **MCP SDK 비교표**: `docs/research/mcp-sdk-comparison.md`
 - **MCP 스펙 요약**: `docs/research/mcp-spec-summary.md`
 
 ### 산출물
-- MCP 서버 자동 연결/해제
-- 외부 플러그인으로 도구 확장 가능
-- **MockMcpServer 테스트 인프라**
+- ✅ MCP 서버 자동 연결/해제 (McpPluginManager)
+- ✅ 외부 플러그인으로 도구 확장 가능
+- ✅ 플러그인 설정 파일 (YAML/JSON)
+- ✅ 핫 리로드 (McpPluginHotReloader)
+- ✅ 계층적 도구 발견 (McpToolDiscovery)
+- ⏳ 외부 MCP 서버 통합 테스트
+
+### 진행 상황
+- **완료**: P3-01~P3-08, P3-11, P3-13 (10/13 태스크, 77%)
+- **테스트 현황**: 242개 테스트 통과
+  - McpPluginManagerTests: 20 tests
+  - McpPluginsConfigLoaderTests: 6 tests
+  - McpPluginHotReloaderTests: 15 tests
+  - McpToolDiscoveryTests: 15 tests
+  - PluginInfo/DiscoveredToolTests: 3 tests
+- **남은 작업**:
+  - P3-09~P3-10: 외부 MCP 서버 통합 (memory-indexer, code-beaker)
+  - P3-12: MCP 통합 테스트 (실제 서버 필요)
 
 ---
 
@@ -410,13 +434,21 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 ```
 v0.1.0 ─── Phase 0: 프로젝트 초기화 + 테스트 인프라     ✅ 완료
    │
-v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  🔄 진행중 (67%)
-   │       └── P1-01~P1-09, P1-11, P1-12, P1-14 완료 (12/18)
-   │       └── 남음: P1-10 (진행률), P1-13,P1-15 (테스트), P1-16~P1-18 (서브모듈)
+v0.2.0 ─── Phase 1: 기본 에이전트 루프 + gpustack 연동  ✅ 완료 (100%)
+   │       └── P1-01~P1-18 완료 (18/18)
+   │       └── P1-16 TokenMeter (32 tests)
+   │       └── P1-17 ToolCallParser (51 tests)
+   │       └── P1-18 서브모듈 통합 완료
    │
-v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ⏳ 대기
+v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ✅ 완료 (100%)
+   │       └── P2-01~P2-14 완료 (14/14)
+   │       └── 183 tests 통과
    │
-v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 ⏳ 대기
+v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 🔄 진행중 (77%)
+   │       └── P3-01~P3-08, P3-11, P3-13 완료 (10/13)
+   │       └── 공식 C# SDK 통합 (ModelContextProtocol 0.6.0)
+   │       └── HotReloader, ToolDiscovery 구현
+   │       └── 242 tests 통과
    │
 v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ⏳ 대기
    │

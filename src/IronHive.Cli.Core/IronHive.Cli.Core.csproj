@@ -10,6 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="NetEscapades.Configuration.Yaml" />
 
     <!-- OpenAI SDK -->
     <PackageReference Include="OpenAI" />
@@ -38,6 +40,12 @@
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageReference Include="MemoryIndexer" />
     <PackageReference Include="MemoryIndexer.Sdk" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Submodules (will be replaced with NuGet packages later) -->
+    <ProjectReference Include="..\..\submodules\TokenMeter\src\TokenMeter\TokenMeter.csproj" />
+    <ProjectReference Include="..\..\submodules\ToolCallParser\src\ToolCallParser\ToolCallParser.csproj" />
   </ItemGroup>
 
 </Project>
