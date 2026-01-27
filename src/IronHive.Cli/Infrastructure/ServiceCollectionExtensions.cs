@@ -1,6 +1,7 @@
 using IndexThinking.Agents;
 using IndexThinking.Extensions;
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Memory;
 using IronHive.Cli.Core.Providers;
@@ -78,6 +79,10 @@ public static class ServiceCollectionExtensions
 
         // Register usage tracker for session-level token tracking
         services.AddSingleton<IUsageTracker, UsageTracker>();
+
+        // Register mode manager for Plan/Work/HITL mode system
+        services.AddSingleton<IModeManager, ModeManager>();
+        services.AddSingleton<IModeToolFilter, ModeToolFilter>();
 
         return services;
     }

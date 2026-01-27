@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Agent.Mode;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -12,11 +13,13 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 {
     private readonly IAgentLoopFactory _factory;
     private readonly IUsageTracker _usageTracker;
+    private readonly IModeManager _modeManager;
 
-    public DefaultCommand(IAgentLoopFactory factory, IUsageTracker usageTracker)
+    public DefaultCommand(IAgentLoopFactory factory, IUsageTracker usageTracker, IModeManager modeManager)
     {
         _factory = factory;
         _usageTracker = usageTracker;
+        _modeManager = modeManager;
     }
 
     public class Settings : CommandSettings
@@ -44,6 +47,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("--no-stream")]
         [Description("Disable streaming output (wait for complete response)")]
         public bool NoStream { get; init; }
+
+        [CommandOption("--plan")]
+        [Description("Enter planning mode (read-only exploration)")]
+        public bool PlanMode { get; init; }
+
+        [CommandOption("--dry-run")]
+        [Description("Show what would be done without executing")]
+        public bool DryRun { get; init; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
@@ -70,6 +81,21 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                     info.Add($"model: [cyan]{settings.Model}[/]");
                 }
                 AnsiConsole.MarkupLine($"[grey]Using {string.Join(", ", info)}[/]");
+            }
+
+            // Initialize mode based on flags
+            if (settings.PlanMode || settings.DryRun)
+            {
+                _modeManager.Fire(ModeTrigger.StartPlanning);
+                AnsiConsole.MarkupLine("[grey]Mode: [yellow]Planning[/] (read-only)[/]");
+                if (settings.DryRun)
+                {
+                    AnsiConsole.MarkupLine("[grey]Dry-run: [yellow]enabled[/] (no execution)[/]");
+                }
+            }
+            else
+            {
+                _modeManager.Fire(ModeTrigger.StartWorking);
             }
 
             // Set up Ctrl+C handler for graceful shutdown
