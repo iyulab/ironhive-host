@@ -1,0 +1,196 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Directory.Build.props'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # Wait for CI to pass first
+  ci-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: 'build (ubuntu-latest)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+  # Extract version from Directory.Build.props
+  version:
+    needs: ci-check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      is-prerelease: ${{ steps.get-version.outputs.is-prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from Directory.Build.props
+        id: get-version
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if prerelease (contains alpha, beta, rc, preview)
+          if [[ "$VERSION" =~ (alpha|beta|rc|preview) ]]; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Detected version: $VERSION"
+
+      - name: Check if release already exists
+        id: check-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.get-version.outputs.version }}
+          if gh release view "v$VERSION" &>/dev/null; then
+            echo "Release v$VERSION already exists, skipping..."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Release v$VERSION does not exist, will create..."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+    # Skip release if already exists
+    # This output is used by the release job
+
+  # Build and release
+  release:
+    needs: version
+    if: ${{ needs.version.outputs.version != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Check if release exists
+        id: check-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.version.outputs.version }}
+          if gh release view "v$VERSION" &>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup .NET
+        if: steps.check-release.outputs.exists == 'false'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build for Windows x64
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          dotnet publish src/IronHive.Cli -c Release -r win-x64 \
+            -o ./publish/win-x64
+
+      - name: Build for Linux x64
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          dotnet publish src/IronHive.Cli -c Release -r linux-x64 \
+            -o ./publish/linux-x64
+
+      - name: Build for macOS x64
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          dotnet publish src/IronHive.Cli -c Release -r osx-x64 \
+            -o ./publish/osx-x64
+
+      - name: Build for macOS ARM64
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          dotnet publish src/IronHive.Cli -c Release -r osx-arm64 \
+            -o ./publish/osx-arm64
+
+      - name: Create archives
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          VERSION=${{ needs.version.outputs.version }}
+          cd publish
+          zip -r ../ironhive-${VERSION}-win-x64.zip win-x64/
+          tar -czvf ../ironhive-${VERSION}-linux-x64.tar.gz linux-x64/
+          tar -czvf ../ironhive-${VERSION}-osx-x64.tar.gz osx-x64/
+          tar -czvf ../ironhive-${VERSION}-osx-arm64.tar.gz osx-arm64/
+
+      - name: Generate checksums
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          sha256sum ironhive-*.zip ironhive-*.tar.gz > checksums.sha256
+
+      - name: Create GitHub Release
+        if: steps.check-release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: IronHive CLI v${{ needs.version.outputs.version }}
+          body: |
+            ## IronHive CLI v${{ needs.version.outputs.version }}
+
+            ### Installation
+
+            **Windows (x64)**
+            ```powershell
+            Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-win-x64.zip" -OutFile ironhive.zip
+            Expand-Archive ironhive.zip -DestinationPath .
+            ```
+
+            **Linux (x64)**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
+            tar -xzf ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
+            chmod +x linux-x64/ironhive
+            ```
+
+            **macOS (Intel)**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
+            tar -xzf ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
+            chmod +x osx-x64/ironhive
+            ```
+
+            **macOS (Apple Silicon)**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
+            tar -xzf ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
+            chmod +x osx-arm64/ironhive
+            ```
+
+            ### Update existing installation
+            ```bash
+            ironhive update
+            ```
+
+            ### Checksums
+            See `checksums.sha256` for SHA-256 hashes of all release files.
+          files: |
+            ironhive-*.zip
+            ironhive-*.tar.gz
+            checksums.sha256
+          draft: false
+          prerelease: ${{ needs.version.outputs.is-prerelease == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip message
+        if: steps.check-release.outputs.exists == 'true'
+        run: |
+          echo "Release v${{ needs.version.outputs.version }} already exists. Skipping release creation."

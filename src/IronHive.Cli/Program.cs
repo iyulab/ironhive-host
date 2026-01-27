@@ -1,3 +1,4 @@
+using System.Reflection;
 using IronHive.Cli.Commands;
 using IronHive.Cli.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,10 +10,16 @@ services.AddIronHiveServices();
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp<DefaultCommand>(registrar);
 
+// Get version from assembly (set by Directory.Build.props)
+var version = Assembly.GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+    ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+    ?? "0.0.0";
+
 app.Configure(config =>
 {
     config.SetApplicationName("ironhive");
-    config.SetApplicationVersion("0.4.0-alpha");
+    config.SetApplicationVersion(version);
 
     config.AddCommand<RunCommand>("run")
         .WithDescription("Run a single prompt and exit")

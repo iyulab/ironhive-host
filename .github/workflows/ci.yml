@@ -3,8 +3,13 @@ name: CI
 on:
   push:
     branches: [main]
-    tags:
-      - 'v*'
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'submodules/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '*.slnx'
   pull_request:
     branches: [main]
 
@@ -58,112 +63,3 @@ jobs:
 
       - name: Check formatting
         run: dotnet format --verify-no-changes --verbosity diagnostic
-
-  release:
-    needs: [build, format]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Build for Windows x64
-        run: |
-          dotnet publish src/IronHive.Cli -c Release -r win-x64 \
-            -p:Version=${{ steps.version.outputs.VERSION }} \
-            -o ./publish/win-x64
-
-      - name: Build for Linux x64
-        run: |
-          dotnet publish src/IronHive.Cli -c Release -r linux-x64 \
-            -p:Version=${{ steps.version.outputs.VERSION }} \
-            -o ./publish/linux-x64
-
-      - name: Build for macOS x64
-        run: |
-          dotnet publish src/IronHive.Cli -c Release -r osx-x64 \
-            -p:Version=${{ steps.version.outputs.VERSION }} \
-            -o ./publish/osx-x64
-
-      - name: Build for macOS ARM64
-        run: |
-          dotnet publish src/IronHive.Cli -c Release -r osx-arm64 \
-            -p:Version=${{ steps.version.outputs.VERSION }} \
-            -o ./publish/osx-arm64
-
-      - name: Create archives
-        run: |
-          cd publish
-          zip -r ../ironhive-${{ steps.version.outputs.VERSION }}-win-x64.zip win-x64/
-          tar -czvf ../ironhive-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz linux-x64/
-          tar -czvf ../ironhive-${{ steps.version.outputs.VERSION }}-osx-x64.tar.gz osx-x64/
-          tar -czvf ../ironhive-${{ steps.version.outputs.VERSION }}-osx-arm64.tar.gz osx-arm64/
-
-      - name: Generate checksums
-        run: |
-          sha256sum ironhive-*.zip ironhive-*.tar.gz > checksums.sha256
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: IronHive CLI v${{ steps.version.outputs.VERSION }}
-          body: |
-            ## IronHive CLI v${{ steps.version.outputs.VERSION }}
-
-            ### Installation
-
-            **Windows (x64)**
-            ```powershell
-            Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/ironhive-${{ steps.version.outputs.VERSION }}-win-x64.zip" -OutFile ironhive.zip
-            Expand-Archive ironhive.zip -DestinationPath .
-            ```
-
-            **Linux (x64)**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/ironhive-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
-            tar -xzf ironhive-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
-            chmod +x linux-x64/ironhive
-            ```
-
-            **macOS (Intel)**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/ironhive-${{ steps.version.outputs.VERSION }}-osx-x64.tar.gz
-            tar -xzf ironhive-${{ steps.version.outputs.VERSION }}-osx-x64.tar.gz
-            chmod +x osx-x64/ironhive
-            ```
-
-            **macOS (Apple Silicon)**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.VERSION }}/ironhive-${{ steps.version.outputs.VERSION }}-osx-arm64.tar.gz
-            tar -xzf ironhive-${{ steps.version.outputs.VERSION }}-osx-arm64.tar.gz
-            chmod +x osx-arm64/ironhive
-            ```
-
-            ### Update existing installation
-            ```bash
-            ironhive update
-            ```
-
-            ### Checksums
-            See `checksums.sha256` for SHA-256 hashes of all release files.
-          files: |
-            ironhive-*.zip
-            ironhive-*.tar.gz
-            checksums.sha256
-          draft: false
-          prerelease: ${{ contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'rc') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
