@@ -315,15 +315,17 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 
 ### 진행 상황
 - **완료**: P3-01~P3-11, P3-13 (12/13 태스크, 92%)
-- **테스트 현황**: 278개 테스트 통과
+- **테스트 현황**: 299개 테스트 통과
   - McpPluginManagerTests: 20 tests
   - McpPluginsConfigLoaderTests: 6 tests
   - McpPluginHotReloaderTests: 15 tests
   - McpToolDiscoveryTests: 15 tests
   - MemoryIndexerToolsTests: 18 tests
   - CodeBeakerToolsTests: 24 tests
+  - **McpIntegrationTests: 21 tests** (통합 테스트 추가)
+- **검증 리포트**: [phase3-verification-report.md](./reports/phase3-verification-report.md)
 - **남은 작업**:
-  - P3-12: MCP 통합 테스트 (실제 MCP 서버 필요)
+  - P3-12: 실제 MCP 서버 E2E 테스트 (E2E 단계로 이동)
 
 ---
 
@@ -450,7 +452,7 @@ v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 🔄 진행
    │       └── 공식 C# SDK 통합 (ModelContextProtocol 0.6.0)
    │       └── HotReloader, ToolDiscovery 구현
    │       └── memory-indexer, code-beaker SDK 통합
-   │       └── 278 tests 통과
+   │       └── 299 tests 통과 (통합 테스트 21개 포함)
    │
 v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ⏳ 대기
    │
