@@ -5,6 +5,7 @@ using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Memory;
 using IronHive.Cli.Core.Providers;
+using IronHive.Cli.Core.Update;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -82,8 +83,21 @@ public static class ServiceCollectionExtensions
 
         // Register mode manager for Plan/Work/HITL mode system
         services.AddSingleton<IModeManager, ModeManager>();
-        services.AddSingleton<IModeToolFilter, ModeToolFilter>();
+        services.AddSingleton<IModeToolFilter>(sp =>
+        {
+            var ironHiveConfig = sp.GetRequiredService<IronHiveConfig>();
+            return new ModeToolFilter(ironHiveConfig.Approval);
+        });
         services.AddSingleton<IHumanApprovalService, Services.ConsoleApprovalService>();
+        services.AddSingleton<IReplanningService, ReplanningService>();
+
+        // Register update service for self-update functionality
+        services.AddSingleton<HttpClient>();
+        services.AddSingleton<IUpdateService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<HttpClient>();
+            return new GitHubUpdateService(httpClient, "iyulab", "ironhive-cli");
+        });
 
         return services;
     }

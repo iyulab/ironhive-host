@@ -12,7 +12,7 @@ var app = new CommandApp<DefaultCommand>(registrar);
 app.Configure(config =>
 {
     config.SetApplicationName("ironhive");
-    config.SetApplicationVersion("0.1.0-alpha");
+    config.SetApplicationVersion("0.4.0-alpha");
 
     config.AddCommand<RunCommand>("run")
         .WithDescription("Run a single prompt and exit")
@@ -22,7 +22,10 @@ app.Configure(config =>
         .WithDescription("Manage configuration")
         .WithExample("config", "show");
 
-    // Future: plan, chat commands
+    config.AddCommand<UpdateCommand>("update")
+        .WithDescription("Check for and install updates")
+        .WithExample("update")
+        .WithExample("update", "--check");
 });
 
 return await app.RunAsync(args);

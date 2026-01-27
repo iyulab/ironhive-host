@@ -400,17 +400,20 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 | P5b-02 | 🧪 실제 LLM 통합 테스트 | OpenAI/Azure/gpustack 실제 연동 검증 | P5a-07 | - |
 | P5b-03 | 🧪 회귀 테스트 자동화 | CI에서 전체 테스트 스위트 실행 | P5a-07, P0-05 | - |
 | P5b-04 | 문서화 | 사용자 가이드, API 문서, 플러그인 개발 가이드 | - | - |
-| P5b-05 | 릴리스 자동화 | GitHub Release, NuGet/dotnet tool 배포 | P0-05 | - |
+| P5b-05 | ~~릴리스 자동화~~ | ✅ GitHub Release CI/CD (태그 푸시 시 자동 배포) | P0-05 | - |
+| P5b-06 | ~~자동 업데이트~~ | ✅ `ironhive update`, `--update` 플래그 | P5b-05 | - |
 
 ### 산출물
 - ✅ ironbees 기반 멀티에이전트 지원 (선행 완료)
+- ✅ **자동화된 릴리스 파이프라인** (GitHub Releases)
+- ✅ **Self-update 기능** (`ironhive update`)
 - ⏳ 완전한 문서화
-- ⏳ **자동화된 릴리스 파이프라인**
 - ⏳ **dotnet tool 배포**: `dotnet tool install -g ironhive`
 
 ### 진행 상황
-- **완료**: P5b-01 (ironbees 통합)
-- **남은 작업**: P5b-02~P5b-05 (테스트, 문서화, 릴리스)
+- **완료**: P5b-01 (ironbees 통합), P5b-05 (릴리스 자동화), P5b-06 (자동 업데이트)
+- **테스트 현황**: 313개 테스트 통과
+- **남은 작업**: P5b-02~P5b-04 (테스트, 문서화)
 
 ---
 

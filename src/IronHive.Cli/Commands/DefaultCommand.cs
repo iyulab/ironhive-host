@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
+using IronHive.Cli.Core.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -14,12 +15,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     private readonly IAgentLoopFactory _factory;
     private readonly IUsageTracker _usageTracker;
     private readonly IModeManager _modeManager;
+    private readonly IUpdateService _updateService;
 
-    public DefaultCommand(IAgentLoopFactory factory, IUsageTracker usageTracker, IModeManager modeManager)
+    public DefaultCommand(IAgentLoopFactory factory, IUsageTracker usageTracker, IModeManager modeManager, IUpdateService updateService)
     {
         _factory = factory;
         _usageTracker = usageTracker;
         _modeManager = modeManager;
+        _updateService = updateService;
     }
 
     public class Settings : CommandSettings
@@ -55,10 +58,20 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("--dry-run")]
         [Description("Show what would be done without executing")]
         public bool DryRun { get; init; }
+
+        [CommandOption("--update")]
+        [Description("Check for updates after execution")]
+        public bool CheckUpdate { get; init; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
+        // Start background update check (unless --update flag is used, which will check after execution)
+        if (!settings.CheckUpdate)
+        {
+            UpdateChecker.StartBackgroundCheck(_updateService);
+        }
+
         // Create agent loop with optional model/provider override
         var agentLoop = _factory.Create(new AgentLoopFactoryOptions
         {
@@ -123,6 +136,50 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             {
                 await disposable.DisposeAsync();
             }
+
+            // Handle update check
+            if (settings.CheckUpdate)
+            {
+                // --update flag: check for updates after execution
+                await CheckAndDisplayUpdateAsync();
+            }
+            else
+            {
+                // Normal mode: display notification if background check found an update
+                UpdateChecker.DisplayUpdateNotificationIfAvailable();
+            }
+        }
+    }
+
+    private async Task CheckAndDisplayUpdateAsync()
+    {
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Rule("[blue]Update Check[/]").RuleStyle("grey"));
+
+        UpdateInfo? updateInfo = null;
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .SpinnerStyle(Style.Parse("blue"))
+            .StartAsync("Checking for updates...", async _ =>
+            {
+                updateInfo = await _updateService.CheckForUpdateAsync();
+            });
+
+        if (updateInfo is null)
+        {
+            AnsiConsole.MarkupLine("[grey]Could not check for updates.[/]");
+            return;
+        }
+
+        if (updateInfo.IsUpdateAvailable)
+        {
+            AnsiConsole.MarkupLine($"[green]New version available: v{updateInfo.LatestVersion}[/]");
+            AnsiConsole.MarkupLine($"[grey]Current version: v{updateInfo.CurrentVersion}[/]");
+            AnsiConsole.MarkupLine("[grey]Run [cyan]ironhive update[/] to update.[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[green]You are running the latest version (v{updateInfo.CurrentVersion}).[/]");
         }
     }
 
