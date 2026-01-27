@@ -83,6 +83,7 @@ public static class ServiceCollectionExtensions
         // Register mode manager for Plan/Work/HITL mode system
         services.AddSingleton<IModeManager, ModeManager>();
         services.AddSingleton<IModeToolFilter, ModeToolFilter>();
+        services.AddSingleton<IHumanApprovalService, Services.ConsoleApprovalService>();
 
         return services;
     }
