@@ -11,10 +11,12 @@ namespace IronHive.Cli.Commands;
 public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 {
     private readonly IAgentLoopFactory _factory;
+    private readonly IUsageTracker _usageTracker;
 
-    public DefaultCommand(IAgentLoopFactory factory)
+    public DefaultCommand(IAgentLoopFactory factory, IUsageTracker usageTracker)
     {
         _factory = factory;
+        _usageTracker = usageTracker;
     }
 
     public class Settings : CommandSettings
@@ -86,7 +88,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             }
 
             // Interactive mode
-            return await RunInteractiveAsync(settings, agentLoop, cts.Token);
+            return await RunInteractiveAsync(settings, agentLoop, _usageTracker, cts.Token);
         }
         finally
         {
@@ -210,7 +212,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         return 0;
     }
 
-    private static async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
+    private static async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop, IUsageTracker usageTracker, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(new FigletText("IronHive")
             .Color(Color.Yellow));
@@ -223,6 +225,10 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         if (!settings.NoStream)
         {
             AnsiConsole.MarkupLine("[grey]Streaming: [green]enabled[/] (use --no-stream to disable)[/]");
+        }
+        if (settings.ShowTokens)
+        {
+            AnsiConsole.MarkupLine("[grey]Token tracking: [green]enabled[/][/]");
         }
         AnsiConsole.WriteLine();
 
@@ -260,7 +266,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 {
                     // Non-streaming mode
                     var response = await agentLoop.RunAsync(prompt, cancellationToken);
-                    DisplayNonStreamingResponse(response, settings);
+                    DisplayNonStreamingResponse(response, settings, usageTracker);
                 }
                 else
                 {
@@ -282,11 +288,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             }
         }
 
+        // Display session statistics
+        DisplaySessionStatistics(usageTracker);
+
         AnsiConsole.MarkupLine("[grey]Goodbye![/]");
         return 0;
     }
 
-    private static void DisplayNonStreamingResponse(AgentResponse response, Settings settings)
+    private static void DisplayNonStreamingResponse(AgentResponse response, Settings settings, IUsageTracker? usageTracker = null)
     {
         // Show thinking content if available and requested
         if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
@@ -308,9 +317,15 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         AnsiConsole.MarkupLine($"[blue]{Markup.Escape(response.Content)}[/]");
         AnsiConsole.WriteLine();
 
-        if (settings.ShowTokens && response.Usage is not null)
+        // Track and display usage
+        if (response.Usage is not null)
         {
-            AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
+            usageTracker?.Record(response.Usage);
+
+            if (settings.ShowTokens)
+            {
+                AnsiConsole.MarkupLine($"[grey]Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total[/]");
+            }
         }
 
         AnsiConsole.WriteLine();
@@ -354,6 +369,35 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
         AnsiConsole.Markup("[/]"); // Close blue markup
         AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine();
+    }
+
+    private static void DisplaySessionStatistics(IUsageTracker usageTracker)
+    {
+        var session = usageTracker.GetSessionUsage();
+
+        if (session.RequestCount == 0)
+        {
+            return;
+        }
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Rule("[yellow]Session Statistics[/]").RuleStyle("grey"));
+
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Grey)
+            .AddColumn(new TableColumn("[grey]Metric[/]").LeftAligned())
+            .AddColumn(new TableColumn("[grey]Value[/]").RightAligned());
+
+        table.AddRow("Requests", session.RequestCount.ToString());
+        table.AddRow("Input Tokens", session.TotalInputTokens.ToString("N0"));
+        table.AddRow("Output Tokens", session.TotalOutputTokens.ToString("N0"));
+        table.AddRow("Total Tokens", session.TotalTokens.ToString("N0"));
+        table.AddRow("Avg per Request", session.AverageTokensPerRequest.ToString("N1"));
+        table.AddRow("Est. Cost (USD)", $"${session.EstimatedCostUsd:F6}");
+
+        AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
     }
 }

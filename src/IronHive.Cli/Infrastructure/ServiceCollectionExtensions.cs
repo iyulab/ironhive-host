@@ -76,6 +76,9 @@ public static class ServiceCollectionExtensions
             return new AgentLoopFactory(clientFactory, turnManager);
         });
 
+        // Register usage tracker for session-level token tracking
+        services.AddSingleton<IUsageTracker, UsageTracker>();
+
         return services;
     }
 
