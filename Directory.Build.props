@@ -22,4 +22,10 @@
   <PropertyGroup>
     <Version>0.4.0-alpha</Version>
   </PropertyGroup>
+
+  <!-- Release build: exclude PDB files -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
 </Project>
