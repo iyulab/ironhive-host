@@ -104,18 +104,8 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
-        // Early validation: check if any provider is configured
-        if (!config.GpuStack.IsConfigured && !config.LMSupply.Enabled)
-        {
-            throw new InvalidOperationException(
-                "No API provider configured.\n" +
-                "\n" +
-                "Please configure one of the following options:\n" +
-                "  1. Create a .env file with GPUSTACK_* or OPENAI_* variables\n" +
-                "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
-                "\n" +
-                "See .env.example for configuration examples.");
-        }
+        // Note: LMSupply is auto-enabled when no remote provider is configured,
+        // so at least one provider will always be available.
 
         // GpuStack providers (primary)
         if (config.GpuStack.IsConfigured)

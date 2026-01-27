@@ -31,11 +31,15 @@ public static class EnvConfigLoader
             Env.Load(envFile);
         }
 
+        // Load GpuStack config first
+        var gpuStackConfig = LoadGpuStackConfig();
+
         // Create base config from environment
+        // LMSupply is auto-enabled when no remote provider is configured
         var config = new IronHiveConfig
         {
-            GpuStack = LoadGpuStackConfig(),
-            LMSupply = LoadLMSupplyConfig()
+            GpuStack = gpuStackConfig,
+            LMSupply = LoadLMSupplyConfig(autoEnable: !gpuStackConfig.IsConfigured)
         };
 
         // Load approval config from YAML/JSON file if exists
@@ -79,18 +83,23 @@ public static class EnvConfigLoader
         };
     }
 
-    private static LMSupplyConfig LoadLMSupplyConfig()
+    private static LMSupplyConfig LoadLMSupplyConfig(bool autoEnable = false)
     {
         var enabled = GetEnvVar("LMSUPPLY_ENABLED");
         var embedderModel = GetEnvVar("LMSUPPLY_EMBEDDER_MODEL");
         var rerankerModel = GetEnvVar("LMSUPPLY_RERANKER_MODEL");
         var generatorModel = GetEnvVar("LMSUPPLY_GENERATOR_MODEL");
 
+        // Determine if LMSupply should be enabled:
+        // 1. Explicitly set via LMSUPPLY_ENABLED=true
+        // 2. Auto-enabled when no remote provider (GpuStack/OpenAI) is configured
+        var isEnabled = !string.IsNullOrEmpty(enabled)
+            ? enabled.Equals("true", StringComparison.OrdinalIgnoreCase)
+            : autoEnable;
+
         return new LMSupplyConfig
         {
-            // LMSupply must be explicitly enabled (default: false)
-            // This prevents ONNX runtime errors when no configuration is provided
-            Enabled = !string.IsNullOrEmpty(enabled) && enabled.Equals("true", StringComparison.OrdinalIgnoreCase),
+            Enabled = isEnabled,
             EmbedderModel = string.IsNullOrEmpty(embedderModel) ? "auto" : embedderModel,
             RerankerModel = string.IsNullOrEmpty(rerankerModel) ? "auto" : rerankerModel,
             GeneratorModel = string.IsNullOrEmpty(generatorModel) ? "gguf:default" : generatorModel
