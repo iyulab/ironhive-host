@@ -254,7 +254,6 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     private static async Task<int> RunSinglePromptStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
     {
         AnsiConsole.WriteLine();
-        AnsiConsole.Markup("[blue]");
 
         var hasOutput = false;
         var toolCallsInProgress = new Dictionary<string, string>();
@@ -268,7 +267,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 {
                     hasOutput = true;
                 }
-                // Write text directly without markup escaping for real-time feel
+                // Write text directly for real-time streaming (no markup processing)
                 Console.Write(chunk.TextDelta);
             }
 
@@ -280,17 +279,16 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 {
                     if (hasOutput)
                     {
-                        AnsiConsole.WriteLine();
+                        Console.WriteLine();
                     }
-                    AnsiConsole.MarkupLine($"[/][grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/][blue]");
+                    AnsiConsole.MarkupLine($"[grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/]");
                     toolCallsInProgress[toolCall.Id] = toolCall.NameDelta;
                     hasOutput = true;
                 }
             }
         }
 
-        AnsiConsole.Markup("[/]"); // Close blue markup
-        AnsiConsole.WriteLine();
+        Console.WriteLine();
 
         return 0;
     }
@@ -417,7 +415,6 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     private static async Task DisplayStreamingResponseAsync(IAgentLoop agentLoop, string prompt, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.WriteLine();
-        AnsiConsole.Markup("[blue]");
 
         var hasOutput = false;
 
@@ -430,7 +427,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 {
                     hasOutput = true;
                 }
-                // Write text directly for real-time streaming
+                // Write text directly for real-time streaming (no markup processing)
                 Console.Write(chunk.TextDelta);
             }
 
@@ -442,17 +439,16 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 {
                     if (hasOutput)
                     {
-                        AnsiConsole.WriteLine();
+                        Console.WriteLine();
                     }
-                    AnsiConsole.MarkupLine($"[/][grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/][blue]");
+                    AnsiConsole.MarkupLine($"[grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/]");
                     hasOutput = true;
                 }
             }
         }
 
-        AnsiConsole.Markup("[/]"); // Close blue markup
-        AnsiConsole.WriteLine();
-        AnsiConsole.WriteLine();
+        Console.WriteLine();
+        Console.WriteLine();
     }
 
     private static void DisplaySessionStatistics(IUsageTracker usageTracker)

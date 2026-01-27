@@ -69,5 +69,10 @@ public enum ModeTrigger
     /// <summary>
     /// Reset to idle state.
     /// </summary>
-    Reset
+    Reset,
+
+    /// <summary>
+    /// Replan requested due to failure or new information.
+    /// </summary>
+    ReplanRequested
 }

@@ -18,7 +18,10 @@ public static class BuiltInTools
     /// </summary>
     public static IList<AITool> GetAll(string? workingDirectory = null)
     {
-        var tools = new ToolProvider(workingDirectory ?? Directory.GetCurrentDirectory());
+        var wd = workingDirectory ?? Directory.GetCurrentDirectory();
+        var tools = new ToolProvider(wd);
+        var todoTool = new TodoTool(wd);
+
         return
         [
             AIFunctionFactory.Create(tools.ReadFile),
@@ -26,7 +29,8 @@ public static class BuiltInTools
             AIFunctionFactory.Create(tools.ListDirectory),
             AIFunctionFactory.Create(tools.GlobFiles),
             AIFunctionFactory.Create(tools.GrepFiles),
-            AIFunctionFactory.Create(tools.ExecuteCommand)
+            AIFunctionFactory.Create(tools.ExecuteCommand),
+            todoTool.GetAITool()
         ];
     }
 }

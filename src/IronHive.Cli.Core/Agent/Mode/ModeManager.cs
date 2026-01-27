@@ -104,6 +104,7 @@ public class ModeManager : IModeManager
             (AgentMode.Working, ModeTrigger.RiskyOperationDetected) => AgentMode.HumanInTheLoop,
             (AgentMode.Working, ModeTrigger.Complete) => AgentMode.Idle,
             (AgentMode.Working, ModeTrigger.Reset) => AgentMode.Idle,
+            (AgentMode.Working, ModeTrigger.ReplanRequested) => AgentMode.Planning,
 
             // From HumanInTheLoop
             (AgentMode.HumanInTheLoop, ModeTrigger.UserApproved) => AgentMode.Working,
@@ -121,7 +122,7 @@ public class ModeManager : IModeManager
         {
             AgentMode.Idle => [ModeTrigger.StartPlanning, ModeTrigger.StartWorking],
             AgentMode.Planning => [ModeTrigger.FinishPlanning, ModeTrigger.Reset],
-            AgentMode.Working => [ModeTrigger.RiskyOperationDetected, ModeTrigger.Complete, ModeTrigger.Reset],
+            AgentMode.Working => [ModeTrigger.RiskyOperationDetected, ModeTrigger.Complete, ModeTrigger.Reset, ModeTrigger.ReplanRequested],
             AgentMode.HumanInTheLoop => [ModeTrigger.UserApproved, ModeTrigger.UserRejected, ModeTrigger.Reset],
             _ => []
         };

@@ -163,7 +163,8 @@ public class ModeManagerTests
         Assert.Contains(ModeTrigger.RiskyOperationDetected, triggers);
         Assert.Contains(ModeTrigger.Complete, triggers);
         Assert.Contains(ModeTrigger.Reset, triggers);
-        Assert.Equal(3, triggers.Count);
+        Assert.Contains(ModeTrigger.ReplanRequested, triggers);
+        Assert.Equal(4, triggers.Count);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace IronHive.Cli.Core.Config;
 
 /// <summary>
@@ -15,6 +17,91 @@ public class IronHiveConfig
     /// LMSupply configuration (fallback provider).
     /// </summary>
     public LMSupplyConfig LMSupply { get; set; } = new();
+
+    /// <summary>
+    /// Approval configuration for HITL (Human-In-The-Loop).
+    /// </summary>
+    public ApprovalConfig Approval { get; set; } = new();
+}
+
+/// <summary>
+/// Configuration for automatic approval patterns.
+/// </summary>
+public class ApprovalConfig
+{
+    /// <summary>
+    /// Tools that are always auto-approved.
+    /// </summary>
+    public List<string> AutoApprovedTools { get; set; } = [];
+
+    /// <summary>
+    /// Shell command patterns that are auto-approved (glob-style).
+    /// Examples: "git *", "dotnet build", "npm install"
+    /// </summary>
+    public List<string> AutoApprovedCommands { get; set; } = [];
+
+    /// <summary>
+    /// File path patterns that are auto-approved for write/delete.
+    /// Examples: "*.tmp", "obj/**", "bin/**"
+    /// </summary>
+    public List<string> AutoApprovedPaths { get; set; } = [];
+
+    /// <summary>
+    /// Whether to prompt for approval on high-risk operations even if whitelisted.
+    /// </summary>
+    public bool AlwaysPromptForCritical { get; set; } = true;
+
+    /// <summary>
+    /// Checks if a tool is auto-approved.
+    /// </summary>
+    public bool IsToolAutoApproved(string toolName)
+    {
+        return AutoApprovedTools.Contains(toolName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Checks if a shell command matches any auto-approved pattern.
+    /// </summary>
+    public bool IsCommandAutoApproved(string command)
+    {
+        foreach (var pattern in AutoApprovedCommands)
+        {
+            if (MatchesGlobPattern(command, pattern))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a file path matches any auto-approved pattern.
+    /// </summary>
+    public bool IsPathAutoApproved(string path)
+    {
+        foreach (var pattern in AutoApprovedPaths)
+        {
+            if (MatchesGlobPattern(path, pattern))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool MatchesGlobPattern(string input, string pattern)
+    {
+        // Convert glob pattern to regex
+        // * matches any characters except path separator
+        // ** matches any characters including path separator
+        // ? matches single character
+        var regexPattern = "^" + Regex.Escape(pattern)
+            .Replace("\\*\\*", ".*")
+            .Replace("\\*", "[^/\\\\]*")
+            .Replace("\\?", ".") + "$";
+
+        return Regex.IsMatch(input, regexPattern, RegexOptions.IgnoreCase);
+    }
 }
 
 /// <summary>

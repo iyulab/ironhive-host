@@ -31,15 +31,12 @@ public static class EnvConfigLoader
             Env.Load(envFile);
         }
 
-        // Load GpuStack config first
-        var gpuStackConfig = LoadGpuStackConfig();
-
         // Create base config from environment
-        // LMSupply is auto-enabled when no remote provider is configured
+        // LMSupply is always enabled as fallback (unless explicitly disabled)
         var config = new IronHiveConfig
         {
-            GpuStack = gpuStackConfig,
-            LMSupply = LoadLMSupplyConfig(autoEnable: !gpuStackConfig.IsConfigured)
+            GpuStack = LoadGpuStackConfig(),
+            LMSupply = LoadLMSupplyConfig()
         };
 
         // Load approval config from YAML/JSON file if exists
@@ -83,19 +80,18 @@ public static class EnvConfigLoader
         };
     }
 
-    private static LMSupplyConfig LoadLMSupplyConfig(bool autoEnable = false)
+    private static LMSupplyConfig LoadLMSupplyConfig()
     {
         var enabled = GetEnvVar("LMSUPPLY_ENABLED");
         var embedderModel = GetEnvVar("LMSUPPLY_EMBEDDER_MODEL");
         var rerankerModel = GetEnvVar("LMSUPPLY_RERANKER_MODEL");
         var generatorModel = GetEnvVar("LMSUPPLY_GENERATOR_MODEL");
 
-        // Determine if LMSupply should be enabled:
-        // 1. Explicitly set via LMSUPPLY_ENABLED=true
-        // 2. Auto-enabled when no remote provider (GpuStack/OpenAI) is configured
-        var isEnabled = !string.IsNullOrEmpty(enabled)
-            ? enabled.Equals("true", StringComparison.OrdinalIgnoreCase)
-            : autoEnable;
+        // LMSupply is always enabled as fallback unless explicitly disabled
+        // LMSUPPLY_ENABLED=false → disabled
+        // LMSUPPLY_ENABLED not set or =true → enabled
+        var isEnabled = string.IsNullOrEmpty(enabled) ||
+                        !enabled.Equals("false", StringComparison.OrdinalIgnoreCase);
 
         return new LMSupplyConfig
         {

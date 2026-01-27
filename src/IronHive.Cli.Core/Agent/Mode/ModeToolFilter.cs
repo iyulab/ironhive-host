@@ -1,3 +1,4 @@
+using IronHive.Cli.Core.Config;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Agent.Mode;
@@ -100,6 +101,8 @@ public enum RiskLevel
 /// </summary>
 public class ModeToolFilter : IModeToolFilter
 {
+    private readonly ApprovalConfig _approvalConfig;
+
     // Read-only tools allowed in Planning mode
     private static readonly HashSet<string> ReadOnlyTools =
     [
@@ -125,6 +128,21 @@ public class ModeToolFilter : IModeToolFilter
         "delete_file",
         "shell" // Certain shell commands are high-risk
     ];
+
+    /// <summary>
+    /// Creates a new ModeToolFilter with default configuration.
+    /// </summary>
+    public ModeToolFilter() : this(new ApprovalConfig())
+    {
+    }
+
+    /// <summary>
+    /// Creates a new ModeToolFilter with the specified approval configuration.
+    /// </summary>
+    public ModeToolFilter(ApprovalConfig approvalConfig)
+    {
+        _approvalConfig = approvalConfig ?? throw new ArgumentNullException(nameof(approvalConfig));
+    }
 
     /// <inheritdoc />
     public IList<AITool> FilterTools(IList<AITool> tools, AgentMode mode)
@@ -155,9 +173,29 @@ public class ModeToolFilter : IModeToolFilter
     /// <inheritdoc />
     public RiskAssessment AssessRisk(string toolName, IDictionary<string, object?>? arguments)
     {
+        // Check whitelist first (unless critical operations always need prompt)
+        if (_approvalConfig.IsToolAutoApproved(toolName))
+        {
+            // Still check for critical-level risks if configured
+            if (!_approvalConfig.AlwaysPromptForCritical)
+            {
+                return RiskAssessment.Safe;
+            }
+        }
+
         // Check if tool itself is high-risk
         if (toolName == "delete_file")
         {
+            var path = arguments?.TryGetValue("path", out var pathArg) == true
+                ? pathArg?.ToString() ?? string.Empty
+                : string.Empty;
+
+            // Check path whitelist
+            if (!string.IsNullOrEmpty(path) && _approvalConfig.IsPathAutoApproved(path))
+            {
+                return RiskAssessment.Safe;
+            }
+
             return RiskAssessment.Risky(
                 RiskLevel.High,
                 "File deletion is a destructive operation",
@@ -169,7 +207,7 @@ public class ModeToolFilter : IModeToolFilter
         {
             var command = cmd?.ToString() ?? string.Empty;
 
-            // Check for dangerous patterns
+            // Check for dangerous patterns (always risky, even if whitelisted)
             if (IsDangerousShellCommand(command))
             {
                 return RiskAssessment.Risky(
@@ -178,13 +216,29 @@ public class ModeToolFilter : IModeToolFilter
                     "Allow executing this command?");
             }
 
-            // Check for elevated privileges
+            // Check for elevated privileges (always risky)
             if (RequiresElevation(command))
             {
                 return RiskAssessment.Risky(
                     RiskLevel.High,
                     "Command requires elevated privileges",
                     "Allow executing with elevated privileges?");
+            }
+
+            // Check command whitelist for non-dangerous commands
+            if (_approvalConfig.IsCommandAutoApproved(command))
+            {
+                return RiskAssessment.Safe;
+            }
+        }
+
+        // Write operations - check path whitelist
+        if (toolName == "write_file" && arguments?.TryGetValue("path", out var writePath) == true)
+        {
+            var path = writePath?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(path) && _approvalConfig.IsPathAutoApproved(path))
+            {
+                return RiskAssessment.Safe;
             }
         }
 
