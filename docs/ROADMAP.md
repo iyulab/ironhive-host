@@ -294,8 +294,8 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 | P3-06 | ~~플러그인 설정 파일~~ | ✅ YAML/JSON 로딩 (McpPluginsConfigLoader) | P3-03 | - |
 | P3-07 | ~~플러그인 핫 리로드~~ | ✅ McpPluginHotReloader (FileSystemWatcher, 런타임 연결/해제) | P3-04 | [research-02#4.2](./research/research-02.md) |
 | P3-08 | ~~계층적 도구 발견~~ | ✅ McpToolDiscovery (메타 도구, 지연 로딩) | P3-04 | [research-02#4.1](./research/research-02.md) |
-| P3-09 | memory-indexer 통합 | 시맨틱 메모리 MCP 서버 연동 | P3-03 | [github-ref](./coding-agent-github-ref.md) |
-| P3-10 | code-beaker 통합 | 코드 실행 MCP 서버 연동 (선택) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
+| P3-09 | ~~memory-indexer 통합~~ | ✅ SDK 방식 통합 (MemoryIndexerTools, IMemoryToolsProvider) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
+| P3-10 | ~~code-beaker 통합~~ | ✅ SDK 방식 통합 (CodeBeakerTools, ICodeExecutionProvider) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
 | P3-11 | ~~🧪 McpPluginManager 테스트~~ | ✅ 단위 테스트 26개 | P3-03 | - |
 | P3-12 | 🧪 MCP 통합 테스트 | 도구 발견/호출/결과 흐름 검증 (실제 서버 필요) | P3-11, P3-04, P3-05 | - |
 | P3-13 | ~~🧪 플러그인 로드/언로드 테스트~~ | ✅ HotReloader, ToolDiscovery 테스트 (33개) | P3-07, P3-11 | - |
@@ -310,19 +310,20 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 - ✅ 플러그인 설정 파일 (YAML/JSON)
 - ✅ 핫 리로드 (McpPluginHotReloader)
 - ✅ 계층적 도구 발견 (McpToolDiscovery)
-- ⏳ 외부 MCP 서버 통합 테스트
+- ✅ memory-indexer SDK 통합 (MemoryIndexerTools)
+- ✅ code-beaker SDK 통합 (CodeBeakerTools)
 
 ### 진행 상황
-- **완료**: P3-01~P3-08, P3-11, P3-13 (10/13 태스크, 77%)
-- **테스트 현황**: 242개 테스트 통과
+- **완료**: P3-01~P3-11, P3-13 (12/13 태스크, 92%)
+- **테스트 현황**: 278개 테스트 통과
   - McpPluginManagerTests: 20 tests
   - McpPluginsConfigLoaderTests: 6 tests
   - McpPluginHotReloaderTests: 15 tests
   - McpToolDiscoveryTests: 15 tests
-  - PluginInfo/DiscoveredToolTests: 3 tests
+  - MemoryIndexerToolsTests: 18 tests
+  - CodeBeakerToolsTests: 24 tests
 - **남은 작업**:
-  - P3-09~P3-10: 외부 MCP 서버 통합 (memory-indexer, code-beaker)
-  - P3-12: MCP 통합 테스트 (실제 서버 필요)
+  - P3-12: MCP 통합 테스트 (실제 MCP 서버 필요)
 
 ---
 
@@ -444,11 +445,12 @@ v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ✅ 완료 (
    │       └── P2-01~P2-14 완료 (14/14)
    │       └── 183 tests 통과
    │
-v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 🔄 진행중 (77%)
-   │       └── P3-01~P3-08, P3-11, P3-13 완료 (10/13)
+v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 🔄 진행중 (92%)
+   │       └── P3-01~P3-11, P3-13 완료 (12/13)
    │       └── 공식 C# SDK 통합 (ModelContextProtocol 0.6.0)
    │       └── HotReloader, ToolDiscovery 구현
-   │       └── 242 tests 통과
+   │       └── memory-indexer, code-beaker SDK 통합
+   │       └── 278 tests 통과
    │
 v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ⏳ 대기
    │
