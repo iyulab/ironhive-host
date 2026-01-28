@@ -297,7 +297,7 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 | P3-09 | ~~memory-indexer 통합~~ | ✅ SDK 방식 통합 (MemoryIndexerTools, IMemoryToolsProvider) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
 | P3-10 | ~~code-beaker 통합~~ | ✅ SDK 방식 통합 (CodeBeakerTools, ICodeExecutionProvider) | P3-03 | [github-ref](./coding-agent-github-ref.md) |
 | P3-11 | ~~🧪 McpPluginManager 테스트~~ | ✅ 단위 테스트 26개 | P3-03 | - |
-| P3-12 | 🧪 MCP 통합 테스트 | 도구 발견/호출/결과 흐름 검증 (실제 서버 필요) | P3-11, P3-04, P3-05 | - |
+| P3-12 | ~~🧪 MCP 통합 테스트~~ | ✅ E2E 테스트 11개 (환경 변수 조건부 실행) | P3-11, P3-04, P3-05 | - |
 | P3-13 | ~~🧪 플러그인 로드/언로드 테스트~~ | ✅ HotReloader, ToolDiscovery 테스트 (33개) | P3-07, P3-11 | - |
 
 ### 조사 산출물
@@ -314,18 +314,17 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 - ✅ code-beaker SDK 통합 (CodeBeakerTools)
 
 ### 진행 상황
-- **완료**: P3-01~P3-11, P3-13 (12/13 태스크, 92%)
-- **테스트 현황**: 299개 테스트 통과
+- **Phase 3 완료**: P3-01~P3-13 (13/13 태스크, 100%) ✅
+- **테스트 현황**: 310개 테스트 통과 (MCP E2E 11개 스킵)
   - McpPluginManagerTests: 20 tests
   - McpPluginsConfigLoaderTests: 6 tests
   - McpPluginHotReloaderTests: 15 tests
   - McpToolDiscoveryTests: 15 tests
   - MemoryIndexerToolsTests: 18 tests
   - CodeBeakerToolsTests: 24 tests
-  - **McpIntegrationTests: 21 tests** (통합 테스트 추가)
+  - McpIntegrationTests: 21 tests (통합 테스트)
+  - **McpServerE2ETests: 11 tests** (환경 변수 조건부, `IRONHIVE_MCP_E2E_ENABLED=true`)
 - **검증 리포트**: [phase3-verification-report.md](./reports/phase3-verification-report.md)
-- **남은 작업**:
-  - P3-12: 실제 MCP 서버 E2E 테스트 (E2E 단계로 이동)
 
 ---
 
@@ -396,7 +395,7 @@ Claude Code 호환 세션 관리 시스템 구현
 - ✅ **ContextManager**: 통합 컨텍스트 관리 + PrepareHistoryAsync
 - ✅ **PromptCacheManager**: 프롬프트 캐싱 (Anthropic ephemeral cache 지원)
 - ✅ **LongTermMemoryManager**: 장기 메모리 저장/검색/주입
-- ⏳ AgentLoop 통합 (컨텍스트 자동 압축)
+- ✅ **AgentLoop 통합**: ContextManager 연동, 자동 압축 및 목표 상기
 
 ### 진행 상황
 - **Phase 4 완료**: P4-01~P4-11 (11/11 태스크, 100%) ✅
@@ -476,14 +475,15 @@ iyulab 생태계 완전 통합 및 릴리스 자동화
 - ✅ **LLM 통합 테스트** (GpuStack/OpenAI 환경 변수 조건부)
 - ✅ **크로스 플랫폼 CI** (Ubuntu/Windows/macOS)
 - ✅ **완전한 문서화** (README.md, ROADMAP.md)
-- ⏳ **dotnet tool 배포**: `dotnet tool install -g ironhive`
+- ✅ **dotnet tool 배포**: `dotnet tool install -g IronHive.Cli`
 
 ### 진행 상황
 - **Phase 5b 완료**: P5b-01~P5b-06 (6/6 태스크, 100%) ✅
-- **테스트 현황**: 521개 테스트
+- **테스트 현황**: 537개 테스트 (526 통과, 11 스킵)
   - LlmIntegrationTests: 9 tests (환경 변수 조건부)
+  - McpServerE2ETests: 11 tests (환경 변수 조건부)
   - CI: Ubuntu/Windows/macOS 크로스 플랫폼
-- **남은 작업**: dotnet tool 배포
+- **완료됨**: dotnet tool 배포 (`IronHive.Cli` 패키지)
 
 ---
 
@@ -520,12 +520,13 @@ v0.3.0 ─── Phase 2: 모드 시스템 및 HITL + --dry-run     ✅ 완료 (
    │       └── P2-01~P2-14 완료 (14/14)
    │       └── 183 tests 통과
    │
-v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 🔄 진행중 (92%)
-   │       └── P3-01~P3-11, P3-13 완료 (12/13)
+v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 ✅ 완료 (100%)
+   │       └── P3-01~P3-13 완료 (13/13)
    │       └── 공식 C# SDK 통합 (ModelContextProtocol 0.6.0)
    │       └── HotReloader, ToolDiscovery 구현
    │       └── memory-indexer, code-beaker SDK 통합
-   │       └── 299 tests 통과 (통합 테스트 21개 포함)
+   │       └── MCP E2E 테스트 (11개, 환경 변수 조건부)
+   │       └── 310 tests 통과 (E2E 11개 스킵)
    │
 v0.4.1 ─── Phase 3.5: Claude Code 호환 세션 관리        ✅ 완료 (100%)
    │       └── P3.5-01~P3.5-08 완료 (8/8)
@@ -552,7 +553,9 @@ v0.7.0 ─── Phase 5b: 생태계 통합 + 릴리스 자동화        ✅ 완
    │       └── ironbees 통합, 릴리스 자동화, 자동 업데이트
    │       └── LLM 통합 테스트, 크로스 플랫폼 CI
    │       └── README.md 문서화
-   │       └── 521 tests
+   │       └── dotnet tool 배포 완료 (IronHive.Cli)
+   │       └── AgentLoop ContextManager 통합 완료
+   │       └── 537 tests (526 통과, 11 스킵)
    │
 v0.8.0+ ── Future: Repo Map, Sub-agent, 분산 실행
 ```

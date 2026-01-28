@@ -1,120 +1,122 @@
 # ironhive-cli
 
-> 범용 CLI 에이전트 코어
+> Universal CLI Agent Core
 
-Claude Code, Codex CLI 같은 에이전트 도구. 코딩뿐 아니라 범용 작업을 위한 기반 도구.
+A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution.
 
-## 특징
+## Philosophy
 
-- **gpustack/로컬 모델 지원** - GpuStack, OpenAI 호환 API
-- **MCP 플러그인** - Model Context Protocol 기반 도구 확장
-- **Plan/Work/HITL 모드** - 계획 → 실행 → 사람 개입
-- **세션 관리** - 대화 재개, 포크, 컨텍스트 복원
-- **컨텍스트 관리** - 자동 압축, 목표 상기
-- **웹훅 지원** - 외부 시스템 연동
-- **비용/토큰 제한** - 세션당 한도 설정
+**Do one thing well.**
 
-## 철학
+Receive a command. Plan. Execute. Return.
 
-**하나만 잘한다.** 명령을 받고, 계획하고, 수행한다.
-
-무중단 자동 재개, 칸반 보드, 복잡한 오케스트레이션은 하지 않는다. 그건 이 CLI를 호출하는 2차 프로그램의 몫이다.
+This CLI doesn't manage workflows, run schedulers, or orchestrate complex pipelines. That responsibility belongs to the systems that invoke it—CI/CD tools, workflow engines, or your own automation layer. By staying focused, ironhive-cli remains composable, predictable, and easy to integrate.
 
 ```
 ┌─────────────────────────────────────────┐
-│          외부 시스템 (웹훅 소비자)         │
-│   CI/CD, 스케줄러, 칸반, 워크플로우 엔진    │
+│          External Systems               │
+│   CI/CD · Schedulers · Orchestrators    │
 └────────────────────┬────────────────────┘
-                     │ 호출 + 웹훅 수신
+                     │ invoke + receive webhooks
                      ▼
 ┌─────────────────────────────────────────┐
 │             ironhive-cli                │
 │                                         │
-│   명령 → 모드 선택 → 플랜 → 실행 → 결과   │
+│   Command → Mode → Plan → Execute → Done│
 │                                         │
 └────────────────────┬────────────────────┘
                      │ MCP
                      ▼
 ┌─────────────────────────────────────────┐
-│              플러그인 (MCP 서버)          │
-│   code-beaker, memory-indexer, ...      │
+│           Plugins (MCP Servers)         │
+│   code-beaker · memory-indexer · ...    │
 └─────────────────────────────────────────┘
 ```
 
-## 설치
+## Features
+
+- **Local & Cloud Models** — GpuStack, OpenAI-compatible APIs
+- **MCP Plugins** — Extend capabilities via Model Context Protocol
+- **Plan/Work/HITL Modes** — Plan → Execute → Human approval when needed
+- **Session Management** — Resume, fork, restore context
+- **Context Management** — Auto-compaction, goal reminders
+- **Webhooks** — Integrate with external systems
+- **Usage Limits** — Token and cost caps per session
+
+## Installation
 
 ```bash
-# dotnet tool로 설치 (예정)
-dotnet tool install -g ironhive
+# Install as dotnet tool
+dotnet tool install -g IronHive.Cli --version 0.2.0-alpha
 
-# 또는 소스에서 빌드
+# Or build from source
 git clone https://github.com/iyulab/ironhive-cli
 cd ironhive-cli
 git submodule update --init --recursive
 dotnet build
 ```
 
-## 사용법
+## Quick Start
 
-### 기본 대화
+### Basic Usage
 
 ```bash
-# 대화형 모드
+# Interactive mode
 ironhive
 
-# 단일 명령 실행
-ironhive -p "이 프로젝트의 README를 작성해줘"
-ironhive run "파일 목록을 보여줘"
+# Single command
+ironhive -p "Write a README for this project"
+ironhive run "Show me the file structure"
 ```
 
-### 모드 선택
+### Modes
 
 ```bash
-# Plan 모드 (읽기 전용 탐색)
-ironhive --plan "리팩토링 계획 세워줘"
+# Plan mode (read-only exploration)
+ironhive --plan "Plan a refactoring strategy"
 
-# Dry-run (실제 실행 없이 계획만)
-ironhive --dry-run "테스트 파일 정리해줘"
+# Dry-run (plan only, no execution)
+ironhive --dry-run "Clean up test files"
 ```
 
-### 세션 관리
+### Session Management
 
 ```bash
-# 최근 세션 계속
+# Continue most recent session
 ironhive -c
 ironhive --continue
 
-# 특정 세션 재개
+# Resume specific session
 ironhive -r <session-id>
 ironhive --resume <session-id>
 
-# 세션 포크 (분기)
+# Fork a session (branch off)
 ironhive -r <session-id> --fork
 
-# 세션 목록
+# List sessions
 ironhive sessions
 ironhive sessions --project <path>
 ```
 
-### 모델 설정
+### Model Configuration
 
 ```bash
-# gpustack 모델 사용
+# Use gpustack model
 ironhive --model gpustack/qwen2.5-coder
 
-# 환경 변수로 설정
+# Environment variables
 export GPUSTACK_ENDPOINT=http://localhost:8080
 export GPUSTACK_API_KEY=your-key
 export GPUSTACK_MODEL=gpt-4o-mini
 ```
 
-### 웹훅 설정
+### Webhooks
 
 ```bash
-# CLI 옵션
+# CLI option
 ironhive --webhook http://localhost:8080/events
 
-# 설정 파일 (.ironhive/config.yaml)
+# Configuration file (.ironhive/config.yaml)
 webhook:
   endpoints:
     - url: https://example.com/webhook
@@ -122,17 +124,17 @@ webhook:
       eventFilter: [SessionStarted, ToolCompleted]
 ```
 
-### 설정 파일
+## Configuration
 
-설정 파일은 다음 순서로 병합됩니다:
+Configuration is merged in order (later overrides earlier):
 
-1. **글로벌**: `~/.ironhive/config.yaml`
-2. **프로젝트**: `.ironhive/config.yaml`
-3. **환경 변수**: `IRONHIVE_*`, `GPUSTACK_*`
-4. **.env 파일**: 프로젝트 루트의 `.env`
+1. **Global**: `~/.ironhive/config.yaml`
+2. **Project**: `.ironhive/config.yaml`
+3. **Environment**: `IRONHIVE_*`, `GPUSTACK_*`
+4. **.env file**: Project root `.env`
 
 ```yaml
-# .ironhive/config.yaml 예시
+# .ironhive/config.yaml
 limits:
   maxSessionTokens: 100000
   maxSessionCost: 10.00
@@ -148,116 +150,122 @@ session:
   maxSessions: 100
 ```
 
-### CLAUDE.md 지원
+### CLAUDE.md Support
 
-프로젝트 루트에 `CLAUDE.md` 파일을 배치하면 에이전트가 자동으로 로드합니다:
+Place a `CLAUDE.md` file in your project root for automatic agent instructions:
 
 ```markdown
 # CLAUDE.md
 
-이 프로젝트는 Python Flask 웹 애플리케이션입니다.
+This is a Python Flask web application.
 
-## 코딩 스타일
-- PEP 8 준수
-- 타입 힌트 필수
-- docstring 작성
+## Coding Style
+- Follow PEP 8
+- Use type hints
+- Write docstrings
 
-## 금지 사항
-- print() 대신 logging 사용
+## Rules
+- Use logging instead of print()
 ```
 
-## 아키텍처
+## Architecture
 
-### 핵심 컴포넌트
+### Core Components
 
-| 컴포넌트 | 설명 |
-|----------|------|
-| **AgentLoop** | 단일 스레드 마스터 루프 |
-| **ModeManager** | Plan/Work/HITL 모드 전환 |
-| **SessionManager** | JSONL 트랜스크립트 관리 |
-| **ContextManager** | 토큰 카운팅, 압축, 목표 상기 |
-| **McpPluginManager** | MCP 서버 연결/관리 |
+| Component | Purpose |
+|-----------|---------|
+| **AgentLoop** | Single-threaded master loop with context management |
+| **ModeManager** | Plan/Work/HITL mode transitions |
+| **SessionManager** | JSONL transcript persistence |
+| **ContextManager** | Token counting, compaction, goal reminders |
+| **McpPluginManager** | MCP server connections |
 
-### 내장 도구
+### Built-in Tools
 
-| 도구 | 설명 |
-|------|------|
-| Read | 파일 읽기 |
-| Write | 파일 쓰기 (diff 표시) |
-| Shell | 명령 실행 |
-| Glob | 파일 패턴 검색 |
-| Grep | 내용 검색 |
-| Todo | 작업 목록 관리 |
+| Tool | Description |
+|------|-------------|
+| Read | Read files |
+| Write | Write files (with diff preview) |
+| Shell | Execute commands |
+| Glob | Pattern-based file search |
+| Grep | Content search |
+| Todo | Task list management |
 
-## 개발
+## Development
 
-### 요구 사항
+### Requirements
 
 - .NET 10 SDK
-- Git (서브모듈 포함)
+- Git (with submodules)
 
-### 빌드
+### Build
 
 ```bash
-# 서브모듈 초기화
+# Initialize submodules
 git submodule update --init --recursive
 
-# 빌드
+# Build
 dotnet build
 
-# 테스트
+# Test
 dotnet test
 
-# 포맷 검사
+# Format check
 dotnet format --verify-no-changes
+
+# Create NuGet package
+dotnet pack src/IronHive.Cli -c Release
 ```
 
-### 테스트
+### Testing
 
 ```bash
-# 전체 테스트
+# All tests
 dotnet test
 
-# 특정 카테고리
+# By category
 dotnet test --filter "Category=Unit"
 dotnet test --filter "Category=Integration"
+dotnet test --filter "Category=E2E"
 
-# LLM 통합 테스트 (API 키 필요)
+# MCP E2E tests (requires Node.js + environment variable)
+IRONHIVE_MCP_E2E_ENABLED=true dotnet test --filter "Category=MCP"
+
+# LLM integration tests (requires API key)
 GPUSTACK_API_KEY=your-key dotnet test --filter "Category=Integration"
 ```
 
-### 프로젝트 구조
+### Project Structure
 
 ```
 ironhive-cli/
 ├── src/
-│   ├── IronHive.Cli.Core/       # 핵심 에이전트 로직
-│   │   ├── Agent/               # AgentLoop, 모드 시스템
-│   │   ├── Config/              # 설정 관리
-│   │   ├── Context/             # 컨텍스트 관리
-│   │   ├── Mcp/                 # MCP 플러그인
-│   │   ├── Providers/           # LLM 프로바이더
-│   │   ├── Session/             # 세션 관리
-│   │   ├── Tools/               # 내장 도구
-│   │   └── Webhook/             # 웹훅
-│   └── IronHive.Cli/            # CLI 애플리케이션
+│   ├── IronHive.Cli.Core/       # Core agent logic
+│   │   ├── Agent/               # AgentLoop, modes, MCP
+│   │   ├── Config/              # Configuration management
+│   │   ├── Context/             # Context management
+│   │   ├── Providers/           # LLM providers
+│   │   ├── Session/             # Session management
+│   │   ├── Tools/               # Built-in tools
+│   │   └── Webhook/             # Webhook system
+│   └── IronHive.Cli/            # CLI application
 ├── tests/
-│   └── IronHive.Cli.Tests/      # 단위/통합 테스트
+│   └── IronHive.Cli.Tests/      # Unit/Integration/E2E tests
 ├── submodules/
-│   ├── TokenMeter/              # 토큰 카운팅
-│   └── ToolCallParser/          # tool_call 파싱
+│   ├── TokenMeter/              # Token counting & cost
+│   └── ToolCallParser/          # tool_call parsing
 └── docs/
-    ├── ROADMAP.md               # 개발 로드맵
-    └── research/                # 연구 문서
+    ├── ROADMAP.md               # Development roadmap
+    └── research/                # Research documents
 ```
 
-## 관련 프로젝트
+## Related Projects
 
-- [ironhive](https://github.com/iyulab/ironhive) - LLM 추상화
-- [ironbees](https://github.com/iyulab/ironbees) - 멀티에이전트 관리
-- [memory-indexer](https://github.com/iyulab/memory-indexer) - 시맨틱 메모리 MCP
-- [code-beaker](https://github.com/iyulab/code-beaker) - 코드 실행 플랫폼
+- [ironhive](https://github.com/iyulab/ironhive) — LLM abstraction
+- [ironbees](https://github.com/iyulab/ironbees) — Multi-agent management
+- [memory-indexer](https://github.com/iyulab/memory-indexer) — Semantic memory MCP
+- [code-beaker](https://github.com/iyulab/code-beaker) — Code execution platform
 
-## 라이선스
+## License
 
 MIT
