@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using IronHive.Cli.Core.Context;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Agent;
@@ -14,13 +15,19 @@ public class AgentLoop : IAgentLoop
     private readonly IChatClient _chatClient;
     private readonly AgentOptions _options;
     private readonly IUsageTracker? _usageTracker;
+    private readonly ContextManager? _contextManager;
     private readonly List<ChatMessage> _history = [];
 
-    public AgentLoop(IChatClient chatClient, AgentOptions? options = null, IUsageTracker? usageTracker = null)
+    public AgentLoop(
+        IChatClient chatClient,
+        AgentOptions? options = null,
+        IUsageTracker? usageTracker = null,
+        ContextManager? contextManager = null)
     {
         _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
         _options = options ?? new AgentOptions();
         _usageTracker = usageTracker;
+        _contextManager = contextManager;
 
         // Configure usage tracker with model ID for accurate pricing
         if (_usageTracker is not null && !string.IsNullOrEmpty(_options.ModelId))
@@ -41,8 +48,14 @@ public class AgentLoop : IAgentLoop
 
         _history.Add(new ChatMessage(ChatRole.User, prompt));
 
+        // Set goal from first user message if context manager is present
+        _contextManager?.SetGoalFromHistory(_history);
+
+        // Prepare history (compact if needed, inject goal reminder)
+        var historyToSend = await PrepareHistoryForSendingAsync(cancellationToken);
+
         var chatOptions = CreateChatOptions();
-        var response = await _chatClient.GetResponseAsync(_history, chatOptions, cancellationToken);
+        var response = await _chatClient.GetResponseAsync(historyToSend, chatOptions, cancellationToken);
 
         // Add assistant response to history
         _history.AddRange(response.Messages);
@@ -73,11 +86,17 @@ public class AgentLoop : IAgentLoop
 
         _history.Add(new ChatMessage(ChatRole.User, prompt));
 
+        // Set goal from first user message if context manager is present
+        _contextManager?.SetGoalFromHistory(_history);
+
+        // Prepare history (compact if needed, inject goal reminder)
+        var historyToSend = await PrepareHistoryForSendingAsync(cancellationToken);
+
         var chatOptions = CreateChatOptions();
         var responseBuilder = new StringBuilder();
         var toolCalls = new List<FunctionCallContent>();
 
-        await foreach (var update in _chatClient.GetStreamingResponseAsync(_history, chatOptions, cancellationToken))
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(historyToSend, chatOptions, cancellationToken))
         {
             // Yield and collect text content
             if (!string.IsNullOrEmpty(update.Text))
@@ -120,6 +139,30 @@ public class AgentLoop : IAgentLoop
             }
         }
         _history.Add(assistantMessage);
+    }
+
+    /// <summary>
+    /// Prepares history for sending to the model.
+    /// Applies context management (compaction, goal reminder) if available.
+    /// </summary>
+    private async Task<IReadOnlyList<ChatMessage>> PrepareHistoryForSendingAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (_contextManager is null)
+        {
+            return _history.AsReadOnly();
+        }
+
+        var preparedHistory = await _contextManager.PrepareHistoryAsync(_history, cancellationToken);
+
+        // If history was compacted, update our internal history
+        if (preparedHistory.Count < _history.Count)
+        {
+            _history.Clear();
+            _history.AddRange(preparedHistory);
+        }
+
+        return preparedHistory;
     }
 
     private ChatOptions CreateChatOptions()
@@ -186,6 +229,19 @@ public class AgentLoop : IAgentLoop
     /// Gets the current conversation history.
     /// </summary>
     public IReadOnlyList<ChatMessage> History => _history.AsReadOnly();
+
+    /// <summary>
+    /// Gets the context manager if one is configured.
+    /// </summary>
+    public ContextManager? ContextManager => _contextManager;
+
+    /// <summary>
+    /// Gets the current context usage if context manager is configured.
+    /// </summary>
+    public ContextUsage? GetContextUsage()
+    {
+        return _contextManager?.GetUsage(_history);
+    }
 
     /// <inheritdoc />
     public void InitializeHistory(IEnumerable<ChatMessage> messages)

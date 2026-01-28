@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>ironhive</AssemblyName>
-    <Description>IronHive CLI - Universal CLI Agent Core</Description>
+    <Description>IronHive CLI - Universal CLI Agent Core for AI-powered automation</Description>
 
     <!-- Native AOT support (disabled for now - Spectre.Console.Cli doesn't fully support AOT) -->
     <PublishAot>false</PublishAot>
@@ -11,12 +11,34 @@
     <!-- <TrimMode>full</TrimMode> -->
     <InvariantGlobalization>true</InvariantGlobalization>
 
-    <!-- Single file deployment -->
+    <!-- Single file deployment (for publish -r <rid>) -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+
+    <!-- dotnet tool packaging -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ironhive</ToolCommandName>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+
+    <!-- NuGet package metadata -->
+    <PackageId>IronHive.Cli</PackageId>
+    <Version>0.2.0-alpha</Version>
+    <Authors>iyulab</Authors>
+    <Company>iyulab</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/iyulab/ironhive-cli</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/iyulab/ironhive-cli</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>cli;agent;ai;llm;openai;anthropic;automation</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <!-- Package files -->
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IronHive.Cli.Core\IronHive.Cli.Core.csproj" />

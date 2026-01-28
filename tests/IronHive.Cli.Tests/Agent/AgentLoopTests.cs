@@ -1,4 +1,5 @@
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Context;
 using IronHive.Cli.Tests.Mocks;
 using Microsoft.Extensions.AI;
 
@@ -409,5 +410,104 @@ public class AgentLoopTests
         Assert.Equal("I'm doing great, thanks for asking!", response.Content);
         var history = agentLoop.History;
         Assert.Equal(5, history.Count); // System + 2 restored + new User + new Assistant
+    }
+
+    [Fact]
+    public async Task RunAsync_WithContextManager_PreparesHistory()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("I'll help with your code.");
+
+        var tokenCounter = new ContextTokenCounter("gpt-4", 8000);
+        var contextManager = new ContextManager(tokenCounter);
+
+        var agentLoop = new AgentLoop(mockClient, contextManager: contextManager);
+
+        // Act
+        var response = await agentLoop.RunAsync("Help me write code");
+
+        // Assert
+        Assert.NotNull(agentLoop.ContextManager);
+        Assert.Equal("I'll help with your code.", response.Content);
+    }
+
+    [Fact]
+    public void GetContextUsage_WithContextManager_ReturnsUsage()
+    {
+        // Arrange
+        var mockClient = new MockChatClient();
+        var tokenCounter = new ContextTokenCounter("gpt-4", 8000);
+        var contextManager = new ContextManager(tokenCounter);
+
+        var options = new AgentOptions { SystemPrompt = "You are helpful." };
+        var agentLoop = new AgentLoop(mockClient, options, contextManager: contextManager);
+
+        // Act
+        var usage = agentLoop.GetContextUsage();
+
+        // Assert
+        Assert.NotNull(usage);
+        Assert.True(usage.CurrentTokens > 0); // System prompt has tokens
+        Assert.Equal(8000, usage.MaxTokens);
+        Assert.False(usage.NeedsCompaction);
+    }
+
+    [Fact]
+    public void GetContextUsage_WithoutContextManager_ReturnsNull()
+    {
+        // Arrange
+        var mockClient = new MockChatClient();
+        var agentLoop = new AgentLoop(mockClient);
+
+        // Act
+        var usage = agentLoop.GetContextUsage();
+
+        // Assert
+        Assert.Null(usage);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithContextManager_SetsGoalFromFirstMessage()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("Got it, I'll help optimize performance.");
+
+        var tokenCounter = new ContextTokenCounter("gpt-4", 8000);
+        var goalOptions = new GoalReminderOptions { Enabled = true };
+        var contextManager = new ContextManager(tokenCounter, goalReminderOptions: goalOptions);
+
+        var agentLoop = new AgentLoop(mockClient, contextManager: contextManager);
+
+        // Act
+        await agentLoop.RunAsync("Optimize the database queries for better performance");
+
+        // Assert
+        Assert.Equal("Optimize the database queries for better performance", contextManager.GoalReminder.CurrentGoal);
+    }
+
+    [Fact]
+    public async Task RunStreamingAsync_WithContextManager_PreparesHistory()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("Streaming response with context management");
+
+        var tokenCounter = new ContextTokenCounter("gpt-4", 8000);
+        var contextManager = new ContextManager(tokenCounter);
+
+        var agentLoop = new AgentLoop(mockClient, contextManager: contextManager);
+
+        // Act
+        var chunks = new List<AgentResponseChunk>();
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Test streaming"))
+        {
+            chunks.Add(chunk);
+        }
+
+        // Assert
+        Assert.NotNull(agentLoop.ContextManager);
+        Assert.NotEmpty(chunks);
     }
 }
