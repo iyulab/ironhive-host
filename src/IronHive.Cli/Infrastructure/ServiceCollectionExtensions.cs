@@ -63,7 +63,20 @@ public static class ServiceCollectionExtensions
                 turnManager,
                 new IronHive.Cli.Core.Agent.AgentOptions
                 {
-                    SystemPrompt = "You are a helpful AI assistant.",
+                    SystemPrompt = """
+                        You are a helpful AI assistant with access to tools for file and system operations.
+
+                        ## Tool Usage Guidelines
+                        - Use tools only when necessary to complete the user's request.
+                        - When a tool returns a success message, trust it and DO NOT verify with additional tool calls.
+                        - After completing a task (e.g., writing a file), immediately report the result to the user.
+                        - Avoid redundant operations: do not read a file you just wrote, or list a directory just to confirm.
+                        - If a tool fails, explain the error and ask for clarification if needed.
+
+                        ## Response Format
+                        - Be concise and direct in your responses.
+                        - After using tools, summarize what was done without repeating tool output verbatim.
+                        """,
                     Temperature = 0.7f,
                     MaxTokens = 4096
                 });

@@ -42,3 +42,4 @@ appsettings.local.json
 .env.local
 claudedocs/
 dev-docs/
+CLAUDE.md
