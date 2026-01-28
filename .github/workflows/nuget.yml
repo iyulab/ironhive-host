@@ -88,13 +88,9 @@ jobs:
         if: steps.check-nuget.outputs.exists == 'false'
         run: dotnet restore
 
-      - name: Build
-        if: steps.check-nuget.outputs.exists == 'false'
-        run: dotnet build --no-restore --configuration Release
-
       - name: Pack
         if: steps.check-nuget.outputs.exists == 'false'
-        run: dotnet pack src/IronHive.Cli/IronHive.Cli.csproj --no-build --configuration Release --output ./nupkg
+        run: dotnet pack src/IronHive.Cli/IronHive.Cli.csproj --configuration Release --output ./nupkg
 
       - name: List packages
         if: steps.check-nuget.outputs.exists == 'false'
