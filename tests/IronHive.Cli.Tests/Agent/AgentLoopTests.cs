@@ -303,4 +303,111 @@ public class AgentLoopTests
         Assert.Equal(3, history.Count);
         Assert.Equal("Be concise", history[0].Text);
     }
+
+    [Fact]
+    public void InitializeHistory_RestoresMessages()
+    {
+        // Arrange
+        var mockClient = new MockChatClient();
+        var options = new AgentOptions { SystemPrompt = "You are helpful." };
+        var agentLoop = new AgentLoop(mockClient, options);
+
+        var restoredMessages = new List<ChatMessage>
+        {
+            new(ChatRole.User, "Hello"),
+            new(ChatRole.Assistant, "Hi there!"),
+            new(ChatRole.User, "How are you?")
+        };
+
+        // Act
+        agentLoop.InitializeHistory(restoredMessages);
+
+        // Assert
+        var history = agentLoop.History;
+        Assert.Equal(4, history.Count); // System + 3 restored messages
+        Assert.Equal(ChatRole.System, history[0].Role);
+        Assert.Equal("You are helpful.", history[0].Text);
+        Assert.Equal(ChatRole.User, history[1].Role);
+        Assert.Equal("Hello", history[1].Text);
+        Assert.Equal(ChatRole.Assistant, history[2].Role);
+        Assert.Equal("Hi there!", history[2].Text);
+        Assert.Equal(ChatRole.User, history[3].Role);
+        Assert.Equal("How are you?", history[3].Text);
+    }
+
+    [Fact]
+    public void InitializeHistory_SkipsSystemMessagesFromRestored()
+    {
+        // Arrange
+        var mockClient = new MockChatClient();
+        var options = new AgentOptions { SystemPrompt = "Original system prompt" };
+        var agentLoop = new AgentLoop(mockClient, options);
+
+        var restoredMessages = new List<ChatMessage>
+        {
+            new(ChatRole.System, "Old system prompt"), // Should be skipped
+            new(ChatRole.User, "Hello"),
+            new(ChatRole.Assistant, "Hi!")
+        };
+
+        // Act
+        agentLoop.InitializeHistory(restoredMessages);
+
+        // Assert
+        var history = agentLoop.History;
+        Assert.Equal(3, history.Count); // Original system + User + Assistant
+        Assert.Equal(ChatRole.System, history[0].Role);
+        Assert.Equal("Original system prompt", history[0].Text); // Original preserved
+        Assert.Equal(ChatRole.User, history[1].Role);
+        Assert.Equal(ChatRole.Assistant, history[2].Role);
+    }
+
+    [Fact]
+    public void InitializeHistory_WithoutSystemPrompt_AddsMessagesDirectly()
+    {
+        // Arrange
+        var mockClient = new MockChatClient();
+        var agentLoop = new AgentLoop(mockClient); // No system prompt
+
+        var restoredMessages = new List<ChatMessage>
+        {
+            new(ChatRole.User, "Hello"),
+            new(ChatRole.Assistant, "Hi!")
+        };
+
+        // Act
+        agentLoop.InitializeHistory(restoredMessages);
+
+        // Assert
+        var history = agentLoop.History;
+        Assert.Equal(2, history.Count);
+        Assert.Equal(ChatRole.User, history[0].Role);
+        Assert.Equal(ChatRole.Assistant, history[1].Role);
+    }
+
+    [Fact]
+    public async Task RunAsync_AfterInitializeHistory_ContinuesConversation()
+    {
+        // Arrange
+        var mockClient = new MockChatClient()
+            .EnqueueResponse("I'm doing great, thanks for asking!");
+
+        var options = new AgentOptions { SystemPrompt = "Be friendly." };
+        var agentLoop = new AgentLoop(mockClient, options);
+
+        var restoredMessages = new List<ChatMessage>
+        {
+            new(ChatRole.User, "Hello"),
+            new(ChatRole.Assistant, "Hi there!")
+        };
+        agentLoop.InitializeHistory(restoredMessages);
+
+        // Act
+        var response = await agentLoop.RunAsync("How are you?");
+
+        // Assert
+        Assert.Equal("I'm doing great, thanks for asking!", response.Content);
+        var history = agentLoop.History;
+        Assert.Equal(5, history.Count); // System + 2 restored + new User + new Assistant
+    }
 }

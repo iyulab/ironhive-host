@@ -1,3 +1,5 @@
+using Microsoft.Extensions.AI;
+
 namespace IronHive.Cli.Core.Agent;
 
 /// <summary>
@@ -21,6 +23,23 @@ public interface IAgentLoop
     /// <param name="cancellationToken">Cancellation token for graceful shutdown</param>
     /// <returns>Async enumerable of response chunks</returns>
     IAsyncEnumerable<AgentResponseChunk> RunStreamingAsync(string prompt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Initializes the conversation history with existing messages.
+    /// Used for session restoration/resumption.
+    /// </summary>
+    /// <param name="messages">Messages to initialize the history with</param>
+    void InitializeHistory(IEnumerable<ChatMessage> messages);
+
+    /// <summary>
+    /// Gets the current conversation history.
+    /// </summary>
+    IReadOnlyList<ChatMessage> History { get; }
+
+    /// <summary>
+    /// Clears the conversation history (keeps system prompt if configured).
+    /// </summary>
+    void ClearHistory();
 }
 
 /// <summary>

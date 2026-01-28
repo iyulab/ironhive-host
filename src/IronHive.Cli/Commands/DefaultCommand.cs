@@ -78,6 +78,10 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("-r|--resume <SESSION_ID>")]
         [Description("Resume a specific session by ID")]
         public string? ResumeSessionId { get; init; }
+
+        [CommandOption("--fork")]
+        [Description("Fork the resumed session (create a new branch from the session)")]
+        public bool Fork { get; init; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
@@ -114,7 +118,19 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 AnsiConsole.MarkupLine($"[red]Session not found: {settings.ResumeSessionId}[/]");
                 return 1;
             }
-            AnsiConsole.MarkupLine($"[grey]Resuming session: [cyan]{session.Id}[/][/]");
+
+            // Fork the session if requested
+            if (settings.Fork)
+            {
+                var originalId = session.Id;
+                session = await _sessionManager.ForkSessionAsync(session);
+                AnsiConsole.MarkupLine($"[grey]Forked session [cyan]{originalId}[/] → [cyan]{session.Id}[/][/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[grey]Resuming session: [cyan]{session.Id}[/][/]");
+            }
+
             model = session.Model;
         }
 
@@ -151,8 +167,8 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 var restoredMessages = await _sessionManager.RestoreContextAsync(session);
                 if (restoredMessages.Count > 0)
                 {
+                    agentLoop.InitializeHistory(restoredMessages);
                     AnsiConsole.MarkupLine($"[grey]Restored {restoredMessages.Count} messages from session history.[/]");
-                    // TODO: Inject restored messages into agent loop when API supports it
                 }
             }
 

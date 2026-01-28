@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Ironbees.Core;
 using IronHive.Cli.Core.Agent;
+using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Ironbees;
 
@@ -89,4 +90,31 @@ public class OrchestratedAgentLoop : IAgentLoop
     /// </summary>
     public Task<AgentSelectionResult> SelectAgentAsync(string input, CancellationToken cancellationToken = default)
         => _orchestrator.SelectAgentAsync(input, cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// OrchestratedAgentLoop does not support history management.
+    /// The orchestrator manages its own internal state.
+    /// </remarks>
+    public IReadOnlyList<ChatMessage> History => [];
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// OrchestratedAgentLoop does not support history management.
+    /// </remarks>
+    public void ClearHistory()
+    {
+        // No-op: orchestrator manages its own state
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// OrchestratedAgentLoop does not support session restoration.
+    /// Use standard AgentLoop or ThinkingAgentLoop for session support.
+    /// </remarks>
+    public void InitializeHistory(IEnumerable<ChatMessage> messages)
+    {
+        // No-op: orchestrator manages its own state
+        // Consider logging a warning if messages are non-empty
+    }
 }

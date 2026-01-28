@@ -186,6 +186,31 @@ public class AgentLoop : IAgentLoop
     /// Gets the current conversation history.
     /// </summary>
     public IReadOnlyList<ChatMessage> History => _history.AsReadOnly();
+
+    /// <inheritdoc />
+    public void InitializeHistory(IEnumerable<ChatMessage> messages)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+
+        // Keep the system prompt at the beginning
+        var systemPrompt = _history.FirstOrDefault(m => m.Role == ChatRole.System);
+        _history.Clear();
+
+        if (systemPrompt is not null)
+        {
+            _history.Add(systemPrompt);
+        }
+        else if (!string.IsNullOrWhiteSpace(_options.SystemPrompt))
+        {
+            _history.Add(new ChatMessage(ChatRole.System, _options.SystemPrompt));
+        }
+
+        // Add the restored messages (skip system messages from restored history)
+        foreach (var message in messages.Where(m => m.Role != ChatRole.System))
+        {
+            _history.Add(message);
+        }
+    }
 }
 
 /// <summary>
