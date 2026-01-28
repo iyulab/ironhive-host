@@ -32,7 +32,41 @@ public sealed class TypeRegistrar : ITypeRegistrar
 
     public ITypeResolver Build()
     {
-        return new TypeResolver(_services.BuildServiceProvider());
+        var provider = _services.BuildServiceProvider();
+
+        // Validate critical services early to provide better error messages
+        ValidateCriticalServices(provider);
+
+        return new TypeResolver(provider);
+
+        static void ValidateCriticalServices(ServiceProvider provider)
+        {
+            var criticalServices = new (string Name, Type Type)[]
+            {
+                ("IChatClientProvider", typeof(IronHive.Cli.Core.Providers.IChatClientProvider)),
+                ("IAgentLoopFactory", typeof(IronHive.Cli.Core.Agent.IAgentLoopFactory)),
+            };
+
+            foreach (var (name, type) in criticalServices)
+            {
+                try
+                {
+                    var service = provider.GetService(type);
+                    if (service is null)
+                    {
+                        throw new InvalidOperationException($"Service '{name}' is not registered.");
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Re-throw with service context but avoid duplicating the inner message
+                    throw new InvalidOperationException(
+                        $"Configuration Error: Failed to initialize {name}.\n\n" +
+                        $"{ex.Message}",
+                        ex);
+                }
+            }
+        }
     }
 }
 
