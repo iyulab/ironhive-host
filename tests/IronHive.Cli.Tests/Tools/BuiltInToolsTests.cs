@@ -58,7 +58,7 @@ public class BuiltInToolsTests : IDisposable
         var result = await _tools.ReadFile("lines.txt", startLine: 2, lineCount: 2);
 
         // Assert
-        Assert.Equal("Line2\r\nLine3", result);
+        Assert.Equal($"Line2{Environment.NewLine}Line3", result);
     }
 
     [Fact]
