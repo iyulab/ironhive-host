@@ -375,35 +375,38 @@ Claude Code 호환 세션 관리 시스템 구현
 | P4-02 | ~~토큰 카운터~~ | ✅ IContextTokenCounter, ContextTokenCounter 구현 | P4-01 | [ref.md#1](../dev-docs/ref.md) |
 | P4-03 | ~~Compaction 트리거~~ | ✅ ThresholdCompactionTrigger (92% 기본) | P4-02 | [research-01#3.1](./research/research-01.md) |
 | P4-04 | ~~히스토리 압축기~~ | ✅ HistoryCompactor (Head/Middle/Tail 전략) | P4-03 | [research-01#3.1](./research/research-01.md), [research-02#5.2](./research/research-02.md) |
-| P4-05 | 목표 상기 주입 | 매 턴 목표를 컨텍스트 끝에 추가 | P4-04 | [research-01#2.3](./research/research-01.md) |
+| P4-05 | ~~목표 상기 주입~~ | ✅ GoalReminder (lost-in-the-middle 방지) | P4-04 | [research-01#2.3](./research/research-01.md) |
 | P4-06 | 프롬프트 캐싱 | Anthropic prefix caching 등 활용 | P4-04 | [research-01#3.2](./research/research-01.md) |
 | P4-07 | 장기 메모리 저장 | 세션 간 유지되는 프로젝트 메모리 | P3-09 | [research-01#3.2](./research/research-01.md), [research-02#5.3](./research/research-02.md) |
 | P4-08 | 장기 메모리 검색 | 관련 메모리 자동 로드 | P4-07 | [research-02#5.3](./research/research-02.md) |
 | P4-09 | ~~🧪 토큰 카운팅 정확도 테스트~~ | ✅ ContextTokenCounterTests (14 tests) | P4-02 | - |
 | P4-10 | ~~🧪 압축 품질 테스트~~ | ✅ HistoryCompactorTests, ContextManagerTests (17 tests) | P4-04 | - |
-| P4-11 | 🧪 장기 세션 시뮬레이션 | 100+ 턴 대화에서 컨텍스트 관리 검증 | P4-04, P4-05 | - |
+| P4-11 | ~~🧪 장기 세션 시뮬레이션~~ | ✅ LongSessionSimulationTests (11 tests) | P4-04, P4-05 | - |
 
 ### 참고
 - 토크나이저 결정 완료: `Microsoft.ML.Tokenizers` (공식, 최고 성능)
-- **ContextManager**: 토큰 카운팅, 압축 트리거, 히스토리 압축을 통합 관리
+- **ContextManager**: 토큰 카운팅, 압축 트리거, 히스토리 압축, 목표 상기를 통합 관리
 
 ### 산출물
 - ✅ **IContextTokenCounter**: ChatMessage 기반 토큰 카운팅
 - ✅ **ContextTokenCounter**: TokenMeter 활용, 모델별 컨텍스트 크기
 - ✅ **ThresholdCompactionTrigger**: 92% 임계치 기반 압축 트리거
 - ✅ **HistoryCompactor**: Head/Middle/Tail 분리, LLM 요약 또는 truncation
-- ✅ **ContextManager**: 통합 컨텍스트 관리
-- ⏳ 장시간 작업 시 컨텍스트 자동 압축 (AgentLoop 통합 필요)
-- ⏳ 세션 간 학습 내용 유지
+- ✅ **GoalReminder**: 목표 상기 주입 (lost-in-the-middle 방지)
+- ✅ **ContextManager**: 통합 컨텍스트 관리 + PrepareHistoryAsync
+- ⏳ AgentLoop 통합 (컨텍스트 자동 압축)
+- ⏳ 세션 간 학습 내용 유지 (장기 메모리)
 - ⏳ **프롬프트 캐싱으로 비용/지연 최적화**
 
 ### 진행 상황
-- **완료**: P4-01~P4-04, P4-09, P4-10 (6/11 태스크, 55%)
-- **테스트 현황**: 377개 테스트 통과 (Context 39개 추가)
+- **완료**: P4-01~P4-05, P4-09~P4-11 (8/11 태스크, 73%)
+- **테스트 현황**: 401개 테스트 통과 (Context 63개)
   - ContextTokenCounterTests: 14 tests
   - CompactionTriggerTests: 8 tests
   - HistoryCompactorTests: 9 tests
   - ContextManagerTests: 8 tests
+  - GoalReminderTests: 13 tests
+  - LongSessionSimulationTests: 11 tests
 
 ---
 
@@ -509,11 +512,12 @@ v0.4.1 ─── Phase 3.5: Claude Code 호환 세션 관리        ✅ 완료 (
    │       └── sessions 명령, IAgentLoop.InitializeHistory()
    │       └── 338 tests 통과 (세션 21개 + InitializeHistory 4개)
    │
-v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       🔄 진행중 (55%)
-   │       └── P4-01~P4-04, P4-09, P4-10 완료 (6/11)
+v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       🔄 진행중 (73%)
+   │       └── P4-01~P4-05, P4-09~P4-11 완료 (8/11)
    │       └── ContextTokenCounter, CompactionTrigger, HistoryCompactor
-   │       └── ContextManager (통합 관리)
-   │       └── 377 tests 통과 (Context 39개 추가)
+   │       └── GoalReminder (목표 상기), ContextManager (통합 관리)
+   │       └── LongSessionSimulationTests (100+ 턴 검증)
+   │       └── 401 tests 통과 (Context 63개)
    │
 v0.6.0 ─── Phase 5a: 안정화 + E2E 테스트               ⏳ 대기
    │

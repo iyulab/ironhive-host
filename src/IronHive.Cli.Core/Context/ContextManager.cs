@@ -35,28 +35,36 @@ public record ContextUsage
 
 /// <summary>
 /// Manages context window for agent conversations.
-/// Handles token counting, compaction triggering, and history management.
+/// Handles token counting, compaction triggering, goal reminders, and history management.
 /// </summary>
 public class ContextManager
 {
     private readonly IContextTokenCounter _tokenCounter;
     private readonly ICompactionTrigger _compactionTrigger;
     private readonly IHistoryCompactor _historyCompactor;
+    private readonly GoalReminder _goalReminder;
 
     public ContextManager(
         IContextTokenCounter tokenCounter,
         ICompactionTrigger? compactionTrigger = null,
-        IHistoryCompactor? historyCompactor = null)
+        IHistoryCompactor? historyCompactor = null,
+        GoalReminderOptions? goalReminderOptions = null)
     {
         _tokenCounter = tokenCounter ?? throw new ArgumentNullException(nameof(tokenCounter));
         _compactionTrigger = compactionTrigger ?? new ThresholdCompactionTrigger();
         _historyCompactor = historyCompactor ?? new HistoryCompactor(tokenCounter);
+        _goalReminder = new GoalReminder(goalReminderOptions);
     }
 
     /// <summary>
     /// Gets the token counter being used.
     /// </summary>
     public IContextTokenCounter TokenCounter => _tokenCounter;
+
+    /// <summary>
+    /// Gets the goal reminder component.
+    /// </summary>
+    public GoalReminder GoalReminder => _goalReminder;
 
     /// <summary>
     /// Gets the maximum context tokens.
@@ -136,6 +144,40 @@ public class ContextManager
         var currentTokens = _tokenCounter.CountTokens(history);
         var thresholdTokens = (int)(_tokenCounter.MaxContextTokens * _compactionTrigger.ThresholdPercentage);
         return Math.Max(0, thresholdTokens - currentTokens);
+    }
+
+    /// <summary>
+    /// Sets the goal from the first user message in the history.
+    /// </summary>
+    public void SetGoalFromHistory(IReadOnlyList<ChatMessage> history)
+    {
+        _goalReminder.SetGoalFromFirstUserMessage(history);
+    }
+
+    /// <summary>
+    /// Sets the current goal explicitly.
+    /// </summary>
+    public void SetGoal(string goal)
+    {
+        _goalReminder.CurrentGoal = goal;
+    }
+
+    /// <summary>
+    /// Prepares the history for sending to the model.
+    /// Applies compaction if needed and injects goal reminder.
+    /// </summary>
+    public async Task<IReadOnlyList<ChatMessage>> PrepareHistoryAsync(
+        IReadOnlyList<ChatMessage> history,
+        CancellationToken cancellationToken = default)
+    {
+        // Step 1: Compact if needed
+        var compactionResult = await CompactIfNeededAsync(history, cancellationToken);
+        var preparedHistory = compactionResult.CompactedHistory;
+
+        // Step 2: Inject goal reminder if needed
+        preparedHistory = _goalReminder.InjectReminderIfNeeded(preparedHistory);
+
+        return preparedHistory;
     }
 
     /// <summary>
