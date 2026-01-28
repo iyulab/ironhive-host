@@ -41,9 +41,12 @@ public sealed class TypeRegistrar : ITypeRegistrar
 
         static void ValidateCriticalServices(ServiceProvider provider)
         {
+            // Note: IChatClientProvider is not validated here because:
+            // 1. It may not be configured (no .env file)
+            // 2. User can use --provider local/lmsupply to use local inference
+            // 3. IChatClientFactory handles fallback to lmsupply automatically
             var criticalServices = new (string Name, Type Type)[]
             {
-                ("IChatClientProvider", typeof(IronHive.Cli.Core.Providers.IChatClientProvider)),
                 ("IAgentLoopFactory", typeof(IronHive.Cli.Core.Agent.IAgentLoopFactory)),
             };
 

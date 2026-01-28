@@ -189,7 +189,17 @@ public static class ServiceCollectionExtensions
             providersDict["lmsupply"] = lmSupply;
             providersDict["local"] = lmSupply;  // Alias for convenience
 
-            var defaultProvider = sp.GetRequiredService<IChatClientProvider>();
+            // Get default provider - try IChatClientProvider first, fallback to lmsupply
+            IChatClientProvider defaultProvider;
+            try
+            {
+                defaultProvider = sp.GetRequiredService<IChatClientProvider>();
+            }
+            catch (InvalidOperationException)
+            {
+                // No remote provider configured, use lmsupply as default
+                defaultProvider = lmSupply;
+            }
 
             // Decorator for FunctionInvokingChatClient
             IChatClient ClientDecorator(IChatClient inner) =>
