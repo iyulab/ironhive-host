@@ -376,9 +376,9 @@ Claude Code 호환 세션 관리 시스템 구현
 | P4-03 | ~~Compaction 트리거~~ | ✅ ThresholdCompactionTrigger (92% 기본) | P4-02 | [research-01#3.1](./research/research-01.md) |
 | P4-04 | ~~히스토리 압축기~~ | ✅ HistoryCompactor (Head/Middle/Tail 전략) | P4-03 | [research-01#3.1](./research/research-01.md), [research-02#5.2](./research/research-02.md) |
 | P4-05 | ~~목표 상기 주입~~ | ✅ GoalReminder (lost-in-the-middle 방지) | P4-04 | [research-01#2.3](./research/research-01.md) |
-| P4-06 | 프롬프트 캐싱 | Anthropic prefix caching 등 활용 | P4-04 | [research-01#3.2](./research/research-01.md) |
-| P4-07 | 장기 메모리 저장 | 세션 간 유지되는 프로젝트 메모리 | P3-09 | [research-01#3.2](./research/research-01.md), [research-02#5.3](./research/research-02.md) |
-| P4-08 | 장기 메모리 검색 | 관련 메모리 자동 로드 | P4-07 | [research-02#5.3](./research/research-02.md) |
+| P4-06 | ~~프롬프트 캐싱~~ | ✅ PromptCacheManager, CacheControl 확장 | P4-04 | [research-01#3.2](./research/research-01.md) |
+| P4-07 | ~~장기 메모리 저장~~ | ✅ LongTermMemoryManager, ISessionMemoryService 통합 | P3-09 | [research-01#3.2](./research/research-01.md), [research-02#5.3](./research/research-02.md) |
+| P4-08 | ~~장기 메모리 검색~~ | ✅ RecallAsync, InjectMemoriesAsync (관련성 필터링) | P4-07 | [research-02#5.3](./research/research-02.md) |
 | P4-09 | ~~🧪 토큰 카운팅 정확도 테스트~~ | ✅ ContextTokenCounterTests (14 tests) | P4-02 | - |
 | P4-10 | ~~🧪 압축 품질 테스트~~ | ✅ HistoryCompactorTests, ContextManagerTests (17 tests) | P4-04 | - |
 | P4-11 | ~~🧪 장기 세션 시뮬레이션~~ | ✅ LongSessionSimulationTests (11 tests) | P4-04, P4-05 | - |
@@ -394,19 +394,22 @@ Claude Code 호환 세션 관리 시스템 구현
 - ✅ **HistoryCompactor**: Head/Middle/Tail 분리, LLM 요약 또는 truncation
 - ✅ **GoalReminder**: 목표 상기 주입 (lost-in-the-middle 방지)
 - ✅ **ContextManager**: 통합 컨텍스트 관리 + PrepareHistoryAsync
+- ✅ **PromptCacheManager**: 프롬프트 캐싱 (Anthropic ephemeral cache 지원)
+- ✅ **LongTermMemoryManager**: 장기 메모리 저장/검색/주입
 - ⏳ AgentLoop 통합 (컨텍스트 자동 압축)
-- ⏳ 세션 간 학습 내용 유지 (장기 메모리)
-- ⏳ **프롬프트 캐싱으로 비용/지연 최적화**
 
 ### 진행 상황
-- **완료**: P4-01~P4-05, P4-09~P4-11 (8/11 태스크, 73%)
-- **테스트 현황**: 401개 테스트 통과 (Context 63개)
+- **Phase 4 완료**: P4-01~P4-11 (11/11 태스크, 100%) ✅
+- **테스트 현황**: 426개 테스트 통과 (Context 88개)
   - ContextTokenCounterTests: 14 tests
   - CompactionTriggerTests: 8 tests
   - HistoryCompactorTests: 9 tests
   - ContextManagerTests: 8 tests
   - GoalReminderTests: 13 tests
   - LongSessionSimulationTests: 11 tests
+  - **PromptCachingTests**: 9 tests
+  - **LongTermMemoryTests**: 16 tests
+- **Phase 5a로 진행 가능**
 
 ---
 
@@ -512,12 +515,13 @@ v0.4.1 ─── Phase 3.5: Claude Code 호환 세션 관리        ✅ 완료 (
    │       └── sessions 명령, IAgentLoop.InitializeHistory()
    │       └── 338 tests 통과 (세션 21개 + InitializeHistory 4개)
    │
-v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       🔄 진행중 (73%)
-   │       └── P4-01~P4-05, P4-09~P4-11 완료 (8/11)
+v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ✅ 완료 (100%)
+   │       └── P4-01~P4-11 완료 (11/11)
    │       └── ContextTokenCounter, CompactionTrigger, HistoryCompactor
    │       └── GoalReminder (목표 상기), ContextManager (통합 관리)
+   │       └── PromptCacheManager, LongTermMemoryManager
    │       └── LongSessionSimulationTests (100+ 턴 검증)
-   │       └── 401 tests 통과 (Context 63개)
+   │       └── 426 tests 통과 (Context 88개)
    │
 v0.6.0 ─── Phase 5a: 안정화 + E2E 테스트               ⏳ 대기
    │
