@@ -24,7 +24,7 @@
 
     <!-- NuGet package metadata -->
     <PackageId>IronHive.Cli</PackageId>
-    <Version>0.2.0-alpha</Version>
+    <!-- Version is inherited from Directory.Build.props -->
     <Authors>iyulab</Authors>
     <Company>iyulab</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
