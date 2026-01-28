@@ -55,7 +55,21 @@ public sealed class TypeResolver : ITypeResolver, IDisposable
             return null;
         }
 
-        return _provider.GetService(type);
+        try
+        {
+            return _provider.GetService(type);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Re-throw with more context for better error messages
+            // This helps surface configuration errors (e.g., missing .env file)
+            throw new InvalidOperationException(
+                $"Failed to resolve service '{type.Name}'. " +
+                $"This may indicate a missing configuration. " +
+                $"Ensure .env file exists in the current or parent directory. " +
+                $"Inner error: {ex.Message}",
+                ex);
+        }
     }
 
     public void Dispose()
