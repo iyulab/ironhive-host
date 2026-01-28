@@ -372,25 +372,38 @@ Claude Code 호환 세션 관리 시스템 구현
 | ID | 태스크 | 설명 | 의존성 | 참조 |
 |----|--------|------|--------|------|
 | P4-01 | ~~🔍 토크나이저 조사~~ | ✅ **Microsoft.ML.Tokenizers** 확정 | P1-01 | [ref.md#1](../dev-docs/ref.md) |
-| P4-02 | 토큰 카운터 | Microsoft.ML.Tokenizers 기반 실시간 추적 | P4-01 | [ref.md#1](../dev-docs/ref.md) |
-| P4-03 | Compaction 트리거 | 92% 임계치 도달 시 압축 시작 | P4-02 | [research-01#3.1](./research/research-01.md) |
-| P4-04 | 히스토리 압축기 | Head/Middle/Tail 분리, Middle 요약 | P4-03 | [research-01#3.1](./research/research-01.md), [research-02#5.2](./research/research-02.md) |
+| P4-02 | ~~토큰 카운터~~ | ✅ IContextTokenCounter, ContextTokenCounter 구현 | P4-01 | [ref.md#1](../dev-docs/ref.md) |
+| P4-03 | ~~Compaction 트리거~~ | ✅ ThresholdCompactionTrigger (92% 기본) | P4-02 | [research-01#3.1](./research/research-01.md) |
+| P4-04 | ~~히스토리 압축기~~ | ✅ HistoryCompactor (Head/Middle/Tail 전략) | P4-03 | [research-01#3.1](./research/research-01.md), [research-02#5.2](./research/research-02.md) |
 | P4-05 | 목표 상기 주입 | 매 턴 목표를 컨텍스트 끝에 추가 | P4-04 | [research-01#2.3](./research/research-01.md) |
 | P4-06 | 프롬프트 캐싱 | Anthropic prefix caching 등 활용 | P4-04 | [research-01#3.2](./research/research-01.md) |
 | P4-07 | 장기 메모리 저장 | 세션 간 유지되는 프로젝트 메모리 | P3-09 | [research-01#3.2](./research/research-01.md), [research-02#5.3](./research/research-02.md) |
 | P4-08 | 장기 메모리 검색 | 관련 메모리 자동 로드 | P4-07 | [research-02#5.3](./research/research-02.md) |
-| P4-09 | 🧪 토큰 카운팅 정확도 테스트 | 실제 모델 토큰과 비교 검증 | P4-02 | - |
-| P4-10 | 🧪 압축 품질 테스트 | 압축 전후 정보 손실 측정 | P4-04 | - |
+| P4-09 | ~~🧪 토큰 카운팅 정확도 테스트~~ | ✅ ContextTokenCounterTests (14 tests) | P4-02 | - |
+| P4-10 | ~~🧪 압축 품질 테스트~~ | ✅ HistoryCompactorTests, ContextManagerTests (17 tests) | P4-04 | - |
 | P4-11 | 🧪 장기 세션 시뮬레이션 | 100+ 턴 대화에서 컨텍스트 관리 검증 | P4-04, P4-05 | - |
 
 ### 참고
 - 토크나이저 결정 완료: `Microsoft.ML.Tokenizers` (공식, 최고 성능)
+- **ContextManager**: 토큰 카운팅, 압축 트리거, 히스토리 압축을 통합 관리
 
 ### 산출물
-- 장시간 작업 시 컨텍스트 자동 압축
-- 세션 간 학습 내용 유지
-- **프롬프트 캐싱으로 비용/지연 최적화**
-- **장기 세션 안정성 검증 완료**
+- ✅ **IContextTokenCounter**: ChatMessage 기반 토큰 카운팅
+- ✅ **ContextTokenCounter**: TokenMeter 활용, 모델별 컨텍스트 크기
+- ✅ **ThresholdCompactionTrigger**: 92% 임계치 기반 압축 트리거
+- ✅ **HistoryCompactor**: Head/Middle/Tail 분리, LLM 요약 또는 truncation
+- ✅ **ContextManager**: 통합 컨텍스트 관리
+- ⏳ 장시간 작업 시 컨텍스트 자동 압축 (AgentLoop 통합 필요)
+- ⏳ 세션 간 학습 내용 유지
+- ⏳ **프롬프트 캐싱으로 비용/지연 최적화**
+
+### 진행 상황
+- **완료**: P4-01~P4-04, P4-09, P4-10 (6/11 태스크, 55%)
+- **테스트 현황**: 377개 테스트 통과 (Context 39개 추가)
+  - ContextTokenCounterTests: 14 tests
+  - CompactionTriggerTests: 8 tests
+  - HistoryCompactorTests: 9 tests
+  - ContextManagerTests: 8 tests
 
 ---
 
@@ -496,7 +509,11 @@ v0.4.1 ─── Phase 3.5: Claude Code 호환 세션 관리        ✅ 완료 (
    │       └── sessions 명령, IAgentLoop.InitializeHistory()
    │       └── 338 tests 통과 (세션 21개 + InitializeHistory 4개)
    │
-v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ⏳ 대기
+v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       🔄 진행중 (55%)
+   │       └── P4-01~P4-04, P4-09, P4-10 완료 (6/11)
+   │       └── ContextTokenCounter, CompactionTrigger, HistoryCompactor
+   │       └── ContextManager (통합 관리)
+   │       └── 377 tests 통과 (Context 39개 추가)
    │
 v0.6.0 ─── Phase 5a: 안정화 + E2E 테스트               ⏳ 대기
    │
