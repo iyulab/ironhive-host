@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
+using IronHive.Cli.Core.Session;
 using IronHive.Cli.Core.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -16,13 +17,20 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     private readonly IUsageTracker _usageTracker;
     private readonly IModeManager _modeManager;
     private readonly IUpdateService _updateService;
+    private readonly ISessionManager _sessionManager;
 
-    public DefaultCommand(IAgentLoopFactory factory, IUsageTracker usageTracker, IModeManager modeManager, IUpdateService updateService)
+    public DefaultCommand(
+        IAgentLoopFactory factory,
+        IUsageTracker usageTracker,
+        IModeManager modeManager,
+        IUpdateService updateService,
+        ISessionManager sessionManager)
     {
         _factory = factory;
         _usageTracker = usageTracker;
         _modeManager = modeManager;
         _updateService = updateService;
+        _sessionManager = sessionManager;
     }
 
     public class Settings : CommandSettings
@@ -62,6 +70,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("--update")]
         [Description("Check for updates after execution")]
         public bool CheckUpdate { get; init; }
+
+        [CommandOption("-c|--continue")]
+        [Description("Continue the most recent session")]
+        public bool Continue { get; init; }
+
+        [CommandOption("-r|--resume <SESSION_ID>")]
+        [Description("Resume a specific session by ID")]
+        public string? ResumeSessionId { get; init; }
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
@@ -71,6 +87,39 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         {
             UpdateChecker.StartBackgroundCheck(_updateService);
         }
+
+        // Handle session resumption
+        Session? session = null;
+        var projectPath = Directory.GetCurrentDirectory();
+        var model = settings.Model ?? "default";
+
+        if (settings.Continue)
+        {
+            session = await _sessionManager.GetLatestSessionAsync(projectPath);
+            if (session is null)
+            {
+                AnsiConsole.MarkupLine("[yellow]No previous session found. Starting new session.[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[grey]Continuing session: [cyan]{session.Id}[/][/]");
+                model = session.Model;
+            }
+        }
+        else if (!string.IsNullOrEmpty(settings.ResumeSessionId))
+        {
+            session = await _sessionManager.LoadSessionAsync(settings.ResumeSessionId);
+            if (session is null)
+            {
+                AnsiConsole.MarkupLine($"[red]Session not found: {settings.ResumeSessionId}[/]");
+                return 1;
+            }
+            AnsiConsole.MarkupLine($"[grey]Resuming session: [cyan]{session.Id}[/][/]");
+            model = session.Model;
+        }
+
+        // Create new session if not resuming
+        session ??= await _sessionManager.CreateSessionAsync(projectPath, model);
 
         // Create agent loop with optional model/provider override
         var agentLoop = _factory.Create(new AgentLoopFactoryOptions
@@ -94,6 +143,17 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                     info.Add($"model: [cyan]{settings.Model}[/]");
                 }
                 AnsiConsole.MarkupLine($"[grey]Using {string.Join(", ", info)}[/]");
+            }
+
+            // Restore context if resuming session
+            if (settings.Continue || !string.IsNullOrEmpty(settings.ResumeSessionId))
+            {
+                var restoredMessages = await _sessionManager.RestoreContextAsync(session);
+                if (restoredMessages.Count > 0)
+                {
+                    AnsiConsole.MarkupLine($"[grey]Restored {restoredMessages.Count} messages from session history.[/]");
+                    // TODO: Inject restored messages into agent loop when API supports it
+                }
             }
 
             // Initialize mode based on flags

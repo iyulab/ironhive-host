@@ -329,6 +329,38 @@ ironhive-cli ←─ MCP ─→ memory-indexer
 
 ---
 
+## Phase 3.5: Claude Code 호환성 - 세션 관리 (v0.4.1)
+
+### 목표
+Claude Code 호환 세션 관리 시스템 구현
+
+### 태스크
+
+| ID | 태스크 | 설명 | 의존성 | 참조 |
+|----|--------|------|--------|------|
+| P3.5-01 | ~~JSONL 트랜스크립트~~ | ✅ 세션별 JSONL 저장/로드 | P1-01 | [claude-code-compatibility](./design/claude-code-compatibility.md) |
+| P3.5-02 | ~~ISessionManager 인터페이스~~ | ✅ 세션 CRUD 및 컨텍스트 복원 | P3.5-01 | - |
+| P3.5-03 | ~~`--continue` 플래그~~ | ✅ 최근 세션 계속 | P3.5-02 | - |
+| P3.5-04 | ~~`--resume` 플래그~~ | ✅ 특정 세션 재개 | P3.5-02 | - |
+| P3.5-05 | ~~sessions 명령~~ | ✅ 세션 목록/삭제 관리 | P3.5-02 | - |
+| P3.5-06 | ~~🧪 SessionManager 테스트~~ | ✅ 21개 테스트 통과 | P3.5-02 | - |
+| P3.5-07 | 세션 포크 | 기존 세션에서 분기 | P3.5-02 | - |
+| P3.5-08 | 컨텍스트 주입 | 복원된 메시지를 에이전트 루프에 주입 | P3.5-02 | - |
+
+### 산출물
+- ✅ JSONL 트랜스크립트 저장/로드
+- ✅ `ironhive -c` / `ironhive -r <id>` 동작
+- ✅ `ironhive sessions` 명령
+- ✅ 21개 세션 테스트 통과
+- ⏳ 세션 포크 및 컨텍스트 주입
+
+### 진행 상황
+- **완료**: P3.5-01~P3.5-06 (6/8 태스크, 75%)
+- **테스트 현황**: 334개 테스트 통과 (세션 21개 포함)
+- **남은 작업**: 세션 포크, 컨텍스트 주입 완전 통합
+
+---
+
 ## Phase 4: 컨텍스트 관리 고도화 (v0.5.0)
 
 ### 목표
@@ -456,6 +488,12 @@ v0.4.0 ─── Phase 3: MCP 플러그인 시스템                 🔄 진행
    │       └── HotReloader, ToolDiscovery 구현
    │       └── memory-indexer, code-beaker SDK 통합
    │       └── 299 tests 통과 (통합 테스트 21개 포함)
+   │
+v0.4.1 ─── Phase 3.5: Claude Code 호환 세션 관리        🔄 진행중 (75%)
+   │       └── P3.5-01~P3.5-06 완료 (6/8)
+   │       └── JSONL 트랜스크립트, --continue/--resume
+   │       └── sessions 명령 (list/delete)
+   │       └── 334 tests 통과 (세션 21개 포함)
    │
 v0.5.0 ─── Phase 4: 컨텍스트 관리 + 프롬프트 캐싱       ⏳ 대기
    │

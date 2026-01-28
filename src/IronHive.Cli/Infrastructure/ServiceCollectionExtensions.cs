@@ -5,6 +5,7 @@ using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Memory;
 using IronHive.Cli.Core.Providers;
+using IronHive.Cli.Core.Session;
 using IronHive.Cli.Core.Update;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,6 +112,9 @@ public static class ServiceCollectionExtensions
             var httpClient = sp.GetRequiredService<HttpClient>();
             return new GitHubUpdateService(httpClient, "iyulab", "ironhive-cli");
         });
+
+        // Register session manager for transcript persistence
+        services.AddSingleton<ISessionManager, SessionManager>();
 
         return services;
     }

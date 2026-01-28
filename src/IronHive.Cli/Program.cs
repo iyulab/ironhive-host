@@ -36,6 +36,12 @@ try
             .WithDescription("Check for and install updates")
             .WithExample("update")
             .WithExample("update", "--check");
+
+        config.AddCommand<SessionsCommand>("sessions")
+            .WithDescription("List and manage conversation sessions")
+            .WithExample("sessions")
+            .WithExample("sessions", "list")
+            .WithExample("sessions", "delete", "<session-id>");
     });
 
     return await app.RunAsync(args);
