@@ -78,7 +78,7 @@ jobs:
   # Build and release
   release:
     needs: version
-    if: ${{ needs.version.outputs.version != '' }}
+    if: ${{ always() && needs.version.result == 'success' && needs.version.outputs.version != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
