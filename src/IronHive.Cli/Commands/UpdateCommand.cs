@@ -166,7 +166,7 @@ public static class UpdateChecker
 {
     private static UpdateInfo? _cachedUpdateInfo;
     private static Task<UpdateInfo?>? _checkTask;
-    private static readonly SemaphoreSlim _lock = new(1, 1);
+    private static readonly SemaphoreSlim Lock = new(1, 1);
 
     /// <summary>
     /// Starts a background check for updates.
