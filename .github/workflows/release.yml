@@ -40,6 +40,8 @@ jobs:
     outputs:
       version: ${{ steps.get-version.outputs.version }}
       is-prerelease: ${{ steps.get-version.outputs.is-prerelease }}
+      release-exists: ${{ steps.check-release.outputs.exists }}
+      nuget-exists: ${{ steps.check-nuget.outputs.exists }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,27 +60,41 @@ jobs:
 
           echo "Detected version: $VERSION"
 
-      - name: Check if release already exists
+      - name: Check if GitHub release already exists
         id: check-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${{ steps.get-version.outputs.version }}
           if gh release view "v$VERSION" &>/dev/null; then
-            echo "Release v$VERSION already exists, skipping..."
+            echo "Release v$VERSION already exists"
             echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "Release v$VERSION does not exist, will create..."
+            echo "Release v$VERSION does not exist"
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-    # Skip release if already exists
-    # This output is used by the release job
+      - name: Check if NuGet package already exists
+        id: check-nuget
+        run: |
+          VERSION=${{ steps.get-version.outputs.version }}
+          PACKAGE_ID="IronHive.Cli"
 
-  # Build and release
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://api.nuget.org/v3-flatcontainer/${PACKAGE_ID,,}/${VERSION}/${PACKAGE_ID,,}.${VERSION}.nupkg")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "Package $PACKAGE_ID version $VERSION already exists on NuGet"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Package $PACKAGE_ID version $VERSION does not exist on NuGet"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Build and create GitHub Release
   release:
     needs: version
-    if: ${{ always() && needs.version.result == 'success' && needs.version.outputs.version != '' }}
+    if: ${{ needs.version.outputs.release-exists == 'false' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -88,50 +104,32 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Check if release exists
-        id: check-release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION=${{ needs.version.outputs.version }}
-          if gh release view "v$VERSION" &>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Setup .NET
-        if: steps.check-release.outputs.exists == 'false'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Build for Windows x64
-        if: steps.check-release.outputs.exists == 'false'
         run: |
           dotnet publish src/IronHive.Cli -c Release -r win-x64 \
             -o ./publish/win-x64
 
       - name: Build for Linux x64
-        if: steps.check-release.outputs.exists == 'false'
         run: |
           dotnet publish src/IronHive.Cli -c Release -r linux-x64 \
             -o ./publish/linux-x64
 
       - name: Build for macOS x64
-        if: steps.check-release.outputs.exists == 'false'
         run: |
           dotnet publish src/IronHive.Cli -c Release -r osx-x64 \
             -o ./publish/osx-x64
 
       - name: Build for macOS ARM64
-        if: steps.check-release.outputs.exists == 'false'
         run: |
           dotnet publish src/IronHive.Cli -c Release -r osx-arm64 \
             -o ./publish/osx-arm64
 
       - name: Create archives
-        if: steps.check-release.outputs.exists == 'false'
         run: |
           VERSION=${{ needs.version.outputs.version }}
           cd publish
@@ -141,12 +139,10 @@ jobs:
           tar -czvf ../ironhive-${VERSION}-osx-arm64.tar.gz osx-arm64/
 
       - name: Generate checksums
-        if: steps.check-release.outputs.exists == 'false'
         run: |
           sha256sum ironhive-*.zip ironhive-*.tar.gz > checksums.sha256
 
       - name: Create GitHub Release
-        if: steps.check-release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
@@ -155,6 +151,11 @@ jobs:
             ## IronHive CLI v${{ needs.version.outputs.version }}
 
             ### Installation
+
+            **Via dotnet tool (Recommended)**
+            ```bash
+            dotnet tool install -g IronHive.Cli --prerelease
+            ```
 
             **Windows (x64)**
             ```powershell
@@ -186,6 +187,8 @@ jobs:
             ### Update existing installation
             ```bash
             ironhive update
+            # or
+            dotnet tool update -g IronHive.Cli --prerelease
             ```
 
             ### Checksums
@@ -199,7 +202,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Skip message
-        if: steps.check-release.outputs.exists == 'true'
+  # Publish to NuGet (runs after release)
+  nuget:
+    needs: [version, release]
+    if: ${{ always() && needs.version.outputs.nuget-exists == 'false' && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Pack
+        run: dotnet pack src/IronHive.Cli/IronHive.Cli.csproj --configuration Release --output ./nupkg
+
+      - name: List packages
+        run: ls -la ./nupkg/
+
+      - name: Push to NuGet
         run: |
-          echo "Release v${{ needs.version.outputs.version }} already exists. Skipping release creation."
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+  # Summary
+  summary:
+    needs: [version, release, nuget]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Release | ${{ needs.release.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NuGet Publish | ${{ needs.nuget.result }} |" >> $GITHUB_STEP_SUMMARY
