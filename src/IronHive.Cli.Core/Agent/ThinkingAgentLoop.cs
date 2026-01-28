@@ -14,13 +14,15 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
 {
     private readonly ThinkingChatClient _thinkingClient;
     private readonly AgentOptions _options;
+    private readonly IUsageTracker? _usageTracker;
     private readonly List<ChatMessage> _history = [];
 
     public ThinkingAgentLoop(
         IChatClient chatClient,
         IThinkingTurnManager turnManager,
         AgentOptions? options = null,
-        ThinkingChatClientOptions? thinkingOptions = null)
+        ThinkingChatClientOptions? thinkingOptions = null,
+        IUsageTracker? usageTracker = null)
     {
         ArgumentNullException.ThrowIfNull(chatClient);
         ArgumentNullException.ThrowIfNull(turnManager);
@@ -31,6 +33,13 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
             thinkingOptions ?? new ThinkingChatClientOptions());
 
         _options = options ?? new AgentOptions();
+        _usageTracker = usageTracker;
+
+        // Configure usage tracker with model ID for accurate pricing
+        if (_usageTracker is not null && !string.IsNullOrEmpty(_options.ModelId))
+        {
+            _usageTracker.SetModel(_options.ModelId);
+        }
 
         if (!string.IsNullOrWhiteSpace(_options.SystemPrompt))
         {
@@ -53,12 +62,19 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
 
         var toolCalls = ExtractToolCalls(response);
         var thinkingContent = ExtractThinkingContent(response);
+        var usage = MapUsage(response.Usage);
+
+        // Record usage for session tracking
+        if (usage is not null)
+        {
+            _usageTracker?.Record(usage);
+        }
 
         return new AgentResponse
         {
             Content = response.Text ?? string.Empty,
             ToolCalls = toolCalls,
-            Usage = MapUsage(response.Usage),
+            Usage = usage,
             ThinkingContent = thinkingContent
         };
     }

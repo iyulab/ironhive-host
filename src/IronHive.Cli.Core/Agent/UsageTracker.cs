@@ -1,3 +1,5 @@
+using TokenMeter;
+
 namespace IronHive.Cli.Core.Agent;
 
 /// <summary>
@@ -5,6 +7,11 @@ namespace IronHive.Cli.Core.Agent;
 /// </summary>
 public interface IUsageTracker
 {
+    /// <summary>
+    /// Sets the current model ID for accurate pricing.
+    /// </summary>
+    void SetModel(string modelId);
+
     /// <summary>
     /// Records token usage from a request.
     /// </summary>
@@ -52,25 +59,55 @@ public record SessionUsage
     public double AverageTokensPerRequest => RequestCount > 0 ? (double)TotalTokens / RequestCount : 0;
 
     /// <summary>
-    /// Estimated cost in USD (based on typical GPT-4 pricing).
-    /// This is a rough estimate - actual costs depend on the model used.
+    /// Estimated cost in USD based on model pricing.
+    /// Uses TokenMeter pricing data for accurate calculations.
     /// </summary>
     public decimal EstimatedCostUsd { get; init; }
+
+    /// <summary>
+    /// The model ID used for pricing calculation.
+    /// </summary>
+    public string? ModelId { get; init; }
+
+    /// <summary>
+    /// The pricing information used for cost calculation.
+    /// Null if the model is not found in TokenMeter pricing data.
+    /// </summary>
+    public ModelPricing? Pricing { get; init; }
 }
 
 /// <summary>
 /// Default implementation of usage tracker.
+/// Uses TokenMeter for accurate model-specific pricing.
 /// </summary>
 public class UsageTracker : IUsageTracker
 {
     private long _totalInputTokens;
     private long _totalOutputTokens;
     private int _requestCount;
+    private string? _modelId;
+    private ModelPricing? _pricing;
     private readonly object _lock = new();
 
-    // Default pricing (GPT-4o-mini style, can be made configurable)
-    private const decimal InputCostPer1MTokens = 0.15m;  // $0.15 per 1M input tokens
-    private const decimal OutputCostPer1MTokens = 0.60m; // $0.60 per 1M output tokens
+    // Default fallback pricing (GPT-4o-mini style) when model is unknown
+    private static readonly ModelPricing DefaultPricing = new()
+    {
+        ModelId = "unknown",
+        InputPricePerMillion = 0.15m,
+        OutputPricePerMillion = 0.60m,
+        Provider = "Unknown",
+        DisplayName = "Unknown Model"
+    };
+
+    /// <inheritdoc />
+    public void SetModel(string modelId)
+    {
+        lock (_lock)
+        {
+            _modelId = modelId;
+            _pricing = ModelPricingData.FindPricing(modelId);
+        }
+    }
 
     /// <inheritdoc />
     public void Record(TokenUsage usage)
@@ -90,15 +127,17 @@ public class UsageTracker : IUsageTracker
     {
         lock (_lock)
         {
-            var inputCost = _totalInputTokens * InputCostPer1MTokens / 1_000_000m;
-            var outputCost = _totalOutputTokens * OutputCostPer1MTokens / 1_000_000m;
+            var pricing = _pricing ?? DefaultPricing;
+            var cost = pricing.CalculateCost((int)_totalInputTokens, (int)_totalOutputTokens);
 
             return new SessionUsage
             {
                 TotalInputTokens = _totalInputTokens,
                 TotalOutputTokens = _totalOutputTokens,
                 RequestCount = _requestCount,
-                EstimatedCostUsd = inputCost + outputCost
+                EstimatedCostUsd = cost,
+                ModelId = _modelId,
+                Pricing = _pricing
             };
         }
     }
@@ -111,6 +150,7 @@ public class UsageTracker : IUsageTracker
             _totalInputTokens = 0;
             _totalOutputTokens = 0;
             _requestCount = 0;
+            // Keep model and pricing settings
         }
     }
 }

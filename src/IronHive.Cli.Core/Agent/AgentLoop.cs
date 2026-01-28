@@ -13,12 +13,20 @@ public class AgentLoop : IAgentLoop
 {
     private readonly IChatClient _chatClient;
     private readonly AgentOptions _options;
+    private readonly IUsageTracker? _usageTracker;
     private readonly List<ChatMessage> _history = [];
 
-    public AgentLoop(IChatClient chatClient, AgentOptions? options = null)
+    public AgentLoop(IChatClient chatClient, AgentOptions? options = null, IUsageTracker? usageTracker = null)
     {
         _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
         _options = options ?? new AgentOptions();
+        _usageTracker = usageTracker;
+
+        // Configure usage tracker with model ID for accurate pricing
+        if (_usageTracker is not null && !string.IsNullOrEmpty(_options.ModelId))
+        {
+            _usageTracker.SetModel(_options.ModelId);
+        }
 
         if (!string.IsNullOrWhiteSpace(_options.SystemPrompt))
         {
@@ -40,12 +48,19 @@ public class AgentLoop : IAgentLoop
         _history.AddRange(response.Messages);
 
         var toolCalls = ExtractToolCalls(response);
+        var usage = MapUsage(response.Usage);
+
+        // Record usage for session tracking
+        if (usage is not null)
+        {
+            _usageTracker?.Record(usage);
+        }
 
         return new AgentResponse
         {
             Content = response.Text ?? string.Empty,
             ToolCalls = toolCalls,
-            Usage = MapUsage(response.Usage)
+            Usage = usage
         };
     }
 
@@ -182,6 +197,12 @@ public class AgentOptions
     /// System prompt to initialize the agent.
     /// </summary>
     public string? SystemPrompt { get; set; }
+
+    /// <summary>
+    /// Model ID for accurate token pricing calculation.
+    /// Used by TokenMeter to look up model-specific pricing.
+    /// </summary>
+    public string? ModelId { get; set; }
 
     /// <summary>
     /// Temperature for response generation.
