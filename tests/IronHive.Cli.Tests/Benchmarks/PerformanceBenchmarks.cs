@@ -13,6 +13,7 @@ namespace IronHive.Cli.Tests.Benchmarks;
 /// Performance benchmarks for core components.
 /// These tests measure execution time and memory usage.
 /// </summary>
+[Trait("Category", "Benchmark")]
 public class PerformanceBenchmarks
 {
     [Fact]

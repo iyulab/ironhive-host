@@ -7,6 +7,7 @@ namespace IronHive.Cli.Tests.E2E;
 /// End-to-end tests for CLI operations.
 /// These tests run the actual CLI executable and verify its behavior.
 /// </summary>
+[Trait("Category", "E2E")]
 public class CliE2ETests : IDisposable
 {
     private readonly string _tempDir;
