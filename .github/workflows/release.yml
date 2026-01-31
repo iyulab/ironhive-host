@@ -17,6 +17,7 @@ env:
   DOTNET_VERSION: '10.0.x'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  RELEASE_REPO: iyulab/ironhive-cli-releases
 
 jobs:
   # Wait for CI to pass first (skipped for manual workflow_dispatch)
@@ -63,14 +64,14 @@ jobs:
       - name: Check if GitHub release already exists
         id: check-release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           VERSION=${{ steps.get-version.outputs.version }}
-          if gh release view "v$VERSION" &>/dev/null; then
-            echo "Release v$VERSION already exists"
+          if gh release view "v$VERSION" --repo ${{ env.RELEASE_REPO }} &>/dev/null; then
+            echo "Release v$VERSION already exists in ${{ env.RELEASE_REPO }}"
             echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "Release v$VERSION does not exist"
+            echo "Release v$VERSION does not exist in ${{ env.RELEASE_REPO }}"
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
@@ -142,9 +143,27 @@ jobs:
         run: |
           sha256sum ironhive-*.zip ironhive-*.tar.gz > checksums.sha256
 
+      - name: Create tag in source repo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.version.outputs.version }}
+
+          # Check if tag already exists
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists in source repo, skipping"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "v$VERSION" -m "Release v$VERSION"
+            git push origin "v$VERSION"
+            echo "Created tag v$VERSION in source repo"
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ env.RELEASE_REPO }}
           tag_name: v${{ needs.version.outputs.version }}
           name: IronHive CLI v${{ needs.version.outputs.version }}
           body: |
@@ -159,27 +178,27 @@ jobs:
 
             **Windows (x64)**
             ```powershell
-            Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-win-x64.zip" -OutFile ironhive.zip
+            Invoke-WebRequest -Uri "https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-win-x64.zip" -OutFile ironhive.zip
             Expand-Archive ironhive.zip -DestinationPath .
             ```
 
             **Linux (x64)**
             ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
+            curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
             tar -xzf ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
             chmod +x linux-x64/ironhive
             ```
 
             **macOS (Intel)**
             ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
+            curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
             tar -xzf ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
             chmod +x osx-x64/ironhive
             ```
 
             **macOS (Apple Silicon)**
             ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
+            curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
             tar -xzf ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
             chmod +x osx-arm64/ironhive
             ```
@@ -193,6 +212,9 @@ jobs:
 
             ### Checksums
             See `checksums.sha256` for SHA-256 hashes of all release files.
+
+            ---
+            *Built from [iyulab/ironhive-cli](https://github.com/iyulab/ironhive-cli) (private)*
           files: |
             ironhive-*.zip
             ironhive-*.tar.gz
@@ -200,7 +222,7 @@ jobs:
           draft: false
           prerelease: ${{ needs.version.outputs.is-prerelease == 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
   # Publish to NuGet (runs after release)
   nuget:
