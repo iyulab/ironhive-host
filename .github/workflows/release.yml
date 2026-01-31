@@ -95,7 +95,7 @@ jobs:
   # Build and create GitHub Release
   release:
     needs: version
-    if: ${{ needs.version.outputs.release-exists != 'true' }}
+    if: ${{ always() && needs.version.result == 'success' && needs.version.outputs.release-exists != 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
