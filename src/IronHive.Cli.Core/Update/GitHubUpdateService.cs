@@ -23,7 +23,7 @@ public class GitHubUpdateService : IUpdateService
     private readonly string _repo;
     private readonly Version _currentVersion;
 
-    public GitHubUpdateService(HttpClient httpClient, string owner = "iyulab", string repo = "ironhive-cli")
+    public GitHubUpdateService(HttpClient httpClient, string owner = "iyulab", string repo = "ironhive-cli-releases")
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _owner = owner;
