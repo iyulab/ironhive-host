@@ -154,9 +154,9 @@ jobs:
         run: |
           VERSION=${{ needs.version.outputs.version }}
 
-          # Check if tag already exists
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "Tag v$VERSION already exists in source repo, skipping"
+          # Check if tag already exists (local or remote)
+          if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
+            echo "Tag v$VERSION already exists in remote, skipping"
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
