@@ -166,68 +166,65 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: ${{ env.RELEASE_REPO }}
-          tag_name: v${{ needs.version.outputs.version }}
-          name: IronHive CLI v${{ needs.version.outputs.version }}
-          body: |
-            ## IronHive CLI v${{ needs.version.outputs.version }}
-
-            ### Installation
-
-            **Via dotnet tool (Recommended)**
-            ```bash
-            dotnet tool install -g IronHive.Cli --prerelease
-            ```
-
-            **Windows (x64)**
-            ```powershell
-            Invoke-WebRequest -Uri "https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-win-x64.zip" -OutFile ironhive.zip
-            Expand-Archive ironhive.zip -DestinationPath .
-            ```
-
-            **Linux (x64)**
-            ```bash
-            curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
-            tar -xzf ironhive-${{ needs.version.outputs.version }}-linux-x64.tar.gz
-            chmod +x linux-x64/ironhive
-            ```
-
-            **macOS (Intel)**
-            ```bash
-            curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
-            tar -xzf ironhive-${{ needs.version.outputs.version }}-osx-x64.tar.gz
-            chmod +x osx-x64/ironhive
-            ```
-
-            **macOS (Apple Silicon)**
-            ```bash
-            curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v${{ needs.version.outputs.version }}/ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
-            tar -xzf ironhive-${{ needs.version.outputs.version }}-osx-arm64.tar.gz
-            chmod +x osx-arm64/ironhive
-            ```
-
-            ### Update existing installation
-            ```bash
-            ironhive update
-            # or
-            dotnet tool update -g IronHive.Cli --prerelease
-            ```
-
-            ### Checksums
-            See `checksums.sha256` for SHA-256 hashes of all release files.
-
-            ---
-            *Built from [iyulab/ironhive-cli](https://github.com/iyulab/ironhive-cli) (private)*
-          files: |
-            ironhive-*.zip
-            ironhive-*.tar.gz
-            checksums.sha256
-          draft: false
-          prerelease: ${{ needs.version.outputs.is-prerelease == 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          VERSION=${{ needs.version.outputs.version }}
+          IS_PRERELEASE=${{ needs.version.outputs.is-prerelease }}
+
+          PRERELEASE_FLAG=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          gh release create "v$VERSION" \
+            --repo ${{ env.RELEASE_REPO }} \
+            --title "IronHive CLI v$VERSION" \
+            --notes "## IronHive CLI v$VERSION
+
+          ### Installation
+
+          **Via dotnet tool (Recommended)**
+          \`\`\`bash
+          dotnet tool install -g IronHive.Cli
+          \`\`\`
+
+          **Windows (x64)**
+          \`\`\`powershell
+          Invoke-WebRequest -Uri \"https://github.com/${{ env.RELEASE_REPO }}/releases/download/v$VERSION/ironhive-$VERSION-win-x64.zip\" -OutFile ironhive.zip
+          Expand-Archive ironhive.zip -DestinationPath .
+          \`\`\`
+
+          **Linux (x64)**
+          \`\`\`bash
+          curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v$VERSION/ironhive-$VERSION-linux-x64.tar.gz
+          tar -xzf ironhive-$VERSION-linux-x64.tar.gz
+          chmod +x ironhive
+          \`\`\`
+
+          **macOS (Intel)**
+          \`\`\`bash
+          curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v$VERSION/ironhive-$VERSION-osx-x64.tar.gz
+          tar -xzf ironhive-$VERSION-osx-x64.tar.gz
+          chmod +x ironhive
+          \`\`\`
+
+          **macOS (Apple Silicon)**
+          \`\`\`bash
+          curl -LO https://github.com/${{ env.RELEASE_REPO }}/releases/download/v$VERSION/ironhive-$VERSION-osx-arm64.tar.gz
+          tar -xzf ironhive-$VERSION-osx-arm64.tar.gz
+          chmod +x ironhive
+          \`\`\`
+
+          ### Update
+          \`\`\`bash
+          dotnet tool update -g IronHive.Cli
+          \`\`\`
+          " \
+            $PRERELEASE_FLAG \
+            ironhive-*.zip \
+            ironhive-*.tar.gz \
+            checksums.sha256
 
   # Publish to NuGet (runs after release)
   nuget:
