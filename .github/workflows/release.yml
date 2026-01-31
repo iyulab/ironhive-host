@@ -95,7 +95,7 @@ jobs:
   # Build and create GitHub Release
   release:
     needs: version
-    if: ${{ needs.version.outputs.release-exists == 'false' }}
+    if: ${{ needs.version.outputs.release-exists != 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -227,7 +227,7 @@ jobs:
   # Publish to NuGet (runs after release)
   nuget:
     needs: [version, release]
-    if: ${{ always() && needs.version.outputs.nuget-exists == 'false' && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    if: ${{ always() && needs.version.outputs.nuget-exists != 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
     runs-on: ubuntu-latest
 
     steps:
