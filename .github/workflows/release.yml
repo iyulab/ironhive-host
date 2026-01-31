@@ -133,11 +133,16 @@ jobs:
       - name: Create archives
         run: |
           VERSION=${{ needs.version.outputs.version }}
-          cd publish
-          zip -r ../ironhive-${VERSION}-win-x64.zip win-x64/
-          tar -czvf ../ironhive-${VERSION}-linux-x64.tar.gz linux-x64/
-          tar -czvf ../ironhive-${VERSION}-osx-x64.tar.gz osx-x64/
-          tar -czvf ../ironhive-${VERSION}-osx-arm64.tar.gz osx-arm64/
+
+          # Windows - zip without parent folder
+          cd publish/win-x64
+          zip -r ../../ironhive-${VERSION}-win-x64.zip .
+          cd ../..
+
+          # Linux/macOS - tar without parent folder
+          tar -czvf ironhive-${VERSION}-linux-x64.tar.gz -C publish/linux-x64 .
+          tar -czvf ironhive-${VERSION}-osx-x64.tar.gz -C publish/osx-x64 .
+          tar -czvf ironhive-${VERSION}-osx-arm64.tar.gz -C publish/osx-arm64 .
 
       - name: Generate checksums
         run: |
