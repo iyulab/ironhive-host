@@ -52,7 +52,7 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         };
     }
 
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = false,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
@@ -75,7 +75,7 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
                 firstMessage = s.FirstUserMessage
             }).ToArray();
 
-            Console.WriteLine(JsonSerializer.Serialize(jsonSessions, s_jsonOptions));
+            Console.WriteLine(JsonSerializer.Serialize(jsonSessions, JsonOptions));
             return 0;
         }
 
@@ -139,7 +139,7 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         {
             if (outputFormat == "json")
             {
-                Console.WriteLine(JsonSerializer.Serialize(new { error = "Session ID required", code = 1 }, s_jsonOptions));
+                Console.WriteLine(JsonSerializer.Serialize(new { error = "Session ID required", code = 1 }, JsonOptions));
             }
             else
             {
@@ -155,7 +155,7 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         {
             if (outputFormat == "json")
             {
-                Console.WriteLine(JsonSerializer.Serialize(new { error = $"Session not found: {sessionId}", code = 1 }, s_jsonOptions));
+                Console.WriteLine(JsonSerializer.Serialize(new { error = $"Session not found: {sessionId}", code = 1 }, JsonOptions));
             }
             else
             {
@@ -168,7 +168,7 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         if (outputFormat == "json")
         {
             await _sessionManager.DeleteSessionAsync(sessionId);
-            Console.WriteLine(JsonSerializer.Serialize(new { deleted = sessionId, success = true }, s_jsonOptions));
+            Console.WriteLine(JsonSerializer.Serialize(new { deleted = sessionId, success = true }, JsonOptions));
             return 0;
         }
 

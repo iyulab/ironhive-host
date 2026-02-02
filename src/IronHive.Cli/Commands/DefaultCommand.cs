@@ -412,7 +412,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = false,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
@@ -420,13 +420,13 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
     private static void OutputJson(object obj)
     {
-        var json = JsonSerializer.Serialize(obj, s_jsonOptions);
+        var json = JsonSerializer.Serialize(obj, JsonOptions);
         Console.WriteLine(json);
     }
 
     private static void OutputJsonLine(object obj)
     {
-        var json = JsonSerializer.Serialize(obj, s_jsonOptions);
+        var json = JsonSerializer.Serialize(obj, JsonOptions);
         Console.WriteLine(json);
     }
 
