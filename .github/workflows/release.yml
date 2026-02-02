@@ -148,23 +148,6 @@ jobs:
         run: |
           sha256sum ironhive-*.zip ironhive-*.tar.gz > checksums.sha256
 
-      - name: Create tag in source repo
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION=${{ needs.version.outputs.version }}
-
-          # Check if tag already exists (local or remote)
-          if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
-            echo "Tag v$VERSION already exists in remote, skipping"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag -a "v$VERSION" -m "Release v$VERSION"
-            git push origin "v$VERSION"
-            echo "Created tag v$VERSION in source repo"
-          fi
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
