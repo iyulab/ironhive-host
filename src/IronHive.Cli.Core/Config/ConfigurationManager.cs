@@ -1,4 +1,5 @@
 using System.Text.Json;
+using IronHive.Cli.Core.Permissions;
 using IronHive.Cli.Core.Webhook;
 using Microsoft.Extensions.Configuration;
 using YamlDotNet.Serialization;
@@ -40,9 +41,9 @@ public class MergedConfig
     public LMSupplyConfig LMSupply { get; set; } = new();
 
     /// <summary>
-    /// HITL approval configuration.
+    /// Permission configuration for pattern-based allow/deny/ask rules.
     /// </summary>
-    public ApprovalConfig Approval { get; set; } = new();
+    public PermissionConfig Permissions { get; set; } = PermissionConfig.CreateDefault();
 
     /// <summary>
     /// Webhook configuration.

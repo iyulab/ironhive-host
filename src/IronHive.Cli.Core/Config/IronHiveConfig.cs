@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using IronHive.Cli.Core.Permissions;
 
 namespace IronHive.Cli.Core.Config;
 
@@ -19,89 +19,134 @@ public class IronHiveConfig
     public LMSupplyConfig LMSupply { get; set; } = new();
 
     /// <summary>
-    /// Approval configuration for HITL (Human-In-The-Loop).
+    /// Permission configuration for pattern-based allow/deny/ask rules.
     /// </summary>
-    public ApprovalConfig Approval { get; set; } = new();
+    public PermissionConfig Permissions { get; set; } = PermissionConfig.CreateDefault();
+
+    /// <summary>
+    /// Compaction configuration for context management.
+    /// </summary>
+    public CompactionConfig Compaction { get; set; } = new();
+
+    /// <summary>
+    /// Sub-agent configuration.
+    /// </summary>
+    public SubAgentConfig SubAgent { get; set; } = new();
 }
 
 /// <summary>
-/// Configuration for automatic approval patterns.
+/// Configuration for context compaction.
 /// </summary>
-public class ApprovalConfig
+public class CompactionConfig
 {
     /// <summary>
-    /// Tools that are always auto-approved.
+    /// Number of tokens to protect at the end of the history (most recent).
+    /// Default: 40,000 tokens.
     /// </summary>
-    public List<string> AutoApprovedTools { get; set; } = [];
+    public int ProtectRecentTokens { get; set; } = 40_000;
 
     /// <summary>
-    /// Shell command patterns that are auto-approved (glob-style).
-    /// Examples: "git *", "dotnet build", "npm install"
+    /// Minimum number of tokens that must be available for pruning.
+    /// Compaction only occurs if there are at least this many tokens to prune.
+    /// Default: 20,000 tokens.
     /// </summary>
-    public List<string> AutoApprovedCommands { get; set; } = [];
+    public int MinimumPruneTokens { get; set; } = 20_000;
 
     /// <summary>
-    /// File path patterns that are auto-approved for write/delete.
-    /// Examples: "*.tmp", "obj/**", "bin/**"
+    /// Tool outputs that should be protected from aggressive summarization.
+    /// These tools' outputs will be preserved more carefully during compaction.
     /// </summary>
-    public List<string> AutoApprovedPaths { get; set; } = [];
+    public List<string> ProtectedToolOutputs { get; set; } = ["read_file", "grep", "glob"];
 
     /// <summary>
-    /// Whether to prompt for approval on high-risk operations even if whitelisted.
+    /// Target compression ratio when compacting (0.0-1.0).
+    /// After compaction, the context should be approximately this percentage of max tokens.
+    /// Default: 0.70 (70%).
     /// </summary>
-    public bool AlwaysPromptForCritical { get; set; } = true;
+    public float TargetRatio { get; set; } = 0.70f;
 
     /// <summary>
-    /// Checks if a tool is auto-approved.
+    /// Whether to use token-based compaction instead of percentage-based.
+    /// When true, uses ProtectRecentTokens and MinimumPruneTokens.
+    /// When false, uses traditional percentage-based threshold.
     /// </summary>
-    public bool IsToolAutoApproved(string toolName)
-    {
-        return AutoApprovedTools.Contains(toolName, StringComparer.OrdinalIgnoreCase);
-    }
+    public bool UseTokenBasedCompaction { get; set; } = true;
 
     /// <summary>
-    /// Checks if a shell command matches any auto-approved pattern.
+    /// Threshold percentage for percentage-based compaction (legacy mode).
+    /// Only used when UseTokenBasedCompaction is false.
     /// </summary>
-    public bool IsCommandAutoApproved(string command)
-    {
-        foreach (var pattern in AutoApprovedCommands)
-        {
-            if (MatchesGlobPattern(command, pattern))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+    public float ThresholdPercentage { get; set; } = 0.92f;
+}
+
+/// <summary>
+/// Configuration for sub-agents.
+/// </summary>
+public class SubAgentConfig
+{
+    /// <summary>
+    /// Maximum nesting depth for sub-agents.
+    /// Prevents infinite recursion.
+    /// </summary>
+    public int MaxDepth { get; set; } = 2;
 
     /// <summary>
-    /// Checks if a file path matches any auto-approved pattern.
+    /// Maximum number of concurrent sub-agents.
     /// </summary>
-    public bool IsPathAutoApproved(string path)
-    {
-        foreach (var pattern in AutoApprovedPaths)
-        {
-            if (MatchesGlobPattern(path, pattern))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+    public int MaxConcurrent { get; set; } = 3;
 
-    private static bool MatchesGlobPattern(string input, string pattern)
-    {
-        // Convert glob pattern to regex
-        // * matches any characters except path separator
-        // ** matches any characters including path separator
-        // ? matches single character
-        var regexPattern = "^" + Regex.Escape(pattern)
-            .Replace("\\*\\*", ".*")
-            .Replace("\\*", "[^/\\\\]*")
-            .Replace("\\?", ".") + "$";
+    /// <summary>
+    /// Configuration for Explore sub-agent.
+    /// </summary>
+    public ExploreAgentConfig Explore { get; set; } = new();
 
-        return Regex.IsMatch(input, regexPattern, RegexOptions.IgnoreCase);
-    }
+    /// <summary>
+    /// Configuration for General sub-agent.
+    /// </summary>
+    public GeneralAgentConfig General { get; set; } = new();
+}
+
+/// <summary>
+/// Configuration for Explore sub-agent (read-only).
+/// </summary>
+public class ExploreAgentConfig
+{
+    /// <summary>
+    /// Maximum number of turns (API round-trips).
+    /// </summary>
+    public int MaxTurns { get; set; } = 10;
+
+    /// <summary>
+    /// Maximum context tokens.
+    /// </summary>
+    public int MaxTokens { get; set; } = 16_000;
+
+    /// <summary>
+    /// Tools allowed for Explore agent (read-only tools).
+    /// </summary>
+    public List<string> AllowedTools { get; set; } =
+    [
+        "read_file",
+        "list_directory",
+        "glob",
+        "grep"
+    ];
+}
+
+/// <summary>
+/// Configuration for General sub-agent (full access).
+/// </summary>
+public class GeneralAgentConfig
+{
+    /// <summary>
+    /// Maximum number of turns (API round-trips).
+    /// </summary>
+    public int MaxTurns { get; set; } = 30;
+
+    /// <summary>
+    /// Maximum context tokens.
+    /// </summary>
+    public int MaxTokens { get; set; } = 64_000;
 }
 
 /// <summary>

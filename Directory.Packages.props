@@ -4,12 +4,12 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.4.1" />
+    <PackageVersion Include="Ironbees.Core" Version="0.4.2" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.2.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.2.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.2.0-preview.1.26063.2" />
     <!-- OpenAI SDK -->
-    <PackageVersion Include="ModelContextProtocol" Version="0.6.0-preview.1" />
+    <PackageVersion Include="ModelContextProtocol" Version="0.7.0-preview.1" />
     <PackageVersion Include="OpenAI" Version="2.8.0" />
     <!-- DI & Hosting (.NET 10) -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
@@ -19,20 +19,20 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
     <!-- CLI & Console -->
-    <PackageVersion Include="Spectre.Console" Version="0.50.0" />
-    <PackageVersion Include="Spectre.Console.Cli" Version="0.50.0" />
+    <PackageVersion Include="Spectre.Console" Version="0.54.0" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.53.1" />
     <!-- Diff -->
     <PackageVersion Include="DiffPlex" Version="1.9.0" />
     <!-- Glob -->
-    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.2" />
     <!-- YAML Config -->
     <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.1.1" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.10.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.10.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.10.0" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.13.0" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.13.0" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.13.0" />
     <!-- IndexThinking (token management, reasoning extraction) -->
     <PackageVersion Include="IndexThinking" Version="0.15.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
@@ -40,9 +40,9 @@
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.0" />
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
-    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.23" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
   </ItemGroup>

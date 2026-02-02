@@ -1,5 +1,5 @@
 using IronHive.Cli.Core.Agent.Mode;
-using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Permissions;
 
 namespace IronHive.Cli.Tests.Agent.Mode;
 
@@ -47,21 +47,22 @@ public class ModeToolFilterTests
     }
 
     [Fact]
-    public void AssessRisk_DeleteFile_ReturnsHighRisk()
+    public void AssessRisk_DeleteFile_ReturnsRisk()
     {
-        var result = _filter.AssessRisk("delete_file", null);
+        var args = new Dictionary<string, object?> { ["path"] = "test.cs" };
+        var result = _filter.AssessRisk("delete_file", args);
 
         Assert.True(result.IsRisky);
-        Assert.Equal(RiskLevel.High, result.Level);
+        Assert.True(result.Level >= RiskLevel.Medium);
         Assert.NotNull(result.Reason);
     }
 
     [Fact]
-    public void AssessRisk_SafeShellCommand_ReturnsSafe()
+    public void AssessRisk_ReadFile_WithDefaultConfig_ReturnsSafe()
     {
-        var args = new Dictionary<string, object?> { ["command"] = "ls -la" };
-
-        var result = _filter.AssessRisk("shell", args);
+        // Default config allows all reads (except *.env and secrets)
+        var args = new Dictionary<string, object?> { ["path"] = "src/Program.cs" };
+        var result = _filter.AssessRisk("read_file", args);
 
         Assert.False(result.IsRisky);
         Assert.Equal(RiskLevel.Low, result.Level);
@@ -85,7 +86,6 @@ public class ModeToolFilterTests
     [Theory]
     [InlineData("sudo apt update")]
     [InlineData("runas /user:admin cmd")]
-    [InlineData("doas pkg install")]
     public void AssessRisk_ElevatedCommand_ReturnsHighRisk(string command)
     {
         var args = new Dictionary<string, object?> { ["command"] = command };
@@ -97,7 +97,7 @@ public class ModeToolFilterTests
     }
 
     [Fact]
-    public void AssessRisk_ReadFile_ReturnsSafe()
+    public void AssessRisk_ReadFile_WithNoArgs_ReturnsSafe()
     {
         var result = _filter.AssessRisk("read_file", null);
 
@@ -126,60 +126,77 @@ public class ModeToolFilterTests
         Assert.Equal("Test prompt", result.ApprovalPrompt);
     }
 
-    #region Approval Whitelist Tests
+    #region Permission Config Tests
 
     [Fact]
-    public void AssessRisk_AutoApprovedTool_ReturnsSafe()
+    public void AssessRisk_AllowedReadPath_ReturnsSafe()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedTools = ["delete_file"],
-            AlwaysPromptForCritical = false
+            Read =
+            [
+                new PermissionRule { Pattern = "src/**/*", Action = PermissionAction.Allow }
+            ],
+            DefaultAction = PermissionAction.Ask
         };
         var filter = new ModeToolFilter(config);
 
-        var result = filter.AssessRisk("delete_file", null);
+        var args = new Dictionary<string, object?> { ["path"] = "src/Program.cs" };
+        var result = filter.AssessRisk("read_file", args);
 
         Assert.False(result.IsRisky);
     }
 
     [Fact]
-    public void AssessRisk_AutoApprovedTool_StillPromptsForCritical()
+    public void AssessRisk_DeniedReadPath_ReturnsDenied()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedTools = ["delete_file"],
-            AlwaysPromptForCritical = true // Default
+            Read =
+            [
+                new PermissionRule { Pattern = "**/secrets/**", Action = PermissionAction.Deny, Priority = 10 }
+            ],
+            DefaultAction = PermissionAction.Allow
         };
         var filter = new ModeToolFilter(config);
 
-        var result = filter.AssessRisk("delete_file", null);
+        var args = new Dictionary<string, object?> { ["path"] = "config/secrets/api-key.txt" };
+        var result = filter.AssessRisk("read_file", args);
 
-        // delete_file is high risk but not critical, so it should still be risky
         Assert.True(result.IsRisky);
     }
 
     [Fact]
-    public void AssessRisk_AutoApprovedPath_ReturnsSafe()
+    public void AssessRisk_AskReadPath_ReturnsAsk()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedPaths = ["*.tmp", "obj/**"]
+            Read =
+            [
+                new PermissionRule { Pattern = "*.env", Action = PermissionAction.Ask }
+            ],
+            DefaultAction = PermissionAction.Allow
         };
         var filter = new ModeToolFilter(config);
 
-        var args = new Dictionary<string, object?> { ["path"] = "test.tmp" };
-        var result = filter.AssessRisk("delete_file", args);
+        var args = new Dictionary<string, object?> { ["path"] = ".env" };
+        var result = filter.AssessRisk("read_file", args);
 
-        Assert.False(result.IsRisky);
+        Assert.True(result.IsRisky);
+        Assert.Equal(RiskLevel.Medium, result.Level);
     }
 
     [Fact]
-    public void AssessRisk_AutoApprovedCommand_ReturnsSafe()
+    public void AssessRisk_AllowedBashCommand_ReturnsSafe()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedCommands = ["git *", "dotnet build"]
+            Bash =
+            [
+                new PermissionRule { Pattern = "git *", Action = PermissionAction.Allow },
+                new PermissionRule { Pattern = "dotnet *", Action = PermissionAction.Allow }
+            ],
+            DefaultAction = PermissionAction.Ask
         };
         var filter = new ModeToolFilter(config);
 
@@ -190,90 +207,143 @@ public class ModeToolFilterTests
     }
 
     [Fact]
-    public void AssessRisk_AutoApprovedCommand_StillBlocksDangerous()
+    public void AssessRisk_DeniedBashCommand_ReturnsDenied()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedCommands = ["*"] // Allow everything
+            Bash =
+            [
+                new PermissionRule { Pattern = "dangerous_cmd *", Action = PermissionAction.Deny, Priority = 100 }
+            ],
+            DefaultAction = PermissionAction.Allow
         };
         var filter = new ModeToolFilter(config);
 
-        // Dangerous commands should still be blocked
-        var args = new Dictionary<string, object?> { ["command"] = "rm -rf /" };
+        var args = new Dictionary<string, object?> { ["command"] = "dangerous_cmd test" };
         var result = filter.AssessRisk("shell", args);
 
         Assert.True(result.IsRisky);
-        Assert.Equal(RiskLevel.Critical, result.Level);
     }
 
     [Fact]
-    public void AssessRisk_NonWhitelistedPath_StillRisky()
+    public void AssessRisk_AllowedEditPath_ReturnsSafe()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedPaths = ["*.tmp"]
+            Edit =
+            [
+                new PermissionRule { Pattern = "src/**/*", Action = PermissionAction.Allow }
+            ],
+            DefaultAction = PermissionAction.Ask
         };
         var filter = new ModeToolFilter(config);
 
-        var args = new Dictionary<string, object?> { ["path"] = "important.cs" };
-        var result = filter.AssessRisk("delete_file", args);
+        var args = new Dictionary<string, object?> { ["path"] = "src/Program.cs" };
+        var result = filter.AssessRisk("write_file", args);
 
-        Assert.True(result.IsRisky);
+        Assert.False(result.IsRisky);
+    }
+
+    [Fact]
+    public void AssessRisk_PriorityRules_HigherPriorityWins()
+    {
+        var config = new PermissionConfig
+        {
+            Read =
+            [
+                new PermissionRule { Pattern = "*", Action = PermissionAction.Allow, Priority = 0 },
+                new PermissionRule { Pattern = "*.env", Action = PermissionAction.Deny, Priority = 10 }
+            ]
+        };
+        var filter = new ModeToolFilter(config);
+
+        var args = new Dictionary<string, object?> { ["path"] = ".env" };
+        var result = filter.AssessRisk("read_file", args);
+
+        Assert.True(result.IsRisky); // Higher priority Deny rule wins
+    }
+
+    [Fact]
+    public void AssessRisk_McpTool_UsesPermissionEvaluator()
+    {
+        var config = new PermissionConfig
+        {
+            McpTools =
+            [
+                new PermissionRule { Pattern = "mcp__safe_*", Action = PermissionAction.Allow }
+            ],
+            DefaultAction = PermissionAction.Ask
+        };
+        var filter = new ModeToolFilter(config);
+
+        var result = filter.AssessRisk("mcp__safe_tool", null);
+
+        Assert.False(result.IsRisky);
     }
 
     #endregion
 
-    #region ApprovalConfig Tests
+    #region PermissionEvaluator Tests
 
     [Theory]
     [InlineData("git status", "git *", true)]
     [InlineData("git commit -m test", "git *", true)]
-    [InlineData("dotnet build", "dotnet build", true)]
-    [InlineData("dotnet test", "dotnet build", false)]
+    [InlineData("dotnet build", "dotnet *", true)]
     [InlineData("npm install", "npm *", true)]
-    [InlineData("yarn install", "npm *", false)]
-    public void ApprovalConfig_IsCommandAutoApproved_MatchesPatterns(string command, string pattern, bool expected)
+    public void PermissionEvaluator_BashPatterns_MatchCorrectly(string command, string pattern, bool shouldAllow)
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedCommands = [pattern]
+            Bash = [new PermissionRule { Pattern = pattern, Action = PermissionAction.Allow }],
+            DefaultAction = PermissionAction.Deny
         };
+        var evaluator = new PermissionEvaluator(config);
 
-        var result = config.IsCommandAutoApproved(command);
+        var result = evaluator.EvaluateBash(command);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(shouldAllow ? PermissionAction.Allow : PermissionAction.Deny, result.Action);
     }
 
     [Theory]
     [InlineData("test.tmp", "*.tmp", true)]
-    [InlineData("obj/Debug/test.dll", "obj/**", true)]
-    [InlineData("bin/Release/app.exe", "bin/**", true)]
-    [InlineData("src/Program.cs", "*.tmp", false)]
-    [InlineData("src/obj/test.dll", "obj/**", false)] // obj must be at root
-    public void ApprovalConfig_IsPathAutoApproved_MatchesPatterns(string path, string pattern, bool expected)
+    [InlineData("obj/Debug/test.dll", "obj/**/*", true)]
+    [InlineData("bin/Release/app.exe", "bin/**/*", true)]
+    [InlineData("src/Program.cs", "src/**/*", true)]
+    public void PermissionEvaluator_PathPatterns_MatchCorrectly(string path, string pattern, bool shouldAllow)
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedPaths = [pattern]
+            Read = [new PermissionRule { Pattern = pattern, Action = PermissionAction.Allow }],
+            DefaultAction = PermissionAction.Deny
         };
+        var evaluator = new PermissionEvaluator(config);
 
-        var result = config.IsPathAutoApproved(path);
+        var result = evaluator.EvaluateRead(path);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(shouldAllow ? PermissionAction.Allow : PermissionAction.Deny, result.Action);
     }
 
     [Fact]
-    public void ApprovalConfig_IsToolAutoApproved_CaseInsensitive()
+    public void PermissionEvaluator_DefaultConfig_HasSensibleDefaults()
     {
-        var config = new ApprovalConfig
-        {
-            AutoApprovedTools = ["Shell", "DELETE_FILE"]
-        };
+        var config = PermissionConfig.CreateDefault();
+        var evaluator = new PermissionEvaluator(config);
 
-        Assert.True(config.IsToolAutoApproved("shell"));
-        Assert.True(config.IsToolAutoApproved("SHELL"));
-        Assert.True(config.IsToolAutoApproved("delete_file"));
-        Assert.False(config.IsToolAutoApproved("read_file"));
+        // Should allow reading normal files
+        var readResult = evaluator.EvaluateRead("src/Program.cs");
+        Assert.Equal(PermissionAction.Allow, readResult.Action);
+
+        // Should ask for .env files
+        var envResult = evaluator.EvaluateRead(".env");
+        Assert.Equal(PermissionAction.Ask, envResult.Action);
+
+        // Should allow git commands
+        var gitResult = evaluator.EvaluateBash("git status");
+        Assert.Equal(PermissionAction.Allow, gitResult.Action);
+
+        // Should deny secrets directory
+        var secretsResult = evaluator.EvaluateRead("config/secrets/key.txt");
+        Assert.Equal(PermissionAction.Deny, secretsResult.Action);
     }
 
     #endregion

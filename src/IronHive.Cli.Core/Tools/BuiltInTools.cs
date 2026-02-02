@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using IronHive.Cli.Core.Agent.SubAgent;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
@@ -32,6 +33,23 @@ public static class BuiltInTools
             AIFunctionFactory.Create(tools.ExecuteCommand),
             todoTool.GetAITool()
         ];
+    }
+
+    /// <summary>
+    /// Gets all built-in tools including sub-agent tools.
+    /// </summary>
+    /// <param name="workingDirectory">Working directory for tools.</param>
+    /// <param name="subAgentService">Sub-agent service for spawning sub-agents.</param>
+    /// <returns>List of AI tools.</returns>
+    public static IList<AITool> GetAll(string? workingDirectory, ISubAgentService subAgentService)
+    {
+        ArgumentNullException.ThrowIfNull(subAgentService);
+
+        var tools = GetAll(workingDirectory).ToList();
+        var subAgentTool = new SubAgentTool(subAgentService);
+        tools.AddRange(subAgentTool.GetAITools());
+
+        return tools;
     }
 }
 

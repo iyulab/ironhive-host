@@ -1,3 +1,4 @@
+using IronHive.Cli.Core.Config;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Context;
@@ -188,6 +189,40 @@ public class ContextManager
         var tokenCounter = new ContextTokenCounter(modelName);
         var compactionTrigger = new ThresholdCompactionTrigger(0.92f);
         var historyCompactor = new HistoryCompactor(tokenCounter, summarizer);
+
+        return new ContextManager(tokenCounter, compactionTrigger, historyCompactor);
+    }
+
+    /// <summary>
+    /// Creates a context manager with the specified compaction configuration.
+    /// </summary>
+    /// <param name="modelName">Model name for token counting.</param>
+    /// <param name="config">Compaction configuration.</param>
+    /// <param name="summarizer">Optional chat client for LLM-based summarization.</param>
+    public static ContextManager ForModel(
+        string modelName,
+        CompactionConfig config,
+        IChatClient? summarizer = null)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var tokenCounter = new ContextTokenCounter(modelName);
+
+        ICompactionTrigger compactionTrigger;
+        IHistoryCompactor historyCompactor;
+
+        if (config.UseTokenBasedCompaction)
+        {
+            compactionTrigger = new TokenBasedCompactionTrigger(
+                config.ProtectRecentTokens,
+                config.MinimumPruneTokens);
+            historyCompactor = new TokenBasedHistoryCompactor(tokenCounter, config, summarizer);
+        }
+        else
+        {
+            compactionTrigger = new ThresholdCompactionTrigger(config.ThresholdPercentage);
+            historyCompactor = new HistoryCompactor(tokenCounter, summarizer);
+        }
 
         return new ContextManager(tokenCounter, compactionTrigger, historyCompactor);
     }

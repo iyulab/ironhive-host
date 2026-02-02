@@ -32,7 +32,7 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         public string? Value { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var action = settings.Action?.ToLowerInvariant() ?? "show";
 

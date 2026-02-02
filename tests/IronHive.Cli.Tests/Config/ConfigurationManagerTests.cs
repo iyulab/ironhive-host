@@ -31,7 +31,7 @@ public class ConfigurationManagerTests : IDisposable
         Assert.NotNull(config);
         Assert.NotNull(config.GpuStack);
         Assert.NotNull(config.LMSupply);
-        Assert.NotNull(config.Approval);
+        Assert.NotNull(config.Permissions);
         Assert.NotNull(config.Webhook);
         Assert.NotNull(config.Limits);
         Assert.NotNull(config.Context);

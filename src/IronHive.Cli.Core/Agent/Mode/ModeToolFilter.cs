@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Permissions;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Agent.Mode;
@@ -97,11 +97,11 @@ public enum RiskLevel
 }
 
 /// <summary>
-/// Default implementation of mode tool filter.
+/// Default implementation of mode tool filter using permission evaluator.
 /// </summary>
 public class ModeToolFilter : IModeToolFilter
 {
-    private readonly ApprovalConfig _approvalConfig;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
     // Read-only tools allowed in Planning mode
     private static readonly HashSet<string> ReadOnlyTools =
@@ -112,36 +112,27 @@ public class ModeToolFilter : IModeToolFilter
         "list_directory"
     ];
 
-    // Tools that can modify state (require Working mode)
-    private static readonly HashSet<string> WriteTools =
-    [
-        "write_file",
-        "shell",
-        "create_directory",
-        "delete_file",
-        "move_file"
-    ];
-
-    // High-risk tools/operations
-    private static readonly HashSet<string> HighRiskTools =
-    [
-        "delete_file",
-        "shell" // Certain shell commands are high-risk
-    ];
-
     /// <summary>
     /// Creates a new ModeToolFilter with default configuration.
     /// </summary>
-    public ModeToolFilter() : this(new ApprovalConfig())
+    public ModeToolFilter() : this(new PermissionEvaluator())
     {
     }
 
     /// <summary>
-    /// Creates a new ModeToolFilter with the specified approval configuration.
+    /// Creates a new ModeToolFilter with the specified permission evaluator.
     /// </summary>
-    public ModeToolFilter(ApprovalConfig approvalConfig)
+    public ModeToolFilter(IPermissionEvaluator permissionEvaluator)
     {
-        _approvalConfig = approvalConfig ?? throw new ArgumentNullException(nameof(approvalConfig));
+        _permissionEvaluator = permissionEvaluator ?? throw new ArgumentNullException(nameof(permissionEvaluator));
+    }
+
+    /// <summary>
+    /// Creates a new ModeToolFilter with the specified permission configuration.
+    /// </summary>
+    public ModeToolFilter(PermissionConfig permissionConfig)
+        : this(new PermissionEvaluator(permissionConfig))
+    {
     }
 
     /// <inheritdoc />
@@ -173,124 +164,176 @@ public class ModeToolFilter : IModeToolFilter
     /// <inheritdoc />
     public RiskAssessment AssessRisk(string toolName, IDictionary<string, object?>? arguments)
     {
-        // Check whitelist first (unless critical operations always need prompt)
-        if (_approvalConfig.IsToolAutoApproved(toolName))
+        return toolName switch
         {
-            // Still check for critical-level risks if configured
-            if (!_approvalConfig.AlwaysPromptForCritical)
-            {
-                return RiskAssessment.Safe;
-            }
+            "read_file" => AssessReadRisk(arguments),
+            "write_file" => AssessWriteRisk(arguments),
+            "delete_file" => AssessDeleteRisk(arguments),
+            "shell" or "execute_command" => AssessShellRisk(arguments),
+            _ when toolName.StartsWith("mcp__", StringComparison.Ordinal) => AssessMcpToolRisk(toolName),
+            _ => RiskAssessment.Safe
+        };
+    }
+
+    private RiskAssessment AssessReadRisk(IDictionary<string, object?>? arguments)
+    {
+        var path = GetStringArgument(arguments, "path");
+        if (string.IsNullOrEmpty(path))
+        {
+            return RiskAssessment.Safe;
         }
 
-        // Check if tool itself is high-risk
-        if (toolName == "delete_file")
+        var result = _permissionEvaluator.EvaluateRead(path);
+        return ToRiskAssessment(result, $"Read file: {TruncatePath(path)}");
+    }
+
+    private RiskAssessment AssessWriteRisk(IDictionary<string, object?>? arguments)
+    {
+        var path = GetStringArgument(arguments, "path");
+        if (string.IsNullOrEmpty(path))
         {
-            var path = arguments?.TryGetValue("path", out var pathArg) == true
-                ? pathArg?.ToString() ?? string.Empty
-                : string.Empty;
+            return RiskAssessment.Risky(RiskLevel.Medium, "Write operation with unknown path");
+        }
 
-            // Check path whitelist
-            if (!string.IsNullOrEmpty(path) && _approvalConfig.IsPathAutoApproved(path))
-            {
-                return RiskAssessment.Safe;
-            }
+        var result = _permissionEvaluator.EvaluateEdit(path);
+        return ToRiskAssessment(result, $"Write file: {TruncatePath(path)}");
+    }
 
+    private RiskAssessment AssessDeleteRisk(IDictionary<string, object?>? arguments)
+    {
+        var path = GetStringArgument(arguments, "path");
+        if (string.IsNullOrEmpty(path))
+        {
+            return RiskAssessment.Risky(RiskLevel.High, "Delete operation with unknown path");
+        }
+
+        // Delete is always at least medium risk
+        var result = _permissionEvaluator.EvaluateEdit(path);
+        if (result.Action == PermissionAction.Allow)
+        {
+            // Even if edit is allowed, delete gets a warning
             return RiskAssessment.Risky(
-                RiskLevel.High,
-                "File deletion is a destructive operation",
+                RiskLevel.Medium,
+                $"File deletion: {TruncatePath(path)}",
                 "Allow deleting this file?");
         }
 
-        // Shell commands need special assessment
-        if (toolName == "shell" && arguments?.TryGetValue("command", out var cmd) == true)
+        return ToRiskAssessment(result, $"Delete file: {TruncatePath(path)}", RiskLevel.High);
+    }
+
+    private RiskAssessment AssessShellRisk(IDictionary<string, object?>? arguments)
+    {
+        var command = GetStringArgument(arguments, "command");
+        if (string.IsNullOrEmpty(command))
         {
-            var command = cmd?.ToString() ?? string.Empty;
-
-            // Check for dangerous patterns (always risky, even if whitelisted)
-            if (IsDangerousShellCommand(command))
-            {
-                return RiskAssessment.Risky(
-                    RiskLevel.Critical,
-                    $"Potentially dangerous shell command: {TruncateCommand(command)}",
-                    "Allow executing this command?");
-            }
-
-            // Check for elevated privileges (always risky)
-            if (RequiresElevation(command))
-            {
-                return RiskAssessment.Risky(
-                    RiskLevel.High,
-                    "Command requires elevated privileges",
-                    "Allow executing with elevated privileges?");
-            }
-
-            // Check command whitelist for non-dangerous commands
-            if (_approvalConfig.IsCommandAutoApproved(command))
-            {
-                return RiskAssessment.Safe;
-            }
+            return RiskAssessment.Risky(RiskLevel.High, "Shell command with no command specified");
         }
 
-        // Write operations - check path whitelist
-        if (toolName == "write_file" && arguments?.TryGetValue("path", out var writePath) == true)
+        var result = _permissionEvaluator.EvaluateBash(command);
+
+        // Map permission result to risk assessment with appropriate level
+        return result.Action switch
         {
-            var path = writePath?.ToString() ?? string.Empty;
-            if (!string.IsNullOrEmpty(path) && _approvalConfig.IsPathAutoApproved(path))
-            {
-                return RiskAssessment.Safe;
-            }
+            PermissionAction.Allow => RiskAssessment.Safe,
+            PermissionAction.Deny => RiskAssessment.Risky(
+                RiskLevel.Critical,
+                result.Reason ?? $"Denied command: {TruncateCommand(command)}",
+                null), // No approval prompt for denied commands
+            PermissionAction.Ask => RiskAssessment.Risky(
+                DetermineShellRiskLevel(command),
+                result.Reason ?? $"Shell command: {TruncateCommand(command)}",
+                "Allow executing this command?"),
+            _ => RiskAssessment.Safe
+        };
+    }
+
+    private RiskAssessment AssessMcpToolRisk(string toolName)
+    {
+        var result = _permissionEvaluator.EvaluateMcpTool(toolName);
+        return ToRiskAssessment(result, $"MCP tool: {toolName}");
+    }
+
+    private static RiskAssessment ToRiskAssessment(
+        PermissionResult result,
+        string context,
+        RiskLevel? overrideLevel = null)
+    {
+        return result.Action switch
+        {
+            PermissionAction.Allow => RiskAssessment.Safe,
+            PermissionAction.Deny => RiskAssessment.Risky(
+                overrideLevel ?? RiskLevel.Critical,
+                result.Reason ?? $"Denied: {context}",
+                null),
+            PermissionAction.Ask => RiskAssessment.Risky(
+                overrideLevel ?? RiskLevel.Medium,
+                result.Reason ?? context,
+                $"Allow this operation?"),
+            _ => RiskAssessment.Safe
+        };
+    }
+
+    private static RiskLevel DetermineShellRiskLevel(string command)
+    {
+        var lowerCommand = command.ToLowerInvariant();
+
+        // Critical risk patterns
+        if (lowerCommand.Contains("rm -rf") ||
+            lowerCommand.Contains("del /s /q") ||
+            lowerCommand.Contains("format ") ||
+            lowerCommand.Contains("fdisk") ||
+            lowerCommand.Contains("mkfs") ||
+            lowerCommand.Contains(":(){:|:&};:") ||
+            lowerCommand.Contains("> /dev/sda") ||
+            lowerCommand.Contains("dd if="))
+        {
+            return RiskLevel.Critical;
         }
 
-        return RiskAssessment.Safe;
+        // High risk patterns
+        if (lowerCommand.StartsWith("sudo ", StringComparison.Ordinal) ||
+            lowerCommand.StartsWith("runas ", StringComparison.Ordinal) ||
+            lowerCommand.Contains("chmod 777") ||
+            lowerCommand.Contains("curl") && lowerCommand.Contains("| sh") ||
+            lowerCommand.Contains("wget") && lowerCommand.Contains("| sh"))
+        {
+            return RiskLevel.High;
+        }
+
+        // Medium risk for other shell commands
+        return RiskLevel.Medium;
     }
 
     private static string GetToolName(AITool tool)
     {
-        // AITool may be AIFunction or other types
         if (tool is AIFunction func)
         {
             return func.Name;
         }
-
         return tool.GetType().Name;
     }
 
-    private static bool IsDangerousShellCommand(string command)
+    private static string? GetStringArgument(IDictionary<string, object?>? arguments, string key)
     {
-        var lowerCommand = command.ToLowerInvariant();
-
-        // Dangerous patterns
-        var dangerousPatterns = new[]
+        if (arguments == null)
         {
-            "rm -rf",
-            "del /s /q",
-            "format ",
-            "fdisk",
-            "mkfs",
-            ":(){:|:&};:", // Fork bomb
-            "> /dev/sda",
-            "dd if=",
-            "chmod 777",
-            "curl | sh",
-            "wget | sh"
-        };
+            return null;
+        }
 
-        return dangerousPatterns.Any(p => lowerCommand.Contains(p));
+        if (arguments.TryGetValue(key, out var value))
+        {
+            return value?.ToString();
+        }
+
+        return null;
     }
 
-    private static bool RequiresElevation(string command)
+    private static string TruncatePath(string path)
     {
-        var lowerCommand = command.ToLowerInvariant();
-
-        var elevationPatterns = new[]
-        {
-            "sudo ",
-            "runas ",
-            "doas "
-        };
-
-        return elevationPatterns.Any(p => lowerCommand.StartsWith(p, StringComparison.Ordinal));
+        const int maxLength = 60;
+        return path.Length > maxLength
+            ? "..." + path[^(maxLength - 3)..]
+            : path;
     }
 
     private static string TruncateCommand(string command)

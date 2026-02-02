@@ -49,7 +49,7 @@ appsettings.local.json
 .env
 .env.local
 
-# Claude/Dev docs (local only)
+# local only
 claudedocs/
 dev-docs/
 CLAUDE.md

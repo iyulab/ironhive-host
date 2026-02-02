@@ -100,7 +100,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IModeToolFilter>(sp =>
         {
             var ironHiveConfig = sp.GetRequiredService<IronHiveConfig>();
-            return new ModeToolFilter(ironHiveConfig.Approval);
+            return new ModeToolFilter(ironHiveConfig.Permissions);
         });
         services.AddSingleton<IHumanApprovalService, Services.ConsoleApprovalService>();
         services.AddSingleton<IReplanningService, ReplanningService>();

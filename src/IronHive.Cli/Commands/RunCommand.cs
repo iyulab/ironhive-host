@@ -53,7 +53,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         public string? GetPrompt() => PromptArg ?? PromptOption;
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var prompt = settings.GetPrompt();
 
@@ -73,7 +73,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
         try
         {
-            var response = await agentLoop.RunAsync(prompt);
+            var response = await agentLoop.RunAsync(prompt, cancellationToken);
 
             if (settings.Json)
             {

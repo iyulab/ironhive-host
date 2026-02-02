@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DotNetEnv;
+using IronHive.Cli.Core.Permissions;
 
 namespace IronHive.Cli.Core.Config;
 
@@ -39,8 +40,8 @@ public static class EnvConfigLoader
             LMSupply = LoadLMSupplyConfig()
         };
 
-        // Load approval config from YAML/JSON file if exists
-        config.Approval = LoadApprovalConfig();
+        // Load permission config from default locations
+        config.Permissions = LoadPermissionConfig();
 
         return config;
     }
@@ -106,34 +107,10 @@ public static class EnvConfigLoader
         return Environment.GetEnvironmentVariable(name);
     }
 
-    private static ApprovalConfig LoadApprovalConfig()
+    private static PermissionConfig LoadPermissionConfig()
     {
-        var configFile = FindConfigFile();
-        if (configFile == null)
-        {
-            return new ApprovalConfig();
-        }
-
-        try
-        {
-            var content = File.ReadAllText(configFile);
-
-            if (configFile.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            {
-                return LoadApprovalFromJson(content);
-            }
-            else if (configFile.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) ||
-                     configFile.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
-            {
-                return LoadApprovalFromYaml(content);
-            }
-        }
-        catch
-        {
-            // Silently ignore config file errors and use defaults
-        }
-
-        return new ApprovalConfig();
+        var workingDirectory = Directory.GetCurrentDirectory();
+        return PermissionConfigLoader.LoadFromDefaultLocations(workingDirectory);
     }
 
     private static string? FindConfigFile()
@@ -184,111 +161,4 @@ public static class EnvConfigLoader
         return null;
     }
 
-    private static ApprovalConfig LoadApprovalFromJson(string content)
-    {
-        var wrapper = JsonSerializer.Deserialize<ConfigWrapper>(content, JsonOptions);
-        return wrapper?.Approval ?? new ApprovalConfig();
-    }
-
-    private static ApprovalConfig LoadApprovalFromYaml(string content)
-    {
-        // Simple YAML parsing for approval config
-        // Format:
-        // approval:
-        //   autoApprovedTools:
-        //     - tool1
-        //     - tool2
-        //   autoApprovedCommands:
-        //     - "git *"
-        //   autoApprovedPaths:
-        //     - "*.tmp"
-        //   alwaysPromptForCritical: true
-
-        var config = new ApprovalConfig();
-        var lines = content.Split('\n');
-        var currentSection = "";
-        var inApprovalSection = false;
-
-        foreach (var rawLine in lines)
-        {
-            var line = rawLine.TrimEnd('\r');
-            var trimmed = line.TrimStart();
-
-            // Skip empty lines and comments
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
-            {
-                continue;
-            }
-
-            // Check for approval section
-            if (trimmed.StartsWith("approval:", StringComparison.Ordinal))
-            {
-                inApprovalSection = true;
-                continue;
-            }
-
-            // Check for other top-level sections (exit approval)
-            if (!line.StartsWith(' ') && !line.StartsWith('\t') && trimmed.EndsWith(':'))
-            {
-                inApprovalSection = false;
-                continue;
-            }
-
-            if (!inApprovalSection)
-            {
-                continue;
-            }
-
-            // Parse subsections
-            if (trimmed.StartsWith("autoApprovedTools:", StringComparison.Ordinal))
-            {
-                currentSection = "tools";
-                continue;
-            }
-
-            if (trimmed.StartsWith("autoApprovedCommands:", StringComparison.Ordinal))
-            {
-                currentSection = "commands";
-                continue;
-            }
-
-            if (trimmed.StartsWith("autoApprovedPaths:", StringComparison.Ordinal))
-            {
-                currentSection = "paths";
-                continue;
-            }
-
-            if (trimmed.StartsWith("alwaysPromptForCritical:", StringComparison.Ordinal))
-            {
-                var value = trimmed.Split(':')[1].Trim().ToLowerInvariant();
-                config.AlwaysPromptForCritical = value == "true";
-                continue;
-            }
-
-            // Parse list items
-            if (trimmed.StartsWith("- ", StringComparison.Ordinal))
-            {
-                var value = trimmed[2..].Trim().Trim('"', '\'');
-                switch (currentSection)
-                {
-                    case "tools":
-                        config.AutoApprovedTools.Add(value);
-                        break;
-                    case "commands":
-                        config.AutoApprovedCommands.Add(value);
-                        break;
-                    case "paths":
-                        config.AutoApprovedPaths.Add(value);
-                        break;
-                }
-            }
-        }
-
-        return config;
-    }
-
-    private sealed class ConfigWrapper
-    {
-        public ApprovalConfig? Approval { get; set; }
-    }
 }

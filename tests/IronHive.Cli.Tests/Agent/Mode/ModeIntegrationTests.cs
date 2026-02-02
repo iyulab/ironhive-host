@@ -1,5 +1,5 @@
 using IronHive.Cli.Core.Agent.Mode;
-using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Permissions;
 
 namespace IronHive.Cli.Tests.Agent.Mode;
 
@@ -202,7 +202,7 @@ public class HITLScenarioTests
     [Fact]
     public void ToolFilter_PlanMode_BlocksWriteOperations()
     {
-        var config = new ApprovalConfig();
+        var config = PermissionConfig.CreateDefault();
         var filter = new ModeToolFilter(config);
 
         Assert.True(filter.IsToolPermitted("read_file", AgentMode.Planning));
@@ -216,7 +216,7 @@ public class HITLScenarioTests
     [Fact]
     public void ToolFilter_WorkMode_AllowsAllTools()
     {
-        var config = new ApprovalConfig();
+        var config = PermissionConfig.CreateDefault();
         var filter = new ModeToolFilter(config);
 
         Assert.True(filter.IsToolPermitted("read_file", AgentMode.Working));
@@ -228,7 +228,7 @@ public class HITLScenarioTests
     [Fact]
     public void RiskAssessment_DangerousCommands_RequireApproval()
     {
-        var config = new ApprovalConfig();
+        var config = PermissionConfig.CreateDefault();
         var filter = new ModeToolFilter(config);
 
         var dangerousCommands = new[]
@@ -251,10 +251,11 @@ public class HITLScenarioTests
     [Fact]
     public void RiskAssessment_SafeCommands_NoApprovalNeeded()
     {
-        var config = new ApprovalConfig();
+        var config = PermissionConfig.CreateDefault();
         var filter = new ModeToolFilter(config);
 
-        var safeCommands = new[] { "ls", "dir", "echo hello", "pwd", "git status" };
+        // These commands are allowed by default config (git *, dotnet *, npm *)
+        var safeCommands = new[] { "git status", "dotnet build", "npm install" };
 
         foreach (var cmd in safeCommands)
         {
@@ -265,25 +266,16 @@ public class HITLScenarioTests
     }
 
     [Fact]
-    public void RiskAssessment_AutoApprovedTool_SkipsApproval()
+    public void RiskAssessment_AllowedCommand_SkipsApproval()
     {
-        var config = new ApprovalConfig
+        var config = new PermissionConfig
         {
-            AutoApprovedTools = ["safe_tool"]
-        };
-        var filter = new ModeToolFilter(config);
-
-        var risk = filter.AssessRisk("safe_tool", new Dictionary<string, object?>());
-
-        Assert.False(risk.IsRisky);
-    }
-
-    [Fact]
-    public void RiskAssessment_AutoApprovedCommand_SkipsApproval()
-    {
-        var config = new ApprovalConfig
-        {
-            AutoApprovedCommands = ["npm *", "dotnet build"]
+            Bash =
+            [
+                new PermissionRule { Pattern = "npm *", Action = PermissionAction.Allow },
+                new PermissionRule { Pattern = "dotnet *", Action = PermissionAction.Allow }
+            ],
+            DefaultAction = PermissionAction.Ask
         };
         var filter = new ModeToolFilter(config);
 
@@ -358,13 +350,13 @@ public class HITLScenarioTests
     public void IntegratedWorkflow_RiskyOperation_TriggersHITL()
     {
         var manager = new ModeManager();
-        var config = new ApprovalConfig();
+        var config = PermissionConfig.CreateDefault();
         var filter = new ModeToolFilter(config);
 
         manager.Fire(ModeTrigger.StartWorking);
         Assert.Equal(AgentMode.Working, manager.CurrentMode);
 
-        // Simulate tool execution check
+        // Simulate tool execution check - sudo is denied by default config
         var risk = filter.AssessRisk("shell", new Dictionary<string, object?> { ["command"] = "sudo apt update" });
 
         if (risk.IsRisky)

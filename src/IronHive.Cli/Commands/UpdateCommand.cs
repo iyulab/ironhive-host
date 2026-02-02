@@ -28,7 +28,7 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
         public bool Force { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.MarkupLine($"[grey]Current version: [cyan]v{_updateService.CurrentVersion}[/][/]");
         AnsiConsole.WriteLine();
