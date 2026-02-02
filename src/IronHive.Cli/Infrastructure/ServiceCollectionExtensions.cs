@@ -110,7 +110,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUpdateService>(sp =>
         {
             var httpClient = sp.GetRequiredService<HttpClient>();
-            return new GitHubUpdateService(httpClient, "iyulab", "ironhive-cli");
+            return new GitHubUpdateService(httpClient);  // Uses default: iyulab/ironhive-cli-releases
         });
 
         // Register session manager for transcript persistence
