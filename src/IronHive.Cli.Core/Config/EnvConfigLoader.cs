@@ -66,7 +66,31 @@ public static class EnvConfigLoader
             directory = Directory.GetParent(directory)?.FullName;
         }
 
+        // Also check executable directory (for portable installations)
+        var exeDirectory = GetExecutableDirectory();
+        if (exeDirectory != null)
+        {
+            var exeEnvFile = Path.Combine(exeDirectory, ".env");
+            if (File.Exists(exeEnvFile))
+            {
+                return exeEnvFile;
+            }
+        }
+
         return null;
+    }
+
+    private static string? GetExecutableDirectory()
+    {
+        try
+        {
+            var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+            return string.IsNullOrEmpty(exePath) ? null : Path.GetDirectoryName(exePath);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static GpuStackConfig LoadGpuStackConfig()
