@@ -20,7 +20,7 @@
 
   <!-- Version: Update this to trigger a new release -->
   <PropertyGroup>
-    <Version>0.6.5</Version>
+    <Version>0.6.6</Version>
   </PropertyGroup>
 
   <!-- Release build: exclude PDB files -->

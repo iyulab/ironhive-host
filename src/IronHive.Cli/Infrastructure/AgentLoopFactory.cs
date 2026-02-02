@@ -1,6 +1,7 @@
 using IndexThinking.Agents;
 using IndexThinking.Client;
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Tools;
 
@@ -13,6 +14,7 @@ public sealed class AgentLoopFactory : IAgentLoopFactory
 {
     private readonly IChatClientFactory _clientFactory;
     private readonly IThinkingTurnManager _turnManager;
+    private readonly IOopsService? _oopsService;
 
     private const string DefaultSystemPrompt = """
         You are a helpful AI assistant with access to tools for file and system operations.
@@ -31,10 +33,11 @@ public sealed class AgentLoopFactory : IAgentLoopFactory
     private const float DefaultTemperature = 0.7f;
     private const int DefaultMaxTokens = 4096;
 
-    public AgentLoopFactory(IChatClientFactory clientFactory, IThinkingTurnManager turnManager)
+    public AgentLoopFactory(IChatClientFactory clientFactory, IThinkingTurnManager turnManager, IOopsService? oopsService = null)
     {
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
+        _oopsService = oopsService;
     }
 
     /// <inheritdoc />
@@ -50,8 +53,8 @@ public sealed class AgentLoopFactory : IAgentLoopFactory
             ? _clientFactory.Create(options.Provider, options.Model)
             : _clientFactory.Create(options.Model);
 
-        // Create agent options with built-in tools
-        var tools = BuiltInTools.GetAll(options.WorkingDirectory ?? Directory.GetCurrentDirectory());
+        // Create agent options with built-in tools (with oops versioning support)
+        var tools = BuiltInTools.GetAll(options.WorkingDirectory ?? Directory.GetCurrentDirectory(), _oopsService);
 
         var agentOptions = new IronHive.Cli.Core.Agent.AgentOptions
         {

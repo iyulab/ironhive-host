@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using IronHive.Cli.Core.Agent.SubAgent;
+using IronHive.Cli.Core.Oops;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
@@ -19,8 +20,19 @@ public static class BuiltInTools
     /// </summary>
     public static IList<AITool> GetAll(string? workingDirectory = null)
     {
+        return GetAll(workingDirectory, oopsService: null);
+    }
+
+    /// <summary>
+    /// Gets all built-in tools with oops versioning support.
+    /// </summary>
+    /// <param name="workingDirectory">Working directory for tools.</param>
+    /// <param name="oopsService">Optional oops service for file versioning.</param>
+    /// <returns>List of AI tools.</returns>
+    public static IList<AITool> GetAll(string? workingDirectory, IOopsService? oopsService)
+    {
         var wd = workingDirectory ?? Directory.GetCurrentDirectory();
-        var tools = new ToolProvider(wd);
+        var tools = new ToolProvider(wd, oopsService);
         var todoTool = new TodoTool(wd);
 
         return
@@ -43,9 +55,21 @@ public static class BuiltInTools
     /// <returns>List of AI tools.</returns>
     public static IList<AITool> GetAll(string? workingDirectory, ISubAgentService subAgentService)
     {
+        return GetAll(workingDirectory, subAgentService, oopsService: null);
+    }
+
+    /// <summary>
+    /// Gets all built-in tools including sub-agent tools and oops versioning.
+    /// </summary>
+    /// <param name="workingDirectory">Working directory for tools.</param>
+    /// <param name="subAgentService">Sub-agent service for spawning sub-agents.</param>
+    /// <param name="oopsService">Optional oops service for file versioning.</param>
+    /// <returns>List of AI tools.</returns>
+    public static IList<AITool> GetAll(string? workingDirectory, ISubAgentService subAgentService, IOopsService? oopsService)
+    {
         ArgumentNullException.ThrowIfNull(subAgentService);
 
-        var tools = GetAll(workingDirectory).ToList();
+        var tools = GetAll(workingDirectory, oopsService).ToList();
         var subAgentTool = new SubAgentTool(subAgentService);
         tools.AddRange(subAgentTool.GetAITools());
 
@@ -59,13 +83,15 @@ public static class BuiltInTools
 public class ToolProvider
 {
     private readonly string _workingDirectory;
+    private readonly IOopsService? _oopsService;
     private const int MaxFileSize = 1024 * 1024; // 1MB
     private const int MaxOutputLength = 50000; // Characters
     private const int DefaultCommandTimeout = 30000; // 30 seconds
 
-    public ToolProvider(string workingDirectory)
+    public ToolProvider(string workingDirectory, IOopsService? oopsService = null)
     {
         _workingDirectory = workingDirectory;
+        _oopsService = oopsService;
     }
 
     /// <summary>
@@ -134,16 +160,46 @@ public class ToolProvider
                 Directory.CreateDirectory(directory);
             }
 
+            // Track edit and check for oops auto-activation
+            var oopsActivated = false;
+            if (_oopsService is not null)
+            {
+                _oopsService.RecordEdit(fullPath);
+
+                // Auto-activate oops for non-Git files that have been edited multiple times
+                if (_oopsService.ShouldAutoActivate(fullPath) && !_oopsService.IsTracked(fullPath))
+                {
+                    await _oopsService.StartAsync(fullPath);
+                    oopsActivated = true;
+                }
+            }
+
+            // Write the file
             if (append)
             {
                 await File.AppendAllTextAsync(fullPath, content);
-                return $"Successfully appended to file: {path}";
             }
             else
             {
                 await File.WriteAllTextAsync(fullPath, content);
-                return $"Successfully wrote to file: {path}";
             }
+
+            // Save snapshot if tracked by oops
+            var oopsMessage = string.Empty;
+            if (_oopsService is not null && _oopsService.IsTracked(fullPath))
+            {
+                var saveResult = await _oopsService.SaveAsync(fullPath);
+                if (saveResult.Success)
+                {
+                    oopsMessage = oopsActivated
+                        ? " (oops versioning auto-activated)"
+                        : " (oops snapshot saved)";
+                }
+            }
+
+            return append
+                ? $"Successfully appended to file: {path}{oopsMessage}"
+                : $"Successfully wrote to file: {path}{oopsMessage}";
         }
         catch (Exception ex)
         {

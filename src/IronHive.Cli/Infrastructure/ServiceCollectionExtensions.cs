@@ -4,6 +4,7 @@ using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Memory;
+using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Session;
 using IronHive.Cli.Core.Update;
@@ -88,8 +89,9 @@ public static class ServiceCollectionExtensions
         {
             var clientFactory = sp.GetRequiredService<IChatClientFactory>();
             var turnManager = sp.GetRequiredService<IThinkingTurnManager>();
+            var oopsService = sp.GetService<IOopsService>();
 
-            return new AgentLoopFactory(clientFactory, turnManager);
+            return new AgentLoopFactory(clientFactory, turnManager, oopsService);
         });
 
         // Register usage tracker for session-level token tracking
@@ -111,6 +113,13 @@ public static class ServiceCollectionExtensions
         {
             var httpClient = sp.GetRequiredService<HttpClient>();
             return new GitHubUpdateService(httpClient);  // Uses default: iyulab/ironhive-cli-releases
+        });
+
+        // Register oops service for file versioning (non-Git environments)
+        services.AddSingleton<IOopsService>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<HttpClient>();
+            return new OopsService(httpClient);
         });
 
         // Register session manager for transcript persistence

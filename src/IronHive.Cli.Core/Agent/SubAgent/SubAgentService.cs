@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Tools;
 using Microsoft.Extensions.AI;
 
@@ -14,6 +15,7 @@ public sealed class SubAgentService : ISubAgentService, IDisposable
     private readonly SubAgentConfig _config;
     private readonly string _workingDirectory;
     private readonly string? _parentId;
+    private readonly IOopsService? _oopsService;
 
     private int _currentDepth;
     private int _runningCount;
@@ -25,13 +27,15 @@ public sealed class SubAgentService : ISubAgentService, IDisposable
         SubAgentConfig? config = null,
         string? workingDirectory = null,
         string? parentId = null,
-        int currentDepth = 0)
+        int currentDepth = 0,
+        IOopsService? oopsService = null)
     {
         _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
         _config = config ?? new SubAgentConfig();
         _workingDirectory = workingDirectory ?? Directory.GetCurrentDirectory();
         _parentId = parentId;
         _currentDepth = currentDepth;
+        _oopsService = oopsService;
         _semaphore = new SemaphoreSlim(_config.MaxConcurrent);
     }
 
@@ -231,7 +235,7 @@ public sealed class SubAgentService : ISubAgentService, IDisposable
 
     private IList<AITool> GetToolsForType(SubAgentType type)
     {
-        var allTools = BuiltInTools.GetAll(_workingDirectory);
+        var allTools = BuiltInTools.GetAll(_workingDirectory, _oopsService);
 
         if (type == SubAgentType.Explore)
         {
