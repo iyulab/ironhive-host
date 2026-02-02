@@ -30,7 +30,8 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        AnsiConsole.MarkupLine($"[grey]Current version: [cyan]v{_updateService.CurrentVersion}[/][/]");
+        var installType = _updateService.IsDotnetToolInstallation ? "dotnet tool" : "standalone";
+        AnsiConsole.MarkupLine($"[grey]Current version: [cyan]v{_updateService.CurrentVersion}[/] ({installType})[/]");
         AnsiConsole.WriteLine();
 
         // Check for updates

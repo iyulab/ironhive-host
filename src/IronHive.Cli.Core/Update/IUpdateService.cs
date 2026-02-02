@@ -11,6 +11,11 @@ public interface IUpdateService
     Version CurrentVersion { get; }
 
     /// <summary>
+    /// Gets whether the CLI was installed as a dotnet global tool.
+    /// </summary>
+    bool IsDotnetToolInstallation { get; }
+
+    /// <summary>
     /// Checks if an update is available.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

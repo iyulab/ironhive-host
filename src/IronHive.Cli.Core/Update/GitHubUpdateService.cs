@@ -9,10 +9,14 @@ using System.Text.Json.Serialization;
 namespace IronHive.Cli.Core.Update;
 
 /// <summary>
-/// Update service that checks GitHub Releases for updates.
+/// Update service that checks GitHub Releases for updates (standalone binary)
+/// or NuGet for updates (dotnet tool installation).
 /// </summary>
 public class GitHubUpdateService : IUpdateService
 {
+    private const string NuGetPackageId = "IronHive.Cli";
+    private const string NuGetPackageIdLower = "ironhive.cli";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -22,6 +26,7 @@ public class GitHubUpdateService : IUpdateService
     private readonly string _owner;
     private readonly string _repo;
     private readonly Version _currentVersion;
+    private readonly bool _isDotnetTool;
 
     public GitHubUpdateService(HttpClient httpClient, string owner = "iyulab", string repo = "ironhive-cli-releases")
     {
@@ -29,39 +34,28 @@ public class GitHubUpdateService : IUpdateService
         _owner = owner;
         _repo = repo;
         _currentVersion = GetCurrentVersion();
+        _isDotnetTool = DetectDotnetToolInstallation();
     }
 
     /// <inheritdoc />
     public Version CurrentVersion => _currentVersion;
+
+    /// <summary>
+    /// Gets whether the CLI was installed as a dotnet tool.
+    /// </summary>
+    public bool IsDotnetToolInstallation => _isDotnetTool;
 
     /// <inheritdoc />
     public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var release = await GetLatestReleaseAsync(cancellationToken);
-            if (release is null)
+            if (_isDotnetTool)
             {
-                return null;
+                return await CheckForNuGetUpdateAsync(cancellationToken);
             }
 
-            var latestVersion = ParseVersion(release.TagName);
-            if (latestVersion is null)
-            {
-                return null;
-            }
-
-            var downloadUrl = GetDownloadUrlForCurrentPlatform(release);
-
-            return new UpdateInfo
-            {
-                LatestVersion = latestVersion,
-                CurrentVersion = _currentVersion,
-                IsPrerelease = release.Prerelease,
-                ReleaseNotes = release.Body,
-                ReleaseUrl = release.HtmlUrl,
-                DownloadUrl = downloadUrl
-            };
+            return await CheckForGitHubUpdateAsync(cancellationToken);
         }
         catch (HttpRequestException)
         {
@@ -71,6 +65,73 @@ public class GitHubUpdateService : IUpdateService
         {
             return null;
         }
+    }
+
+    private async Task<UpdateInfo?> CheckForGitHubUpdateAsync(CancellationToken cancellationToken)
+    {
+        var release = await GetLatestReleaseAsync(cancellationToken);
+        if (release is null)
+        {
+            return null;
+        }
+
+        var latestVersion = ParseVersion(release.TagName);
+        if (latestVersion is null)
+        {
+            return null;
+        }
+
+        var downloadUrl = GetDownloadUrlForCurrentPlatform(release);
+
+        return new UpdateInfo
+        {
+            LatestVersion = latestVersion,
+            CurrentVersion = _currentVersion,
+            IsPrerelease = release.Prerelease,
+            ReleaseNotes = release.Body,
+            ReleaseUrl = release.HtmlUrl,
+            DownloadUrl = downloadUrl
+        };
+    }
+
+    private async Task<UpdateInfo?> CheckForNuGetUpdateAsync(CancellationToken cancellationToken)
+    {
+        var url = $"https://api.nuget.org/v3-flatcontainer/{NuGetPackageIdLower}/index.json";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", $"ironhive-cli/{_currentVersion}");
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var content = await response.Content.ReadFromJsonAsync<NuGetVersionIndex>(JsonOptions, cancellationToken);
+        if (content?.Versions is null || content.Versions.Count == 0)
+        {
+            return null;
+        }
+
+        // Get the latest stable version (not prerelease)
+        var latestVersionString = content.Versions
+            .Where(v => !v.Contains('-')) // Exclude prerelease versions
+            .LastOrDefault();
+
+        if (latestVersionString is null || !Version.TryParse(latestVersionString, out var latestVersion))
+        {
+            return null;
+        }
+
+        return new UpdateInfo
+        {
+            LatestVersion = latestVersion,
+            CurrentVersion = _currentVersion,
+            IsPrerelease = false,
+            ReleaseNotes = null,
+            ReleaseUrl = $"https://www.nuget.org/packages/{NuGetPackageId}/{latestVersionString}",
+            DownloadUrl = null // Not needed for dotnet tool update
+        };
     }
 
     /// <inheritdoc />
@@ -101,40 +162,13 @@ public class GitHubUpdateService : IUpdateService
                 };
             }
 
-            if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
+            // Use different update strategy based on installation type
+            if (_isDotnetTool)
             {
-                return new UpdateResult
-                {
-                    Success = false,
-                    Error = $"No download available for your platform ({GetRuntimeIdentifier()})."
-                };
+                return await UpdateViaDotnetToolAsync(updateInfo.LatestVersion, progress, cancellationToken);
             }
 
-            // Download update
-            progress?.Report(new UpdateProgress { Operation = "Downloading update...", PercentComplete = 0 });
-            var downloadPath = await DownloadUpdateAsync(updateInfo.DownloadUrl, progress, cancellationToken);
-
-            // Extract update
-            progress?.Report(new UpdateProgress { Operation = "Extracting update..." });
-            var extractPath = await ExtractUpdateAsync(downloadPath, cancellationToken);
-
-            // Install update
-            progress?.Report(new UpdateProgress { Operation = "Installing update..." });
-            var newExecutablePath = await InstallUpdateAsync(extractPath, cancellationToken);
-
-            // Cleanup
-            progress?.Report(new UpdateProgress { Operation = "Cleaning up..." });
-            CleanupTempFiles(downloadPath, extractPath);
-
-            progress?.Report(new UpdateProgress { Operation = "Update complete!", PercentComplete = 100 });
-
-            return new UpdateResult
-            {
-                Success = true,
-                UpdatedVersion = updateInfo.LatestVersion,
-                RestartRequired = true,
-                NewExecutablePath = newExecutablePath
-            };
+            return await UpdateViaGitHubReleaseAsync(updateInfo, progress, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -144,6 +178,99 @@ public class GitHubUpdateService : IUpdateService
                 Error = ex.Message
             };
         }
+    }
+
+    private static async Task<UpdateResult> UpdateViaDotnetToolAsync(
+        Version latestVersion,
+        IProgress<UpdateProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        progress?.Report(new UpdateProgress { Operation = "Updating via dotnet tool...", PercentComplete = 10 });
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"tool update -g {NuGetPackageId}",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(psi);
+        if (process is null)
+        {
+            return new UpdateResult
+            {
+                Success = false,
+                Error = "Failed to start dotnet tool update process."
+            };
+        }
+
+        progress?.Report(new UpdateProgress { Operation = "Installing update...", PercentComplete = 50 });
+
+        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+
+        if (process.ExitCode != 0)
+        {
+            return new UpdateResult
+            {
+                Success = false,
+                Error = $"dotnet tool update failed: {error}".Trim()
+            };
+        }
+
+        progress?.Report(new UpdateProgress { Operation = "Update complete!", PercentComplete = 100 });
+
+        return new UpdateResult
+        {
+            Success = true,
+            UpdatedVersion = latestVersion,
+            RestartRequired = true
+        };
+    }
+
+    private async Task<UpdateResult> UpdateViaGitHubReleaseAsync(
+        UpdateInfo updateInfo,
+        IProgress<UpdateProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
+        {
+            return new UpdateResult
+            {
+                Success = false,
+                Error = $"No download available for your platform ({GetRuntimeIdentifier()})."
+            };
+        }
+
+        // Download update
+        progress?.Report(new UpdateProgress { Operation = "Downloading update...", PercentComplete = 0 });
+        var downloadPath = await DownloadUpdateAsync(updateInfo.DownloadUrl, progress, cancellationToken);
+
+        // Extract update
+        progress?.Report(new UpdateProgress { Operation = "Extracting update..." });
+        var extractPath = await ExtractUpdateAsync(downloadPath, cancellationToken);
+
+        // Install update
+        progress?.Report(new UpdateProgress { Operation = "Installing update..." });
+        var newExecutablePath = await InstallUpdateAsync(extractPath, cancellationToken);
+
+        // Cleanup
+        progress?.Report(new UpdateProgress { Operation = "Cleaning up..." });
+        CleanupTempFiles(downloadPath, extractPath);
+
+        progress?.Report(new UpdateProgress { Operation = "Update complete!", PercentComplete = 100 });
+
+        return new UpdateResult
+        {
+            Success = true,
+            UpdatedVersion = updateInfo.LatestVersion,
+            RestartRequired = true,
+            NewExecutablePath = newExecutablePath
+        };
     }
 
     private async Task<GitHubRelease?> GetLatestReleaseAsync(CancellationToken cancellationToken)
@@ -431,6 +558,40 @@ public class GitHubUpdateService : IUpdateService
         }
 
         return Version.TryParse(versionString, out var version) ? version : null;
+    }
+
+    /// <summary>
+    /// Detects if the CLI was installed as a dotnet global tool.
+    /// </summary>
+    private static bool DetectDotnetToolInstallation()
+    {
+        try
+        {
+            var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            if (string.IsNullOrEmpty(exePath))
+            {
+                return false;
+            }
+
+            // Normalize path separators for cross-platform comparison
+            var normalizedPath = exePath.Replace('\\', '/').ToLowerInvariant();
+
+            // dotnet global tools are installed in:
+            // - Windows: %USERPROFILE%\.dotnet\tools\ironhive.exe
+            // - Linux/macOS: ~/.dotnet/tools/ironhive
+            return normalizedPath.Contains(".dotnet/tools");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // NuGet API models
+    private sealed record NuGetVersionIndex
+    {
+        [JsonPropertyName("versions")]
+        public List<string> Versions { get; init; } = [];
     }
 
     // GitHub API models
