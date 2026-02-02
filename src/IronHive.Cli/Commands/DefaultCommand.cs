@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Session;
@@ -82,9 +83,17 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         [CommandOption("--fork")]
         [Description("Fork the resumed session (create a new branch from the session)")]
         public bool Fork { get; init; }
+
+        [CommandOption("-o|--output <FORMAT>")]
+        [Description("Output format: text (default), json, jsonl (streaming JSON lines)")]
+        public string? OutputFormat { get; init; }
+
+        [CommandOption("--plain")]
+        [Description("Plain text output without ANSI colors, spinners, or formatting")]
+        public bool Plain { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Start background update check (unless --update flag is used, which will check after execution)
         if (!settings.CheckUpdate)
@@ -269,10 +278,18 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
-    private static async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken = default)
+    private async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken = default)
     {
+        var outputFormat = settings.OutputFormat?.ToLowerInvariant() ?? "text";
+
         try
         {
+            // JSON output modes
+            if (outputFormat is "json" or "jsonl")
+            {
+                return await RunSinglePromptJsonAsync(prompt, settings, agentLoop, outputFormat, cancellationToken);
+            }
+
             // Non-streaming mode
             if (settings.NoStream)
             {
@@ -284,32 +301,178 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
         catch (OperationCanceledException)
         {
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine("[yellow]Cancelled.[/]");
+            if (outputFormat == "json")
+            {
+                OutputJson(new { error = "cancelled", code = 130 });
+            }
+            else if (outputFormat == "jsonl")
+            {
+                OutputJsonLine(new { type = "error", error = "cancelled" });
+            }
+            else
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("[yellow]Cancelled.[/]");
+            }
             return 130; // Standard exit code for Ctrl+C
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(ex.Message)}[/]");
+            if (outputFormat == "json")
+            {
+                OutputJson(new { error = ex.Message, code = 1 });
+            }
+            else if (outputFormat == "jsonl")
+            {
+                OutputJsonLine(new { type = "error", error = ex.Message });
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(ex.Message)}[/]");
+            }
             return 1;
         }
+    }
+
+    private async Task<int> RunSinglePromptJsonAsync(string prompt, Settings settings, IAgentLoop agentLoop, string format, CancellationToken cancellationToken)
+    {
+        var session = await _sessionManager.GetLatestSessionAsync(Directory.GetCurrentDirectory());
+        var sessionId = session?.Id;
+
+        if (format == "jsonl")
+        {
+            // JSON Lines streaming format
+            OutputJsonLine(new { type = "start", sessionId });
+
+            await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
+            {
+                // Emit thinking content if available and --show-thinking is enabled
+                if (settings.ShowThinking && !string.IsNullOrEmpty(chunk.ThinkingDelta))
+                {
+                    OutputJsonLine(new { type = "thinking", content = chunk.ThinkingDelta });
+                }
+
+                if (!string.IsNullOrEmpty(chunk.TextDelta))
+                {
+                    OutputJsonLine(new { type = "text", content = chunk.TextDelta });
+                }
+
+                if (chunk.ToolCallDelta is not null && !string.IsNullOrEmpty(chunk.ToolCallDelta.NameDelta))
+                {
+                    OutputJsonLine(new
+                    {
+                        type = "tool_call",
+                        id = chunk.ToolCallDelta.Id,
+                        name = chunk.ToolCallDelta.NameDelta,
+                        arguments = chunk.ToolCallDelta.ArgumentsDelta
+                    });
+                }
+            }
+
+            OutputJsonLine(new { type = "done", sessionId });
+            return 0;
+        }
+        else
+        {
+            // Single JSON output (non-streaming)
+            var response = await agentLoop.RunAsync(prompt, cancellationToken);
+
+            var result = new
+            {
+                content = response.Content,
+                sessionId,
+                usage = response.Usage is not null
+                    ? new
+                    {
+                        inputTokens = response.Usage.InputTokens,
+                        outputTokens = response.Usage.OutputTokens,
+                        totalTokens = response.Usage.TotalTokens
+                    }
+                    : null,
+                thinking = settings.ShowThinking && response.ThinkingContent?.Content is not null
+                    ? new
+                    {
+                        content = response.ThinkingContent.Content,
+                        tokenCount = response.ThinkingContent.TokenCount
+                    }
+                    : null,
+                toolCalls = response.ToolCalls?.Count > 0
+                    ? response.ToolCalls.Select(t => new
+                    {
+                        name = t.ToolName,
+                        arguments = t.Arguments,
+                        result = t.Result,
+                        success = t.Success
+                    }).ToArray()
+                    : null
+            };
+
+            OutputJson(result);
+            return 0;
+        }
+    }
+
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        WriteIndented = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private static void OutputJson(object obj)
+    {
+        var json = JsonSerializer.Serialize(obj, s_jsonOptions);
+        Console.WriteLine(json);
+    }
+
+    private static void OutputJsonLine(object obj)
+    {
+        var json = JsonSerializer.Serialize(obj, s_jsonOptions);
+        Console.WriteLine(json);
     }
 
     private static async Task<int> RunSinglePromptNonStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
     {
         AgentResponse response;
 
-        await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots)
-            .SpinnerStyle(Style.Parse("blue"))
-            .StartAsync("Thinking...", async ctx =>
+        if (settings.Plain)
+        {
+            // Plain mode: no spinner, no ANSI
+            response = await agentLoop.RunAsync(prompt, cancellationToken);
+        }
+        else
+        {
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("blue"))
+                .StartAsync("Thinking...", async _ =>
+                {
+                    response = await agentLoop.RunAsync(prompt, cancellationToken);
+                });
+
+            response = await agentLoop.RunAsync(prompt, cancellationToken);
+        }
+
+        // Plain output mode
+        if (settings.Plain)
+        {
+            if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
             {
-                response = await agentLoop.RunAsync(prompt, cancellationToken);
-            });
+                Console.WriteLine("[Thinking]");
+                Console.WriteLine(response.ThinkingContent.Content);
+                Console.WriteLine();
+            }
 
-        response = await agentLoop.RunAsync(prompt, cancellationToken);
+            Console.WriteLine(response.Content);
 
-        // Show thinking content if available and requested
+            if (settings.ShowTokens && response.Usage is not null)
+            {
+                Console.WriteLine($"Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total");
+            }
+
+            return 0;
+        }
+
+        // Rich output mode (default)
         if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
         {
             AnsiConsole.WriteLine();
@@ -339,16 +502,45 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
     private static async Task<int> RunSinglePromptStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
     {
-        AnsiConsole.WriteLine();
+        if (!settings.Plain)
+        {
+            AnsiConsole.WriteLine();
+        }
 
         var hasOutput = false;
-        var toolCallsInProgress = new Dictionary<string, string>();
+        var hasThinking = false;
 
         await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
         {
+            // Handle thinking output (if --show-thinking is enabled)
+            if (settings.ShowThinking && !string.IsNullOrEmpty(chunk.ThinkingDelta))
+            {
+                if (!hasThinking)
+                {
+                    hasThinking = true;
+                    if (settings.Plain)
+                    {
+                        Console.WriteLine("[Thinking]");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine("[yellow]Thinking...[/]");
+                    }
+                }
+                Console.Write(chunk.ThinkingDelta);
+            }
+
             // Handle text output
             if (!string.IsNullOrEmpty(chunk.TextDelta))
             {
+                if (hasThinking && !hasOutput)
+                {
+                    Console.WriteLine();
+                    if (!settings.Plain)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]Response:[/]");
+                    }
+                }
                 if (!hasOutput)
                 {
                     hasOutput = true;
@@ -367,8 +559,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                     {
                         Console.WriteLine();
                     }
-                    AnsiConsole.MarkupLine($"[grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/]");
-                    toolCallsInProgress[toolCall.Id] = toolCall.NameDelta;
+                    if (settings.Plain)
+                    {
+                        Console.WriteLine($"-> Calling tool: {toolCall.NameDelta}");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[grey]→ Calling tool: [cyan]{Markup.Escape(toolCall.NameDelta)}[/][/]");
+                    }
                     hasOutput = true;
                 }
             }
@@ -525,12 +723,31 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         AnsiConsole.WriteLine();
 
         var hasOutput = false;
+        var hasThinking = false;
 
         await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
         {
+            // Handle thinking output (if --show-thinking is enabled)
+            if (settings.ShowThinking && !string.IsNullOrEmpty(chunk.ThinkingDelta))
+            {
+                if (!hasThinking)
+                {
+                    hasThinking = true;
+                    AnsiConsole.MarkupLine("[yellow]Thinking...[/]");
+                }
+                // Write thinking in yellow/dimmed
+                AnsiConsole.Markup($"[grey]{Markup.Escape(chunk.ThinkingDelta)}[/]");
+            }
+
             // Handle text output
             if (!string.IsNullOrEmpty(chunk.TextDelta))
             {
+                if (hasThinking && !hasOutput)
+                {
+                    // Transition from thinking to response
+                    Console.WriteLine();
+                    AnsiConsole.MarkupLine("[yellow]Response:[/]");
+                }
                 if (!hasOutput)
                 {
                     hasOutput = true;

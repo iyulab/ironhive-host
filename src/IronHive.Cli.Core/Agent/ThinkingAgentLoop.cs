@@ -94,6 +94,16 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
 
         await foreach (var update in _thinkingClient.GetStreamingResponseAsync(_history, chatOptions, cancellationToken))
         {
+            // Extract thinking content from AdditionalProperties if available
+            var thinkingDelta = ExtractStreamingThinking(update);
+            if (!string.IsNullOrEmpty(thinkingDelta))
+            {
+                yield return new AgentResponseChunk
+                {
+                    ThinkingDelta = thinkingDelta
+                };
+            }
+
             if (!string.IsNullOrEmpty(update.Text))
             {
                 responseBuilder.Append(update.Text);
@@ -131,6 +141,26 @@ public class ThinkingAgentLoop : IAgentLoop, IAsyncDisposable
             }
         }
         _history.Add(assistantMessage);
+    }
+
+    private static string? ExtractStreamingThinking(ChatResponseUpdate update)
+    {
+        // Try to extract thinking from AdditionalProperties
+        if (update.AdditionalProperties?.TryGetValue(
+            ThinkingChatClient.ThinkingContentKey, out var value) == true)
+        {
+            // Handle different possible formats
+            if (value is string text)
+            {
+                return text;
+            }
+            if (value is IndexThinking.Core.ThinkingContent thinking)
+            {
+                return thinking.Text;
+            }
+        }
+
+        return null;
     }
 
     private ChatOptions CreateChatOptions()

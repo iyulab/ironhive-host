@@ -95,6 +95,12 @@ public record AgentResponseChunk
     public string? TextDelta { get; init; }
 
     /// <summary>
+    /// Thinking/reasoning content chunk.
+    /// Only available when using models that support extended thinking.
+    /// </summary>
+    public string? ThinkingDelta { get; init; }
+
+    /// <summary>
     /// Tool call in progress.
     /// </summary>
     public ToolCallChunk? ToolCallDelta { get; init; }

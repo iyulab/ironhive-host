@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 using IronHive.Cli.Core.Session;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -32,24 +33,53 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         [Description("Number of sessions to show")]
         [DefaultValue(10)]
         public int Limit { get; init; } = 10;
+
+        [CommandOption("-o|--output <FORMAT>")]
+        [Description("Output format: text (default), json")]
+        public string? OutputFormat { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = Directory.GetCurrentDirectory();
+        var outputFormat = settings.OutputFormat?.ToLowerInvariant() ?? "text";
 
         return settings.Action.ToLowerInvariant() switch
         {
-            "list" => await ListSessionsAsync(projectPath, settings.Limit),
-            "delete" => await DeleteSessionAsync(settings.SessionId),
-            _ => await ListSessionsAsync(projectPath, settings.Limit)
+            "list" => await ListSessionsAsync(projectPath, settings.Limit, outputFormat),
+            "delete" => await DeleteSessionAsync(settings.SessionId, outputFormat),
+            _ => await ListSessionsAsync(projectPath, settings.Limit, outputFormat)
         };
     }
 
-    private async Task<int> ListSessionsAsync(string projectPath, int limit)
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        WriteIndented = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private async Task<int> ListSessionsAsync(string projectPath, int limit, string outputFormat)
     {
         var sessions = await _sessionManager.ListSessionsAsync(projectPath, limit);
 
+        // JSON output
+        if (outputFormat == "json")
+        {
+            var jsonSessions = sessions.Select(s => new
+            {
+                id = s.Id,
+                status = s.Status.ToString().ToLowerInvariant(),
+                model = s.Model,
+                created = s.CreatedAt.ToString("o"),
+                messageCount = s.MessageCount,
+                firstMessage = s.FirstUserMessage
+            }).ToArray();
+
+            Console.WriteLine(JsonSerializer.Serialize(jsonSessions, s_jsonOptions));
+            return 0;
+        }
+
+        // Text output (default)
         if (sessions.Count == 0)
         {
             AnsiConsole.MarkupLine("[grey]No sessions found for this project.[/]");
@@ -103,12 +133,19 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         return 0;
     }
 
-    private async Task<int> DeleteSessionAsync(string? sessionId)
+    private async Task<int> DeleteSessionAsync(string? sessionId, string outputFormat)
     {
         if (string.IsNullOrEmpty(sessionId))
         {
-            AnsiConsole.MarkupLine("[red]Error: Session ID required for delete action.[/]");
-            AnsiConsole.MarkupLine("[grey]Usage: ironhive sessions delete <session-id>[/]");
+            if (outputFormat == "json")
+            {
+                Console.WriteLine(JsonSerializer.Serialize(new { error = "Session ID required", code = 1 }, s_jsonOptions));
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]Error: Session ID required for delete action.[/]");
+                AnsiConsole.MarkupLine("[grey]Usage: ironhive sessions delete <session-id>[/]");
+            }
             return 1;
         }
 
@@ -116,11 +153,26 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         var session = await _sessionManager.LoadSessionAsync(sessionId);
         if (session is null)
         {
-            AnsiConsole.MarkupLine($"[red]Session not found: {sessionId}[/]");
+            if (outputFormat == "json")
+            {
+                Console.WriteLine(JsonSerializer.Serialize(new { error = $"Session not found: {sessionId}", code = 1 }, s_jsonOptions));
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[red]Session not found: {sessionId}[/]");
+            }
             return 1;
         }
 
-        // Confirm deletion
+        // For JSON output, skip confirmation and delete directly
+        if (outputFormat == "json")
+        {
+            await _sessionManager.DeleteSessionAsync(sessionId);
+            Console.WriteLine(JsonSerializer.Serialize(new { deleted = sessionId, success = true }, s_jsonOptions));
+            return 0;
+        }
+
+        // Confirm deletion (text mode only)
         var confirm = AnsiConsole.Confirm($"Delete session [cyan]{sessionId}[/]?", defaultValue: false);
         if (!confirm)
         {
