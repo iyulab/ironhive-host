@@ -212,4 +212,12 @@ public class LMSupplyConfig
     /// Generator model identifier ("auto", "gguf:default", or HuggingFace model ID).
     /// </summary>
     public string GeneratorModel { get; set; } = "gguf:default";
+
+    /// <summary>
+    /// Maximum context length for local models.
+    /// Lower values use less memory. Set to 0 or null for auto-detection based on available RAM.
+    /// Recommended: 16384 (4GB RAM), 32768 (8GB), 65536 (16GB), 131072 (32GB+).
+    /// Default: null (auto-detect).
+    /// </summary>
+    public int? MaxContextLength { get; set; }
 }

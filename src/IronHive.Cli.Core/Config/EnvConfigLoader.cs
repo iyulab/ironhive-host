@@ -87,18 +87,29 @@ public static class EnvConfigLoader
         var embedderModel = GetEnvVar("LMSUPPLY_EMBEDDER_MODEL");
         var rerankerModel = GetEnvVar("LMSUPPLY_RERANKER_MODEL");
         var generatorModel = GetEnvVar("LMSUPPLY_GENERATOR_MODEL");
+        var maxContextLength = GetEnvVar("LMSUPPLY_MAX_CONTEXT");
 
         // LMSupply is available as an optional local provider (not fallback)
         // Must be explicitly enabled with LMSUPPLY_ENABLED=true
         var isEnabled = !string.IsNullOrEmpty(enabled) &&
                         enabled.Equals("true", StringComparison.OrdinalIgnoreCase);
 
+        // Parse max context length (null = auto-detect based on available RAM)
+        int? parsedMaxContext = null;
+        if (!string.IsNullOrEmpty(maxContextLength) &&
+            int.TryParse(maxContextLength, out var contextValue) &&
+            contextValue > 0)
+        {
+            parsedMaxContext = contextValue;
+        }
+
         return new LMSupplyConfig
         {
             Enabled = isEnabled,
             EmbedderModel = string.IsNullOrEmpty(embedderModel) ? "auto" : embedderModel,
             RerankerModel = string.IsNullOrEmpty(rerankerModel) ? "auto" : rerankerModel,
-            GeneratorModel = string.IsNullOrEmpty(generatorModel) ? "gguf:default" : generatorModel
+            GeneratorModel = string.IsNullOrEmpty(generatorModel) ? "gguf:default" : generatorModel,
+            MaxContextLength = parsedMaxContext
         };
     }
 

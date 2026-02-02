@@ -66,6 +66,10 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         table.AddRow("LMSupply", "embedder_model", _config.LMSupply.EmbedderModel);
         table.AddRow("LMSupply", "reranker_model", _config.LMSupply.RerankerModel);
         table.AddRow("LMSupply", "generator_model", _config.LMSupply.GeneratorModel);
+        table.AddRow("LMSupply", "max_context_length",
+            _config.LMSupply.MaxContextLength.HasValue
+                ? $"{_config.LMSupply.MaxContextLength.Value:N0}"
+                : "[cyan](auto)[/]");
 
         AnsiConsole.Write(table);
 
@@ -73,7 +77,7 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[bold]Environment Variables:[/]");
         AnsiConsole.MarkupLine("[grey]  GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, GPUSTACK_MODEL[/]");
-        AnsiConsole.MarkupLine("[grey]  LMSUPPLY_ENABLED, LMSUPPLY_EMBEDDER_MODEL, etc.[/]");
+        AnsiConsole.MarkupLine("[grey]  LMSUPPLY_ENABLED, LMSUPPLY_MAX_CONTEXT, etc.[/]");
 
         return 0;
     }

@@ -61,7 +61,8 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
     {
         return _clientCache.GetOrAdd(modelId, id =>
         {
-            var generator = BuildGeneratorAsync(id, CancellationToken.None).GetAwaiter().GetResult();
+            var maxContext = GetEffectiveMaxContextLength();
+            var generator = BuildGeneratorAsync(id, maxContext, CancellationToken.None).GetAwaiter().GetResult();
             var client = new LMSupplyChatClient(generator);
             return (generator, client);
         });
@@ -105,7 +106,8 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
             var modelId = _config.GeneratorModel;
             _defaultModel = modelId;
 
-            var generator = await BuildGeneratorAsync(modelId, cancellationToken);
+            var maxContext = GetEffectiveMaxContextLength();
+            var generator = await BuildGeneratorAsync(modelId, maxContext, cancellationToken);
             var chatClient = new LMSupplyChatClient(generator);
 
             _clientCache[modelId] = (generator, chatClient);
@@ -117,10 +119,58 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
         }
     }
 
-    private static async Task<IGeneratorModel> BuildGeneratorAsync(string modelId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Gets the effective max context length based on config or auto-detection.
+    /// </summary>
+    private int GetEffectiveMaxContextLength()
+    {
+        // If explicitly configured, use that value
+        if (_config.MaxContextLength.HasValue && _config.MaxContextLength.Value > 0)
+        {
+            return _config.MaxContextLength.Value;
+        }
+
+        // Auto-detect based on available memory
+        return CalculateMaxContextLengthFromMemory();
+    }
+
+    /// <summary>
+    /// Calculates recommended max context length based on available system memory.
+    /// </summary>
+    private static int CalculateMaxContextLengthFromMemory()
+    {
+        try
+        {
+            var memoryInfo = GC.GetGCMemoryInfo();
+            var availableBytes = memoryInfo.TotalAvailableMemoryBytes;
+            var availableGB = availableBytes / (1024.0 * 1024 * 1024);
+
+            // Conservative estimates for OGA models (Phi-3.5-mini class)
+            // KV cache formula: batch(1) × kv_heads(8) × max_len × head_size(128) × layers(32) × 2 × dtype
+            return availableGB switch
+            {
+                >= 32 => 131072,  // 128K context
+                >= 16 => 65536,   // 64K context
+                >= 8 => 32768,    // 32K context
+                >= 4 => 16384,    // 16K context
+                _ => 8192         // 8K context (minimum for usability)
+            };
+        }
+        catch
+        {
+            // Fallback to safe default if memory detection fails
+            return 16384;
+        }
+    }
+
+    private static async Task<IGeneratorModel> BuildGeneratorAsync(
+        string modelId,
+        int maxContextLength,
+        CancellationToken cancellationToken)
     {
         var builder = TextGeneratorBuilder.Create();
 
+        // Configure model source
         if (modelId == "auto" || modelId == "gguf:default")
         {
             builder.WithDefaultModel();
@@ -133,6 +183,9 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
         {
             builder.WithHuggingFaceModel(modelId);
         }
+
+        // Set max context length to prevent OOM on memory-constrained systems
+        builder.WithMaxContextLength(maxContextLength);
 
         return await builder.BuildAsync(cancellationToken);
     }
