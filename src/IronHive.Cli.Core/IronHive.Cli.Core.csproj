@@ -50,13 +50,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- IronHive (ProjectReference until NuGet packages are indexed) -->
-    <ProjectReference Include="D:\data\ironhive\src\IronHive.Abstractions\IronHive.Abstractions.csproj" />
-    <ProjectReference Include="D:\data\ironhive\src\IronHive.Core\IronHive.Core.csproj" />
-    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.OpenAI\IronHive.Providers.OpenAI.csproj" />
-    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.Anthropic\IronHive.Providers.Anthropic.csproj" />
-    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.GoogleAI\IronHive.Providers.GoogleAI.csproj" />
-    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.Ollama\IronHive.Providers.Ollama.csproj" />
+    <!-- IronHive (LLM abstraction) -->
+    <PackageReference Include="IronHive.Abstractions" />
+    <PackageReference Include="IronHive.Core" />
+    <PackageReference Include="IronHive.Providers.OpenAI" />
+    <PackageReference Include="IronHive.Providers.Anthropic" />
+    <PackageReference Include="IronHive.Providers.GoogleAI" />
+    <PackageReference Include="IronHive.Providers.Ollama" />
   </ItemGroup>
 
 </Project>
