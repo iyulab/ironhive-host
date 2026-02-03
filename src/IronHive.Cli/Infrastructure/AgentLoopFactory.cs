@@ -41,17 +41,18 @@ public sealed class AgentLoopFactory : IAgentLoopFactory
     }
 
     /// <inheritdoc />
-    public IAgentLoop Create() => Create(new AgentLoopFactoryOptions());
+    public Task<IAgentLoop> CreateAsync(CancellationToken cancellationToken = default)
+        => CreateAsync(new AgentLoopFactoryOptions(), cancellationToken);
 
     /// <inheritdoc />
-    public IAgentLoop Create(AgentLoopFactoryOptions options)
+    public async Task<IAgentLoop> CreateAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        // Get chat client based on provider/model options
+        // Get chat client based on provider/model options asynchronously
         var chatClient = options.Provider is not null
-            ? _clientFactory.Create(options.Provider, options.Model)
-            : _clientFactory.Create(options.Model);
+            ? await _clientFactory.CreateAsync(options.Provider, options.Model, cancellationToken)
+            : await _clientFactory.CreateAsync(options.Model, cancellationToken);
 
         // Create agent options with built-in tools (with oops versioning support)
         var tools = BuiltInTools.GetAll(options.WorkingDirectory ?? Directory.GetCurrentDirectory(), _oopsService);

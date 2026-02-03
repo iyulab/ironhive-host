@@ -1,5 +1,8 @@
 using IndexThinking.Agents;
 using IndexThinking.Extensions;
+using IronHive.Abstractions;
+using IronHive.Abstractions.Catalog;
+using IronHive.Abstractions.Messages;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
@@ -8,8 +11,14 @@ using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Session;
 using IronHive.Cli.Core.Update;
+using IronHive.Core;
+using IronHive.Providers.Anthropic;
+using IronHive.Providers.GoogleAI;
+using IronHive.Providers.Ollama;
+using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using CliConfig = IronHive.Cli.Core.Config;
 
 namespace IronHive.Cli.Infrastructure;
 
@@ -27,25 +36,22 @@ public static class ServiceCollectionExtensions
         var config = EnvConfigLoader.Load();
         services.AddSingleton(config);
 
+        // Register HttpClient factory with named clients
+        services.AddHttpClient();
+        services.AddHttpClient("GpuStack", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddHttpClient("Webhook", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
         // Register providers with fallback chain
         RegisterProviders(services, config);
 
-        // Register IChatClient from provider, wrapped with FunctionInvokingChatClient
-        // This enables automatic tool/function execution in the chat loop
-        services.AddSingleton<IChatClient>(sp =>
-        {
-            var provider = sp.GetRequiredService<IChatClientProvider>();
-            var innerClient = provider.GetChatClient();
-
-            // Wrap with FunctionInvokingChatClient for automatic tool execution
-            // The actual tools are provided via ChatOptions.Tools at runtime
-            return new FunctionInvokingChatClient(innerClient)
-            {
-                MaximumIterationsPerRequest = 10,
-                MaximumConsecutiveErrorsPerRequest = 3,
-                IncludeDetailedErrors = true
-            };
-        });
+        // Note: IChatClient is obtained via IChatClientFactory.CreateAsync() at runtime
+        // This avoids synchronous blocking during DI resolution
 
         // Register IndexThinking services
         services.AddIndexThinkingAgents();
@@ -54,35 +60,8 @@ public static class ServiceCollectionExtensions
         // Register Memory services (MemoryIndexer integration)
         services.AddIronHiveMemory();
 
-        // Register agent loop with IndexThinking support (default instance)
-        services.AddTransient<IAgentLoop>(sp =>
-        {
-            var chatClient = sp.GetRequiredService<IChatClient>();
-            var turnManager = sp.GetRequiredService<IThinkingTurnManager>();
-
-            return new ThinkingAgentLoop(
-                chatClient,
-                turnManager,
-                new IronHive.Cli.Core.Agent.AgentOptions
-                {
-                    SystemPrompt = """
-                        You are a helpful AI assistant with access to tools for file and system operations.
-
-                        ## Tool Usage Guidelines
-                        - Use tools only when necessary to complete the user's request.
-                        - When a tool returns a success message, trust it and DO NOT verify with additional tool calls.
-                        - After completing a task (e.g., writing a file), immediately report the result to the user.
-                        - Avoid redundant operations: do not read a file you just wrote, or list a directory just to confirm.
-                        - If a tool fails, explain the error and ask for clarification if needed.
-
-                        ## Response Format
-                        - Be concise and direct in your responses.
-                        - After using tools, summarize what was done without repeating tool output verbatim.
-                        """,
-                    Temperature = 0.7f,
-                    MaxTokens = 4096
-                });
-        });
+        // Note: IAgentLoop is obtained via IAgentLoopFactory.CreateAsync() at runtime
+        // This avoids synchronous blocking during DI resolution
 
         // Register IAgentLoopFactory for runtime model/provider selection
         services.AddSingleton<IAgentLoopFactory>(sp =>
@@ -108,17 +87,18 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReplanningService, ReplanningService>();
 
         // Register update service for self-update functionality
-        services.AddSingleton<HttpClient>();
         services.AddSingleton<IUpdateService>(sp =>
         {
-            var httpClient = sp.GetRequiredService<HttpClient>();
+            var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = clientFactory.CreateClient("GitHub");
             return new GitHubUpdateService(httpClient);  // Uses default: iyulab/ironhive-cli-releases
         });
 
         // Register oops service for file versioning (non-Git environments)
         services.AddSingleton<IOopsService>(sp =>
         {
-            var httpClient = sp.GetRequiredService<HttpClient>();
+            var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = clientFactory.CreateClient("Oops");
             return new OopsService(httpClient);
         });
 
@@ -130,23 +110,133 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
-        // Note: LMSupply is auto-enabled when no remote provider is configured,
-        // so at least one provider will always be available.
+        // Build IHiveService with ironhive providers
+        var hiveBuilder = new HiveServiceBuilder();
 
-        // GpuStack providers (primary)
+        // Register providers based on configuration (priority order)
+        // 1. GpuStack (uses OpenAI-compatible API)
         if (config.GpuStack.IsConfigured)
         {
-            services.AddSingleton<GpuStackChatClientProvider>(sp =>
-                new GpuStackChatClientProvider(config.GpuStack));
-
-            services.AddSingleton<GpuStackEmbeddingProvider>(sp =>
-                new GpuStackEmbeddingProvider(config.GpuStack));
-
-            services.AddSingleton<GpuStackRerankProvider>(sp =>
-                new GpuStackRerankProvider(config.GpuStack));
+            var gpuStackConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            {
+                BaseUrl = config.GpuStack.Endpoint!.TrimEnd('/') + "/v1-openai/",
+                ApiKey = config.GpuStack.ApiKey!
+            };
+            hiveBuilder.AddOpenAIProviders("gpustack", gpuStackConfig, OpenAIServiceType.ChatCompletion);
         }
 
-        // LMSupply providers (fallback)
+        // 2. OpenAI
+        if (config.OpenAI.IsConfigured)
+        {
+            var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            {
+                BaseUrl = config.OpenAI.Endpoint ?? "https://api.openai.com/v1/",
+                ApiKey = config.OpenAI.ApiKey!
+            };
+            hiveBuilder.AddOpenAIProviders("openai", openAIConfig, OpenAIServiceType.ChatCompletion | OpenAIServiceType.Embeddings);
+        }
+
+        // 3. Anthropic
+        if (config.Anthropic.IsConfigured)
+        {
+            var anthropicConfig = new IronHive.Providers.Anthropic.AnthropicConfig
+            {
+                BaseUrl = "https://api.anthropic.com/v1/",
+                ApiKey = config.Anthropic.ApiKey!,
+                Version = "2023-06-01"
+            };
+            hiveBuilder.AddAnthropicProviders("anthropic", anthropicConfig);
+        }
+
+        // 4. Google AI
+        if (config.GoogleAI.IsConfigured)
+        {
+            var googleConfig = new IronHive.Providers.GoogleAI.GoogleAIConfig
+            {
+                BaseUrl = "https://generativelanguage.googleapis.com/v1beta/",
+                ApiKey = config.GoogleAI.ApiKey!
+            };
+            hiveBuilder.AddGoogleAIProviders("google", googleConfig);
+        }
+
+        // 5. Xai (uses OpenAI-compatible API)
+        if (config.Xai.IsConfigured)
+        {
+            var xaiConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            {
+                BaseUrl = config.Xai.Endpoint.TrimEnd('/') + "/",
+                ApiKey = config.Xai.ApiKey!
+            };
+            hiveBuilder.AddOpenAIProviders("xai", xaiConfig, OpenAIServiceType.ChatCompletion);
+        }
+
+        // 6. Ollama (local inference)
+        if (config.Ollama.IsConfigured)
+        {
+            var ollamaConfig = new IronHive.Providers.Ollama.OllamaConfig
+            {
+                BaseUrl = config.Ollama.Endpoint.TrimEnd('/') + "/api/"
+            };
+            hiveBuilder.AddOllamaProviders("ollama", ollamaConfig);
+        }
+
+        // 7. LMStudio (OpenAI-compatible local inference)
+        if (config.LMStudio.IsConfigured)
+        {
+            var lmStudioConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            {
+                BaseUrl = config.LMStudio.Endpoint.TrimEnd('/') + "/",
+                ApiKey = "lm-studio"
+            };
+            hiveBuilder.AddOpenAIProviders("lmstudio", lmStudioConfig, OpenAIServiceType.ChatCompletion);
+        }
+
+        // Build and register IHiveService
+        var hiveService = hiveBuilder.Build();
+        services.AddSingleton(hiveService);
+
+        // Create IChatClientProvider instances from ironhive providers
+        var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
+
+        if (config.GpuStack.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("gpustack", out var gpuStackGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("gpustack", out var gpuStackCatalog);
+            providersDict["gpustack"] = new IronhiveChatClientProvider(gpuStackGenerator, "gpustack", config.GpuStack.Model!, gpuStackCatalog);
+        }
+
+        if (config.OpenAI.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("openai", out var openAIGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("openai", out var openAICatalog);
+            providersDict["openai"] = new IronhiveChatClientProvider(openAIGenerator, "openai", config.OpenAI.Model!, openAICatalog);
+        }
+
+        if (config.Anthropic.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("anthropic", out var anthropicGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("anthropic", out var anthropicCatalog);
+            providersDict["anthropic"] = new IronhiveChatClientProvider(anthropicGenerator, "anthropic", config.Anthropic.Model!, anthropicCatalog);
+            providersDict["claude"] = providersDict["anthropic"]; // Alias
+        }
+
+        if (config.GoogleAI.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("google", out var googleGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("google", out var googleCatalog);
+            providersDict["google"] = new IronhiveChatClientProvider(googleGenerator, "google", config.GoogleAI.Model!, googleCatalog);
+            providersDict["gemini"] = providersDict["google"]; // Alias
+        }
+
+        if (config.Xai.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("xai", out var xaiGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("xai", out var xaiCatalog);
+            providersDict["xai"] = new IronhiveChatClientProvider(xaiGenerator, "xai", config.Xai.Model!, xaiCatalog);
+            providersDict["grok"] = providersDict["xai"]; // Alias
+        }
+
+        // LMSupply providers (local fallback)
         if (config.LMSupply.Enabled)
         {
             services.AddSingleton<LMSupplyChatClientProvider>(sp =>
@@ -160,24 +250,61 @@ public static class ServiceCollectionExtensions
         }
 
         // LMSupply is always registered for /model command selection
-        // (even if not in fallback chain)
         services.AddSingleton<LMSupplyChatClientProvider>(sp =>
-            new LMSupplyChatClientProvider(new LMSupplyConfig { Enabled = true }));
+            new LMSupplyChatClientProvider(new CliConfig.LMSupplyConfig { Enabled = true }));
 
-        // Primary provider (no fallback - fail fast if unavailable)
+        // Ollama provider (local inference) - via ironhive
+        if (config.Ollama.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("ollama", out var ollamaGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("ollama", out var ollamaCatalog);
+            providersDict["ollama"] = new IronhiveChatClientProvider(ollamaGenerator, "ollama", config.Ollama.Model!, ollamaCatalog);
+        }
+
+        // LMStudio provider (local inference) - via ironhive
+        if (config.LMStudio.IsConfigured &&
+            hiveService.Providers.TryGet<IMessageGenerator>("lmstudio", out var lmStudioGenerator))
+        {
+            hiveService.Providers.TryGet<IModelCatalog>("lmstudio", out var lmStudioCatalog);
+            providersDict["lmstudio"] = new IronhiveChatClientProvider(lmStudioGenerator, "lmstudio", config.LMStudio.Model!, lmStudioCatalog);
+        }
+
+        // Determine default provider (priority: GpuStack > OpenAI > Anthropic > GoogleAI > Xai > Ollama > LMStudio)
+        IChatClientProvider? defaultProvider = null;
+        foreach (var providerName in new[] { "gpustack", "openai", "anthropic", "google", "xai", "ollama", "lmstudio" })
+        {
+            if (providersDict.TryGetValue(providerName, out var provider))
+            {
+                defaultProvider = provider;
+                break;
+            }
+        }
+
+        // Register primary IChatClientProvider
         services.AddSingleton<IChatClientProvider>(sp =>
         {
-            var gpuStack = sp.GetService<GpuStackChatClientProvider>();
-            if (gpuStack?.IsAvailable == true)
+            if (defaultProvider is not null)
             {
-                return gpuStack;
+                return defaultProvider;
+            }
+
+            // No remote provider, try LMSupply
+            var lmSupply = sp.GetService<LMSupplyChatClientProvider>();
+            if (lmSupply?.IsAvailable == true)
+            {
+                return lmSupply;
             }
 
             throw new InvalidOperationException(
                 "No API provider configured or available.\n" +
                 "\n" +
-                "Please configure GPUSTACK_* or OPENAI_* variables in .env file.\n" +
-                "Use '/model local' or '--provider lmsupply' for local inference.\n" +
+                "Please configure one of the following in .env file:\n" +
+                "  - OPENAI_API_KEY and OPENAI_MODEL\n" +
+                "  - ANTHROPIC_API_KEY and ANTHROPIC_MODEL\n" +
+                "  - GOOGLE_API_KEY and GOOGLE_MODEL\n" +
+                "  - GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, and GPUSTACK_MODEL\n" +
+                "\n" +
+                "Or use '/model local' for local inference.\n" +
                 "\n" +
                 "See .env.example for configuration examples.");
         });
@@ -185,30 +312,12 @@ public static class ServiceCollectionExtensions
         // Register IChatClientFactory for runtime model/provider selection
         services.AddSingleton<IChatClientFactory>(sp =>
         {
-            var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
-
-            var gpuStack = sp.GetService<GpuStackChatClientProvider>();
-            if (gpuStack?.IsAvailable == true)
-            {
-                providersDict["gpustack"] = gpuStack;
-            }
-
-            // LMSupply is always available for explicit selection via /model command
+            // Add LMSupply to providers
             var lmSupply = sp.GetRequiredService<LMSupplyChatClientProvider>();
             providersDict["lmsupply"] = lmSupply;
-            providersDict["local"] = lmSupply;  // Alias for convenience
+            providersDict["local"] = lmSupply; // Alias
 
-            // Get default provider - try IChatClientProvider first, fallback to lmsupply
-            IChatClientProvider defaultProvider;
-            try
-            {
-                defaultProvider = sp.GetRequiredService<IChatClientProvider>();
-            }
-            catch (InvalidOperationException)
-            {
-                // No remote provider configured, use lmsupply as default
-                defaultProvider = lmSupply;
-            }
+            var primary = sp.GetRequiredService<IChatClientProvider>();
 
             // Decorator for FunctionInvokingChatClient
             IChatClient ClientDecorator(IChatClient inner) =>
@@ -219,18 +328,13 @@ public static class ServiceCollectionExtensions
                     IncludeDetailedErrors = true
                 };
 
-            return new ChatClientFactory(providersDict, defaultProvider, ClientDecorator);
+            return new ChatClientFactory(providersDict, primary, ClientDecorator);
         });
 
+        // Embedding provider (simplified - uses first available)
         services.AddSingleton<IEmbeddingProvider>(sp =>
         {
             var providers = new List<IEmbeddingProvider>();
-
-            var gpuStack = sp.GetService<GpuStackEmbeddingProvider>();
-            if (gpuStack?.IsAvailable == true)
-            {
-                providers.Add(gpuStack);
-            }
 
             var lmSupply = sp.GetService<LMSupplyEmbeddingProvider>();
             if (lmSupply is not null && config.LMSupply.Enabled)
@@ -242,26 +346,16 @@ public static class ServiceCollectionExtensions
             {
                 throw new InvalidOperationException(
                     "No embedding provider configured.\n" +
-                    "\n" +
-                    "Please configure one of the following options:\n" +
-                    "  1. Set GPUSTACK_EMBEDDING_MODEL in your .env file\n" +
-                    "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
-                    "\n" +
-                    "See .env.example for configuration examples.");
+                    "Set LMSUPPLY_ENABLED=true for local inference.");
             }
 
-            return new FallbackEmbeddingProvider(providers.ToArray());
+            return new FallbackEmbeddingProvider([.. providers]);
         });
 
+        // Rerank provider (simplified - uses first available)
         services.AddSingleton<IRerankProvider>(sp =>
         {
             var providers = new List<IRerankProvider>();
-
-            var gpuStack = sp.GetService<GpuStackRerankProvider>();
-            if (gpuStack?.IsAvailable == true)
-            {
-                providers.Add(gpuStack);
-            }
 
             var lmSupply = sp.GetService<LMSupplyRerankProvider>();
             if (lmSupply is not null && config.LMSupply.Enabled)
@@ -273,15 +367,10 @@ public static class ServiceCollectionExtensions
             {
                 throw new InvalidOperationException(
                     "No rerank provider configured.\n" +
-                    "\n" +
-                    "Please configure one of the following options:\n" +
-                    "  1. Set GPUSTACK_RERANK_MODEL in your .env file\n" +
-                    "  2. Set LMSUPPLY_ENABLED=true for local inference\n" +
-                    "\n" +
-                    "See .env.example for configuration examples.");
+                    "Set LMSUPPLY_ENABLED=true for local inference.");
             }
 
-            return new FallbackRerankProvider(providers.ToArray());
+            return new FallbackRerankProvider([.. providers]);
         });
     }
 }

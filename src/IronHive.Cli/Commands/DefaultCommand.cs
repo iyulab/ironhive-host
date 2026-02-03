@@ -147,11 +147,11 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         session ??= await _sessionManager.CreateSessionAsync(projectPath, model);
 
         // Create agent loop with optional model/provider override
-        var agentLoop = _factory.Create(new AgentLoopFactoryOptions
+        var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
         {
             Provider = settings.Provider,
             Model = settings.Model
-        });
+        }, cancellationToken);
 
         try
         {

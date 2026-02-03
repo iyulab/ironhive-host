@@ -9,7 +9,7 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class FallbackChatClientProvider : IChatClientProvider, IDisposable
 {
     private readonly IChatClientProvider[] _providers;
-    private readonly object _lock = new();
+    private readonly SemaphoreSlim _initLock = new(1, 1);
     private volatile IChatClientProvider? _activeProvider;
 
     public FallbackChatClientProvider(params IChatClientProvider[] providers)
@@ -29,24 +29,22 @@ public sealed class FallbackChatClientProvider : IChatClientProvider, IDisposabl
     public bool IsAvailable => _providers.Any(p => p.IsAvailable);
 
     /// <inheritdoc />
-    public IChatClient GetChatClient() => GetChatClient(null);
-
-    /// <inheritdoc />
-    public IChatClient GetChatClient(string? modelOverride)
+    public async Task<IChatClient> GetChatClientAsync(string? modelOverride = null, CancellationToken cancellationToken = default)
     {
         var active = _activeProvider;
         if (active != null)
         {
-            return active.GetChatClient(modelOverride);
+            return await active.GetChatClientAsync(modelOverride, cancellationToken);
         }
 
         // Auto-initialize: try to find and initialize a provider
-        lock (_lock)
+        await _initLock.WaitAsync(cancellationToken);
+        try
         {
             // Double-check after lock
             if (_activeProvider != null)
             {
-                return _activeProvider.GetChatClient(modelOverride);
+                return await _activeProvider.GetChatClientAsync(modelOverride, cancellationToken);
             }
 
             foreach (var provider in _providers)
@@ -54,13 +52,17 @@ public sealed class FallbackChatClientProvider : IChatClientProvider, IDisposabl
                 if (provider.IsAvailable)
                 {
                     // Try to initialize the provider
-                    if (provider.CheckHealthAsync(CancellationToken.None).GetAwaiter().GetResult())
+                    if (await provider.CheckHealthAsync(cancellationToken))
                     {
                         _activeProvider = provider;
-                        return provider.GetChatClient(modelOverride);
+                        return await provider.GetChatClientAsync(modelOverride, cancellationToken);
                     }
                 }
             }
+        }
+        finally
+        {
+            _initLock.Release();
         }
 
         throw new InvalidOperationException("No available chat client provider.");
@@ -120,6 +122,8 @@ public sealed class FallbackChatClientProvider : IChatClientProvider, IDisposabl
         {
             await provider.DisposeAsync();
         }
+
+        _initLock.Dispose();
     }
 
     /// <inheritdoc />
@@ -132,5 +136,7 @@ public sealed class FallbackChatClientProvider : IChatClientProvider, IDisposabl
                 disposable.Dispose();
             }
         }
+
+        _initLock.Dispose();
     }
 }

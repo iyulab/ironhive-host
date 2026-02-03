@@ -28,9 +28,35 @@ try
             .WithDescription("Run a single prompt and exit")
             .WithExample("run", "-p", "\"List all files in the current directory\"");
 
+        config.AddCommand<SetCommand>("set")
+            .WithDescription("Set a configuration value")
+            .WithExample("set", "openai.apiKey", "sk-xxx")
+            .WithExample("set", "anthropic.model", "claude-sonnet-4-20250514");
+
+        config.AddCommand<GetCommand>("get")
+            .WithDescription("Get a configuration value")
+            .WithExample("get", "openai.apiKey")
+            .WithExample("get");
+
+        config.AddCommand<UnsetCommand>("unset")
+            .WithDescription("Remove a configuration value")
+            .WithExample("unset", "openai.apiKey");
+
         config.AddCommand<ConfigCommand>("config")
-            .WithDescription("Manage configuration")
-            .WithExample("config", "show");
+            .WithDescription("Show all configuration")
+            .WithExample("config", "show")
+            .WithExample("config", "path");
+
+        config.AddCommand<ModelsCommand>("models")
+            .WithDescription("List available models from configured providers")
+            .WithExample("models")
+            .WithExample("models", "--provider", "openai")
+            .WithExample("models", "--json");
+
+        config.AddCommand<DoctorCommand>("doctor")
+            .WithDescription("Diagnose configuration and connectivity issues")
+            .WithExample("doctor")
+            .WithExample("doctor", "--verbose");
 
         config.AddCommand<UpdateCommand>("update")
             .WithDescription("Check for and install updates")

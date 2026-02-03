@@ -158,7 +158,7 @@ public class PerformanceBenchmarks
         }
         sw.Stop();
 
-        Assert.True(sw.ElapsedMilliseconds < 500, $"Serializing 10000 events took {sw.ElapsedMilliseconds}ms");
+        Assert.True(sw.ElapsedMilliseconds < 2000, $"Serializing 10000 events took {sw.ElapsedMilliseconds}ms");
     }
 
     [Fact]

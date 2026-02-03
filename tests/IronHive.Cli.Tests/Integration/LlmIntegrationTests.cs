@@ -1,7 +1,11 @@
 using System.Globalization;
+using IronHive.Abstractions;
+using IronHive.Abstractions.Messages;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Providers;
+using IronHive.Core;
+using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Tests.Integration;
@@ -29,6 +33,24 @@ public class LlmIntegrationTests
     private static string GpuStackModel =>
         Environment.GetEnvironmentVariable("GPUSTACK_MODEL") ?? "gpt-4o-mini";
 
+    /// <summary>
+    /// Creates an IronhiveChatClientProvider for GpuStack using the ironhive library.
+    /// </summary>
+    private static IronhiveChatClientProvider CreateGpuStackProvider()
+    {
+        var hiveBuilder = new HiveServiceBuilder();
+        var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+        {
+            BaseUrl = GpuStackEndpoint!.TrimEnd('/') + "/v1-openai/",
+            ApiKey = GpuStackApiKey!
+        };
+        hiveBuilder.AddOpenAIProviders("gpustack", openAIConfig, OpenAIServiceType.ChatCompletion);
+        var hiveService = hiveBuilder.Build();
+
+        hiveService.Providers.TryGet<IMessageGenerator>("gpustack", out var generator);
+        return new IronhiveChatClientProvider(generator!, "gpustack", GpuStackModel);
+    }
+
     [Fact]
     public void GpuStackConfig_LoadsFromEnvironment()
     {
@@ -49,7 +71,7 @@ public class LlmIntegrationTests
     }
 
     [Fact]
-    public void GpuStackChatClientProvider_CreatesClient()
+    public async Task GpuStackChatClientProvider_CreatesClient()
     {
         // Skip if no API key
         if (!HasGpuStackKey)
@@ -57,15 +79,8 @@ public class LlmIntegrationTests
             return; // Skip silently
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         Assert.NotNull(client);
     }
@@ -79,15 +94,8 @@ public class LlmIntegrationTests
             return;
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         var response = await client.GetResponseAsync("Say 'Hello' and nothing else.");
 
@@ -103,15 +111,8 @@ public class LlmIntegrationTests
             return;
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         var tokens = new List<string>();
         await foreach (var update in client.GetStreamingResponseAsync("Count from 1 to 5."))
@@ -133,15 +134,8 @@ public class LlmIntegrationTests
             return;
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         var agentLoop = new AgentLoop(client);
         var response = await agentLoop.RunAsync("What is 2 + 2?");
@@ -159,15 +153,8 @@ public class LlmIntegrationTests
             return;
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         var agentLoop = new AgentLoop(client);
 
@@ -189,15 +176,8 @@ public class LlmIntegrationTests
             return;
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         var agentLoop = new AgentLoop(client);
         using var cts = new CancellationTokenSource();
@@ -229,15 +209,8 @@ public class LlmIntegrationTests
             return;
         }
 
-        var config = new GpuStackConfig
-        {
-            Endpoint = GpuStackEndpoint!,
-            ApiKey = GpuStackApiKey!,
-            Model = GpuStackModel
-        };
-
-        using var provider = new GpuStackChatClientProvider(config);
-        var client = provider.GetChatClient();
+        using var provider = CreateGpuStackProvider();
+        var client = await provider.GetChatClientAsync();
 
         var agentLoop = new AgentLoop(client);
         var chunks = new List<string>();

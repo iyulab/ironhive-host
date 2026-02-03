@@ -16,6 +16,7 @@
     <!-- OpenAI SDK -->
     <PackageReference Include="OpenAI" />
 
+
     <!-- DI -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Options" />
@@ -46,6 +47,16 @@
     <!-- Submodules (will be replaced with NuGet packages later) -->
     <ProjectReference Include="..\..\submodules\TokenMeter\src\TokenMeter\TokenMeter.csproj" />
     <ProjectReference Include="..\..\submodules\ToolCallParser\src\ToolCallParser\ToolCallParser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- IronHive (ProjectReference until NuGet packages are indexed) -->
+    <ProjectReference Include="D:\data\ironhive\src\IronHive.Abstractions\IronHive.Abstractions.csproj" />
+    <ProjectReference Include="D:\data\ironhive\src\IronHive.Core\IronHive.Core.csproj" />
+    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.OpenAI\IronHive.Providers.OpenAI.csproj" />
+    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.Anthropic\IronHive.Providers.Anthropic.csproj" />
+    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.GoogleAI\IronHive.Providers.GoogleAI.csproj" />
+    <ProjectReference Include="D:\data\ironhive\src\IronHive.Providers.Ollama\IronHive.Providers.Ollama.csproj" />
   </ItemGroup>
 
 </Project>

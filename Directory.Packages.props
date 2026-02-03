@@ -30,14 +30,23 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.1.1" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.13.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.13.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.13.0" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.13.1" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.13.1" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.13.1" />
     <!-- IndexThinking (token management, reasoning extraction) -->
     <PackageVersion Include="IndexThinking" Version="0.15.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.13.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.0" />
+    <!-- IronHive (LLM abstraction) - using ProjectReference until NuGet packages are indexed -->
+    <!-- Uncomment when NuGet packages become available:
+    <PackageVersion Include="IronHive.Abstractions" Version="0.1.0" />
+    <PackageVersion Include="IronHive.Core" Version="0.1.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.1.0" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.1.0" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.1.0" />
+    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.1.0" />
+    -->
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

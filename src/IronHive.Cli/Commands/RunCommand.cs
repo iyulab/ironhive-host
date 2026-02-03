@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Utils;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -50,6 +51,14 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [Description("Show thinking/reasoning content from the model")]
         public bool ShowThinking { get; init; }
 
+        [CommandOption("--auto-commit")]
+        [Description("Automatically commit changes after successful execution")]
+        public bool AutoCommit { get; init; }
+
+        [CommandOption("--commit-message <MESSAGE>")]
+        [Description("Custom commit message (default: auto-generated from prompt)")]
+        public string? CommitMessage { get; init; }
+
         public string? GetPrompt() => PromptArg ?? PromptOption;
     }
 
@@ -64,12 +73,19 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             return 1;
         }
 
+        // Capture initial Git state if auto-commit is enabled
+        GitStatus? initialStatus = null;
+        if (settings.AutoCommit && GitHelper.IsGitRepository())
+        {
+            initialStatus = GitHelper.GetStatus();
+        }
+
         // Create agent loop with optional model/provider override
-        var agentLoop = _factory.Create(new AgentLoopFactoryOptions
+        var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
         {
             Provider = settings.Provider,
             Model = settings.Model
-        });
+        }, cancellationToken);
 
         try
         {
@@ -119,6 +135,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 }
             }
 
+            // Handle auto-commit if enabled
+            if (settings.AutoCommit && initialStatus is not null)
+            {
+                await HandleAutoCommitAsync(settings, prompt);
+            }
+
             return 0;
         }
         catch (Exception ex)
@@ -145,5 +167,61 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 await disposable.DisposeAsync();
             }
         }
+    }
+
+    private static Task HandleAutoCommitAsync(Settings settings, string prompt)
+    {
+        if (!GitHelper.IsGitRepository())
+        {
+            AnsiConsole.MarkupLine("[yellow]Auto-commit skipped: Not a Git repository[/]");
+            return Task.CompletedTask;
+        }
+
+        var status = GitHelper.GetStatus();
+        if (!status.HasChanges)
+        {
+            AnsiConsole.MarkupLine("[grey]Auto-commit skipped: No changes detected[/]");
+            return Task.CompletedTask;
+        }
+
+        // Stage all changes
+        if (!GitHelper.StageAll())
+        {
+            AnsiConsole.MarkupLine("[red]Auto-commit failed: Could not stage changes[/]");
+            return Task.CompletedTask;
+        }
+
+        // Generate commit message
+        var commitMessage = settings.CommitMessage ?? GenerateCommitMessage(prompt, status);
+
+        // Create commit
+        if (GitHelper.Commit(commitMessage))
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[green]✓[/] Changes committed: {Markup.Escape(commitMessage)}");
+            AnsiConsole.MarkupLine($"[grey]  {status.TotalChangedFiles} file(s) changed[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine("[red]Auto-commit failed: Could not create commit[/]");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static string GenerateCommitMessage(string prompt, GitStatus status)
+    {
+        // Create a concise commit message based on the prompt
+        var truncatedPrompt = prompt.Length > 50
+            ? string.Concat(prompt.AsSpan(0, 47), "...")
+            : prompt;
+
+        // Clean up the prompt for use in commit message
+        truncatedPrompt = truncatedPrompt
+            .Replace("\n", " ")
+            .Replace("\r", "")
+            .Trim();
+
+        return $"ironhive: {truncatedPrompt}";
     }
 }

@@ -20,16 +20,8 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
     public class Settings : CommandSettings
     {
         [CommandArgument(0, "[ACTION]")]
-        [Description("Action to perform (show, set, path)")]
+        [Description("Action to perform (show, path)")]
         public string? Action { get; init; }
-
-        [CommandArgument(1, "[KEY]")]
-        [Description("Configuration key")]
-        public string? Key { get; init; }
-
-        [CommandArgument(2, "[VALUE]")]
-        [Description("Configuration value")]
-        public string? Value { get; init; }
     }
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -40,7 +32,6 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         {
             "show" => ShowConfig(),
             "path" => ShowConfigPath(),
-            "set" => SetConfig(settings.Key, settings.Value),
             _ => ShowHelp(action)
         };
     }
@@ -54,70 +45,112 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
             .AddColumn("Value");
 
         // GpuStack configuration
-        table.AddRow("GpuStack", "endpoint", _config.GpuStack.Endpoint ?? "[grey](not set)[/]");
-        table.AddRow("GpuStack", "api_key", string.IsNullOrEmpty(_config.GpuStack.ApiKey) ? "[grey](not set)[/]" : "[green](set)[/]");
-        table.AddRow("GpuStack", "model", _config.GpuStack.Model ?? "[grey](not set)[/]");
-        table.AddRow("GpuStack", "embedding_model", _config.GpuStack.EmbeddingModel ?? "[grey](not set)[/]");
-        table.AddRow("GpuStack", "rerank_model", _config.GpuStack.RerankModel ?? "[grey](not set)[/]");
-        table.AddRow("GpuStack", "configured", _config.GpuStack.IsConfigured ? "[green]Yes[/]" : "[yellow]No[/]");
+        AddConfigRow(table, "gpustack", "endpoint", _config.GpuStack.Endpoint);
+        AddSecretRow(table, "gpustack", "apiKey", _config.GpuStack.ApiKey);
+        AddConfigRow(table, "gpustack", "model", _config.GpuStack.Model);
+        AddConfigRow(table, "gpustack", "embeddingModel", _config.GpuStack.EmbeddingModel);
+        AddConfigRow(table, "gpustack", "rerankModel", _config.GpuStack.RerankModel);
+        AddStatusRow(table, "gpustack", "configured", _config.GpuStack.IsConfigured);
+
+        // OpenAI configuration
+        AddSecretRow(table, "openai", "apiKey", _config.OpenAI.ApiKey);
+        AddConfigRow(table, "openai", "model", _config.OpenAI.Model);
+        AddConfigRow(table, "openai", "endpoint", _config.OpenAI.Endpoint);
+        AddStatusRow(table, "openai", "configured", _config.OpenAI.IsConfigured);
+
+        // Anthropic configuration
+        AddSecretRow(table, "anthropic", "apiKey", _config.Anthropic.ApiKey);
+        AddConfigRow(table, "anthropic", "model", _config.Anthropic.Model);
+        AddStatusRow(table, "anthropic", "configured", _config.Anthropic.IsConfigured);
+
+        // Google AI configuration
+        AddSecretRow(table, "google", "apiKey", _config.GoogleAI.ApiKey);
+        AddConfigRow(table, "google", "model", _config.GoogleAI.Model);
+        AddStatusRow(table, "google", "configured", _config.GoogleAI.IsConfigured);
+
+        // Xai configuration
+        AddConfigRow(table, "xai", "endpoint", _config.Xai.Endpoint);
+        AddSecretRow(table, "xai", "apiKey", _config.Xai.ApiKey);
+        AddConfigRow(table, "xai", "model", _config.Xai.Model);
+        AddStatusRow(table, "xai", "configured", _config.Xai.IsConfigured);
+
+        // Azure OpenAI configuration
+        AddConfigRow(table, "azure", "endpoint", _config.AzureOpenAI.Endpoint);
+        AddSecretRow(table, "azure", "apiKey", _config.AzureOpenAI.ApiKey);
+        AddConfigRow(table, "azure", "deploymentName", _config.AzureOpenAI.DeploymentName);
+        AddStatusRow(table, "azure", "configured", _config.AzureOpenAI.IsConfigured);
+
+        // Ollama configuration
+        AddBoolRow(table, "ollama", "enabled", _config.Ollama.Enabled);
+        AddConfigRow(table, "ollama", "endpoint", _config.Ollama.Endpoint);
+        AddConfigRow(table, "ollama", "model", _config.Ollama.Model);
+
+        // LMStudio configuration
+        AddBoolRow(table, "lmstudio", "enabled", _config.LMStudio.Enabled);
+        AddConfigRow(table, "lmstudio", "endpoint", _config.LMStudio.Endpoint);
+        AddConfigRow(table, "lmstudio", "model", _config.LMStudio.Model);
 
         // LMSupply configuration
-        table.AddRow("LMSupply", "enabled", _config.LMSupply.Enabled ? "[green]Yes[/]" : "[grey]No[/]");
-        table.AddRow("LMSupply", "embedder_model", _config.LMSupply.EmbedderModel);
-        table.AddRow("LMSupply", "reranker_model", _config.LMSupply.RerankerModel);
-        table.AddRow("LMSupply", "generator_model", _config.LMSupply.GeneratorModel);
-        table.AddRow("LMSupply", "max_context_length",
+        AddBoolRow(table, "lmsupply", "enabled", _config.LMSupply.Enabled);
+        AddConfigRow(table, "lmsupply", "embedderModel", _config.LMSupply.EmbedderModel);
+        AddConfigRow(table, "lmsupply", "rerankerModel", _config.LMSupply.RerankerModel);
+        AddConfigRow(table, "lmsupply", "generatorModel", _config.LMSupply.GeneratorModel);
+        table.AddRow("lmsupply", "maxContextLength",
             _config.LMSupply.MaxContextLength.HasValue
                 ? $"{_config.LMSupply.MaxContextLength.Value:N0}"
                 : "[cyan](auto)[/]");
 
         AnsiConsole.Write(table);
 
-        // Show environment variable hints
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("[bold]Environment Variables:[/]");
-        AnsiConsole.MarkupLine("[grey]  GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, GPUSTACK_MODEL[/]");
-        AnsiConsole.MarkupLine("[grey]  LMSUPPLY_ENABLED, LMSUPPLY_MAX_CONTEXT, etc.[/]");
+        AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(SettingsManager.SettingsFilePath)}[/]");
 
         return 0;
+    }
+
+    private static void AddConfigRow(Table table, string section, string key, string? value)
+    {
+        table.AddRow(section, key, value ?? "[grey](not set)[/]");
+    }
+
+    private static void AddSecretRow(Table table, string section, string key, string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            table.AddRow(section, key, "[grey](not set)[/]");
+        }
+        else
+        {
+            table.AddRow(section, key, "[green](set)[/]");
+        }
+    }
+
+    private static void AddStatusRow(Table table, string section, string key, bool value)
+    {
+        table.AddRow(section, key, value ? "[green]Yes[/]" : "[yellow]No[/]");
+    }
+
+    private static void AddBoolRow(Table table, string section, string key, bool value)
+    {
+        table.AddRow(section, key, value ? "[green]true[/]" : "[grey]false[/]");
     }
 
     private static int ShowConfigPath()
     {
-        var configDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".ironhive");
+        AnsiConsole.MarkupLine("[bold]Configuration:[/]");
+        AnsiConsole.MarkupLine($"  Settings file: [blue]{Markup.Escape(SettingsManager.SettingsFilePath)}[/]");
+        AnsiConsole.MarkupLine($"  Directory:     [blue]{Markup.Escape(SettingsManager.SettingsDirectory)}[/]");
 
-        var globalConfig = Path.Combine(configDir, "config.yaml");
-        var envFile = Path.Combine(Environment.CurrentDirectory, ".env");
-
-        AnsiConsole.MarkupLine("[bold]Configuration paths:[/]");
-        AnsiConsole.MarkupLine($"  Global config:  [blue]{globalConfig}[/]");
-        AnsiConsole.MarkupLine($"  Project .env:   [blue]{envFile}[/]");
-
-        if (File.Exists(envFile))
+        if (File.Exists(SettingsManager.SettingsFilePath))
         {
-            AnsiConsole.MarkupLine($"  Status:         [green].env found[/]");
+            AnsiConsole.MarkupLine("  Status:        [green]exists[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine($"  Status:         [yellow].env not found[/]");
+            AnsiConsole.MarkupLine("  Status:        [yellow]not created[/]");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[grey]Use 'ironhive set <key> <value>' to create settings.[/]");
         }
-
-        return 0;
-    }
-
-    private static int SetConfig(string? key, string? value)
-    {
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            AnsiConsole.MarkupLine("[red]Error: Key is required.[/]");
-            return 1;
-        }
-
-        // TODO: Implement config file writing
-        AnsiConsole.MarkupLine("[yellow]Config file writing not yet implemented.[/]");
-        AnsiConsole.MarkupLine($"Would set: [blue]{key}[/] = [green]{value ?? "(empty)"}[/]");
 
         return 0;
     }
@@ -125,7 +158,10 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
     private static int ShowHelp(string action)
     {
         AnsiConsole.MarkupLine($"[red]Unknown action: {Markup.Escape(action)}[/]");
-        AnsiConsole.MarkupLine("[grey]Available actions: show, set, path[/]");
+        AnsiConsole.MarkupLine("[grey]Available actions: show, path[/]");
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[grey]To set values, use: ironhive set <key> <value>[/]");
+        AnsiConsole.MarkupLine("[grey]To get values, use: ironhive get <key>[/]");
         return 1;
     }
 }

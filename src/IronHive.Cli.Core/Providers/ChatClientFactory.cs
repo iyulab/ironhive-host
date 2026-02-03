@@ -36,14 +36,32 @@ public sealed class ChatClientFactory : IChatClientFactory
     public string DefaultProviderName => _defaultProvider.ProviderName;
 
     /// <inheritdoc />
-    public IChatClient Create(string? modelOverride = null)
+    public async Task<IChatClient> CreateAsync(string? modelOverride = null, CancellationToken cancellationToken = default)
     {
-        var client = _defaultProvider.GetChatClient(modelOverride);
+        // Parse "Provider/Model" format (e.g., "GpuStack/gpt-oss-20b" → provider: "gpustack", model: "gpt-oss-20b")
+        if (!string.IsNullOrEmpty(modelOverride) && modelOverride.Contains('/'))
+        {
+            var parts = modelOverride.Split('/', 2);
+            if (parts.Length == 2 && !string.IsNullOrEmpty(parts[0]) && !string.IsNullOrEmpty(parts[1]))
+            {
+                var providerName = parts[0].ToLowerInvariant();
+                var modelName = parts[1];
+
+                // Check if parsed provider exists
+                if (_providers.ContainsKey(providerName))
+                {
+                    return await CreateAsync(providerName, modelName, cancellationToken);
+                }
+                // If provider not found, fall through to use default provider with full model string
+            }
+        }
+
+        var client = await _defaultProvider.GetChatClientAsync(modelOverride, cancellationToken);
         return _clientDecorator?.Invoke(client) ?? client;
     }
 
     /// <inheritdoc />
-    public IChatClient Create(string providerName, string? modelOverride)
+    public async Task<IChatClient> CreateAsync(string providerName, string? modelOverride, CancellationToken cancellationToken = default)
     {
         if (!_providers.TryGetValue(providerName.ToLowerInvariant(), out var provider))
         {
@@ -55,7 +73,54 @@ public sealed class ChatClientFactory : IChatClientFactory
             throw new InvalidOperationException($"Provider '{providerName}' is not available or configured.");
         }
 
-        var client = provider.GetChatClient(modelOverride);
+        var client = await provider.GetChatClientAsync(modelOverride, cancellationToken);
         return _clientDecorator?.Invoke(client) ?? client;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AvailableModelInfo>> GetAllAvailableModelsAsync(CancellationToken cancellationToken = default)
+    {
+        var tasks = _providers
+            .Where(p => p.Value.IsAvailable)
+            .Select(async p =>
+            {
+                try
+                {
+                    return await p.Value.GetAvailableModelsAsync(cancellationToken);
+                }
+                catch
+                {
+                    return Array.Empty<AvailableModelInfo>();
+                }
+            })
+            .ToList();
+
+        var results = await Task.WhenAll(tasks);
+        return results.SelectMany(r => r).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AvailableModelInfo>> GetAvailableModelsAsync(string providerName, CancellationToken cancellationToken = default)
+    {
+        var normalizedName = providerName.ToLowerInvariant();
+
+        if (!_providers.TryGetValue(normalizedName, out var provider))
+        {
+            return Array.Empty<AvailableModelInfo>();
+        }
+
+        if (!provider.IsAvailable)
+        {
+            return Array.Empty<AvailableModelInfo>();
+        }
+
+        try
+        {
+            return await provider.GetAvailableModelsAsync(cancellationToken);
+        }
+        catch
+        {
+            return Array.Empty<AvailableModelInfo>();
+        }
     }
 }

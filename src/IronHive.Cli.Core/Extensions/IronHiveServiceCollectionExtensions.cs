@@ -36,7 +36,8 @@ public static class IronHiveServiceCollectionExtensions
                 "Use options.UseChatClient() or options.UseChatClientFactory().");
         }
 
-        // Register IChatClient
+        // Register IChatClient or IChatClientFactory
+        // Note: IChatClient is obtained via IChatClientFactory.CreateAsync() at runtime
         if (options.ChatClient != null)
         {
             services.AddSingleton(options.ChatClient);
@@ -44,11 +45,7 @@ public static class IronHiveServiceCollectionExtensions
         else if (options.ChatClientFactory != null)
         {
             services.AddSingleton<IChatClientFactory>(options.ChatClientFactory);
-            services.AddTransient<IChatClient>(sp =>
-            {
-                var factory = sp.GetRequiredService<IChatClientFactory>();
-                return factory.Create(options.DefaultModel);
-            });
+            // Note: IChatClient is NOT registered here - use IChatClientFactory.CreateAsync() directly
         }
 
         // Register ISessionManager
@@ -69,13 +66,19 @@ public static class IronHiveServiceCollectionExtensions
             Tools = options.Tools
         });
 
-        // Register IAgentLoop (using basic AgentLoop for now)
-        services.AddTransient<IAgentLoop>(sp =>
+        // Register IAgentLoop only if IChatClient is directly configured
+        // When using IChatClientFactory, create IAgentLoop manually via:
+        //   var client = await factory.CreateAsync();
+        //   var agentLoop = new AgentLoop(client, agentOptions);
+        if (options.ChatClient != null)
         {
-            var chatClient = sp.GetRequiredService<IChatClient>();
-            var agentOptions = sp.GetRequiredService<AgentOptions>();
-            return new AgentLoop(chatClient, agentOptions);
-        });
+            services.AddTransient<IAgentLoop>(sp =>
+            {
+                var chatClient = sp.GetRequiredService<IChatClient>();
+                var agentOptions = sp.GetRequiredService<AgentOptions>();
+                return new AgentLoop(chatClient, agentOptions);
+            });
+        }
 
         return services;
     }

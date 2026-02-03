@@ -7,42 +7,33 @@ namespace IronHive.Cli.Core.Context;
 /// <summary>
 /// Token-based history compactor that protects recent tokens and important tool outputs.
 /// </summary>
-public class TokenBasedHistoryCompactor : IHistoryCompactor
+public class TokenBasedHistoryCompactor : HistoryCompactorBase
 {
-    private readonly IContextTokenCounter _tokenCounter;
-    private readonly IChatClient? _summarizer;
     private readonly CompactionConfig _config;
 
     public TokenBasedHistoryCompactor(
         IContextTokenCounter tokenCounter,
         CompactionConfig? config = null,
         IChatClient? summarizer = null)
+        : base(tokenCounter, summarizer)
     {
-        _tokenCounter = tokenCounter ?? throw new ArgumentNullException(nameof(tokenCounter));
         _config = config ?? new CompactionConfig();
-        _summarizer = summarizer;
     }
 
     /// <inheritdoc />
-    public async Task<CompactionResult> CompactAsync(
+    public override async Task<CompactionResult> CompactAsync(
         IReadOnlyList<ChatMessage> history,
         int targetTokens,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(history);
 
-        var originalTokens = _tokenCounter.CountTokens(history);
+        var originalTokens = TokenCounter.CountTokens(history);
 
         // If already within target, return as-is
         if (originalTokens <= targetTokens)
         {
-            return new CompactionResult
-            {
-                CompactedHistory = history,
-                OriginalTokens = originalTokens,
-                CompactedTokens = originalTokens,
-                MessagesCompacted = 0
-            };
+            return CreateNoOpResult(history, originalTokens);
         }
 
         // Split history into protected and prunable regions
@@ -51,8 +42,8 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         var prunableRegion = GetPrunableMessages(conversationMessages, protectedRegion.Count);
 
         // Calculate token budgets
-        var systemTokens = _tokenCounter.CountTokens(systemMessages);
-        var protectedTokens = _tokenCounter.CountTokens(protectedRegion);
+        var systemTokens = TokenCounter.CountTokens(systemMessages);
+        var protectedTokens = TokenCounter.CountTokens(protectedRegion);
         var prunableTargetTokens = Math.Max(0, targetTokens - systemTokens - protectedTokens);
 
         // Compact the prunable region
@@ -67,15 +58,7 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         compactedHistory.AddRange(compactedPrunable);
         compactedHistory.AddRange(protectedRegion);
 
-        var compactedTokens = _tokenCounter.CountTokens(compactedHistory);
-
-        return new CompactionResult
-        {
-            CompactedHistory = compactedHistory,
-            OriginalTokens = originalTokens,
-            CompactedTokens = compactedTokens,
-            MessagesCompacted = prunableRegion.Count - compactedPrunable.Count
-        };
+        return CreateResult(history, compactedHistory, originalTokens, prunableRegion.Count - compactedPrunable.Count);
     }
 
     private static (List<ChatMessage> system, List<ChatMessage> conversation) SplitSystemMessages(
@@ -108,7 +91,7 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         // Work backwards from the end to protect recent messages
         for (var i = conversation.Count - 1; i >= 0; i--)
         {
-            var messageTokens = _tokenCounter.CountTokens(conversation[i]);
+            var messageTokens = TokenCounter.CountTokens(conversation[i]);
 
             if (currentTokens + messageTokens > protectedTokens)
             {
@@ -138,7 +121,7 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
             return [];
         }
 
-        var prunableTokens = _tokenCounter.CountTokens(prunable);
+        var prunableTokens = TokenCounter.CountTokens(prunable);
 
         // If prunable already fits, return as-is
         if (prunableTokens <= targetTokens)
@@ -157,9 +140,9 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         var (importantMessages, regularMessages) = SeparateImportantMessages(prunable);
 
         // Try LLM summarization for regular messages if available
-        if (_summarizer is not null)
+        if (Summarizer is not null)
         {
-            return await SummarizeWithLlmAsync(
+            return await SummarizeImportantWithLlmAsync(
                 importantMessages,
                 regularMessages,
                 targetTokens,
@@ -167,7 +150,7 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         }
 
         // Fallback: Simple truncation
-        return TruncateMessages(importantMessages, regularMessages, targetTokens);
+        return TruncateMessagesWithImportant(importantMessages, regularMessages, targetTokens);
     }
 
     private (List<ChatMessage> important, List<ChatMessage> regular) SeparateImportantMessages(
@@ -217,13 +200,13 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         return false;
     }
 
-    private async Task<List<ChatMessage>> SummarizeWithLlmAsync(
+    private async Task<List<ChatMessage>> SummarizeImportantWithLlmAsync(
         List<ChatMessage> important,
         List<ChatMessage> regular,
         int targetTokens,
         CancellationToken cancellationToken)
     {
-        var importantTokens = _tokenCounter.CountTokens(important);
+        var importantTokens = TokenCounter.CountTokens(important);
         var regularTargetTokens = Math.Max(0, targetTokens - importantTokens);
 
         // If no room for regular messages, just return important ones
@@ -252,7 +235,7 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
 
         try
         {
-            var response = await _summarizer!.GetResponseAsync(summarizationPrompt, cancellationToken: cancellationToken);
+            var response = await Summarizer!.GetResponseAsync(summarizationPrompt, cancellationToken: cancellationToken);
             var summary = response.Text ?? string.Empty;
 
             return CreateSummaryWithImportant(important, summary);
@@ -260,7 +243,7 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         catch
         {
             // Fallback to truncation on error
-            return TruncateMessages(important, regular, targetTokens);
+            return TruncateMessagesWithImportant(important, regular, targetTokens);
         }
     }
 
@@ -295,12 +278,12 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         return result;
     }
 
-    private List<ChatMessage> TruncateMessages(
+    private List<ChatMessage> TruncateMessagesWithImportant(
         List<ChatMessage> important,
         List<ChatMessage> regular,
         int targetTokens)
     {
-        var importantTokens = _tokenCounter.CountTokens(important);
+        var importantTokens = TokenCounter.CountTokens(important);
         var regularTargetTokens = Math.Max(0, targetTokens - importantTokens);
 
         var result = new List<ChatMessage>();
@@ -315,10 +298,10 @@ public class TokenBasedHistoryCompactor : IHistoryCompactor
         result.AddRange(important);
 
         // Add regular messages from the end if there's room
-        var currentTokens = _tokenCounter.CountTokens(result);
+        var currentTokens = TokenCounter.CountTokens(result);
         for (var i = regular.Count - 1; i >= 0 && currentTokens < targetTokens; i--)
         {
-            var messageTokens = _tokenCounter.CountTokens(regular[i]);
+            var messageTokens = TokenCounter.CountTokens(regular[i]);
             if (currentTokens + messageTokens > targetTokens)
             {
                 break;

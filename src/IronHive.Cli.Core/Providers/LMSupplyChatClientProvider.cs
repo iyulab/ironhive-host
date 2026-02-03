@@ -3,6 +3,7 @@ using IronHive.Cli.Core.Config;
 using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace IronHive.Cli.Core.Providers;
 
@@ -13,15 +14,17 @@ namespace IronHive.Cli.Core.Providers;
 public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposable
 {
     private readonly LMSupplyConfig _config;
+    private readonly ILogger<LMSupplyChatClientProvider>? _logger;
     private readonly ConcurrentDictionary<string, (IGeneratorModel generator, LMSupplyChatClient client)> _clientCache = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private string? _defaultModel;
     private volatile bool _initialized;
     private bool _disposed;
 
-    public LMSupplyChatClientProvider(LMSupplyConfig config)
+    public LMSupplyChatClientProvider(LMSupplyConfig config, ILogger<LMSupplyChatClientProvider>? logger = null)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -31,15 +34,12 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
     public bool IsAvailable => _config.Enabled;
 
     /// <inheritdoc />
-    public IChatClient GetChatClient() => GetChatClient(null);
-
-    /// <inheritdoc />
-    public IChatClient GetChatClient(string? modelOverride)
+    public async Task<IChatClient> GetChatClientAsync(string? modelOverride = null, CancellationToken cancellationToken = default)
     {
         // Lazy initialization - automatically initialize if not done
         if (!_initialized)
         {
-            EnsureInitializedAsync(CancellationToken.None).GetAwaiter().GetResult();
+            await EnsureInitializedAsync(cancellationToken);
         }
 
         var model = modelOverride ?? _defaultModel!;
@@ -47,25 +47,37 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
         // Try to get from cache, or load dynamically
         if (!_clientCache.TryGetValue(model, out var cached))
         {
-            // Load new model dynamically
-            cached = LoadModelSync(model);
+            // Load new model asynchronously
+            cached = await LoadModelAsync(model, cancellationToken);
         }
 
         return cached.client;
     }
 
     /// <summary>
-    /// Synchronously loads a model (used when GetChatClient is called with a new model).
+    /// Asynchronously loads a model.
     /// </summary>
-    private (IGeneratorModel generator, LMSupplyChatClient client) LoadModelSync(string modelId)
+    private async Task<(IGeneratorModel generator, LMSupplyChatClient client)> LoadModelAsync(string modelId, CancellationToken cancellationToken)
     {
-        return _clientCache.GetOrAdd(modelId, id =>
+        // Check again in case another thread loaded it
+        if (_clientCache.TryGetValue(modelId, out var existing))
         {
-            var maxContext = GetEffectiveMaxContextLength();
-            var generator = BuildGeneratorAsync(id, maxContext, CancellationToken.None).GetAwaiter().GetResult();
-            var client = new LMSupplyChatClient(generator);
-            return (generator, client);
-        });
+            return existing;
+        }
+
+        var maxContext = GetEffectiveMaxContextLength();
+        var generator = await BuildGeneratorAsync(modelId, maxContext, cancellationToken);
+        var client = new LMSupplyChatClient(generator);
+        var result = (generator, client);
+
+        // Try to add to cache, but if another thread beat us, dispose and use theirs
+        if (!_clientCache.TryAdd(modelId, result))
+        {
+            await generator.DisposeAsync();
+            return _clientCache[modelId];
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -81,8 +93,16 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
             await EnsureInitializedAsync(cancellationToken);
             return true;
         }
-        catch
+        catch (OperationCanceledException)
         {
+            // Cancellation is expected, don't log as warning
+            return false;
+        }
+        catch (Exception ex)
+        {
+#pragma warning disable CA1848 // Use LoggerMessage delegates for performance-critical paths
+            _logger?.LogWarning(ex, "LMSupply health check failed for model: {Model}", _config.GeneratorModel);
+#pragma warning restore CA1848
             return false;
         }
     }
@@ -188,6 +208,45 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
         builder.WithMaxContextLength(maxContextLength);
 
         return await builder.BuildAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<AvailableModelInfo>> GetAvailableModelsAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsAvailable)
+        {
+            return Task.FromResult<IReadOnlyList<AvailableModelInfo>>(Array.Empty<AvailableModelInfo>());
+        }
+
+        var models = new List<AvailableModelInfo>();
+
+        // Return the configured generator model
+        var modelId = _config.GeneratorModel;
+        models.Add(new AvailableModelInfo
+        {
+            ModelId = modelId,
+            Provider = ProviderName,
+            DisplayName = GetDisplayName(modelId),
+            Source = ModelSource.Cached,
+            IsDefault = true
+        });
+
+        return Task.FromResult<IReadOnlyList<AvailableModelInfo>>(models);
+    }
+
+    private static string GetDisplayName(string modelId)
+    {
+        if (modelId == "auto" || modelId == "gguf:default")
+        {
+            return "Default Local Model (auto)";
+        }
+
+        if (modelId.StartsWith("gguf:", StringComparison.OrdinalIgnoreCase))
+        {
+            return modelId[5..];
+        }
+
+        return modelId;
     }
 
     /// <inheritdoc />

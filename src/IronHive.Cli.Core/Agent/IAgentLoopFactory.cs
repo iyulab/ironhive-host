@@ -10,15 +10,17 @@ public interface IAgentLoopFactory
     /// <summary>
     /// Creates an IAgentLoop with the default configuration.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A configured IAgentLoop instance.</returns>
-    IAgentLoop Create();
+    Task<IAgentLoop> CreateAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates an IAgentLoop with custom options.
     /// </summary>
     /// <param name="options">Options for configuring the agent loop.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A configured IAgentLoop instance.</returns>
-    IAgentLoop Create(AgentLoopFactoryOptions options);
+    Task<IAgentLoop> CreateAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

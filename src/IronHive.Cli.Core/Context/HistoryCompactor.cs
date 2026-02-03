@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Context;
@@ -29,50 +28,41 @@ public class HistoryCompactorOptions
 /// <summary>
 /// Compacts conversation history using Head/Middle/Tail strategy.
 /// </summary>
-public class HistoryCompactor : IHistoryCompactor
+public class HistoryCompactor : HistoryCompactorBase
 {
-    private readonly IContextTokenCounter _tokenCounter;
-    private readonly IChatClient? _summarizer;
     private readonly HistoryCompactorOptions _options;
 
     public HistoryCompactor(
         IContextTokenCounter tokenCounter,
         IChatClient? summarizer = null,
         HistoryCompactorOptions? options = null)
+        : base(tokenCounter, summarizer)
     {
-        _tokenCounter = tokenCounter ?? throw new ArgumentNullException(nameof(tokenCounter));
-        _summarizer = summarizer;
         _options = options ?? new HistoryCompactorOptions();
     }
 
     /// <inheritdoc />
-    public async Task<CompactionResult> CompactAsync(
+    public override async Task<CompactionResult> CompactAsync(
         IReadOnlyList<ChatMessage> history,
         int targetTokens,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(history);
 
-        var originalTokens = _tokenCounter.CountTokens(history);
+        var originalTokens = TokenCounter.CountTokens(history);
 
         // If already within target, return as-is
         if (originalTokens <= targetTokens)
         {
-            return new CompactionResult
-            {
-                CompactedHistory = history,
-                OriginalTokens = originalTokens,
-                CompactedTokens = originalTokens,
-                MessagesCompacted = 0
-            };
+            return CreateNoOpResult(history, originalTokens);
         }
 
         // Split into Head/Middle/Tail
         var (head, middle, tail) = SplitHistory(history);
 
         // Calculate token budgets
-        var headTokens = _tokenCounter.CountTokens(head);
-        var tailTokens = _tokenCounter.CountTokens(tail);
+        var headTokens = TokenCounter.CountTokens(head);
+        var tailTokens = TokenCounter.CountTokens(tail);
         var middleTargetTokens = Math.Max(0, targetTokens - headTokens - tailTokens);
 
         // Compact the middle section
@@ -87,15 +77,7 @@ public class HistoryCompactor : IHistoryCompactor
         compactedHistory.AddRange(compactedMiddle);
         compactedHistory.AddRange(tail);
 
-        var compactedTokens = _tokenCounter.CountTokens(compactedHistory);
-
-        return new CompactionResult
-        {
-            CompactedHistory = compactedHistory,
-            OriginalTokens = originalTokens,
-            CompactedTokens = compactedTokens,
-            MessagesCompacted = middle.Count - compactedMiddle.Count
-        };
+        return CreateResult(history, compactedHistory, originalTokens, middle.Count - compactedMiddle.Count);
     }
 
     private (List<ChatMessage> head, List<ChatMessage> middle, List<ChatMessage> tail) SplitHistory(
@@ -142,7 +124,7 @@ public class HistoryCompactor : IHistoryCompactor
             return [];
         }
 
-        var middleTokens = _tokenCounter.CountTokens(middle);
+        var middleTokens = TokenCounter.CountTokens(middle);
 
         // If middle already fits, return as-is
         if (middleTokens <= targetTokens)
@@ -151,91 +133,20 @@ public class HistoryCompactor : IHistoryCompactor
         }
 
         // Try LLM summarization if available
-        if (_options.UseLlmSummarization && _summarizer is not null)
+        if (_options.UseLlmSummarization && Summarizer is not null)
         {
-            return await SummarizeWithLlmAsync(middle, targetTokens, cancellationToken);
+            try
+            {
+                return await SummarizeWithLlmAsync(middle, targetTokens, cancellationToken);
+            }
+            catch
+            {
+                // Fallback to truncation on error
+                return TruncateFromBeginning(middle, targetTokens);
+            }
         }
 
         // Fallback: Simple truncation (remove oldest messages)
-        return TruncateMiddle(middle, targetTokens);
-    }
-
-    private async Task<List<ChatMessage>> SummarizeWithLlmAsync(
-        List<ChatMessage> middle,
-        int targetTokens,
-        CancellationToken cancellationToken)
-    {
-        // Build conversation text for summarization
-        var conversationText = new StringBuilder();
-        foreach (var message in middle)
-        {
-            conversationText.Append(System.Globalization.CultureInfo.InvariantCulture, $"[{message.Role}]: {message.Text}");
-            conversationText.AppendLine();
-        }
-
-        var summarizationPrompt = $"""
-            Summarize the following conversation history concisely.
-            Preserve key information: decisions made, tasks completed, important context.
-            Keep the summary under {targetTokens / 4} tokens.
-
-            Conversation:
-            {conversationText}
-
-            Summary:
-            """;
-
-        try
-        {
-            var response = await _summarizer!.GetResponseAsync(summarizationPrompt, cancellationToken: cancellationToken);
-            var summary = response.Text ?? string.Empty;
-
-            // Return as a single system-style context message
-            return
-            [
-                new ChatMessage(ChatRole.System, $"[Previous conversation summary]: {summary}")
-            ];
-        }
-        catch
-        {
-            // Fallback to truncation on error
-            return TruncateMiddle(middle, targetTokens);
-        }
-    }
-
-    private List<ChatMessage> TruncateMiddle(List<ChatMessage> middle, int targetTokens)
-    {
-        if (targetTokens <= 0)
-        {
-            // Create a minimal summary
-            return
-            [
-                new ChatMessage(ChatRole.System, "[Earlier conversation omitted due to context limits]")
-            ];
-        }
-
-        // Keep messages from the end until we hit the target
-        var result = new List<ChatMessage>();
-        var currentTokens = 0;
-
-        for (var i = middle.Count - 1; i >= 0; i--)
-        {
-            var messageTokens = _tokenCounter.CountTokens(middle[i]);
-            if (currentTokens + messageTokens > targetTokens)
-            {
-                break;
-            }
-
-            result.Insert(0, middle[i]);
-            currentTokens += messageTokens;
-        }
-
-        // Add marker if we truncated
-        if (result.Count < middle.Count)
-        {
-            var omittedCount = middle.Count - result.Count;
-            result.Insert(0, new ChatMessage(ChatRole.System, $"[{omittedCount} earlier messages omitted]"));
-        }
-
-        return result;
+        return TruncateFromBeginning(middle, targetTokens);
     }
 }

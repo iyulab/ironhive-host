@@ -4,27 +4,14 @@ namespace IronHive.Cli.Core.Providers;
 /// Composite rerank provider with automatic fallback.
 /// Tries providers in order until one succeeds.
 /// </summary>
-public sealed class FallbackRerankProvider : IRerankProvider, IDisposable
+public sealed class FallbackRerankProvider : FallbackProviderBase<IRerankProvider>, IRerankProvider
 {
-    private readonly IRerankProvider[] _providers;
-    private IRerankProvider? _activeProvider;
-    private bool _initialized;
-
-    public FallbackRerankProvider(params IRerankProvider[] providers)
+    public FallbackRerankProvider(params IRerankProvider[] providers) : base(providers)
     {
-        if (providers == null || providers.Length == 0)
-        {
-            throw new ArgumentException("At least one provider is required.", nameof(providers));
-        }
-
-        _providers = providers;
     }
 
     /// <inheritdoc />
-    public string ProviderName => _activeProvider?.ProviderName ?? "fallback";
-
-    /// <inheritdoc />
-    public bool IsAvailable => _providers.Any(p => p.IsAvailable);
+    public override string ProviderName => ActiveProvider?.ProviderName ?? "fallback";
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<RerankResult>> RerankAsync(
@@ -34,63 +21,22 @@ public sealed class FallbackRerankProvider : IRerankProvider, IDisposable
         CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken);
-        return await _activeProvider!.RerankAsync(query, documents, topK, cancellationToken);
-    }
-
-    private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
-    {
-        if (_initialized && _activeProvider != null)
-        {
-            return;
-        }
-
-        foreach (var provider in _providers)
-        {
-            if (!provider.IsAvailable)
-            {
-                continue;
-            }
-
-            try
-            {
-                // Try a simple operation to verify the provider works
-                await provider.RerankAsync("test", ["doc1", "doc2"], 1, cancellationToken);
-                _activeProvider = provider;
-                _initialized = true;
-                return;
-            }
-            catch
-            {
-                // Provider failed, try next
-            }
-        }
-
-        throw new InvalidOperationException("No available rerank provider.");
+        return await ActiveProvider!.RerankAsync(query, documents, topK, cancellationToken);
     }
 
     /// <summary>
     /// Gets the currently active provider.
     /// </summary>
-    public IRerankProvider? ActiveProvider => _activeProvider;
+    public new IRerankProvider? ActiveProvider => base.ActiveProvider;
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        foreach (var provider in _providers)
-        {
-            await provider.DisposeAsync();
-        }
-    }
+    protected override bool IsProviderAvailable(IRerankProvider provider) => provider.IsAvailable;
 
     /// <inheritdoc />
-    public void Dispose()
+    protected override async ValueTask<bool> TryInitializeProviderAsync(IRerankProvider provider, CancellationToken cancellationToken)
     {
-        foreach (var provider in _providers)
-        {
-            if (provider is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-        }
+        // Try a simple operation to verify the provider works
+        await provider.RerankAsync("test", ["doc1", "doc2"], 1, cancellationToken);
+        return true;
     }
 }

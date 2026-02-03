@@ -11,16 +11,18 @@ public interface IChatClientFactory
     /// Creates an IChatClient with optional model override.
     /// </summary>
     /// <param name="modelOverride">Model to use instead of the default. If null, uses the default model.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A configured IChatClient instance.</returns>
-    IChatClient Create(string? modelOverride = null);
+    Task<IChatClient> CreateAsync(string? modelOverride = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates an IChatClient with a specific provider and optional model override.
     /// </summary>
     /// <param name="providerName">Provider name (e.g., "gpustack", "lmsupply").</param>
     /// <param name="modelOverride">Model to use instead of the default. If null, uses the default model.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A configured IChatClient instance.</returns>
-    IChatClient Create(string providerName, string? modelOverride);
+    Task<IChatClient> CreateAsync(string providerName, string? modelOverride, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the list of available provider names.
@@ -31,6 +33,21 @@ public interface IChatClientFactory
     /// Gets the default provider name.
     /// </summary>
     string DefaultProviderName { get; }
+
+    /// <summary>
+    /// Gets available models from all configured providers.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of available models from all providers.</returns>
+    Task<IReadOnlyList<AvailableModelInfo>> GetAllAvailableModelsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets available models from a specific provider.
+    /// </summary>
+    /// <param name="providerName">Provider name (e.g., "openai", "anthropic").</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of available models from the specified provider.</returns>
+    Task<IReadOnlyList<AvailableModelInfo>> GetAvailableModelsAsync(string providerName, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

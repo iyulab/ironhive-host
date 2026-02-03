@@ -1,7 +1,10 @@
 using System.Text.Json;
+using IronHive.Cli.Core.Exceptions;
 using IronHive.Cli.Core.Permissions;
 using IronHive.Cli.Core.Webhook;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -182,6 +185,7 @@ public class ConfigurationManager
 {
     private readonly string _globalConfigPath;
     private readonly string _projectRoot;
+    private readonly ILogger<ConfigurationManager>? _logger;
     private MergedConfig? _cachedConfig;
 
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
@@ -189,9 +193,10 @@ public class ConfigurationManager
         .IgnoreUnmatchedProperties()
         .Build();
 
-    public ConfigurationManager(string? projectRoot = null)
+    public ConfigurationManager(string? projectRoot = null, ILogger<ConfigurationManager>? logger = null)
     {
         _projectRoot = projectRoot ?? Directory.GetCurrentDirectory();
+        _logger = logger;
         _globalConfigPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".ironhive",
@@ -343,7 +348,7 @@ public class ConfigurationManager
     /// </summary>
     public string ProjectConfigPath => Path.Combine(_projectRoot, ".ironhive", "config.yaml");
 
-    private static void MergeFromYaml(MergedConfig config, string path)
+    private void MergeFromYaml(MergedConfig config, string path)
     {
         try
         {
@@ -354,9 +359,23 @@ public class ConfigurationManager
                 MergeConfig(config, loaded);
             }
         }
-        catch (Exception)
+        catch (IOException ex)
         {
-            // Ignore invalid config files
+#pragma warning disable CA1848 // Use LoggerMessage delegates for performance-critical paths
+            _logger?.LogWarning(ex, "Failed to read config file: {Path}", path);
+#pragma warning restore CA1848
+        }
+        catch (YamlException ex)
+        {
+#pragma warning disable CA1848
+            _logger?.LogWarning(ex, "Failed to parse YAML config: {Path} at line {Line}", path, ex.Start.Line);
+#pragma warning restore CA1848
+        }
+        catch (Exception ex)
+        {
+#pragma warning disable CA1848
+            _logger?.LogWarning(ex, "Unexpected error loading config: {Path}", path);
+#pragma warning restore CA1848
         }
     }
 

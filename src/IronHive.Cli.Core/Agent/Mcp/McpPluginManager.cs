@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Text;
+using IronHive.Cli.Core.Exceptions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
@@ -12,10 +14,16 @@ namespace IronHive.Cli.Core.Agent.Mcp;
 public class McpPluginManager : IMcpPluginManager
 {
     private readonly ConcurrentDictionary<string, McpClientWrapper> _clients = new();
+    private readonly ILogger<McpPluginManager>? _logger;
     private bool _disposed;
 
+    public McpPluginManager(ILogger<McpPluginManager>? logger = null)
+    {
+        _logger = logger;
+    }
+
     /// <inheritdoc />
-    public IReadOnlyCollection<string> ConnectedPlugins => _clients.Keys.ToList().AsReadOnly();
+    public IReadOnlyCollection<string> ConnectedPlugins => [.. _clients.Keys];
 
     /// <inheritdoc />
     public event EventHandler<McpPluginEventArgs>? PluginConnected;
@@ -101,7 +109,9 @@ public class McpPluginManager : IMcpPluginManager
             catch (Exception ex)
             {
                 // Log but don't fail - other plugins may still work
-                System.Diagnostics.Debug.WriteLine($"Failed to list tools from '{wrapper.Name}': {ex.Message}");
+#pragma warning disable CA1848 // Use LoggerMessage delegates for performance-critical paths
+                _logger?.LogWarning(ex, "Failed to list tools from plugin '{PluginName}'", wrapper.Name);
+#pragma warning restore CA1848
             }
         }
 
@@ -207,7 +217,8 @@ public class McpPluginManager : IMcpPluginManager
         return config.Transport switch
         {
             McpTransportType.Stdio => CreateStdioTransport(name, config),
-            McpTransportType.Http => throw new NotSupportedException("HTTP transport is not yet supported."),
+            McpTransportType.Http => throw new NotSupportedException(
+                "HTTP transport is not yet supported by MCP SDK. Use stdio transport instead."),
             _ => throw new ArgumentException($"Unknown transport type: {config.Transport}")
         };
     }
