@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using IronHive.Abstractions.Catalog;
 using IronHive.Abstractions.Messages;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Adapters;
 using Microsoft.Extensions.AI;
 using TokenMeter;

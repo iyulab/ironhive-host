@@ -84,7 +84,7 @@ public class MessageGeneratorChatClientAdapter : IChatClient
         {
             if (msg.Role == ChatRole.System)
             {
-                request.SystemPrompt = msg.Text;
+                request.System = msg.Text;
             }
             else
             {

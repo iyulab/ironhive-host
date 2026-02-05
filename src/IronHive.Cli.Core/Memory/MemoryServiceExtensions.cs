@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Providers;
+using IronHive.Agent.Providers;
 using MemoryIndexer.Configuration;
 using MemoryIndexer.Interfaces;
 using MemoryIndexer.Sdk.Extensions;

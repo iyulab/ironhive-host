@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Config;
 
 namespace IronHive.Cli.Core.Providers;
@@ -27,7 +28,7 @@ public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider, IDisposable
 
         if (_config.IsConfigured)
         {
-            _httpClient.BaseAddress = new Uri(_config.Endpoint!);
+            _httpClient.BaseAddress = new Uri(_config.Endpoint!.TrimEnd('/') + "/");
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", _config.ApiKey);
         }

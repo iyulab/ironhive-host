@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Providers;
+using IronHive.Agent.Providers;
 using MemoryIndexer.Interfaces;
 
 namespace IronHive.Cli.Core.Memory;

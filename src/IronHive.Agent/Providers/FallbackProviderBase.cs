@@ -1,4 +1,4 @@
-namespace IronHive.Cli.Core.Providers;
+namespace IronHive.Agent.Providers;
 
 /// <summary>
 /// Base class for composite providers with automatic fallback.

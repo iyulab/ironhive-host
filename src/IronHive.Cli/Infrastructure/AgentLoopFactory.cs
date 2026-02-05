@@ -1,8 +1,8 @@
 using IndexThinking.Agents;
 using IndexThinking.Client;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Oops;
-using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Tools;
 
 namespace IronHive.Cli.Infrastructure;

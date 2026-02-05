@@ -1,4 +1,4 @@
-namespace IronHive.Cli.Core.Providers;
+namespace IronHive.Agent.Providers;
 
 /// <summary>
 /// Composite embedding provider with automatic fallback.

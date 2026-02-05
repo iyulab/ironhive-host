@@ -1,6 +1,6 @@
 using System.ComponentModel;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Config;
-using IronHive.Cli.Core.Providers;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

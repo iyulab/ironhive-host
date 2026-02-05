@@ -3,6 +3,7 @@ using IndexThinking.Extensions;
 using IronHive.Abstractions;
 using IronHive.Abstractions.Catalog;
 using IronHive.Abstractions.Messages;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
@@ -108,6 +109,27 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Normalizes an endpoint URL by ensuring a trailing slash
+    /// and optionally appending a required path suffix if not already present.
+    /// Handles all combinations: with/without trailing slash, with/without path suffix.
+    /// </summary>
+    private static string NormalizeEndpoint(string endpoint, string? requiredSuffix = null)
+    {
+        var trimmed = endpoint.TrimEnd('/');
+
+        if (requiredSuffix is not null)
+        {
+            var suffix = requiredSuffix.Trim('/');
+            if (!trimmed.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                trimmed = trimmed + "/" + suffix;
+            }
+        }
+
+        return trimmed + "/";
+    }
+
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
         // Build IHiveService with ironhive providers
@@ -119,7 +141,7 @@ public static class ServiceCollectionExtensions
         {
             var gpuStackConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
-                BaseUrl = config.GpuStack.Endpoint!.TrimEnd('/') + "/v1-openai/",
+                BaseUrl = NormalizeEndpoint(config.GpuStack.Endpoint!, "v1-openai"),
                 ApiKey = config.GpuStack.ApiKey!
             };
             hiveBuilder.AddOpenAIProviders("gpustack", gpuStackConfig, OpenAIServiceType.ChatCompletion);
@@ -130,7 +152,7 @@ public static class ServiceCollectionExtensions
         {
             var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
-                BaseUrl = config.OpenAI.Endpoint ?? "https://api.openai.com/v1/",
+                BaseUrl = NormalizeEndpoint(config.OpenAI.Endpoint ?? "https://api.openai.com/v1"),
                 ApiKey = config.OpenAI.ApiKey!
             };
             hiveBuilder.AddOpenAIProviders("openai", openAIConfig, OpenAIServiceType.ChatCompletion | OpenAIServiceType.Embeddings);
@@ -164,7 +186,7 @@ public static class ServiceCollectionExtensions
         {
             var xaiConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
-                BaseUrl = config.Xai.Endpoint.TrimEnd('/') + "/",
+                BaseUrl = NormalizeEndpoint(config.Xai.Endpoint),
                 ApiKey = config.Xai.ApiKey!
             };
             hiveBuilder.AddOpenAIProviders("xai", xaiConfig, OpenAIServiceType.ChatCompletion);
@@ -175,7 +197,7 @@ public static class ServiceCollectionExtensions
         {
             var ollamaConfig = new IronHive.Providers.Ollama.OllamaConfig
             {
-                BaseUrl = config.Ollama.Endpoint.TrimEnd('/') + "/api/"
+                BaseUrl = NormalizeEndpoint(config.Ollama.Endpoint, "api")
             };
             hiveBuilder.AddOllamaProviders("ollama", ollamaConfig);
         }
@@ -185,7 +207,7 @@ public static class ServiceCollectionExtensions
         {
             var lmStudioConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
-                BaseUrl = config.LMStudio.Endpoint.TrimEnd('/') + "/",
+                BaseUrl = NormalizeEndpoint(config.LMStudio.Endpoint),
                 ApiKey = "lm-studio"
             };
             hiveBuilder.AddOpenAIProviders("lmstudio", lmStudioConfig, OpenAIServiceType.ChatCompletion);

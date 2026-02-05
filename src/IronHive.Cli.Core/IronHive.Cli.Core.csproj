@@ -50,6 +50,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- IronHive.Agent (reusable agent layer) -->
+    <ProjectReference Include="..\IronHive.Agent\IronHive.Agent.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- IronHive (LLM abstraction) -->
     <PackageReference Include="IronHive.Abstractions" />
     <PackageReference Include="IronHive.Core" />

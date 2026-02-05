@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace IronHive.Cli.Core.Providers;
+namespace IronHive.Agent.Providers;
 
 /// <summary>
 /// Default implementation of IChatClientFactory.

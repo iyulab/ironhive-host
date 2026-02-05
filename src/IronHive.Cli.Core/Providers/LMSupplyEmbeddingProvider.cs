@@ -1,3 +1,4 @@
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Config;
 using LMSupply.Embedder;
 

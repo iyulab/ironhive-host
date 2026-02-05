@@ -1,4 +1,4 @@
-namespace IronHive.Cli.Core.Providers;
+namespace IronHive.Agent.Providers;
 
 /// <summary>
 /// Composite rerank provider with automatic fallback.
