@@ -1,0 +1,60 @@
+# MCP Plugins Configuration for IronHive CLI
+# Copy this file to .ironhive/plugins.yaml in your project or home directory.
+#
+# Supported locations (searched in order):
+#   .ironhive/plugins.yaml
+#   .ironhive/plugins.yml
+#   .ironhive/plugins.json
+#   plugins.yaml
+
+# Default settings
+autoConnect: true
+defaultTimeoutMs: 30000
+
+plugins:
+  # ============================================================
+  # system-harness: Computer control via MCP
+  # ============================================================
+  # 174 commands for file, app, screen, keyboard, mouse, etc.
+  # Uses 3-tool dispatch pattern: help, do, get
+  #
+  # Quick start:
+  #   help()           → see 25 categories
+  #   help("file")     → see file commands
+  #   do("file.write", '{"path":"hello.txt","content":"Hello!"}')
+  #   get("window.list")
+  #
+  system-harness:
+    transport: stdio
+    command: dotnet
+    arguments:
+      - run
+      - --project
+      - tools/system-harness/src/SystemHarness.Mcp
+    timeoutMs: 60000
+
+  # ============================================================
+  # system-harness (published executable, faster startup)
+  # ============================================================
+  # If you've built system-harness as a standalone executable:
+  #
+  # system-harness:
+  #   transport: stdio
+  #   command: C:/tools/system-harness/SystemHarness.Mcp.exe
+  #   timeoutMs: 60000
+
+  # ============================================================
+  # Example: Other MCP servers
+  # ============================================================
+  # memory-indexer:
+  #   transport: stdio
+  #   command: dotnet
+  #   arguments:
+  #     - run
+  #     - --project
+  #     - modules/memory-indexer/src/MemoryIndexer.Server
+
+  # remote-mcp-server:
+  #   transport: http
+  #   url: http://localhost:3000/mcp
+  #   timeoutMs: 30000

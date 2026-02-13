@@ -71,6 +71,11 @@ public class PermissionConfig
             new() { Pattern = "sudo *", Action = PermissionAction.Deny, Priority = 100, Reason = "Elevated privileges" },
             new() { Pattern = "curl * | *sh*", Action = PermissionAction.Deny, Priority = 100, Reason = "Remote code execution" }
         ],
+        McpTools =
+        [
+            new() { Pattern = "*_help", Action = PermissionAction.Allow, Priority = 0, Reason = "Read-only help command" },
+            new() { Pattern = "*_get", Action = PermissionAction.Allow, Priority = 0, Reason = "Read-only query command" }
+        ],
         DefaultAction = PermissionAction.Ask
     };
 

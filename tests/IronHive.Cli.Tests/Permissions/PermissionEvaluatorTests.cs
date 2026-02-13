@@ -358,4 +358,49 @@ public class PermissionEvaluatorTests
     }
 
     #endregion
+
+    #region MCP Tool Permission Tests
+
+    [Theory]
+    [InlineData("system-harness_help", PermissionAction.Allow)]
+    [InlineData("system-harness_get", PermissionAction.Allow)]
+    [InlineData("system-harness_do", PermissionAction.Ask)]
+    [InlineData("memory-indexer_help", PermissionAction.Allow)]
+    [InlineData("memory-indexer_get", PermissionAction.Allow)]
+    [InlineData("unknown_tool", PermissionAction.Ask)]
+    public void DefaultConfig_McpTools_AppliesCorrectRules(string toolName, PermissionAction expected)
+    {
+        var result = _evaluator.EvaluateMcpTool(toolName);
+        Assert.Equal(expected, result.Action);
+    }
+
+    [Fact]
+    public void McpTool_CustomDenyRule_OverridesDefault()
+    {
+        // Arrange
+        var config = new PermissionConfig
+        {
+            McpTools =
+            [
+                new() { Pattern = "*_help", Action = PermissionAction.Allow, Priority = 0 },
+                new() { Pattern = "dangerous_*", Action = PermissionAction.Deny, Priority = 10 }
+            ],
+            DefaultAction = PermissionAction.Ask
+        };
+        var evaluator = new PermissionEvaluator(config);
+
+        // Act & Assert
+        Assert.Equal(PermissionAction.Allow, evaluator.EvaluateMcpTool("safe_help").Action);
+        Assert.Equal(PermissionAction.Deny, evaluator.EvaluateMcpTool("dangerous_tool").Action);
+        Assert.Equal(PermissionAction.Ask, evaluator.EvaluateMcpTool("other_tool").Action);
+    }
+
+    [Fact]
+    public void McpTool_GenericEvaluate_RoutesToMcpToolRules()
+    {
+        var result = _evaluator.Evaluate("mcp", "system-harness_help");
+        Assert.Equal(PermissionAction.Allow, result.Action);
+    }
+
+    #endregion
 }

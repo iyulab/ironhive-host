@@ -4,27 +4,27 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.4.2" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.2.0-preview.1.26063.2" />
+    <PackageVersion Include="Ironbees.Core" Version="0.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
     <!-- OpenAI SDK -->
-    <PackageVersion Include="ModelContextProtocol" Version="0.7.0-preview.1" />
+    <PackageVersion Include="ModelContextProtocol" Version="0.8.0-preview.1" />
     <PackageVersion Include="OpenAI" Version="2.8.0" />
     <!-- DI & Hosting (.NET 10) -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.3" />
     <!-- CLI & Console -->
     <PackageVersion Include="Spectre.Console" Version="0.54.0" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.53.1" />
     <!-- Diff -->
     <PackageVersion Include="DiffPlex" Version="1.9.0" />
     <!-- Glob -->
-    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.3" />
     <!-- YAML Config -->
     <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <!-- .env support -->
@@ -34,17 +34,21 @@
     <PackageVersion Include="LMSupply.Reranker" Version="0.13.1" />
     <PackageVersion Include="LMSupply.Generator" Version="0.13.1" />
     <!-- IndexThinking (token management, reasoning extraction) -->
-    <PackageVersion Include="IndexThinking" Version="0.15.0" />
+    <PackageVersion Include="IndexThinking" Version="0.16.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
-    <PackageVersion Include="MemoryIndexer" Version="0.13.0" />
-    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.0" />
+    <PackageVersion Include="MemoryIndexer" Version="0.13.1" />
+    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.1" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.3.0" />
-    <PackageVersion Include="IronHive.Core" Version="0.3.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.3.0" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.3.0" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.3.0" />
-    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.3.0" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.3.3" />
+    <PackageVersion Include="IronHive.Core" Version="0.3.3" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.3.3" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.3.3" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.3.3" />
+    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.3.3" />
+    <!-- WebLookup (web search) -->
+    <PackageVersion Include="WebLookup" Version="0.2.0" />
+    <!-- IronHive.DeepResearch (deep research agent) -->
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.0" />
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

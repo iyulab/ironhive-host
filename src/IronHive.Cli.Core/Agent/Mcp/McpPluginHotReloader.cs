@@ -1,15 +1,18 @@
+using Microsoft.Extensions.Logging;
+
 namespace IronHive.Cli.Core.Agent.Mcp;
 
 /// <summary>
 /// Watches for configuration file changes and reloads plugins automatically.
 /// Provides hot reload capability for MCP plugins.
 /// </summary>
-public class McpPluginHotReloader : IAsyncDisposable
+public partial class McpPluginHotReloader : IAsyncDisposable
 {
     private readonly IMcpPluginManager _pluginManager;
     private readonly string _watchDirectory;
     private readonly FileSystemWatcher? _watcher;
     private readonly HashSet<string> _excludedPlugins;
+    private readonly ILogger<McpPluginHotReloader>? _logger;
     private McpPluginsConfig _currentConfig;
     private bool _disposed;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
@@ -35,12 +38,14 @@ public class McpPluginHotReloader : IAsyncDisposable
         IMcpPluginManager pluginManager,
         McpPluginsConfig initialConfig,
         string? watchDirectory = null,
-        bool enableFileWatcher = true)
+        bool enableFileWatcher = true,
+        ILogger<McpPluginHotReloader>? logger = null)
     {
         _pluginManager = pluginManager ?? throw new ArgumentNullException(nameof(pluginManager));
         _currentConfig = initialConfig ?? throw new ArgumentNullException(nameof(initialConfig));
         _watchDirectory = watchDirectory ?? Directory.GetCurrentDirectory();
         _excludedPlugins = new HashSet<string>(initialConfig.ExcludePlugins);
+        _logger = logger;
 
         if (enableFileWatcher && Directory.Exists(_watchDirectory))
         {
@@ -72,10 +77,10 @@ public class McpPluginHotReloader : IAsyncDisposable
             {
                 await _pluginManager.ConnectAsync(name, config, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Log but don't fail - other plugins may still work
-                System.Diagnostics.Debug.WriteLine($"Failed to connect plugin '{name}': {ex.Message}");
+                LogPluginConnectionFailed(_logger, name, ex);
             }
         }
     }
@@ -142,9 +147,9 @@ public class McpPluginHotReloader : IAsyncDisposable
                         await _pluginManager.ConnectAsync(name, config, cancellationToken);
                         added.Add(name);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Failed to connect plugin '{name}': {ex.Message}");
+                        LogPluginConnectionFailed(_logger, name, ex);
                     }
                 }
             }
@@ -329,6 +334,9 @@ public class McpPluginHotReloader : IAsyncDisposable
 
         GC.SuppressFinalize(this);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to connect plugin '{PluginName}'")]
+    private static partial void LogPluginConnectionFailed(ILogger? logger, string pluginName, Exception ex);
 }
 
 /// <summary>

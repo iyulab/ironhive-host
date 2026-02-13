@@ -5,12 +5,14 @@ using IronHive.Abstractions.Catalog;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Agent;
+using IronHive.Cli.Core.Agent.Mcp;
 using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Memory;
 using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Session;
+using IronHive.Cli.Core.Tools;
 using IronHive.Cli.Core.Update;
 using IronHive.Core;
 using IronHive.Providers.Anthropic;
@@ -19,6 +21,8 @@ using IronHive.Providers.Ollama;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using WebLookup;
 using CliConfig = IronHive.Cli.Core.Config;
 
 namespace IronHive.Cli.Infrastructure;
@@ -54,6 +58,19 @@ public static class ServiceCollectionExtensions
         // Note: IChatClient is obtained via IChatClientFactory.CreateAsync() at runtime
         // This avoids synchronous blocking during DI resolution
 
+        // Register WebLookup services (web search + site exploration)
+        RegisterWebLookup(services, config);
+
+        // Register DeepResearch tool (autonomous research agent)
+        RegisterDeepResearch(services, config);
+
+        // Register MCP plugin manager for external tool integration
+        services.AddSingleton<IMcpPluginManager>(sp =>
+        {
+            var logger = sp.GetService<ILogger<McpPluginManager>>();
+            return new McpPluginManager(logger);
+        });
+
         // Register IndexThinking services
         services.AddIndexThinkingAgents();
         services.AddIndexThinkingInMemoryStorage();
@@ -70,8 +87,12 @@ public static class ServiceCollectionExtensions
             var clientFactory = sp.GetRequiredService<IChatClientFactory>();
             var turnManager = sp.GetRequiredService<IThinkingTurnManager>();
             var oopsService = sp.GetService<IOopsService>();
+            var webSearchTool = sp.GetService<WebSearchTool>();
+            var deepResearchTool = sp.GetService<DeepResearchTool>();
+            var mcpPluginManager = sp.GetService<IMcpPluginManager>();
+            var logger = sp.GetService<ILogger<AgentLoopFactory>>();
 
-            return new AgentLoopFactory(clientFactory, turnManager, oopsService);
+            return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger);
         });
 
         // Register usage tracker for session-level token tracking
@@ -128,6 +149,68 @@ public static class ServiceCollectionExtensions
         }
 
         return trimmed + "/";
+    }
+
+    private static void RegisterWebLookup(IServiceCollection services, IronHiveConfig config)
+    {
+        if (!config.WebSearch.Enabled)
+        {
+            return;
+        }
+
+        services.AddWebLookup(builder =>
+        {
+            // DuckDuckGo is always available (no API key required)
+            if (!string.IsNullOrEmpty(config.WebSearch.DuckDuckGoRegion))
+            {
+                builder.AddDuckDuckGo(config.WebSearch.DuckDuckGoRegion);
+            }
+            else
+            {
+                builder.AddDuckDuckGo();
+            }
+
+            // Tavily (optional, requires API key)
+            if (!string.IsNullOrEmpty(config.WebSearch.TavilyApiKey))
+            {
+                builder.AddTavily(config.WebSearch.TavilyApiKey);
+            }
+
+            // SearchApi (optional, requires API key)
+            if (!string.IsNullOrEmpty(config.WebSearch.SearchApiKey))
+            {
+                builder.AddSearchApi(config.WebSearch.SearchApiKey, config.WebSearch.SearchApiEngine);
+            }
+        });
+
+        // Register WebSearchTool
+        services.AddSingleton(sp =>
+        {
+            var searchClient = sp.GetRequiredService<WebSearchClient>();
+            var siteExplorer = sp.GetRequiredService<SiteExplorer>();
+            return new WebSearchTool(
+                searchClient,
+                siteExplorer,
+                config.WebSearch.DefaultMaxResults,
+                config.WebSearch.MaxSitemapEntries);
+        });
+    }
+
+    private static void RegisterDeepResearch(IServiceCollection services, IronHiveConfig config)
+    {
+        if (!config.DeepResearch.Enabled)
+        {
+            return;
+        }
+
+        // Resolve Tavily API key: DeepResearch config > WebSearch config
+        var tavilyApiKey = config.DeepResearch.TavilyApiKey ?? config.WebSearch.TavilyApiKey;
+
+        services.AddSingleton(sp =>
+        {
+            var clientFactory = sp.GetRequiredService<IChatClientFactory>();
+            return new DeepResearchTool(clientFactory, config.DeepResearch, tavilyApiKey);
+        });
     }
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)

@@ -31,12 +31,29 @@ public static class BuiltInTools
     /// <returns>List of AI tools.</returns>
     public static IList<AITool> GetAll(string? workingDirectory, IOopsService? oopsService)
     {
+        return GetAll(workingDirectory, oopsService, webSearchTool: null, deepResearchTool: null);
+    }
+
+    /// <summary>
+    /// Gets all built-in tools with oops versioning and web search support.
+    /// </summary>
+    /// <param name="workingDirectory">Working directory for tools.</param>
+    /// <param name="oopsService">Optional oops service for file versioning.</param>
+    /// <param name="webSearchTool">Optional web search tool instance.</param>
+    /// <param name="deepResearchTool">Optional deep research tool instance.</param>
+    /// <returns>List of AI tools.</returns>
+    public static IList<AITool> GetAll(
+        string? workingDirectory,
+        IOopsService? oopsService,
+        WebSearchTool? webSearchTool,
+        DeepResearchTool? deepResearchTool = null)
+    {
         var wd = workingDirectory ?? Directory.GetCurrentDirectory();
         var tools = new ToolProvider(wd, oopsService);
         var todoTool = new TodoTool(wd);
 
-        return
-        [
+        var toolList = new List<AITool>
+        {
             AIFunctionFactory.Create(tools.ReadFile),
             AIFunctionFactory.Create(tools.WriteFile),
             AIFunctionFactory.Create(tools.ListDirectory),
@@ -44,7 +61,20 @@ public static class BuiltInTools
             AIFunctionFactory.Create(tools.GrepFiles),
             AIFunctionFactory.Create(tools.ExecuteCommand),
             todoTool.GetAITool()
-        ];
+        };
+
+        if (webSearchTool is not null)
+        {
+            toolList.Add(AIFunctionFactory.Create(webSearchTool.WebSearch));
+            toolList.Add(AIFunctionFactory.Create(webSearchTool.ExploreSite));
+        }
+
+        if (deepResearchTool is not null)
+        {
+            toolList.Add(AIFunctionFactory.Create(deepResearchTool.DeepResearch));
+        }
+
+        return toolList;
     }
 
     /// <summary>
@@ -67,9 +97,22 @@ public static class BuiltInTools
     /// <returns>List of AI tools.</returns>
     public static IList<AITool> GetAll(string? workingDirectory, ISubAgentService subAgentService, IOopsService? oopsService)
     {
+        return GetAll(workingDirectory, subAgentService, oopsService, webSearchTool: null, deepResearchTool: null);
+    }
+
+    /// <summary>
+    /// Gets all built-in tools including sub-agent, oops, web search, and deep research.
+    /// </summary>
+    public static IList<AITool> GetAll(
+        string? workingDirectory,
+        ISubAgentService subAgentService,
+        IOopsService? oopsService,
+        WebSearchTool? webSearchTool,
+        DeepResearchTool? deepResearchTool = null)
+    {
         ArgumentNullException.ThrowIfNull(subAgentService);
 
-        var tools = GetAll(workingDirectory, oopsService).ToList();
+        var tools = GetAll(workingDirectory, oopsService, webSearchTool, deepResearchTool).ToList();
         var subAgentTool = new SubAgentTool(subAgentService);
         tools.AddRange(subAgentTool.GetAITools());
 

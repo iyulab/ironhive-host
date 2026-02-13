@@ -1,0 +1,33 @@
+{
+  "gpuStack": {
+    "endpoint": "http://172.30.1.53:8080",
+    "apiKey": "gpustack_xxxxx",
+    "model": "gpt-oss-20b"
+  },
+  "webSearch": {
+    "enabled": true,
+    "defaultMaxResults": 10,
+    "maxSitemapEntries": 50,
+    "duckDuckGoRegion": "kr-kr",
+    "tavilyApiKey": null,
+    "searchApiKey": null,
+    "searchApiEngine": "google"
+  },
+  "compaction": {
+    "protectRecentTokens": 40000,
+    "minimumPruneTokens": 20000,
+    "targetRatio": 0.7,
+    "useTokenBasedCompaction": true
+  },
+  "subAgent": {
+    "maxDepth": 2,
+    "maxConcurrent": 3
+  },
+  "deepResearch": {
+    "enabled": false,
+    "tavilyApiKey": null,
+    "maxIterations": 5,
+    "provider": null,
+    "model": null
+  }
+}

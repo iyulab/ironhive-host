@@ -1,4 +1,7 @@
+using IronHive.Agent.Providers;
+using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Tools;
+using NSubstitute;
 
 namespace IronHive.Cli.Tests.Tools;
 
@@ -175,5 +178,61 @@ public class BuiltInToolsTests : IDisposable
 
         // Assert
         Assert.Equal(7, tools.Count); // ReadFile, WriteFile, ListDirectory, GlobFiles, GrepFiles, ExecuteCommand, ManageTodo
+    }
+
+    [Fact]
+    public void GetAll_WithWebSearchTool_ReturnsNineTools()
+    {
+        // Arrange
+        using var searchClient = new WebLookup.WebSearchClient();
+        using var siteExplorer = new WebLookup.SiteExplorer();
+        using var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
+
+        // Act
+        var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool);
+
+        // Assert — 7 base tools + WebSearch + ExploreSite
+        Assert.Equal(9, tools.Count);
+    }
+
+    [Fact]
+    public void GetAll_WithNullWebSearchTool_ReturnsSevenTools()
+    {
+        // Act
+        var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: null);
+
+        // Assert
+        Assert.Equal(7, tools.Count);
+    }
+
+    [Fact]
+    public void GetAll_WithDeepResearchTool_ReturnsTenTools()
+    {
+        // Arrange
+        using var searchClient = new WebLookup.WebSearchClient();
+        using var siteExplorer = new WebLookup.SiteExplorer();
+        using var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
+        var mockFactory = Substitute.For<IChatClientFactory>();
+        var deepResearchTool = new DeepResearchTool(mockFactory, new DeepResearchConfig());
+
+        // Act
+        var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool, deepResearchTool: deepResearchTool);
+
+        // Assert — 7 base + WebSearch + ExploreSite + DeepResearch
+        Assert.Equal(10, tools.Count);
+    }
+
+    [Fact]
+    public void GetAll_WithDeepResearchOnly_ReturnsEightTools()
+    {
+        // Arrange
+        var mockFactory = Substitute.For<IChatClientFactory>();
+        var deepResearchTool = new DeepResearchTool(mockFactory, new DeepResearchConfig());
+
+        // Act
+        var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: null, deepResearchTool: deepResearchTool);
+
+        // Assert — 7 base + DeepResearch
+        Assert.Equal(8, tools.Count);
     }
 }

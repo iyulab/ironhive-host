@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace IronHive.Cli.Core.Agent.Mcp;
 
 /// <summary>
@@ -31,7 +33,7 @@ public record McpPluginsConfig
 /// <summary>
 /// Extension methods for loading MCP plugin configurations.
 /// </summary>
-public static class McpPluginsConfigExtensions
+public static partial class McpPluginsConfigExtensions
 {
     /// <summary>
     /// Loads plugins from configuration into the manager.
@@ -42,6 +44,7 @@ public static class McpPluginsConfigExtensions
     public static async Task LoadFromConfigAsync(
         this IMcpPluginManager manager,
         McpPluginsConfig config,
+        ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(manager, nameof(manager));
@@ -71,11 +74,14 @@ public static class McpPluginsConfigExtensions
             {
                 await manager.ConnectAsync(name, effectiveConfig, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Log but continue with other plugins
-                System.Diagnostics.Debug.WriteLine($"Failed to connect plugin '{name}': {ex.Message}");
+                LogPluginConnectionFailed(logger, name, ex);
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to connect plugin '{PluginName}'")]
+    private static partial void LogPluginConnectionFailed(ILogger? logger, string pluginName, Exception ex);
 }

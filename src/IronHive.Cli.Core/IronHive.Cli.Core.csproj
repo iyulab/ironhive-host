@@ -30,6 +30,12 @@
     <!-- .env support -->
     <PackageReference Include="DotNetEnv" />
 
+    <!-- WebLookup (web search + site exploration) -->
+    <PackageReference Include="WebLookup" />
+
+    <!-- DeepResearch (autonomous research agent) -->
+    <PackageReference Include="IronHive.DeepResearch" />
+
     <!-- LMSupply (local AI fallback) -->
     <PackageReference Include="LMSupply.Embedder" />
     <PackageReference Include="LMSupply.Reranker" />

@@ -67,6 +67,16 @@ public class IronHiveConfig
     /// Sub-agent configuration.
     /// </summary>
     public SubAgentConfig SubAgent { get; set; } = new();
+
+    /// <summary>
+    /// WebLookup web search configuration.
+    /// </summary>
+    public WebSearchConfig WebSearch { get; set; } = new();
+
+    /// <summary>
+    /// DeepResearch configuration.
+    /// </summary>
+    public DeepResearchConfig DeepResearch { get; set; } = new();
 }
 
 /// <summary>
@@ -443,4 +453,80 @@ public class LMStudioConfig
     /// Gets whether LMStudio is configured and enabled.
     /// </summary>
     public bool IsConfigured => Enabled && !string.IsNullOrEmpty(Endpoint);
+}
+
+/// <summary>
+/// WebLookup web search configuration.
+/// </summary>
+public class WebSearchConfig
+{
+    /// <summary>
+    /// Whether web search tools are enabled.
+    /// Default: true (uses DuckDuckGo which requires no API key).
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Default maximum search results.
+    /// </summary>
+    public int DefaultMaxResults { get; set; } = 10;
+
+    /// <summary>
+    /// Maximum sitemap entries to return.
+    /// </summary>
+    public int MaxSitemapEntries { get; set; } = 50;
+
+    /// <summary>
+    /// DuckDuckGo region (e.g., "wt-wt" for worldwide, "kr-kr" for Korea).
+    /// </summary>
+    public string? DuckDuckGoRegion { get; set; }
+
+    /// <summary>
+    /// Tavily API key (optional, enables Tavily search).
+    /// </summary>
+    public string? TavilyApiKey { get; set; }
+
+    /// <summary>
+    /// SearchApi API key (optional, enables SearchApi search).
+    /// </summary>
+    public string? SearchApiKey { get; set; }
+
+    /// <summary>
+    /// SearchApi engine (default: "google").
+    /// </summary>
+    public string SearchApiEngine { get; set; } = "google";
+}
+
+/// <summary>
+/// DeepResearch autonomous research configuration.
+/// </summary>
+public class DeepResearchConfig
+{
+    /// <summary>
+    /// Whether DeepResearch tools are enabled.
+    /// Requires a Tavily API key for search functionality.
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Tavily API key for DeepResearch search. Falls back to WebSearch.TavilyApiKey if not set.
+    /// </summary>
+    public string? TavilyApiKey { get; set; }
+
+    /// <summary>
+    /// Maximum research iterations per query.
+    /// </summary>
+    public int MaxIterations { get; set; } = 5;
+
+    /// <summary>
+    /// Provider name for the research LLM (e.g., "openai", "anthropic").
+    /// If not set, uses the default provider.
+    /// </summary>
+    public string? Provider { get; set; }
+
+    /// <summary>
+    /// Model name for the research LLM.
+    /// If not set, uses the provider's default model.
+    /// </summary>
+    public string? Model { get; set; }
 }
