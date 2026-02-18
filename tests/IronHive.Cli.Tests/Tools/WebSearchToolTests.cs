@@ -31,7 +31,9 @@ public class WebSearchToolTests : IDisposable
 
     public void Dispose()
     {
-        _tool.Dispose();
+        _mockHandler.Dispose();
+        _searchClient.Dispose();
+        _siteExplorer.Dispose();
         GC.SuppressFinalize(this);
     }
 

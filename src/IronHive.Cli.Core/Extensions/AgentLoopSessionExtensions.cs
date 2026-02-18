@@ -32,7 +32,7 @@ public static class AgentLoopSessionExtensions
             ?? throw new SessionNotFoundException(sessionId);
 
         var messages = await sessionManager.RestoreContextAsync(session);
-        agentLoop.InitializeHistory(messages);
+        await agentLoop.InitializeHistoryAsync(messages);
 
         return session;
     }
@@ -65,14 +65,14 @@ public static class AgentLoopSessionExtensions
             if (session != null)
             {
                 var messages = await sessionManager.RestoreContextAsync(session);
-                agentLoop.InitializeHistory(messages);
+                await agentLoop.InitializeHistoryAsync(messages);
                 return session;
             }
         }
 
         // Create new session
         session = await sessionManager.CreateSessionAsync(projectPath, model);
-        agentLoop.ClearHistory();
+        await agentLoop.ClearHistoryAsync();
 
         return session;
     }

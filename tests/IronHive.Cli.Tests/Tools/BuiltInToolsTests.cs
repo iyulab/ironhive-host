@@ -186,7 +186,7 @@ public class BuiltInToolsTests : IDisposable
         // Arrange
         using var searchClient = new WebLookup.WebSearchClient();
         using var siteExplorer = new WebLookup.SiteExplorer();
-        using var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
+        var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
 
         // Act
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool);
@@ -211,7 +211,7 @@ public class BuiltInToolsTests : IDisposable
         // Arrange
         using var searchClient = new WebLookup.WebSearchClient();
         using var siteExplorer = new WebLookup.SiteExplorer();
-        using var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
+        var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
         var mockFactory = Substitute.For<IChatClientFactory>();
         var deepResearchTool = new DeepResearchTool(mockFactory, new DeepResearchConfig());
 

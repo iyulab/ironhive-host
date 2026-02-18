@@ -75,7 +75,7 @@ public class McpPluginHotReloader : IAsyncDisposable
             catch (Exception ex)
             {
                 // Log but don't fail - other plugins may still work
-                System.Diagnostics.Debug.WriteLine($"Failed to connect plugin '{name}': {ex.Message}");
+                System.Diagnostics.Trace.TraceWarning($"Failed to connect plugin '{name}': {ex.Message}");
             }
         }
     }
@@ -144,7 +144,7 @@ public class McpPluginHotReloader : IAsyncDisposable
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Failed to connect plugin '{name}': {ex.Message}");
+                        System.Diagnostics.Trace.TraceWarning($"Failed to connect plugin '{name}': {ex.Message}");
                     }
                 }
             }

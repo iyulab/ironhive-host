@@ -22,7 +22,7 @@ public class AgentLoopFactoryTests
         // Arrange
         using var searchClient = new WebLookup.WebSearchClient();
         using var siteExplorer = new WebLookup.SiteExplorer();
-        using var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
+        var webSearchTool = new WebSearchTool(searchClient, siteExplorer);
 
         // Act
         var tools = BuiltInTools.GetAll(

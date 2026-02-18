@@ -25,7 +25,10 @@ foreach (var envFile in envFiles)
     Env.Load(envFile);
     Console.WriteLine($"설정 로드: {envFile}");
 }
-if (envFiles.Count > 0) Console.WriteLine();
+if (envFiles.Count > 0)
+{
+    Console.WriteLine();
+}
 
 // GPUSTACK_* → OPENAI_* 매핑 (fallback)
 MapGpuStackToOpenAI();
@@ -37,21 +40,27 @@ static void MapGpuStackToOpenAI()
     {
         var gpuKey = Environment.GetEnvironmentVariable("GPUSTACK_API_KEY");
         if (!string.IsNullOrEmpty(gpuKey))
+        {
             Environment.SetEnvironmentVariable("OPENAI_API_KEY", gpuKey);
+        }
     }
 
     if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_ENDPOINT")))
     {
         var gpuEndpoint = Environment.GetEnvironmentVariable("GPUSTACK_ENDPOINT");
         if (!string.IsNullOrEmpty(gpuEndpoint))
+        {
             Environment.SetEnvironmentVariable("OPENAI_ENDPOINT", gpuEndpoint.TrimEnd('/') + "/v1");
+        }
     }
 
     if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_MODEL")))
     {
         var gpuModel = Environment.GetEnvironmentVariable("GPUSTACK_MODEL");
         if (!string.IsNullOrEmpty(gpuModel))
+        {
             Environment.SetEnvironmentVariable("OPENAI_MODEL", gpuModel);
+        }
     }
 }
 
@@ -67,9 +76,13 @@ static List<string> FindAllEnvFiles(string startDir)
         var envPath = Path.Combine(dir.FullName, ".env");
 
         if (File.Exists(envLocalPath))
+        {
             files.Add(envLocalPath);
+        }
         else if (File.Exists(envPath))
+        {
             files.Add(envPath);
+        }
 
         dir = dir.Parent;
     }
@@ -138,7 +151,9 @@ while (true)
     var input = Console.ReadLine();
 
     if (string.IsNullOrWhiteSpace(input))
+    {
         continue;
+    }
 
     if (input.Equals("exit", StringComparison.OrdinalIgnoreCase) ||
         input.Equals("quit", StringComparison.OrdinalIgnoreCase))
@@ -280,7 +295,7 @@ static async Task<IronHive.Cli.Core.Session.Session> HandleCommand(
  */
 
 // Mock client for testing without API key
-class MockChatClient : IChatClient
+sealed class MockChatClient : IChatClient
 {
     public ChatClientMetadata Metadata => new("mock", new Uri("http://localhost"), "mock");
 

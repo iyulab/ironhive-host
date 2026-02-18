@@ -9,7 +9,7 @@ namespace IronHive.Cli.Core.Tools;
 /// Web search and site exploration tools for the CLI agent.
 /// Uses WebLookup library (DuckDuckGo by default, Tavily/SearchApi optional).
 /// </summary>
-public sealed class WebSearchTool : IDisposable
+public sealed class WebSearchTool
 {
     private readonly WebSearchClient _searchClient;
     private readonly SiteExplorer _siteExplorer;
@@ -167,10 +167,4 @@ public sealed class WebSearchTool : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        _searchClient.Dispose();
-        _siteExplorer.Dispose();
-        GC.SuppressFinalize(this);
-    }
 }

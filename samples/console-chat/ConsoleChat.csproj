@@ -5,8 +5,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Sample project - relaxed rules -->
-    <NoWarn>$(NoWarn);CA1050;CA1861;CA1822;CA1852;IDE0011</NoWarn>
+    <!-- CA1822: IChatClient.Metadata interface property — can't be static -->
+    <NoWarn>$(NoWarn);CA1822</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

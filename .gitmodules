@@ -1,9 +1,3 @@
-[submodule "submodules/TokenMeter"]
-	path = submodules/TokenMeter
-	url = https://github.com/iyulab/TokenMeter
-[submodule "submodules/ToolCallParser"]
-	path = submodules/ToolCallParser
-	url = https://github.com/iyulab/ToolCallParser
 [submodule "releases"]
 	path = releases
 	url = https://github.com/iyulab/ironhive-cli-releases

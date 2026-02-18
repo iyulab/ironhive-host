@@ -3,8 +3,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <!-- Relax naming rules for tests (allow underscores in test method names) -->
-    <NoWarn>$(NoWarn);CA1707;CA1725</NoWarn>
+
   </PropertyGroup>
 
   <ItemGroup>
