@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.6.0" />
+    <PackageVersion Include="Ironbees.Core" Version="0.6.1" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.3.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
@@ -30,28 +30,28 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.1.1" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.13.1" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.13.1" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.13.1" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.13.2" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.13.2" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.13.2" />
     <!-- IndexThinking (token management, reasoning extraction) -->
-    <PackageVersion Include="IndexThinking" Version="0.16.0" />
+    <PackageVersion Include="IndexThinking" Version="0.17.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
-    <PackageVersion Include="MemoryIndexer" Version="0.13.1" />
-    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.1" />
+    <PackageVersion Include="MemoryIndexer" Version="0.13.2" />
+    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.2" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.3.3" />
-    <PackageVersion Include="IronHive.Core" Version="0.3.3" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.3.3" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.3.3" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.3.3" />
-    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.3.3" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.4.0" />
+    <PackageVersion Include="IronHive.Core" Version="0.4.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.4.0" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.4.0" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.4.0" />
+    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.4.0" />
     <!-- WebLookup (web search) -->
-    <PackageVersion Include="WebLookup" Version="0.2.0" />
+    <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.0" />
-    <!-- TokenMeter & ToolCallParser (local-packages) -->
-    <PackageVersion Include="TokenMeter" Version="0.3.0" />
-    <PackageVersion Include="ToolCallParser" Version="0.1.0" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.1" />
+    <!-- TokenMeter & ToolCallParser -->
+    <PackageVersion Include="TokenMeter" Version="0.3.1" />
+    <PackageVersion Include="ToolCallParser" Version="0.2.1" />
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
