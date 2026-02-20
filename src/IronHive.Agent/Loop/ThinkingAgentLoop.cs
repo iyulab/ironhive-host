@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using IronHive.Agent.Tracking;
 using IndexThinking.Agents;
 using IndexThinking.Client;
 using IndexThinking.Core;
+using IronHive.Agent.Tracking;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Agent.Loop;

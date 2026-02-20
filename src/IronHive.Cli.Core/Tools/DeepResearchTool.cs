@@ -4,8 +4,8 @@ using System.Text;
 using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Config;
 using IronHive.DeepResearch;
-using IronHive.DeepResearch.Extensions;
 using IronHive.DeepResearch.Abstractions;
+using IronHive.DeepResearch.Extensions;
 using IronHive.DeepResearch.Models.Research;
 using Microsoft.Extensions.DependencyInjection;
 

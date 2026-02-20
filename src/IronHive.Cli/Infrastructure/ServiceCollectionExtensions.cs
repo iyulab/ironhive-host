@@ -247,8 +247,7 @@ public static class ServiceCollectionExtensions
             var anthropicConfig = new IronHive.Providers.Anthropic.AnthropicConfig
             {
                 BaseUrl = "https://api.anthropic.com/v1/",
-                ApiKey = config.Anthropic.ApiKey!,
-                Version = "2023-06-01"
+                ApiKey = config.Anthropic.ApiKey!
             };
             hiveBuilder.AddAnthropicProviders("anthropic", anthropicConfig);
         }
