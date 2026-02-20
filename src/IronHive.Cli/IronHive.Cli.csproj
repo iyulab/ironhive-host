@@ -19,6 +19,8 @@
 
     <!-- dotnet tool packaging -->
     <PackAsTool>true</PackAsTool>
+    <!-- Playwright transitive ps1 scripts trigger NU5111 in tool packaging -->
+    <NoWarn>$(NoWarn);NU5111</NoWarn>
     <ToolCommandName>ironhive</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
