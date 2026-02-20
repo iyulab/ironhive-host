@@ -96,7 +96,8 @@ public sealed class WebSearchTool
             return "Error: Base URL is required.";
         }
 
-        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
             return $"Error: Invalid URL: {baseUrl}";
         }
