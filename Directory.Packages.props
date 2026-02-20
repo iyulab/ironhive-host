@@ -44,7 +44,7 @@
     <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.4.0" />
     <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.4.0" />
     <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.4.0" />
-    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.4.0" />
+    <PackageVersion Include="IronHive.Providers.Ollama" Version="0.3.3" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
