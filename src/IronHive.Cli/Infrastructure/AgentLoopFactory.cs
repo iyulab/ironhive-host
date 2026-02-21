@@ -1,7 +1,7 @@
 using IndexThinking.Agents;
 using IndexThinking.Client;
 using IronHive.Agent.Providers;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent.Mcp;
 using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Tools;
@@ -93,7 +93,7 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
         // Load MCP plugins and add their tools
         await LoadMcpToolsAsync(tools, cancellationToken);
 
-        var agentOptions = new IronHive.Cli.Core.Agent.AgentOptions
+        var agentOptions = new IronHive.Agent.Loop.AgentOptions
         {
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,
             Temperature = options.Temperature ?? DefaultTemperature,

@@ -4,6 +4,7 @@ using IronHive.Abstractions;
 using IronHive.Abstractions.Catalog;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Providers;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mcp;
 using IronHive.Cli.Core.Agent.Mode;

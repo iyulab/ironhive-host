@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.Mode;
 using IronHive.Cli.Core.Session;

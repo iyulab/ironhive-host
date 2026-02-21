@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Globalization;
+using IronHive.Agent.Context;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Agent.ErrorRecovery;
 using IronHive.Cli.Core.Config;
-using IronHive.Cli.Core.Context;
 using IronHive.Cli.Core.Webhook;
 using Microsoft.Extensions.AI;
 

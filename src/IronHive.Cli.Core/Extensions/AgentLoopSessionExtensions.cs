@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Session;
 using SessionData = IronHive.Cli.Core.Session.Session;
 

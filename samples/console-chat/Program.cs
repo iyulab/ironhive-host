@@ -9,7 +9,7 @@
 
 using System.Runtime.CompilerServices;
 using DotNetEnv;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Extensions;
 using IronHive.Cli.Core.Session;
 using Microsoft.Extensions.AI;

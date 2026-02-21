@@ -1,5 +1,4 @@
-using IronHive.Cli.Core.Config;
-using IronHive.Cli.Core.Context;
+using IronHive.Agent.Context;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Tests.Context;

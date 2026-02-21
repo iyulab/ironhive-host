@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent.Mcp;
 using IronHive.Cli.Core.Tools;
 using IronHive.Cli.Tests.Mocks;

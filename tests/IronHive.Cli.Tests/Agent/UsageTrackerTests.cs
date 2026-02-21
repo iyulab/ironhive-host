@@ -1,3 +1,4 @@
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent;
 
 namespace IronHive.Cli.Tests.Agent;

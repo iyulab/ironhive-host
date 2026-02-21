@@ -1,7 +1,7 @@
 using System.Globalization;
 using IronHive.Abstractions;
 using IronHive.Abstractions.Messages;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Config;
 using IronHive.Cli.Core.Providers;
 using IronHive.Core;

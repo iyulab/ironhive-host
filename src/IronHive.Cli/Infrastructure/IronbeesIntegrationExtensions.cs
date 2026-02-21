@@ -1,5 +1,5 @@
 using Ironbees.Core;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Ironbees;
 using IronHive.Cli.Core.Providers;
 using Microsoft.Extensions.AI;

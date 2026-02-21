@@ -47,7 +47,7 @@ public sealed class TypeRegistrar : ITypeRegistrar
             // 3. IChatClientFactory handles fallback to lmsupply automatically
             var criticalServices = new (string Name, Type Type)[]
             {
-                ("IAgentLoopFactory", typeof(IronHive.Cli.Core.Agent.IAgentLoopFactory)),
+                ("IAgentLoopFactory", typeof(IronHive.Agent.Loop.IAgentLoopFactory)),
             };
 
             foreach (var (name, type) in criticalServices)

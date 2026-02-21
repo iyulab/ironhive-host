@@ -1,3 +1,4 @@
+using IronHive.Agent.Loop;
 using TokenMeter;
 
 namespace IronHive.Cli.Core.Agent;

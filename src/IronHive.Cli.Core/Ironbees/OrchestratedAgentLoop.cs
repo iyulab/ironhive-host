@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using Ironbees.Core;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Loop;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Ironbees;

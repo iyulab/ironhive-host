@@ -1,3 +1,4 @@
+using IronHive.Agent.Loop;
 using IronHive.Cli.Core.Agent;
 using IronHive.Cli.Core.Config;
 
