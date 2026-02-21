@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>IronHive CLI Core - Agent loop and tools</Description>
+    <Description>IronHive CLI Core - Agent loop, tools, session management, and provider integrations for building AI-powered CLI tools</Description>
+    <PackageId>IronHive.Cli.Core</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/iyulab/ironhive-cli</PackageProjectUrl>
+    <PackageTags>cli;agent;ai;llm;tools;session</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -56,8 +60,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- IronHive.Agent (reusable agent layer) -->
-    <ProjectReference Include="..\IronHive.Agent\IronHive.Agent.csproj" />
+    <!-- IronHive.Agent (reusable agent layer, from ironhive-agent NuGet) -->
+    <PackageReference Include="IronHive.Agent" />
   </ItemGroup>
 
   <ItemGroup>
