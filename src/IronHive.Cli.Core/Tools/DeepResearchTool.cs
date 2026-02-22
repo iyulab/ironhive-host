@@ -15,6 +15,7 @@ namespace IronHive.Cli.Core.Tools;
 /// Deep research tool for the CLI agent.
 /// Wraps IronHive.DeepResearch to perform autonomous multi-step web research.
 /// Uses lazy initialization to avoid async DI resolution issues.
+/// Streams progress events via <see cref="OnProgress"/> during execution.
 /// </summary>
 public sealed class DeepResearchTool : IAsyncDisposable
 {
@@ -24,6 +25,12 @@ public sealed class DeepResearchTool : IAsyncDisposable
     private IDeepResearcher? _researcher;
     private ServiceProvider? _researchServiceProvider;
     private readonly SemaphoreSlim _initLock = new(1, 1);
+
+    /// <summary>
+    /// Fired for each progress event during deep research execution.
+    /// Subscribe to this event to display real-time research progress.
+    /// </summary>
+    public event Action<ResearchProgress>? OnProgress;
 
     public DeepResearchTool(
         IChatClientFactory clientFactory,
@@ -102,7 +109,22 @@ public sealed class DeepResearchTool : IAsyncDisposable
                 OutputFormat = OutputFormat.Markdown
             };
 
-            var result = await researcher.ResearchAsync(request, cancellationToken);
+            ResearchResult? result = null;
+            await foreach (var progress in researcher.ResearchStreamAsync(request, cancellationToken))
+            {
+                OnProgress?.Invoke(progress);
+
+                if (progress.Type == ProgressType.Completed && progress.Result is not null)
+                {
+                    result = progress.Result;
+                }
+            }
+
+            if (result is null)
+            {
+                return "Error: Research completed without producing a result.";
+            }
+
             return FormatResult(result);
         }
         catch (OperationCanceledException)

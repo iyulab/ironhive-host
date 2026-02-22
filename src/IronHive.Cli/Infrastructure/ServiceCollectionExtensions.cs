@@ -15,7 +15,9 @@ using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Session;
 using IronHive.Cli.Core.Tools;
 using IronHive.Cli.Core.Update;
+using System.Globalization;
 using IronHive.Core;
+using IronHive.DeepResearch.Models.Research;
 using IronHive.Providers.Anthropic;
 using IronHive.Providers.GoogleAI;
 using IronHive.Providers.Ollama;
@@ -23,6 +25,7 @@ using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using WebLookup;
 using CliConfig = IronHive.Cli.Core.Config;
 
@@ -210,8 +213,71 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp =>
         {
             var clientFactory = sp.GetRequiredService<IChatClientFactory>();
-            return new DeepResearchTool(clientFactory, config.DeepResearch, tavilyApiKey);
+            var tool = new DeepResearchTool(clientFactory, config.DeepResearch, tavilyApiKey);
+
+            // Subscribe to progress events for real-time CLI rendering
+            tool.OnProgress += RenderResearchProgress;
+
+            return tool;
         });
+    }
+
+    private static void RenderResearchProgress(ResearchProgress progress)
+    {
+        var message = progress.Type switch
+        {
+            ProgressType.Started =>
+                $"[grey]  Research started (max {progress.MaxIterations} iterations)[/]",
+            ProgressType.PlanGenerated when progress.Plan is not null =>
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[grey]  Plan: {0} queries, {1} angles[/]",
+                    progress.Plan.GeneratedQueries.Count,
+                    progress.Plan.ResearchAngles.Count),
+            ProgressType.SearchCompleted when progress.Search is not null =>
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[grey]  Search: [white]\"{0}\"[/] \u2192 {1} results ({2})[/]",
+                    Markup.Escape(TruncateText(progress.Search.Query, 50)),
+                    progress.Search.ResultCount,
+                    Markup.Escape(progress.Search.Provider)),
+            ProgressType.AnalysisCompleted when progress.Analysis is not null =>
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[grey]  Analysis: {0} findings (score: {1:F2})[/]",
+                    progress.Analysis.FindingsCount,
+                    progress.Analysis.Score.OverallScore),
+            ProgressType.IterationCompleted =>
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[grey]  Iteration {0}/{1} complete[/]",
+                    progress.CurrentIteration,
+                    progress.MaxIterations),
+            ProgressType.ReportGenerationStarted =>
+                "[grey]  Generating report...[/]",
+            ProgressType.Completed when progress.Result is not null =>
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[green]  Research completed[/] [grey]({0} iterations, {1} sources, {2:F1}s)[/]",
+                    progress.Result.Metadata.IterationCount,
+                    progress.Result.CitedSources.Count,
+                    progress.Result.Metadata.Duration.TotalSeconds),
+            ProgressType.Failed when progress.Error is not null =>
+                $"[red]  Research error: {Markup.Escape(progress.Error.Message)}[/]",
+            _ => null
+        };
+
+        if (message is not null)
+        {
+            AnsiConsole.MarkupLine(message);
+        }
+    }
+
+    private static string TruncateText(string value, int maxLength)
+    {
+        return value.Length <= maxLength
+            ? value
+            : string.Concat(value.AsSpan(0, maxLength - 3), "...");
     }
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
