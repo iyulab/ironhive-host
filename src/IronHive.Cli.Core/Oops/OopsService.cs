@@ -400,8 +400,8 @@ public class OopsService : IOopsService
         // Add to PATH hint
         if (!IsInPath(installDir))
         {
-            Console.WriteLine($"oops installed to: {installDir}");
-            Console.WriteLine($"Add to PATH: {installDir}");
+            Trace.TraceInformation($"oops installed to: {installDir}");
+            Trace.TraceInformation($"Add to PATH: {installDir}");
         }
     }
 
