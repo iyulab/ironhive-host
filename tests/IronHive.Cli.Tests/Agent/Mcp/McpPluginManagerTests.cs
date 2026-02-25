@@ -62,6 +62,35 @@ public class McpPluginManagerTests
     }
 
     [Fact]
+    public async Task ConnectAsync_HttpTransport_WithoutUrl_ThrowsArgumentException()
+    {
+        await using var manager = new McpPluginManager();
+        var config = new McpPluginConfig
+        {
+            Transport = McpTransportType.Http,
+            Url = null
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => manager.ConnectAsync("test-http", config));
+    }
+
+    [Fact]
+    public async Task ConnectAsync_HttpTransport_WithInvalidUrl_ThrowsException()
+    {
+        await using var manager = new McpPluginManager();
+        var config = new McpPluginConfig
+        {
+            Transport = McpTransportType.Http,
+            Url = "http://localhost:0/nonexistent-mcp-endpoint"
+        };
+
+        // Should throw when trying to connect to a non-existent server
+        await Assert.ThrowsAnyAsync<Exception>(
+            () => manager.ConnectAsync("test-http", config));
+    }
+
+    [Fact]
     public async Task DisconnectAsync_NonExistentPlugin_DoesNotThrow()
     {
         await using var manager = new McpPluginManager();
