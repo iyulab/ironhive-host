@@ -1,6 +1,6 @@
 using System.ClientModel;
-using IronHive.Agent.Providers;
 using IronHive.Agent.Loop;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Session;
 using Microsoft.Extensions.AI;

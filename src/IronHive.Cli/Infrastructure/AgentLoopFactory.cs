@@ -1,7 +1,7 @@
 using IndexThinking.Agents;
 using IndexThinking.Client;
-using IronHive.Agent.Providers;
 using IronHive.Agent.Loop;
+using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Agent.Mcp;
 using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Tools;
