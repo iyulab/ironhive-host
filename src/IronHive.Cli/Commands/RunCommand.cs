@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using IronHive.Agent.Loop;
+using IronHive.Cli.Core.Agent.Mcp;
 using IronHive.Cli.Core.Server;
 using IronHive.Cli.Core.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -18,10 +19,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly IAgentLoopFactory _factory;
+    private readonly IMcpPluginManager? _pluginManager;
 
-    public RunCommand(IAgentLoopFactory factory)
+    public RunCommand(IAgentLoopFactory factory, IMcpPluginManager? pluginManager = null)
     {
         _factory = factory;
+        _pluginManager = pluginManager;
     }
 
     public class Settings : CommandSettings
@@ -193,6 +196,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             Model = settings.Model
         }, ct);
 
+        McpHealthCheckService? healthCheck = null;
         try
         {
             var sessionId = settings.SessionId ?? Guid.NewGuid().ToString("N");
@@ -207,6 +211,13 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 ".ironhive", "logs");
             Directory.CreateDirectory(logDir);
             executionLog.Initialize(Path.Combine(logDir, $"{sessionId}.execlog.jsonl"));
+
+            // Start MCP health check if plugins are connected
+            if (_pluginManager is not null && _pluginManager.ConnectedPlugins.Count > 0)
+            {
+                healthCheck = new McpHealthCheckService(_pluginManager);
+                healthCheck.Start();
+            }
 
             async IAsyncEnumerable<ServerEvent> ProcessMessage(
                 string content,
@@ -227,6 +238,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         }
         finally
         {
+            if (healthCheck is not null)
+            {
+                await healthCheck.DisposeAsync();
+            }
+
             if (agentLoop is IAsyncDisposable disposable)
             {
                 await disposable.DisposeAsync();

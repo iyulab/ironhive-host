@@ -187,6 +187,20 @@ public class McpPluginManager : IMcpPluginManager
     }
 
     /// <inheritdoc />
+    public async Task<bool> IsHealthyAsync(string pluginName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await GetToolsAsync(pluginName, cancellationToken);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (_disposed)

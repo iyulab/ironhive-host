@@ -54,6 +54,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Chronex (scheduling for health checks) -->
+    <PackageReference Include="Chronex" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- TokenMeter & ToolCallParser (via local-packages NuGet source) -->
     <PackageReference Include="TokenMeter" />
     <PackageReference Include="ToolCallParser" />
