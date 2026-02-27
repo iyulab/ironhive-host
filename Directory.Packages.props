@@ -39,9 +39,9 @@
     <PackageVersion Include="MemoryIndexer" Version="0.13.2" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.13.2" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.2.2" />
+    <PackageVersion Include="IronHive.Agent" Version="0.2.3" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.4.1" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.4.2" />
     <PackageVersion Include="IronHive.Core" Version="0.4.1" />
     <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.4.1" />
     <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.4.1" />
