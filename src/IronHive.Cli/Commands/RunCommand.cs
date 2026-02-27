@@ -1,7 +1,10 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using IronHive.Agent.Loop;
+using IronHive.Cli.Core.Server;
 using IronHive.Cli.Core.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -51,6 +54,14 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [Description("Show thinking/reasoning content from the model")]
         public bool ShowThinking { get; init; }
 
+        [CommandOption("--server")]
+        [Description("Run in server mode (JSON Lines stdin/stdout)")]
+        public bool Server { get; init; }
+
+        [CommandOption("--session-id <SESSION_ID>")]
+        [Description("Session ID for server mode")]
+        public string? SessionId { get; init; }
+
         [CommandOption("--auto-commit")]
         [Description("Automatically commit changes after successful execution")]
         public bool AutoCommit { get; init; }
@@ -64,6 +75,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        if (settings.Server)
+        {
+            return await RunServerModeAsync(settings, cancellationToken);
+        }
+
         var prompt = settings.GetPrompt();
 
         if (string.IsNullOrWhiteSpace(prompt))
@@ -162,6 +178,55 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         finally
         {
             // Dispose agent loop if it implements IAsyncDisposable
+            if (agentLoop is IAsyncDisposable disposable)
+            {
+                await disposable.DisposeAsync();
+            }
+        }
+    }
+
+    private async Task<int> RunServerModeAsync(Settings settings, CancellationToken ct)
+    {
+        var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
+        {
+            Provider = settings.Provider,
+            Model = settings.Model
+        }, ct);
+
+        try
+        {
+            var sessionId = settings.SessionId ?? Guid.NewGuid().ToString("N");
+
+            await AgentServerRunner.WriteEventAsync(
+                Console.Out,
+                new SessionStartedEvent(sessionId));
+
+            await using var executionLog = new ExecutionLogService();
+            var logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".ironhive", "logs");
+            Directory.CreateDirectory(logDir);
+            executionLog.Initialize(Path.Combine(logDir, $"{sessionId}.execlog.jsonl"));
+
+            async IAsyncEnumerable<ServerEvent> ProcessMessage(
+                string content,
+                [EnumeratorCancellation] CancellationToken token)
+            {
+                await foreach (var evt in agentLoop.RunStreamingAsync(content, token)
+                    .ToServerEvents(executionLog, token))
+                {
+                    yield return evt;
+                }
+            }
+
+            var logger = NullLogger<AgentServerRunner>.Instance;
+            var runner = new AgentServerRunner(ProcessMessage, logger);
+            await runner.RunAsync(ct);
+
+            return 0;
+        }
+        finally
+        {
             if (agentLoop is IAsyncDisposable disposable)
             {
                 await disposable.DisposeAsync();
