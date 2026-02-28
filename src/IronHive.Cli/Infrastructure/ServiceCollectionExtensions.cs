@@ -324,7 +324,10 @@ public static class ServiceCollectionExtensions
         {
             var googleConfig = new IronHive.Providers.GoogleAI.GoogleAIConfig
             {
-                BaseUrl = "https://generativelanguage.googleapis.com/v1beta/",
+                HttpOptions = new Google.GenAI.Types.HttpOptions
+                {
+                    BaseUrl = "https://generativelanguage.googleapis.com/v1beta/",
+                },
                 ApiKey = config.GoogleAI.ApiKey!
             };
             hiveBuilder.AddGoogleAIProviders("google", googleConfig);
