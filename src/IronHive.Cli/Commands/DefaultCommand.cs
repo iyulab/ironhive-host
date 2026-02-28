@@ -442,15 +442,13 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
         else
         {
-            await AnsiConsole.Status()
+            response = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("blue"))
                 .StartAsync("Thinking...", async _ =>
                 {
-                    response = await agentLoop.RunAsync(prompt, cancellationToken);
+                    return await agentLoop.RunAsync(prompt, cancellationToken);
                 });
-
-            response = await agentLoop.RunAsync(prompt, cancellationToken);
         }
 
         // Plain output mode
