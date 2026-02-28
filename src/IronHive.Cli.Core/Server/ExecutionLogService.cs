@@ -19,7 +19,7 @@ public sealed class ExecutionLogService : IExecutionLogger, IAsyncDisposable
     private string? _pendingToolName;
     private readonly StringBuilder _pendingArgs = new();
 
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false
@@ -129,7 +129,7 @@ public sealed class ExecutionLogService : IExecutionLogger, IAsyncDisposable
             return;
         }
 
-        var json = JsonSerializer.Serialize(entry, s_jsonOptions);
+        var json = JsonSerializer.Serialize(entry, JsonOptions);
         await _writer.WriteLineAsync(json);
     }
 
