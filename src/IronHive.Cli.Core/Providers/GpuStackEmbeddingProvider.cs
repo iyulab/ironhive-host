@@ -9,6 +9,12 @@ namespace IronHive.Cli.Core.Providers;
 /// <summary>
 /// GpuStack/OpenAI-compatible API embedding provider.
 /// </summary>
+/// <remarks>
+/// This class can be replaced with <c>IronHive.Agent.Providers.OpenAICompatibleEmbeddingProvider</c>,
+/// which implements both <c>IronHive.Agent.Providers.IEmbeddingProvider</c> and
+/// <c>Ironbees.Core.IEmbeddingProvider</c> in a single unified provider.
+/// Migration requires decoupling from <see cref="Config.GpuStackConfig"/> (pass endpoint/model/apiKey directly).
+/// </remarks>
 public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
