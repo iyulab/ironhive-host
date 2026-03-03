@@ -10,7 +10,7 @@
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
     <!-- OpenAI SDK -->
     <PackageVersion Include="ModelContextProtocol" Version="1.0.0" />
-    <PackageVersion Include="OpenAI" Version="2.9.0" />
+    <PackageVersion Include="OpenAI" Version="2.9.1" />
     <!-- DI & Hosting (.NET 10) -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
@@ -39,7 +39,7 @@
     <PackageVersion Include="MemoryIndexer" Version="0.14.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.14.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.2.3" />
+    <PackageVersion Include="IronHive.Agent" Version="0.2.4" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.4.2" />
     <PackageVersion Include="IronHive.Core" Version="0.4.2" />
@@ -50,7 +50,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.2" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.4" />
     <!-- Chronex (scheduling) -->
     <PackageVersion Include="Chronex" Version="0.4.0" />
     <!-- TokenMeter & ToolCallParser -->
