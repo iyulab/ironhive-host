@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Channels;
 
 using FluentAssertions;
 
@@ -96,6 +97,17 @@ public class AgentServerRunnerTests
 
         result.Should().BeOfType<ContextUpdateRequest>()
             .Which.WorkingPath.Should().Be("/home/user/docs");
+    }
+
+    [Fact]
+    public async Task ReadNextRequest_Cancel_ReturnsCancelRequest()
+    {
+        var json = """{"type":"cancel"}""";
+        using var reader = new StringReader(json);
+
+        var result = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+
+        result.Should().BeOfType<CancelRequest>();
     }
 
     // ── WriteEventAsync ───────────────────────────────────────────────
@@ -283,6 +295,105 @@ public class AgentServerRunnerTests
         receivedContent.Should().Be("raw message");
     }
 
+    // ── Cancel ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RunAsync_CancelRequest_WithNoActiveMessage_IsIgnoredAndSessionContinues()
+    {
+        var called = false;
+        var runner = CreateRunner(_ =>
+        {
+            called = true;
+            return EmptyEvents();
+        });
+
+        var input = BuildInput(
+            """{"type":"cancel"}""",
+            """{"type":"user_message","content":"hello"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        called.Should().BeTrue("cancel before any message should be ignored and session should continue");
+    }
+
+    [Fact]
+    public async Task RunAsync_CancelRequest_DuringHandling_StopsStreamingAndWritesTurnEnd()
+    {
+        var streamStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async IAsyncEnumerable<ServerEvent> Handler(string _, [EnumeratorCancellation] CancellationToken ct)
+        {
+            streamStarted.TrySetResult();
+            while (!ct.IsCancellationRequested)
+            {
+                yield return new TextDeltaEvent("chunk");
+                await Task.Yield();
+            }
+        }
+
+        var runner = CreateCancellableRunner(Handler);
+        var input = new BlockingLineReader();
+        using var output = new StringWriter();
+
+        input.Enqueue("""{"type":"user_message","content":"start"}""");
+        var runTask = runner.RunAsync(input, output, CancellationToken.None);
+
+        await streamStarted.Task;
+        input.Enqueue("""{"type":"cancel"}""");
+        input.Enqueue("""{"type":"shutdown"}""");
+        input.Complete();
+
+        await runTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var events = ParseEvents(output);
+        events.Should().NotBeEmpty();
+        events.Last().Should().BeOfType<TurnEndEvent>();
+    }
+
+    [Fact]
+    public async Task RunAsync_AfterCancel_SessionRemainsAliveAndProcessesNextMessage()
+    {
+        var receivedContents = new List<string>();
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async IAsyncEnumerable<ServerEvent> Handler(string content, [EnumeratorCancellation] CancellationToken ct)
+        {
+            receivedContents.Add(content);
+            if (content == "first")
+            {
+                firstStarted.TrySetResult();
+                while (!ct.IsCancellationRequested)
+                {
+                    yield return new TextDeltaEvent("streaming");
+                    await Task.Yield();
+                }
+            }
+            else
+            {
+                yield return new TextDeltaEvent("done");
+            }
+        }
+
+        var runner = CreateCancellableRunner(Handler);
+        var input = new BlockingLineReader();
+        using var output = new StringWriter();
+
+        input.Enqueue("""{"type":"user_message","content":"first"}""");
+        var runTask = runner.RunAsync(input, output, CancellationToken.None);
+
+        await firstStarted.Task;
+        input.Enqueue("""{"type":"cancel"}""");
+        input.Enqueue("""{"type":"user_message","content":"second"}""");
+        input.Enqueue("""{"type":"shutdown"}""");
+        input.Complete();
+
+        await runTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        receivedContents.Should().Equal("first", "second");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────
 
     private static AgentServerRunner CreateRunner(
@@ -293,6 +404,37 @@ public class AgentServerRunnerTests
             (content, _) => handler(content),
             logger,
             JsonOpts);
+    }
+
+    private static AgentServerRunner CreateCancellableRunner(
+        Func<string, CancellationToken, IAsyncEnumerable<ServerEvent>> handler)
+    {
+        var logger = Substitute.For<ILogger<AgentServerRunner>>();
+        return new AgentServerRunner(handler, logger, JsonOpts);
+    }
+
+    /// <summary>
+    /// A TextReader backed by a Channel, allowing test code to inject lines
+    /// asynchronously while RunAsync is executing.
+    /// </summary>
+    private sealed class BlockingLineReader : TextReader
+    {
+        private readonly Channel<string?> _channel = Channel.CreateUnbounded<string?>();
+
+        public void Enqueue(string line) => _channel.Writer.TryWrite(line);
+
+        public void Complete() => _channel.Writer.TryComplete();
+
+        public override async ValueTask<string?> ReadLineAsync(CancellationToken cancellationToken)
+        {
+            if (!await _channel.Reader.WaitToReadAsync(cancellationToken))
+            {
+                return null; // channel complete = EOF
+            }
+
+            _channel.Reader.TryRead(out var line);
+            return line;
+        }
     }
 
     private static StringReader BuildInput(params string[] lines)

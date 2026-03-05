@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Threading.Channels;
+
 using Microsoft.Extensions.Logging;
 
 namespace IronHive.Cli.Core.Server;
@@ -7,6 +9,11 @@ namespace IronHive.Cli.Core.Server;
 /// Reads JSON Lines from stdin, dispatches to an agent processing delegate, and writes
 /// server-sent events as JSON Lines to stdout.
 /// </summary>
+/// <remarks>
+/// A background task continuously reads stdin into a bounded channel, allowing
+/// <see cref="CancelRequest"/> messages to be received and acted upon while a
+/// <see cref="UserMessageRequest"/> is still being processed.
+/// </remarks>
 public partial class AgentServerRunner
 {
     [LoggerMessage(Level = LogLevel.Error, Message = "Agent processing error")]
@@ -53,26 +60,76 @@ public partial class AgentServerRunner
     /// <summary>
     /// Runs the server loop with explicit I/O (testable).
     /// </summary>
+    /// <remarks>
+    /// Stdin is read on a background task into a bounded channel so that
+    /// <see cref="CancelRequest"/> can interrupt the in-flight message handler
+    /// without requiring the entire session to restart.
+    /// </remarks>
     public async Task RunAsync(TextReader input, TextWriter output, CancellationToken ct)
     {
-        while (!ct.IsCancellationRequested)
+        var channel = Channel.CreateBounded<ServerRequest>(capacity: 16);
+        using var readerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var readerTask = ReadStdinIntoChannelAsync(input, channel.Writer, readerCts.Token);
+
+        CancellationTokenSource? messageCts = null;
+        Task? handleTask = null;
+
+        try
         {
-            var request = await ReadNextRequestAsync(input, _jsonOptions, ct);
-            if (request is null or ShutdownRequest)
+            await foreach (var request in channel.Reader.ReadAllAsync(ct))
             {
-                break;
+                if (request is ShutdownRequest)
+                {
+                    break;
+                }
+
+                if (request is CancelRequest)
+                {
+                    messageCts?.Cancel();
+                    continue;
+                }
+
+                if (request is ContextUpdateRequest ctx)
+                {
+                    _workingPath = ctx.WorkingPath;
+                    OnContextUpdate?.Invoke(ctx);
+                    continue;
+                }
+
+                if (request is UserMessageRequest msg)
+                {
+                    // Ensure the previous message has fully completed (TurnEndEvent written)
+                    // before starting a new one. HandleMessageAsync never throws.
+                    if (handleTask is not null)
+                    {
+                        await handleTask;
+                    }
+
+                    messageCts?.Dispose();
+                    messageCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    handleTask = HandleMessageAsync(
+                        BuildContextualContent(msg.Content), output, messageCts.Token);
+
+                    // Fire-and-forget: keep draining the channel so CancelRequest
+                    // can be processed while handleTask runs concurrently.
+                }
+            }
+        }
+        finally
+        {
+            // Stop background stdin reader.
+            await readerCts.CancelAsync();
+
+            // Drain any in-flight message so TurnEndEvent is always written.
+            if (handleTask is not null)
+            {
+                await handleTask;
             }
 
-            if (request is UserMessageRequest msg)
-            {
-                var content = BuildContextualContent(msg.Content);
-                await HandleMessageAsync(content, output, ct);
-            }
-            else if (request is ContextUpdateRequest ctx)
-            {
-                _workingPath = ctx.WorkingPath;
-                OnContextUpdate?.Invoke(ctx);
-            }
+            messageCts?.Dispose();
+
+            // Wait for the reader task to exit cleanly.
+            await readerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 
@@ -103,7 +160,7 @@ public partial class AgentServerRunner
         }
         catch (OperationCanceledException)
         {
-            throw;
+            // Intentional cancellation via CancelRequest — TurnEndEvent written in finally.
         }
         catch (Exception ex)
         {
@@ -113,6 +170,35 @@ public partial class AgentServerRunner
         finally
         {
             await WriteEventAsync(output, new TurnEndEvent(), _jsonOptions);
+        }
+    }
+
+    private async Task ReadStdinIntoChannelAsync(
+        TextReader reader,
+        ChannelWriter<ServerRequest> writer,
+        CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var request = await ReadNextRequestAsync(reader, _jsonOptions, ct);
+                if (request is null or ShutdownRequest)
+                {
+                    await writer.WriteAsync(new ShutdownRequest(), CancellationToken.None);
+                    break;
+                }
+
+                await writer.WriteAsync(request, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal cancellation path — session is shutting down.
+        }
+        finally
+        {
+            writer.TryComplete();
         }
     }
 

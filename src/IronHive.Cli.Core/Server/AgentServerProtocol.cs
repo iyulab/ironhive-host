@@ -10,6 +10,7 @@ namespace IronHive.Cli.Core.Server;
 [JsonDerivedType(typeof(HitlResponseRequest), "hitl_response")]
 [JsonDerivedType(typeof(ShutdownRequest), "shutdown")]
 [JsonDerivedType(typeof(ContextUpdateRequest), "context_update")]
+[JsonDerivedType(typeof(CancelRequest), "cancel")]
 public abstract record ServerRequest;
 
 public record UserMessageRequest(string Content) : ServerRequest;
@@ -19,6 +20,12 @@ public record HitlResponseRequest(bool Approved, string? Reason = null) : Server
 public record ShutdownRequest() : ServerRequest;
 
 public record ContextUpdateRequest(string? WorkingPath) : ServerRequest;
+
+/// <summary>
+/// Requests cancellation of the currently processing message.
+/// The session remains alive; subsequent messages are accepted normally.
+/// </summary>
+public record CancelRequest() : ServerRequest;
 
 // ── Events (agent → stdout) ─────────────────────────────────────────
 

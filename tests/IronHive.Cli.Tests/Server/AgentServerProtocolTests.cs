@@ -95,6 +95,26 @@ public class AgentServerProtocolTests
             .Which.WorkingPath.Should().BeNull();
     }
 
+    [Fact]
+    public void Serialize_CancelRequest_HasTypeDiscriminator()
+    {
+        ServerRequest request = new CancelRequest();
+        var json = JsonSerializer.Serialize(request, Options);
+        using var doc = JsonDocument.Parse(json);
+
+        doc.RootElement.GetProperty("type").GetString().Should().Be("cancel");
+    }
+
+    [Fact]
+    public void Roundtrip_CancelRequest()
+    {
+        ServerRequest original = new CancelRequest();
+        var json = JsonSerializer.Serialize(original, Options);
+        var deserialized = JsonSerializer.Deserialize<ServerRequest>(json, Options);
+
+        deserialized.Should().BeOfType<CancelRequest>();
+    }
+
     // ── ServerEvent serialization ───────────────────────────────────
 
     [Fact]
