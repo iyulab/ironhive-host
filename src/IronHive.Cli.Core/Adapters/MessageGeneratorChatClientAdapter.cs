@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using IronHive.Abstractions.Messages;
 using IronHive.Abstractions.Messages.Content;
@@ -46,12 +47,59 @@ public class MessageGeneratorChatClientAdapter : IChatClient
         var request = ConvertToRequest(messages, options);
         string? responseId = null;
 
+        // Buffer tool calls: index → (callId, name, argumentsJson)
+        // M.E.AI expects complete FunctionCallContent, not partial argument chunks.
+        var toolCallBuffers = new Dictionary<int, (string CallId, string Name, StringBuilder Arguments)>();
+
         await foreach (var chunk in _generator.GenerateStreamingMessageAsync(request, cancellationToken))
         {
-            var update = ConvertToUpdate(chunk, ref responseId);
-            if (update is not null)
+            switch (chunk)
             {
-                yield return update;
+                case StreamingContentAddedResponse added when added.Content is ToolMessageContent tool:
+                    // Start buffering a new tool call
+                    toolCallBuffers[added.Index] = (
+                        tool.Id ?? Guid.NewGuid().ToString(),
+                        tool.Name ?? string.Empty,
+                        new StringBuilder());
+                    break;
+
+                case StreamingContentDeltaResponse delta when delta.Delta is ToolDeltaContent toolDelta:
+                    // Accumulate argument chunks
+                    if (toolCallBuffers.TryGetValue(delta.Index, out var buffer))
+                    {
+                        buffer.Arguments.Append(toolDelta.Input);
+                    }
+                    break;
+
+                case StreamingContentCompletedResponse completed:
+                    // Emit the complete FunctionCallContent
+                    if (toolCallBuffers.TryGetValue(completed.Index, out var completedTool))
+                    {
+                        var argsJson = completedTool.Arguments.ToString();
+                        var arguments = !string.IsNullOrEmpty(argsJson)
+                            ? JsonSerializer.Deserialize<Dictionary<string, object?>>(argsJson)
+                            : null;
+
+                        yield return new ChatResponseUpdate
+                        {
+                            ResponseId = responseId,
+                            Contents = [new FunctionCallContent(
+                                callId: completedTool.CallId,
+                                name: completedTool.Name,
+                                arguments: arguments)]
+                        };
+                        toolCallBuffers.Remove(completed.Index);
+                    }
+                    break;
+
+                default:
+                    // Non-tool updates pass through normally
+                    var update = ConvertToUpdate(chunk, ref responseId);
+                    if (update is not null)
+                    {
+                        yield return update;
+                    }
+                    break;
             }
         }
     }
@@ -259,37 +307,11 @@ public class MessageGeneratorChatClientAdapter : IChatClient
                     Role = ChatRole.Assistant
                 };
 
-            case StreamingContentDeltaResponse delta:
-                return delta.Delta switch
+            case StreamingContentDeltaResponse delta when delta.Delta is TextDeltaContent textDelta:
+                return new ChatResponseUpdate
                 {
-                    TextDeltaContent textDelta => new ChatResponseUpdate
-                    {
-                        ResponseId = responseId,
-                        Contents = [new TextContent(textDelta.Value)]
-                    },
-
-                    ToolDeltaContent toolDelta => new ChatResponseUpdate
-                    {
-                        ResponseId = responseId,
-                        RawRepresentation = toolDelta
-                    },
-
-                    _ => null
-                };
-
-            case StreamingContentAddedResponse added:
-                return added.Content switch
-                {
-                    ToolMessageContent toolContent => new ChatResponseUpdate
-                    {
-                        ResponseId = responseId,
-                        Contents = [new FunctionCallContent(
-                            callId: toolContent.Id,
-                            name: toolContent.Name,
-                            arguments: null)]
-                    },
-
-                    _ => null
+                    ResponseId = responseId,
+                    Contents = [new TextContent(textDelta.Value)]
                 };
 
             case StreamingMessageDoneResponse done:
