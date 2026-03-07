@@ -76,9 +76,22 @@ public class MessageGeneratorChatClientAdapter : IChatClient
                     if (toolCallBuffers.TryGetValue(completed.Index, out var completedTool))
                     {
                         var argsJson = completedTool.Arguments.ToString();
-                        var arguments = !string.IsNullOrEmpty(argsJson)
-                            ? JsonSerializer.Deserialize<Dictionary<string, object?>>(argsJson)
-                            : null;
+
+                        // Parse JSON args, converting JsonElement values to CLR types
+                        // so FunctionInvokingChatClient can match them to method parameters.
+                        Dictionary<string, object?>? arguments = null;
+                        if (!string.IsNullOrEmpty(argsJson))
+                        {
+                            var raw = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argsJson);
+                            if (raw is not null)
+                            {
+                                arguments = new Dictionary<string, object?>();
+                                foreach (var kvp in raw)
+                                {
+                                    arguments[kvp.Key] = ConvertJsonElement(kvp.Value);
+                                }
+                            }
+                        }
 
                         yield return new ChatResponseUpdate
                         {
@@ -130,6 +143,19 @@ public class MessageGeneratorChatClientAdapter : IChatClient
             Messages = []
         };
 
+        // Collect tool results keyed by callId for merging into assistant messages
+        var toolResults = new Dictionary<string, string>();
+        foreach (var msg in chatMessages)
+        {
+            foreach (var content in msg.Contents)
+            {
+                if (content is FunctionResultContent result && result.CallId is not null)
+                {
+                    toolResults[result.CallId] = result.Result?.ToString() ?? string.Empty;
+                }
+            }
+        }
+
         foreach (var msg in chatMessages)
         {
             if (msg.Role == ChatRole.System)
@@ -138,7 +164,7 @@ public class MessageGeneratorChatClientAdapter : IChatClient
             }
             else
             {
-                var converted = ConvertMessage(msg);
+                var converted = ConvertMessage(msg, toolResults);
                 if (converted is not null)
                 {
                     request.Messages.Add(converted);
@@ -163,7 +189,7 @@ public class MessageGeneratorChatClientAdapter : IChatClient
         return request;
     }
 
-    private static Message? ConvertMessage(ChatMessage chatMessage)
+    private static Message? ConvertMessage(ChatMessage chatMessage, Dictionary<string, string> toolResults)
     {
         if (chatMessage.Role == ChatRole.User)
         {
@@ -171,19 +197,14 @@ public class MessageGeneratorChatClientAdapter : IChatClient
 
             foreach (var content in chatMessage.Contents)
             {
-                switch (content)
+                if (content is TextContent textContent)
                 {
-                    case TextContent textContent:
-                        userMessage.Content.Add(new TextMessageContent
-                        {
-                            Value = textContent.Text ?? string.Empty
-                        });
-                        break;
-
-                    case FunctionResultContent functionResult:
-                        // Tool result 처리는 별도로 필요
-                        break;
+                    userMessage.Content.Add(new TextMessageContent
+                    {
+                        Value = textContent.Text ?? string.Empty
+                    });
                 }
+                // FunctionResultContent is handled via toolResults merge — skip here
             }
 
             if (userMessage.Content.Count == 0 && !string.IsNullOrEmpty(chatMessage.Text))
@@ -194,7 +215,7 @@ public class MessageGeneratorChatClientAdapter : IChatClient
                 });
             }
 
-            return userMessage;
+            return userMessage.Content.Count > 0 ? userMessage : null;
         }
         else if (chatMessage.Role == ChatRole.Assistant)
         {
@@ -212,15 +233,24 @@ public class MessageGeneratorChatClientAdapter : IChatClient
                         break;
 
                     case FunctionCallContent functionCall:
-                        assistantMessage.Content.Add(new ToolMessageContent
+                        var callId = functionCall.CallId ?? Guid.NewGuid().ToString();
+                        var toolMsg = new ToolMessageContent
                         {
-                            Id = functionCall.CallId ?? Guid.NewGuid().ToString(),
+                            Id = callId,
                             Name = functionCall.Name,
                             Input = functionCall.Arguments is not null
                                 ? JsonSerializer.Serialize(functionCall.Arguments)
                                 : "{}",
                             IsApproved = true
-                        });
+                        };
+
+                        // Merge tool result if available
+                        if (toolResults.TryGetValue(callId, out var result))
+                        {
+                            toolMsg.Output = new ToolOutput(true, result);
+                        }
+
+                        assistantMessage.Content.Add(toolMsg);
                         break;
                 }
             }
@@ -236,6 +266,7 @@ public class MessageGeneratorChatClientAdapter : IChatClient
             return assistantMessage;
         }
 
+        // Skip ChatRole.Tool messages — results are merged into assistant messages above
         return null;
     }
 
@@ -339,4 +370,14 @@ public class MessageGeneratorChatClientAdapter : IChatClient
                 return null;
         }
     }
+
+    private static object? ConvertJsonElement(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.String => element.GetString(),
+        JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        JsonValueKind.Null or JsonValueKind.Undefined => null,
+        _ => element
+    };
 }
