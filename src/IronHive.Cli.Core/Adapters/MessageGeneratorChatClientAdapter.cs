@@ -170,7 +170,7 @@ public class MessageGeneratorChatClientAdapter : IChatClient
                             Name = functionCall.Name,
                             Input = functionCall.Arguments is not null
                                 ? JsonSerializer.Serialize(functionCall.Arguments)
-                                : null,
+                                : "{}",
                             IsApproved = true
                         });
                         break;
