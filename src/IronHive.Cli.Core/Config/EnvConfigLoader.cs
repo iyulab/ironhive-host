@@ -3,18 +3,28 @@ using IronHive.Cli.Core.Permissions;
 namespace IronHive.Cli.Core.Config;
 
 /// <summary>
-/// Loads configuration from ~/.ironhive/settings.json.
+/// Loads configuration from settings.json using the provided SettingsManager.
 /// </summary>
-public static class EnvConfigLoader
+public class EnvConfigLoader
 {
+    private readonly SettingsManager _settings;
+
     /// <summary>
-    /// Loads configuration from ~/.ironhive/settings.json.
+    /// Creates a new EnvConfigLoader with the specified SettingsManager.
+    /// </summary>
+    public EnvConfigLoader(SettingsManager settings)
+    {
+        _settings = settings;
+    }
+
+    /// <summary>
+    /// Loads configuration from settings.json.
     /// </summary>
     /// <returns>Loaded configuration.</returns>
-    public static IronHiveConfig Load()
+    public IronHiveConfig Load()
     {
-        // Load from ~/.ironhive/settings.json
-        var config = SettingsManager.Load();
+        // Load from settings.json
+        var config = _settings.Load();
 
         // Load permission config from default locations
         config.Permissions = LoadPermissionConfig();

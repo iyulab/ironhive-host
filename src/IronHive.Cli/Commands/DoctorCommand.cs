@@ -12,11 +12,13 @@ namespace IronHive.Cli.Commands;
 public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
 {
     private readonly IronHiveConfig _config;
+    private readonly SettingsManager _settings;
     private readonly IChatClientFactory _clientFactory;
 
-    public DoctorCommand(IronHiveConfig config, IChatClientFactory clientFactory)
+    public DoctorCommand(IronHiveConfig config, SettingsManager settings, IChatClientFactory clientFactory)
     {
         _config = config;
+        _settings = settings;
         _clientFactory = clientFactory;
     }
 
@@ -69,9 +71,9 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         return hasErrors ? 1 : 0;
     }
 
-    private static bool CheckSettingsFile(List<string> recommendations, bool verbose)
+    private bool CheckSettingsFile(List<string> recommendations, bool verbose)
     {
-        var settingsPath = SettingsManager.SettingsFilePath;
+        var settingsPath = _settings.SettingsFilePath;
         var exists = File.Exists(settingsPath);
 
         if (exists)
@@ -246,7 +248,7 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         return allOk;
     }
 
-    private static bool CheckEnvironment(List<string> recommendations, bool verbose)
+    private bool CheckEnvironment(List<string> recommendations, bool verbose)
     {
         var allOk = true;
 
@@ -277,7 +279,7 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         // Check disk space (settings directory)
         try
         {
-            var settingsDir = SettingsManager.SettingsDirectory;
+            var settingsDir = _settings.SettingsDirectory;
             if (Directory.Exists(settingsDir))
             {
                 var drive = new DriveInfo(Path.GetPathRoot(settingsDir) ?? "C:");

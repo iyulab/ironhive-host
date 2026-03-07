@@ -4,12 +4,12 @@ using System.Text.Json.Nodes;
 namespace IronHive.Cli.Core.Config;
 
 /// <summary>
-/// Manages settings in ~/.ironhive/settings.json
+/// Manages settings in a configurable base directory (default: ~/.ironhive/).
 /// </summary>
-public static class SettingsManager
+public class SettingsManager
 {
     private const string SettingsFileName = "settings.json";
-    private const string IronHiveDir = ".ironhive";
+    private const string DefaultDirName = ".ironhive";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -19,21 +19,32 @@ public static class SettingsManager
     };
 
     /// <summary>
-    /// Gets the path to the settings directory (~/.ironhive).
+    /// Gets the path to the settings directory.
     /// </summary>
-    public static string SettingsDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), IronHiveDir);
+    public string SettingsDirectory { get; }
 
     /// <summary>
-    /// Gets the path to the settings file (~/.ironhive/settings.json).
+    /// Gets the path to the settings file.
     /// </summary>
-    public static string SettingsFilePath =>
-        Path.Combine(SettingsDirectory, SettingsFileName);
+    public string SettingsFilePath { get; }
 
     /// <summary>
-    /// Loads settings from ~/.ironhive/settings.json.
+    /// Creates a new SettingsManager with the specified base directory.
     /// </summary>
-    public static IronHiveConfig Load()
+    /// <param name="basePath">
+    /// Base directory for settings. If null, defaults to ~/.ironhive/.
+    /// </param>
+    public SettingsManager(string? basePath = null)
+    {
+        SettingsDirectory = basePath
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), DefaultDirName);
+        SettingsFilePath = Path.Combine(SettingsDirectory, SettingsFileName);
+    }
+
+    /// <summary>
+    /// Loads settings from settings.json in the configured directory.
+    /// </summary>
+    public IronHiveConfig Load()
     {
         if (!File.Exists(SettingsFilePath))
         {
@@ -48,15 +59,14 @@ public static class SettingsManager
         }
         catch (JsonException)
         {
-            // Return default config if JSON is invalid
             return new IronHiveConfig();
         }
     }
 
     /// <summary>
-    /// Saves settings to ~/.ironhive/settings.json.
+    /// Saves settings to settings.json in the configured directory.
     /// </summary>
-    public static void Save(IronHiveConfig config)
+    public void Save(IronHiveConfig config)
     {
         EnsureDirectoryExists();
 
@@ -67,7 +77,7 @@ public static class SettingsManager
     /// <summary>
     /// Gets a value by dot-notation key (e.g., "openai.apiKey").
     /// </summary>
-    public static string? GetValue(string key)
+    public string? GetValue(string key)
     {
         if (!File.Exists(SettingsFilePath))
         {
@@ -94,7 +104,7 @@ public static class SettingsManager
     /// <summary>
     /// Sets a value by dot-notation key (e.g., "openai.apiKey").
     /// </summary>
-    public static void SetValue(string key, string value)
+    public void SetValue(string key, string value)
     {
         EnsureDirectoryExists();
 
@@ -118,7 +128,7 @@ public static class SettingsManager
     /// <summary>
     /// Removes a value by dot-notation key.
     /// </summary>
-    public static bool UnsetValue(string key)
+    public bool UnsetValue(string key)
     {
         if (!File.Exists(SettingsFilePath))
         {
@@ -152,7 +162,7 @@ public static class SettingsManager
     /// <summary>
     /// Lists all settings as flat key-value pairs.
     /// </summary>
-    public static IReadOnlyDictionary<string, string> ListAll()
+    public IReadOnlyDictionary<string, string> ListAll()
     {
         var result = new Dictionary<string, string>();
 
@@ -178,7 +188,7 @@ public static class SettingsManager
         return result;
     }
 
-    private static void EnsureDirectoryExists()
+    private void EnsureDirectoryExists()
     {
         if (!Directory.Exists(SettingsDirectory))
         {

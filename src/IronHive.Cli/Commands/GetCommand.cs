@@ -11,6 +11,13 @@ namespace IronHive.Cli.Commands;
 /// </summary>
 public class GetCommand : Command<GetCommand.Settings>
 {
+    private readonly SettingsManager _settings;
+
+    public GetCommand(SettingsManager settings)
+    {
+        _settings = settings;
+    }
+
     public class Settings : CommandSettings
     {
         [CommandArgument(0, "[KEY]")]
@@ -30,7 +37,7 @@ public class GetCommand : Command<GetCommand.Settings>
             return ShowAllSettings(settings.Raw);
         }
 
-        var value = SettingsManager.GetValue(settings.Key);
+        var value = _settings.GetValue(settings.Key);
 
         if (value is null)
         {
@@ -60,16 +67,16 @@ public class GetCommand : Command<GetCommand.Settings>
         return 0;
     }
 
-    private static int ShowAllSettings(bool raw)
+    private int ShowAllSettings(bool raw)
     {
-        var settings = SettingsManager.ListAll();
+        var allSettings = _settings.ListAll();
 
-        if (settings.Count == 0)
+        if (allSettings.Count == 0)
         {
             if (!raw)
             {
                 AnsiConsole.MarkupLine("[yellow]No settings configured.[/]");
-                AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(SettingsManager.SettingsFilePath)}[/]");
+                AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(_settings.SettingsFilePath)}[/]");
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("[grey]Use 'ironhive set <key> <value>' to configure.[/]");
             }
@@ -78,7 +85,7 @@ public class GetCommand : Command<GetCommand.Settings>
 
         if (raw)
         {
-            foreach (var (key, value) in settings.OrderBy(s => s.Key))
+            foreach (var (key, value) in allSettings.OrderBy(s => s.Key))
             {
                 Console.WriteLine($"{key}={value}");
             }
@@ -90,7 +97,7 @@ public class GetCommand : Command<GetCommand.Settings>
                 .AddColumn("Key")
                 .AddColumn("Value");
 
-            foreach (var (key, value) in settings.OrderBy(s => s.Key))
+            foreach (var (key, value) in allSettings.OrderBy(s => s.Key))
             {
                 table.AddRow(
                     Markup.Escape(key),
@@ -100,7 +107,7 @@ public class GetCommand : Command<GetCommand.Settings>
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(SettingsManager.SettingsFilePath)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(_settings.SettingsFilePath)}[/]");
         }
 
         return 0;

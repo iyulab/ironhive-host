@@ -41,8 +41,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddIronHiveServices(this IServiceCollection services)
     {
-        // Load configuration from .env file
-        var config = EnvConfigLoader.Load();
+        // Load configuration
+        var settings = new SettingsManager();
+        services.AddSingleton(settings);
+        var config = new EnvConfigLoader(settings).Load();
         services.AddSingleton(config);
 
         // Register HttpClient factory with named clients
