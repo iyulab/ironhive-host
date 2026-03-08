@@ -12,7 +12,6 @@ using LmChatMessage = LMSupply.Generator.Models.ChatMessage;
 using LmChatRole = LMSupply.Generator.Models.ChatRole;
 using LmChatToolCall = LMSupply.Generator.Models.ChatToolCall;
 using LmChatToolDefinition = LMSupply.Generator.Models.ChatToolDefinition;
-using LmChatFunctionDefinition = LMSupply.Generator.Models.ChatFunctionDefinition;
 using LmChatStreamChunk = LMSupply.Generator.Models.ChatStreamChunk;
 using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
 
@@ -455,12 +454,10 @@ internal sealed class LMSupplyChatClient : IChatClient
             // Assistant message with tool calls
             if (msg.Role == ChatRole.Assistant && functionCalls.Count > 0)
             {
-                var toolCalls = functionCalls.Select(fc => new LmChatToolCall
-                {
-                    Id = fc.CallId ?? $"call_{Guid.NewGuid():N}",
-                    FunctionName = fc.Name,
-                    Arguments = fc.Arguments is not null ? JsonSerializer.Serialize(fc.Arguments) : "{}"
-                }).ToList();
+                var toolCalls = functionCalls.Select(fc => new LmChatToolCall(
+                    fc.CallId ?? $"call_{Guid.NewGuid():N}",
+                    fc.Name,
+                    fc.Arguments is not null ? JsonSerializer.Serialize(fc.Arguments) : "{}")).ToList();
 
                 yield return new LmChatMessage(
                     LmChatRole.Assistant,
@@ -522,17 +519,9 @@ internal sealed class LMSupplyChatClient : IChatClient
                 if (tool is AIFunction func)
                 {
                     var parameters = func.JsonSchema.ValueKind != JsonValueKind.Undefined
-                        ? JsonSerializer.Serialize(func.JsonSchema)
-                        : null;
-                    tools.Add(new LmChatToolDefinition
-                    {
-                        Function = new LmChatFunctionDefinition
-                        {
-                            Name = func.Name,
-                            Description = func.Description,
-                            Parameters = parameters
-                        }
-                    });
+                        ? func.JsonSchema
+                        : (JsonElement?)null;
+                    tools.Add(new LmChatToolDefinition(func.Name, func.Description, parameters));
                 }
             }
             if (tools.Count > 0)
