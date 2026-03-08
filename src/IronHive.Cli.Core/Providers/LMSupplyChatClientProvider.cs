@@ -1,10 +1,18 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Config;
 using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+
+using LmChatMessage = LMSupply.Generator.Models.ChatMessage;
+using LmChatRole = LMSupply.Generator.Models.ChatRole;
+using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
+using LmToolCall = LMSupply.Generator.Models.ToolCall;
+using LmToolDefinition = LMSupply.Generator.Models.ToolDefinition;
 
 namespace IronHive.Cli.Core.Providers;
 
@@ -292,6 +300,8 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 
 /// <summary>
 /// IChatClient wrapper for LMSupply IGeneratorModel.
+/// Maps lm-supply ChatCompletionResult/ChatStreamChunk to M.E.AI types
+/// including FunctionCallContent/FunctionResultContent for tool calling.
 /// </summary>
 internal sealed class LMSupplyChatClient : IChatClient
 {
@@ -312,22 +322,111 @@ internal sealed class LMSupplyChatClient : IChatClient
         var messages = ConvertMessages(chatMessages);
         var genOptions = ConvertOptions(options);
 
-        var response = await _generator.GenerateChatCompleteAsync(messages, genOptions, cancellationToken);
+        var result = await _generator.GenerateChatCompleteAsync(messages, genOptions, cancellationToken);
 
-        return new ChatResponse(new ChatMessage(ChatRole.Assistant, response));
+        // Build response contents
+        var contents = new List<AIContent>();
+
+        if (result.Text is not null)
+        {
+            contents.Add(new TextContent(result.Text));
+        }
+
+        if (result.ToolCalls is { Count: > 0 })
+        {
+            foreach (var tc in result.ToolCalls)
+            {
+                var args = ParseArguments(tc.Arguments);
+                contents.Add(new FunctionCallContent(tc.Id, tc.Name, args));
+            }
+        }
+
+        var responseMessage = new ChatMessage(ChatRole.Assistant, contents);
+        var finishReason = MapFinishReason(result.FinishReason);
+
+        return new ChatResponse(responseMessage)
+        {
+            FinishReason = finishReason,
+            Usage = new UsageDetails
+            {
+                InputTokenCount = result.Usage.PromptTokens,
+                OutputTokenCount = result.Usage.CompletionTokens,
+                TotalTokenCount = result.Usage.TotalTokens
+            }
+        };
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> chatMessages,
         ChatOptions? options = null,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messages = ConvertMessages(chatMessages);
         var genOptions = ConvertOptions(options);
 
-        await foreach (var token in _generator.GenerateChatAsync(messages, genOptions, cancellationToken))
+        // Track tool call accumulation across chunks
+        Dictionary<int, (string Id, string Name, string Args)>? toolCallAccumulator = null;
+
+        await foreach (var chunk in _generator.GenerateChatAsync(messages, genOptions, cancellationToken))
         {
-            yield return new ChatResponseUpdate(ChatRole.Assistant, token);
+            // Text delta
+            if (chunk.Text is not null)
+            {
+                yield return new ChatResponseUpdate
+                {
+                    Role = ChatRole.Assistant,
+                    Contents = [new TextContent(chunk.Text)]
+                };
+            }
+
+            // Tool call deltas — accumulate then emit on finish
+            if (chunk.ToolCalls is { Count: > 0 })
+            {
+                toolCallAccumulator ??= [];
+                foreach (var delta in chunk.ToolCalls)
+                {
+                    if (!toolCallAccumulator.TryGetValue(delta.Index, out var existing))
+                    {
+                        existing = ("", "", "");
+                    }
+
+                    toolCallAccumulator[delta.Index] = (
+                        delta.Id ?? existing.Id,
+                        delta.Name ?? existing.Name,
+                        existing.Args + (delta.Arguments ?? "")
+                    );
+                }
+            }
+
+            // Finish reason
+            if (chunk.FinishReason is not null)
+            {
+                var finishReason = MapFinishReason(chunk.FinishReason);
+
+                // If tool calls were accumulated, emit them now
+                if (toolCallAccumulator is { Count: > 0 })
+                {
+                    var contents = new List<AIContent>();
+                    foreach (var (_, (id, name, args)) in toolCallAccumulator)
+                    {
+                        var parsedArgs = ParseArguments(args);
+                        contents.Add(new FunctionCallContent(id, name, parsedArgs));
+                    }
+                    yield return new ChatResponseUpdate
+                    {
+                        Role = ChatRole.Assistant,
+                        Contents = contents,
+                        FinishReason = finishReason
+                    };
+                }
+                else
+                {
+                    yield return new ChatResponseUpdate
+                    {
+                        FinishReason = finishReason
+                    };
+                }
+            }
         }
     }
 
@@ -346,30 +445,63 @@ internal sealed class LMSupplyChatClient : IChatClient
         // Generator is disposed by the provider
     }
 
-    private static IEnumerable<LMSupply.Generator.Models.ChatMessage> ConvertMessages(IEnumerable<ChatMessage> messages)
+    private static IEnumerable<LmChatMessage> ConvertMessages(
+        IEnumerable<ChatMessage> messages)
     {
         foreach (var msg in messages)
         {
+            // Check for tool-related content
+            var functionCalls = msg.Contents.OfType<FunctionCallContent>().ToList();
+            var functionResults = msg.Contents.OfType<FunctionResultContent>().ToList();
+
+            // Assistant message with tool calls
+            if (msg.Role == ChatRole.Assistant && functionCalls.Count > 0)
+            {
+                var toolCalls = functionCalls.Select(fc => new LmToolCall(
+                    fc.CallId ?? $"call_{Guid.NewGuid():N}",
+                    fc.Name,
+                    fc.Arguments is not null ? JsonSerializer.Serialize(fc.Arguments) : "{}"
+                )).ToList();
+
+                yield return new LmChatMessage(
+                    LmChatRole.Assistant,
+                    msg.Text ?? string.Empty)
+                { ToolCalls = toolCalls };
+                continue;
+            }
+
+            // Tool result message
+            if (msg.Role == ChatRole.Tool && functionResults.Count > 0)
+            {
+                foreach (var fr in functionResults)
+                {
+                    yield return LmChatMessage.Tool(
+                        fr.CallId ?? "",
+                        fr.Result?.ToString() ?? "");
+                }
+                continue;
+            }
+
+            // Regular message (system/user/assistant without tools)
             var role = msg.Role.Value switch
             {
-                "system" => LMSupply.Generator.Models.ChatRole.System,
-                "user" => LMSupply.Generator.Models.ChatRole.User,
-                "assistant" => LMSupply.Generator.Models.ChatRole.Assistant,
-                _ => LMSupply.Generator.Models.ChatRole.User
+                "system" => LmChatRole.System,
+                "user" => LmChatRole.User,
+                "assistant" => LmChatRole.Assistant,
+                _ => LmChatRole.User
             };
-
-            yield return new LMSupply.Generator.Models.ChatMessage(role, msg.Text ?? string.Empty);
+            yield return new LmChatMessage(role, msg.Text ?? string.Empty);
         }
     }
 
-    private static LMSupply.Generator.Models.GenerationOptions? ConvertOptions(ChatOptions? options)
+    private static LmGenerationOptions? ConvertOptions(ChatOptions? options)
     {
-        if (options == null)
+        if (options is null)
         {
             return null;
         }
 
-        var genOptions = new LMSupply.Generator.Models.GenerationOptions();
+        var genOptions = new LmGenerationOptions();
 
         if (options.Temperature.HasValue)
         {
@@ -381,6 +513,54 @@ internal sealed class LMSupplyChatClient : IChatClient
             genOptions.MaxTokens = options.MaxOutputTokens.Value;
         }
 
+        // Convert tool definitions
+        if (options.Tools is { Count: > 0 })
+        {
+            var tools = new List<LmToolDefinition>();
+            foreach (var tool in options.Tools)
+            {
+                if (tool is AIFunction func)
+                {
+                    var parameters = func.JsonSchema.ValueKind != JsonValueKind.Undefined
+                        ? func.JsonSchema
+                        : (JsonElement?)null;
+                    tools.Add(new LmToolDefinition(
+                        func.Name,
+                        func.Description,
+                        parameters));
+                }
+            }
+            if (tools.Count > 0)
+            {
+                genOptions.Tools = tools;
+                genOptions.ToolChoice = "auto";
+            }
+        }
+
         return genOptions;
     }
+
+    private static Dictionary<string, object?>? ParseArguments(string? json)
+    {
+        if (string.IsNullOrEmpty(json))
+        {
+            return null;
+        }
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static ChatFinishReason? MapFinishReason(string? reason) => reason switch
+    {
+        "stop" => ChatFinishReason.Stop,
+        "tool_calls" => ChatFinishReason.ToolCalls,
+        "length" => ChatFinishReason.Length,
+        _ => null
+    };
 }

@@ -9,7 +9,7 @@
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
     <!-- OpenAI SDK -->
-    <PackageVersion Include="ModelContextProtocol" Version="1.0.0" />
+    <PackageVersion Include="ModelContextProtocol" Version="1.1.0" />
     <PackageVersion Include="OpenAI" Version="2.9.1" />
     <!-- DI & Hosting (.NET 10) -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
@@ -30,11 +30,11 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.1.1" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.14.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.14.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.14.0" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.21.0" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.21.0" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.22.0" />
     <!-- IndexThinking (token management, reasoning extraction) -->
-    <PackageVersion Include="IndexThinking" Version="0.17.1" />
+    <PackageVersion Include="IndexThinking" Version="0.18.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.14.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.14.0" />
@@ -50,7 +50,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.4" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.5" />
     <!-- Chronex (scheduling) -->
     <PackageVersion Include="Chronex" Version="0.4.0" />
     <!-- TokenMeter & ToolCallParser -->
