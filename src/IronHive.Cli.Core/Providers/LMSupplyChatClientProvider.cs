@@ -7,12 +7,11 @@ using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-
 using LmChatMessage = LMSupply.Generator.Models.ChatMessage;
 using LmChatRole = LMSupply.Generator.Models.ChatRole;
+using LmChatStreamChunk = LMSupply.Generator.Models.ChatStreamChunk;
 using LmChatToolCall = LMSupply.Generator.Models.ChatToolCall;
 using LmChatToolDefinition = LMSupply.Generator.Models.ChatToolDefinition;
-using LmChatStreamChunk = LMSupply.Generator.Models.ChatStreamChunk;
 using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
 
 namespace IronHive.Cli.Core.Providers;
