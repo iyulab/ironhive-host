@@ -10,9 +10,11 @@ using Microsoft.Extensions.Logging;
 
 using LmChatMessage = LMSupply.Generator.Models.ChatMessage;
 using LmChatRole = LMSupply.Generator.Models.ChatRole;
+using LmChatToolCall = LMSupply.Generator.Models.ChatToolCall;
+using LmChatToolDefinition = LMSupply.Generator.Models.ChatToolDefinition;
+using LmChatFunctionDefinition = LMSupply.Generator.Models.ChatFunctionDefinition;
+using LmChatStreamChunk = LMSupply.Generator.Models.ChatStreamChunk;
 using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
-using LmToolCall = LMSupply.Generator.Models.ToolCall;
-using LmToolDefinition = LMSupply.Generator.Models.ToolDefinition;
 
 namespace IronHive.Cli.Core.Providers;
 
@@ -299,7 +301,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 }
 
 /// <summary>
-/// IChatClient wrapper for LMSupply IGeneratorModel.
+/// IChatClient wrapper for LMSupply ITextGenerator.
 /// Maps lm-supply ChatCompletionResult/ChatStreamChunk to M.E.AI types
 /// including FunctionCallContent/FunctionResultContent for tool calling.
 /// </summary>
@@ -322,14 +324,15 @@ internal sealed class LMSupplyChatClient : IChatClient
         var messages = ConvertMessages(chatMessages);
         var genOptions = ConvertOptions(options);
 
-        var result = await _generator.GenerateChatCompleteAsync(messages, genOptions, cancellationToken);
+        // Use tool-aware method for structured response
+        var result = await _generator.GenerateChatWithToolsAsync(messages, genOptions, cancellationToken);
 
         // Build response contents
         var contents = new List<AIContent>();
 
-        if (result.Text is not null)
+        if (result.Content is not null)
         {
-            contents.Add(new TextContent(result.Text));
+            contents.Add(new TextContent(result.Content));
         }
 
         if (result.ToolCalls is { Count: > 0 })
@@ -337,7 +340,7 @@ internal sealed class LMSupplyChatClient : IChatClient
             foreach (var tc in result.ToolCalls)
             {
                 var args = ParseArguments(tc.Arguments);
-                contents.Add(new FunctionCallContent(tc.Id, tc.Name, args));
+                contents.Add(new FunctionCallContent(tc.Id, tc.FunctionName, args));
             }
         }
 
@@ -346,13 +349,7 @@ internal sealed class LMSupplyChatClient : IChatClient
 
         return new ChatResponse(responseMessage)
         {
-            FinishReason = finishReason,
-            Usage = new UsageDetails
-            {
-                InputTokenCount = result.Usage.PromptTokens,
-                OutputTokenCount = result.Usage.CompletionTokens,
-                TotalTokenCount = result.Usage.TotalTokens
-            }
+            FinishReason = finishReason
         };
     }
 
@@ -367,7 +364,7 @@ internal sealed class LMSupplyChatClient : IChatClient
         // Track tool call accumulation across chunks
         Dictionary<int, (string Id, string Name, string Args)>? toolCallAccumulator = null;
 
-        await foreach (var chunk in _generator.GenerateChatAsync(messages, genOptions, cancellationToken))
+        await foreach (var chunk in _generator.GenerateChatStreamAsync(messages, genOptions, cancellationToken))
         {
             // Text delta
             if (chunk.Text is not null)
@@ -458,11 +455,12 @@ internal sealed class LMSupplyChatClient : IChatClient
             // Assistant message with tool calls
             if (msg.Role == ChatRole.Assistant && functionCalls.Count > 0)
             {
-                var toolCalls = functionCalls.Select(fc => new LmToolCall(
-                    fc.CallId ?? $"call_{Guid.NewGuid():N}",
-                    fc.Name,
-                    fc.Arguments is not null ? JsonSerializer.Serialize(fc.Arguments) : "{}"
-                )).ToList();
+                var toolCalls = functionCalls.Select(fc => new LmChatToolCall
+                {
+                    Id = fc.CallId ?? $"call_{Guid.NewGuid():N}",
+                    FunctionName = fc.Name,
+                    Arguments = fc.Arguments is not null ? JsonSerializer.Serialize(fc.Arguments) : "{}"
+                }).ToList();
 
                 yield return new LmChatMessage(
                     LmChatRole.Assistant,
@@ -476,7 +474,7 @@ internal sealed class LMSupplyChatClient : IChatClient
             {
                 foreach (var fr in functionResults)
                 {
-                    yield return LmChatMessage.Tool(
+                    yield return LmChatMessage.ToolResult(
                         fr.CallId ?? "",
                         fr.Result?.ToString() ?? "");
                 }
@@ -518,24 +516,28 @@ internal sealed class LMSupplyChatClient : IChatClient
         // Convert tool definitions
         if (options.Tools is { Count: > 0 })
         {
-            var tools = new List<LmToolDefinition>();
+            var tools = new List<LmChatToolDefinition>();
             foreach (var tool in options.Tools)
             {
                 if (tool is AIFunction func)
                 {
                     var parameters = func.JsonSchema.ValueKind != JsonValueKind.Undefined
-                        ? func.JsonSchema
-                        : (JsonElement?)null;
-                    tools.Add(new LmToolDefinition(
-                        func.Name,
-                        func.Description,
-                        parameters));
+                        ? JsonSerializer.Serialize(func.JsonSchema)
+                        : null;
+                    tools.Add(new LmChatToolDefinition
+                    {
+                        Function = new LmChatFunctionDefinition
+                        {
+                            Name = func.Name,
+                            Description = func.Description,
+                            Parameters = parameters
+                        }
+                    });
                 }
             }
             if (tools.Count > 0)
             {
                 genOptions.Tools = tools;
-                genOptions.ToolChoice = "auto";
             }
         }
 
