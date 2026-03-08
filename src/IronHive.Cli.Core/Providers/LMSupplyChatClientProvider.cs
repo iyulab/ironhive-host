@@ -406,18 +406,13 @@ internal sealed class LMSupplyChatClient : IChatClient
                 // If tool calls were accumulated, emit them now
                 if (toolCallAccumulator is { Count: > 0 })
                 {
-                    var contents = new List<AIContent>();
-                    foreach (var (_, (id, name, args)) in toolCallAccumulator)
-                    {
-                        var parsedArgs = ParseArguments(args);
-                        contents.Add(new FunctionCallContent(id, name, parsedArgs));
-                    }
                     yield return new ChatResponseUpdate
                     {
                         Role = ChatRole.Assistant,
-                        Contents = contents,
+                        Contents = BuildToolCallContents(toolCallAccumulator),
                         FinishReason = finishReason
                     };
+                    toolCallAccumulator = null;
                 }
                 else
                 {
@@ -428,11 +423,17 @@ internal sealed class LMSupplyChatClient : IChatClient
                 }
             }
         }
-    }
 
-    public TService? GetService<TService>(object? key = null) where TService : class
-    {
-        return this as TService;
+        // Post-loop flush: emit accumulated tool calls if stream ended without FinishReason
+        if (toolCallAccumulator is { Count: > 0 })
+        {
+            yield return new ChatResponseUpdate
+            {
+                Role = ChatRole.Assistant,
+                Contents = BuildToolCallContents(toolCallAccumulator),
+                FinishReason = ChatFinishReason.ToolCalls
+            };
+        }
     }
 
     public object? GetService(Type serviceType, object? key = null)
@@ -488,6 +489,7 @@ internal sealed class LMSupplyChatClient : IChatClient
                 "system" => LmChatRole.System,
                 "user" => LmChatRole.User,
                 "assistant" => LmChatRole.Assistant,
+                "tool" => LmChatRole.Tool,
                 _ => LmChatRole.User
             };
             yield return new LmChatMessage(role, msg.Text ?? string.Empty);
@@ -538,6 +540,23 @@ internal sealed class LMSupplyChatClient : IChatClient
         }
 
         return genOptions;
+    }
+
+    private static List<AIContent> BuildToolCallContents(
+        Dictionary<int, (string Id, string Name, string Args)> accumulator)
+    {
+        var contents = new List<AIContent>();
+        foreach (var (_, (id, name, args)) in accumulator.OrderBy(kvp => kvp.Key))
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                continue; // skip malformed deltas without a function name
+            }
+
+            var callId = string.IsNullOrEmpty(id) ? $"call_{Guid.NewGuid():N}" : id;
+            contents.Add(new FunctionCallContent(callId, name, ParseArguments(args)));
+        }
+        return contents;
     }
 
     private static Dictionary<string, object?>? ParseArguments(string? json)
