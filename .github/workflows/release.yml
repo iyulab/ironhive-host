@@ -229,7 +229,9 @@ jobs:
         run: dotnet restore
 
       - name: Pack
-        run: dotnet pack src/IronHive.Cli/IronHive.Cli.csproj --configuration Release --output ./nupkg
+        run: |
+          dotnet pack src/IronHive.Cli/IronHive.Cli.csproj --configuration Release --output ./nupkg
+          dotnet pack src/IronHive.Cli.Core/IronHive.Cli.Core.csproj --configuration Release --output ./nupkg
 
       - name: List packages
         run: ls -la ./nupkg/
