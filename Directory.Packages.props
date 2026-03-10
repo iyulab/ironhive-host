@@ -33,8 +33,6 @@
     <PackageVersion Include="LMSupply.Embedder" Version="0.22.2" />
     <PackageVersion Include="LMSupply.Reranker" Version="0.22.2" />
     <PackageVersion Include="LMSupply.Generator" Version="0.22.2" />
-    <!-- IndexThinking (token management, reasoning extraction) -->
-    <PackageVersion Include="IndexThinking" Version="0.18.5" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.14.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.14.0" />

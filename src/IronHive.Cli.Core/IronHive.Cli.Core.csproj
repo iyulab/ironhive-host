@@ -45,9 +45,6 @@
     <PackageReference Include="LMSupply.Reranker" />
     <PackageReference Include="LMSupply.Generator" />
 
-    <!-- IndexThinking (token management, reasoning) -->
-    <PackageReference Include="IndexThinking" />
-
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageReference Include="MemoryIndexer" />
     <PackageReference Include="MemoryIndexer.Sdk" />
