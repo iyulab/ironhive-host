@@ -5,26 +5,26 @@
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
     <PackageVersion Include="Ironbees.Core" Version="0.6.2" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.4.0" />
     <!-- OpenAI SDK -->
     <PackageVersion Include="ModelContextProtocol" Version="1.1.0" />
     <PackageVersion Include="OpenAI" Version="2.9.1" />
     <!-- DI & Hosting (.NET 10) -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.5" />
     <!-- CLI & Console -->
     <PackageVersion Include="Spectre.Console" Version="0.54.0" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.53.1" />
     <!-- Diff -->
     <PackageVersion Include="DiffPlex" Version="1.9.0" />
     <!-- Glob -->
-    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.5" />
     <!-- YAML Config -->
     <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <!-- .env support -->
@@ -55,7 +55,7 @@
     <PackageVersion Include="TokenMeter" Version="0.3.1" />
     <PackageVersion Include="ToolCallParser" Version="0.2.1" />
     <!-- Testing -->
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.4.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />

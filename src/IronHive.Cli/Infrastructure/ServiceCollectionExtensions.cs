@@ -141,7 +141,7 @@ public static class ServiceCollectionExtensions
     /// and optionally appending a required path suffix if not already present.
     /// Handles all combinations: with/without trailing slash, with/without path suffix.
     /// </summary>
-    private static string NormalizeEndpoint(string endpoint, string? requiredSuffix = null)
+    internal static string NormalizeEndpoint(string endpoint, string? requiredSuffix = null)
     {
         var trimmed = endpoint.TrimEnd('/');
 
@@ -150,7 +150,18 @@ public static class ServiceCollectionExtensions
             var suffix = requiredSuffix.Trim('/');
             if (!trimmed.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             {
-                trimmed = trimmed + "/" + suffix;
+                // Check if the endpoint ends with a prefix segment of the required suffix
+                // e.g., "/v1" is a prefix of "v1-openai" → replace instead of append
+                var lastSegment = trimmed[(trimmed.LastIndexOf('/') + 1)..];
+                if (lastSegment.Length > 0
+                    && suffix.StartsWith(lastSegment, StringComparison.OrdinalIgnoreCase))
+                {
+                    trimmed = trimmed[..^lastSegment.Length] + suffix;
+                }
+                else
+                {
+                    trimmed = trimmed + "/" + suffix;
+                }
             }
         }
 

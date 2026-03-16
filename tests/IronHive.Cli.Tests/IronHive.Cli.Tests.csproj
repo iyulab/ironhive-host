@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\IronHive.Cli\IronHive.Cli.csproj" />
     <ProjectReference Include="..\..\src\IronHive.Cli.Core\IronHive.Cli.Core.csproj" />
   </ItemGroup>
 

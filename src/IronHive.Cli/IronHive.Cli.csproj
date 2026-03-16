@@ -37,6 +37,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="IronHive.Cli.Tests" />
+  </ItemGroup>
+
   <!-- Package files -->
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
