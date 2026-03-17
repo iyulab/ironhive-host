@@ -173,9 +173,9 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void LimitsConfig_DefaultValues_AreCorrect()
+    public void UsageLimitsConfig_DefaultValues_AreCorrect()
     {
-        var limits = new LimitsConfig();
+        var limits = new IronHive.Agent.Tracking.UsageLimitsConfig();
 
         Assert.Equal(0, limits.MaxSessionTokens); // Unlimited
         Assert.Equal(0m, limits.MaxSessionCost); // Unlimited

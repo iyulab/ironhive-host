@@ -56,7 +56,7 @@ public class MergedConfig
     /// <summary>
     /// Token/cost limits configuration.
     /// </summary>
-    public LimitsConfig Limits { get; set; } = new();
+    public IronHive.Agent.Tracking.UsageLimitsConfig Limits { get; set; } = new();
 
     /// <summary>
     /// Context management configuration.
@@ -74,31 +74,7 @@ public class MergedConfig
     public ClaudeMdConfig? ClaudeMd { get; set; }
 }
 
-/// <summary>
-/// Token and cost limits configuration.
-/// </summary>
-public class LimitsConfig
-{
-    /// <summary>
-    /// Maximum tokens per session (0 = unlimited).
-    /// </summary>
-    public int MaxSessionTokens { get; set; }
-
-    /// <summary>
-    /// Maximum cost per session in USD (0 = unlimited).
-    /// </summary>
-    public decimal MaxSessionCost { get; set; }
-
-    /// <summary>
-    /// Warning threshold as percentage of limit (0.0 - 1.0).
-    /// </summary>
-    public float WarningThreshold { get; set; } = 0.8f;
-
-    /// <summary>
-    /// Whether to stop execution when limit is reached.
-    /// </summary>
-    public bool StopOnLimit { get; set; } = true;
-}
+// LimitsConfig removed — use IronHive.Agent.Tracking.UsageLimitsConfig instead
 
 /// <summary>
 /// Context management configuration.

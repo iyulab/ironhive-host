@@ -1,5 +1,5 @@
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Tracking;
 using IronHive.Cli.Core.Config;
 
 namespace IronHive.Cli.Tests.Agent;
@@ -9,7 +9,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_UnlimitedConfig_ReturnsNormal()
     {
-        var config = new LimitsConfig(); // Defaults to unlimited
+        var config = new UsageLimitsConfig(); // Defaults to unlimited
         var limiter = new UsageLimiter(config);
 
         limiter.RecordTokenUsage(100000, 10.00m);
@@ -23,7 +23,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_UnderLimit_ReturnsNormal()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             MaxSessionCost = 10.00m
@@ -41,7 +41,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_AtWarningThreshold_ReturnsWarning()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             WarningThreshold = 0.8f
@@ -58,7 +58,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_ExceedsLimit_ReturnsExceeded()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             StopOnLimit = true
@@ -75,7 +75,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_CostExceeds_ReturnsExceeded()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionCost = 5.00m,
             StopOnLimit = true
@@ -92,7 +92,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_StopOnLimitFalse_DoesNotStop()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             StopOnLimit = false
@@ -109,7 +109,7 @@ public class UsageLimiterTests
     [Fact]
     public void RecordTokenUsage_AccumulatesUsage()
     {
-        var config = new LimitsConfig();
+        var config = new UsageLimitsConfig();
         var limiter = new UsageLimiter(config);
 
         limiter.RecordTokenUsage(1000, 0.10m);
@@ -125,7 +125,7 @@ public class UsageLimiterTests
     [Fact]
     public void Reset_ClearsUsage()
     {
-        var config = new LimitsConfig();
+        var config = new UsageLimitsConfig();
         var limiter = new UsageLimiter(config);
 
         limiter.RecordTokenUsage(10000, 1.00m);
@@ -140,7 +140,7 @@ public class UsageLimiterTests
     [Fact]
     public void TokenPercentage_WithLimit_ReturnsCorrectValue()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000
         };
@@ -155,7 +155,7 @@ public class UsageLimiterTests
     [Fact]
     public void TokenPercentage_NoLimit_ReturnsNull()
     {
-        var config = new LimitsConfig(); // Unlimited
+        var config = new UsageLimitsConfig(); // Unlimited
         var limiter = new UsageLimiter(config);
 
         limiter.RecordTokenUsage(50000, 0m);
@@ -167,7 +167,7 @@ public class UsageLimiterTests
     [Fact]
     public void CostPercentage_WithLimit_ReturnsCorrectValue()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionCost = 10.00m
         };
@@ -182,7 +182,7 @@ public class UsageLimiterTests
     [Fact]
     public void Message_UnderLimit_IndicatesNormal()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000
         };
@@ -197,7 +197,7 @@ public class UsageLimiterTests
     [Fact]
     public void Message_AtWarning_IndicatesPercentage()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             WarningThreshold = 0.8f
@@ -214,7 +214,7 @@ public class UsageLimiterTests
     [Fact]
     public void Message_Exceeded_IndicatesExceeded()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000
         };
@@ -229,7 +229,7 @@ public class UsageLimiterTests
     [Fact]
     public void CheckLimits_BothLimitsExceeded_ReportsAll()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             MaxSessionCost = 5.00m,
