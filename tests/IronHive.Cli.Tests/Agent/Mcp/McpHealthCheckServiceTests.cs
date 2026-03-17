@@ -1,9 +1,7 @@
 using FluentAssertions;
 using IronHive.Agent.Mcp;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
 
 namespace IronHive.Cli.Tests.Agent.Mcp;
 
@@ -23,7 +21,7 @@ public class McpHealthCheckServiceTests
             _pluginManager, "@every 1m", timeProvider);
 
         // No exception expected — nothing to check
-        await _pluginManager.DidNotReceive().GetToolsAsync(
+        await _pluginManager.DidNotReceive().IsHealthyAsync(
             Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
@@ -31,8 +29,8 @@ public class McpHealthCheckServiceTests
     public async Task Tick_with_healthy_plugin_should_not_raise_event()
     {
         _pluginManager.ConnectedPlugins.Returns(SinglePlugin);
-        _pluginManager.GetToolsAsync("test-plugin", Arg.Any<CancellationToken>())
-            .Returns(Array.Empty<AITool>());
+        _pluginManager.IsHealthyAsync("test-plugin", Arg.Any<CancellationToken>())
+            .Returns(true);
 
         var timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
         await using var sut = new McpHealthCheckService(
@@ -43,7 +41,6 @@ public class McpHealthCheckServiceTests
 
         sut.Start();
         timeProvider.Advance(TimeSpan.FromMinutes(2));
-        // Allow scheduler tick to process
         await Task.Delay(200);
 
         eventRaised.Should().BeFalse();
@@ -53,8 +50,8 @@ public class McpHealthCheckServiceTests
     public async Task Tick_with_unhealthy_plugin_should_raise_PluginUnhealthy_event()
     {
         _pluginManager.ConnectedPlugins.Returns(SinglePlugin);
-        _pluginManager.GetToolsAsync("test-plugin", Arg.Any<CancellationToken>())
-            .ThrowsAsync(new InvalidOperationException("Plugin not responding"));
+        _pluginManager.IsHealthyAsync("test-plugin", Arg.Any<CancellationToken>())
+            .Returns(false);
 
         var timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
         await using var sut = new McpHealthCheckService(
@@ -65,7 +62,6 @@ public class McpHealthCheckServiceTests
 
         sut.Start();
         timeProvider.Advance(TimeSpan.FromMinutes(2));
-        // Allow scheduler tick to process
         await Task.Delay(200);
 
         receivedArgs.Should().NotBeNull();
@@ -80,11 +76,8 @@ public class McpHealthCheckServiceTests
             _pluginManager, "@every 1m", timeProvider);
 
         sut.Start();
-
-        // DisposeAsync returns ValueTask — invoke and await directly
         await sut.DisposeAsync();
 
-        // If we get here without exception, the test passes
         true.Should().BeTrue();
     }
 }

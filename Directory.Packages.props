@@ -37,7 +37,7 @@
     <PackageVersion Include="MemoryIndexer" Version="0.14.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.14.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.2.7" />
+    <PackageVersion Include="IronHive.Agent" Version="0.2.8" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.4.4" />
     <PackageVersion Include="IronHive.Core" Version="0.4.4" />
@@ -48,7 +48,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.7" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.8" />
     <!-- Chronex (scheduling) -->
     <PackageVersion Include="Chronex" Version="0.4.0" />
     <!-- TokenMeter & ToolCallParser -->

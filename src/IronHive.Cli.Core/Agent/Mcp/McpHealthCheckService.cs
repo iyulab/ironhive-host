@@ -39,17 +39,11 @@ public sealed class McpHealthCheckService : IAsyncDisposable
     {
         foreach (var pluginName in _pluginManager.ConnectedPlugins)
         {
-            try
-            {
-                // Health check by attempting to list tools — timeout indicates unhealthy
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                cts.CancelAfter(TimeSpan.FromSeconds(10));
-                await _pluginManager.GetToolsAsync(pluginName, cts.Token);
-            }
-            catch (Exception ex) when (ex is OperationCanceledException or TimeoutException or InvalidOperationException)
+            var healthy = await _pluginManager.IsHealthyAsync(pluginName, ct);
+            if (!healthy)
             {
 #pragma warning disable CA1848
-                _logger?.LogWarning("MCP plugin '{PluginName}' health check failed: {Message}", pluginName, ex.Message);
+                _logger?.LogWarning("MCP plugin '{PluginName}' health check failed", pluginName);
 #pragma warning restore CA1848
                 PluginUnhealthy?.Invoke(this, new McpPluginEventArgs { PluginName = pluginName });
             }
