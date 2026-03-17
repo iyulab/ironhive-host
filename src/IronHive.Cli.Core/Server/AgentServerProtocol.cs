@@ -38,6 +38,7 @@ public record CancelRequest() : ServerRequest;
 [JsonDerivedType(typeof(TurnEndEvent), "turn_end")]
 [JsonDerivedType(typeof(AgentSelectedEvent), "agent_selected")]
 [JsonDerivedType(typeof(ErrorEvent), "error")]
+[JsonDerivedType(typeof(ThinkingDeltaEvent), "thinking_delta")]
 [JsonDerivedType(typeof(PlanCreatedServerEvent), "plan_created")]
 [JsonDerivedType(typeof(PlanStepStartedServerEvent), "plan_step_started")]
 [JsonDerivedType(typeof(PlanStepCompletedServerEvent), "plan_step_completed")]
@@ -47,6 +48,11 @@ public abstract record ServerEvent;
 public record SessionStartedEvent(string SessionId) : ServerEvent;
 
 public record TextDeltaEvent(string Content) : ServerEvent;
+
+/// <summary>
+/// Thinking/reasoning content delta from extended-thinking models.
+/// </summary>
+public record ThinkingDeltaEvent(string Content) : ServerEvent;
 
 public record ToolStartEvent(string Tool, JsonElement? Input = null) : ServerEvent;
 
