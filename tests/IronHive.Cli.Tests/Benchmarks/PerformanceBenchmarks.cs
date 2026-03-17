@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Globalization;
 using IronHive.Agent.Context;
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Agent;
-using IronHive.Cli.Core.Agent.ErrorRecovery;
+using IronHive.Agent.Tracking;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Cli.Core.Config;
-using IronHive.Cli.Core.Webhook;
+using IronHive.Agent.Webhook;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Tests.Benchmarks;
@@ -119,7 +119,7 @@ public class PerformanceBenchmarks
     [Fact]
     public void UsageLimiter_ChecksQuickly()
     {
-        var config = new LimitsConfig
+        var config = new UsageLimitsConfig
         {
             MaxSessionTokens = 100000,
             MaxSessionCost = 10.00m

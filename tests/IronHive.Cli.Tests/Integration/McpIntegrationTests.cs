@@ -1,5 +1,5 @@
 using System.Text.Json;
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 using IronHive.Cli.Core.Integration;
 using Microsoft.Extensions.AI;
 

@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent.Mode;
+using IronHive.Agent.Mode;
 using Spectre.Console;
 
 namespace IronHive.Cli.Services;

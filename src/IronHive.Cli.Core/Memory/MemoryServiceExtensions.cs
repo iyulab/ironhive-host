@@ -6,7 +6,38 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace IronHive.Cli.Core.Memory;
+namespace IronHive.Agent.Memory;
+
+/// <summary>
+/// Adapts IEmbeddingProvider to IAgentEmbeddingProvider for memory service integration.
+/// </summary>
+internal sealed class EmbeddingProviderAdapter : IAgentEmbeddingProvider
+{
+    private readonly IEmbeddingProvider _provider;
+
+    public EmbeddingProviderAdapter(IEmbeddingProvider provider)
+    {
+        _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+    }
+
+    public int Dimensions => _provider.Dimensions;
+
+    public async Task<float[]> EmbedAsync(string text, CancellationToken cancellationToken = default)
+    {
+        return await _provider.EmbedAsync(text, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<float[]>> EmbedBatchAsync(
+        IEnumerable<string> texts, CancellationToken cancellationToken = default)
+    {
+        var results = new List<float[]>();
+        foreach (var text in texts)
+        {
+            results.Add(await _provider.EmbedAsync(text, cancellationToken));
+        }
+        return results;
+    }
+}
 
 /// <summary>
 /// Extension methods for registering memory services.
@@ -23,8 +54,8 @@ public static class MemoryServiceExtensions
         this IServiceCollection services,
         Action<MemoryIndexerOptions>? configure = null)
     {
-        // Register MemoryIndexer's IEmbeddingService adapter (before AddMemoryIndexer)
-        services.AddSingleton<IEmbeddingService>(sp =>
+        // Register IAgentEmbeddingProvider adapter from IEmbeddingProvider
+        services.TryAddSingleton<IAgentEmbeddingProvider>(sp =>
         {
             var embeddingProvider = sp.GetService<IEmbeddingProvider>();
             if (embeddingProvider is null)
@@ -33,7 +64,14 @@ public static class MemoryServiceExtensions
                     "IEmbeddingProvider is required for memory services. " +
                     "Register an IEmbeddingProvider before calling AddIronHiveMemory().");
             }
-            return new EmbeddingServiceAdapter(embeddingProvider);
+            return new EmbeddingProviderAdapter(embeddingProvider);
+        });
+
+        // Register MemoryIndexer's IEmbeddingService adapter (before AddMemoryIndexer)
+        services.AddSingleton<IEmbeddingService>(sp =>
+        {
+            var agentEmbedding = sp.GetRequiredService<IAgentEmbeddingProvider>();
+            return new EmbeddingServiceAdapter(agentEmbedding);
         });
 
         // Register MemoryIndexer's ITextCompletionService adapter (before AddMemoryIndexer)

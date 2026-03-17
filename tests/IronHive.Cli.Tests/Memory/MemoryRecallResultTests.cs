@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Memory;
+using IronHive.Agent.Memory;
 
 namespace IronHive.Cli.Tests.Memory;
 

@@ -2,7 +2,7 @@ using IndexThinking.Agents;
 using IndexThinking.Client;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Providers;
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Tools;
 using Microsoft.Extensions.AI;
@@ -124,7 +124,7 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
                 var config = McpPluginsConfigLoader.LoadFromDefault();
                 if (config.Plugins.Count > 0)
                 {
-                    await _mcpPluginManager.LoadFromConfigAsync(config, logger: _logger, cancellationToken: cancellationToken);
+                    await _mcpPluginManager.LoadFromConfigAsync(config, cancellationToken: cancellationToken);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

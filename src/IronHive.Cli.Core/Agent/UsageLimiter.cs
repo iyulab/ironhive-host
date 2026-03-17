@@ -1,5 +1,5 @@
 using IronHive.Cli.Core.Config;
-using IronHive.Cli.Core.Webhook;
+using IronHive.Agent.Webhook;
 
 namespace IronHive.Cli.Core.Agent;
 

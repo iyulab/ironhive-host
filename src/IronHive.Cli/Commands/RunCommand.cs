@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 using IronHive.Cli.Core.Server;
 using IronHive.Cli.Core.Utils;
 using Microsoft.Extensions.Logging.Abstractions;

@@ -1,5 +1,5 @@
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 using IronHive.Cli.Core.Tools;
 using IronHive.Cli.Tests.Mocks;
 using Microsoft.Extensions.AI;

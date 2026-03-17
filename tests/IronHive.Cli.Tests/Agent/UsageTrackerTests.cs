@@ -1,5 +1,5 @@
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Agent;
+using IronHive.Agent.Tracking;
 
 namespace IronHive.Cli.Tests.Agent;
 

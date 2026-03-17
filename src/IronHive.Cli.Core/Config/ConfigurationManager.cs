@@ -1,7 +1,7 @@
 using System.Text.Json;
 using IronHive.Cli.Core.Exceptions;
-using IronHive.Cli.Core.Permissions;
-using IronHive.Cli.Core.Webhook;
+using IronHive.Agent.Permissions;
+using IronHive.Agent.Webhook;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Core;

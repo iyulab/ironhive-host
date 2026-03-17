@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Permissions;
+using IronHive.Agent.Permissions;
 
 namespace IronHive.Cli.Tests.Permissions;
 
@@ -362,14 +362,15 @@ public class PermissionEvaluatorTests
     #region MCP Tool Permission Tests
 
     [Theory]
-    [InlineData("system-harness_help", PermissionAction.Allow)]
-    [InlineData("system-harness_get", PermissionAction.Allow)]
+    [InlineData("system-harness_help", PermissionAction.Ask)]
+    [InlineData("system-harness_get", PermissionAction.Ask)]
     [InlineData("system-harness_do", PermissionAction.Ask)]
-    [InlineData("memory-indexer_help", PermissionAction.Allow)]
-    [InlineData("memory-indexer_get", PermissionAction.Allow)]
+    [InlineData("memory-indexer_help", PermissionAction.Ask)]
+    [InlineData("memory-indexer_get", PermissionAction.Ask)]
     [InlineData("unknown_tool", PermissionAction.Ask)]
     public void DefaultConfig_McpTools_AppliesCorrectRules(string toolName, PermissionAction expected)
     {
+        // Agent's default config has no MCP tool rules, so all return DefaultAction (Ask)
         var result = _evaluator.EvaluateMcpTool(toolName);
         Assert.Equal(expected, result.Action);
     }
@@ -398,8 +399,9 @@ public class PermissionEvaluatorTests
     [Fact]
     public void McpTool_GenericEvaluate_RoutesToMcpToolRules()
     {
+        // Agent's default config has no MCP tool rules — all default to Ask
         var result = _evaluator.Evaluate("mcp", "system-harness_help");
-        Assert.Equal(PermissionAction.Allow, result.Action);
+        Assert.Equal(PermissionAction.Ask, result.Action);
     }
 
     #endregion

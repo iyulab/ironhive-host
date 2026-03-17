@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 
 namespace IronHive.Cli.Tests.Agent.Mcp;
 
@@ -62,7 +62,7 @@ public class McpPluginManagerTests
     }
 
     [Fact]
-    public async Task ConnectAsync_HttpTransport_WithoutUrl_ThrowsArgumentException()
+    public async Task ConnectAsync_HttpTransport_WithoutUrl_ThrowsException()
     {
         await using var manager = new McpPluginManager();
         var config = new McpPluginConfig
@@ -71,7 +71,8 @@ public class McpPluginManagerTests
             Url = null
         };
 
-        await Assert.ThrowsAsync<ArgumentException>(
+        // Agent's McpPluginManager throws NotSupportedException for HTTP transport
+        await Assert.ThrowsAsync<NotSupportedException>(
             () => manager.ConnectAsync("test-http", config));
     }
 

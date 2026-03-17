@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Permissions;
+using IronHive.Agent.Permissions;
 
 namespace IronHive.Cli.Core.Config;
 

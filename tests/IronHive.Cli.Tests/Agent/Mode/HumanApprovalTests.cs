@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent.Mode;
+using IronHive.Agent.Mode;
 
 namespace IronHive.Cli.Tests.Agent.Mode;
 

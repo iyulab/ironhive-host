@@ -1,7 +1,7 @@
 using Chronex;
 using Microsoft.Extensions.Logging;
 
-namespace IronHive.Cli.Core.Agent.Mcp;
+namespace IronHive.Agent.Mcp;
 
 /// <summary>
 /// Periodically checks the health of connected MCP plugins using a Chronex scheduler.
@@ -39,11 +39,17 @@ public sealed class McpHealthCheckService : IAsyncDisposable
     {
         foreach (var pluginName in _pluginManager.ConnectedPlugins)
         {
-            var healthy = await _pluginManager.IsHealthyAsync(pluginName, ct);
-            if (!healthy)
+            try
+            {
+                // Health check by attempting to list tools — timeout indicates unhealthy
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(TimeSpan.FromSeconds(10));
+                await _pluginManager.GetToolsAsync(pluginName, cts.Token);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or TimeoutException or InvalidOperationException)
             {
 #pragma warning disable CA1848
-                _logger?.LogWarning("MCP plugin '{PluginName}' health check failed", pluginName);
+                _logger?.LogWarning("MCP plugin '{PluginName}' health check failed: {Message}", pluginName, ex.Message);
 #pragma warning restore CA1848
                 PluginUnhealthy?.Invoke(this, new McpPluginEventArgs { PluginName = pluginName });
             }

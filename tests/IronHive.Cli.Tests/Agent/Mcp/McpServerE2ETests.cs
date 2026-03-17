@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 using Xunit;
 
 namespace IronHive.Cli.Tests.Agent.Mcp;

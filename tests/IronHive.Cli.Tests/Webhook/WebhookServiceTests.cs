@@ -1,5 +1,5 @@
 using System.Net;
-using IronHive.Cli.Core.Webhook;
+using IronHive.Agent.Webhook;
 
 namespace IronHive.Cli.Tests.Webhook;
 

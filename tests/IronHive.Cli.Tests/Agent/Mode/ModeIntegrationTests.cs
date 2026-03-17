@@ -1,5 +1,5 @@
-using IronHive.Cli.Core.Agent.Mode;
-using IronHive.Cli.Core.Permissions;
+using IronHive.Agent.Mode;
+using IronHive.Agent.Permissions;
 
 namespace IronHive.Cli.Tests.Agent.Mode;
 

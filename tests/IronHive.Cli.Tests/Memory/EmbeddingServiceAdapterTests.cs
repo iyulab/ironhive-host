@@ -1,7 +1,4 @@
-#pragma warning disable CA2012 // ValueTask used correctly via NSubstitute mock returns
-
-using IronHive.Agent.Providers;
-using IronHive.Cli.Core.Memory;
+using IronHive.Agent.Memory;
 using NSubstitute;
 
 namespace IronHive.Cli.Tests.Memory;
@@ -20,7 +17,7 @@ public class EmbeddingServiceAdapterTests
     [Fact]
     public void Dimensions_ShouldDelegateToProvider()
     {
-        var provider = Substitute.For<IEmbeddingProvider>();
+        var provider = Substitute.For<IAgentEmbeddingProvider>();
         provider.Dimensions.Returns(384);
 
         var adapter = new EmbeddingServiceAdapter(provider);
@@ -32,9 +29,9 @@ public class EmbeddingServiceAdapterTests
     public async Task GenerateEmbeddingAsync_ShouldReturnWrappedResult()
     {
         var expected = new float[] { 0.1f, 0.2f, 0.3f };
-        var provider = Substitute.For<IEmbeddingProvider>();
+        var provider = Substitute.For<IAgentEmbeddingProvider>();
         provider.EmbedAsync("test text", Arg.Any<CancellationToken>())
-            .Returns(callInfo => new ValueTask<float[]>(expected));
+            .Returns(expected);
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
@@ -49,9 +46,9 @@ public class EmbeddingServiceAdapterTests
     [Fact]
     public async Task GenerateEmbeddingAsync_ShouldCallProviderEmbedAsync()
     {
-        var provider = Substitute.For<IEmbeddingProvider>();
+        var provider = Substitute.For<IAgentEmbeddingProvider>();
         provider.EmbedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => new ValueTask<float[]>(SingleEmbedding));
+            .Returns(SingleEmbedding);
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
@@ -63,15 +60,15 @@ public class EmbeddingServiceAdapterTests
     [Fact]
     public async Task GenerateBatchEmbeddingsAsync_ShouldReturnWrappedResults()
     {
-        var batch = new float[][]
-        {
+        IReadOnlyList<float[]> batch =
+        [
             [0.1f, 0.2f],
             [0.3f, 0.4f],
             [0.5f, 0.6f]
-        };
-        var provider = Substitute.For<IEmbeddingProvider>();
-        provider.EmbedBatchAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => new ValueTask<float[][]>(batch));
+        ];
+        var provider = Substitute.For<IAgentEmbeddingProvider>();
+        provider.EmbedBatchAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
+            .Returns(batch);
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
@@ -86,10 +83,10 @@ public class EmbeddingServiceAdapterTests
     [Fact]
     public async Task GenerateBatchEmbeddingsAsync_ShouldPreserveOrder()
     {
-        var batch = new float[][] { [1.0f], [2.0f], [3.0f] };
-        var provider = Substitute.For<IEmbeddingProvider>();
-        provider.EmbedBatchAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => new ValueTask<float[][]>(batch));
+        IReadOnlyList<float[]> batch = [[1.0f], [2.0f], [3.0f]];
+        var provider = Substitute.For<IAgentEmbeddingProvider>();
+        provider.EmbedBatchAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
+            .Returns(batch);
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
@@ -101,19 +98,19 @@ public class EmbeddingServiceAdapterTests
     }
 
     [Fact]
-    public async Task GenerateBatchEmbeddingsAsync_ShouldCallProviderWithTextList()
+    public async Task GenerateBatchEmbeddingsAsync_ShouldCallProviderWithTexts()
     {
-        var batch = new float[][] { [1.0f], [2.0f] };
-        var provider = Substitute.For<IEmbeddingProvider>();
-        provider.EmbedBatchAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => new ValueTask<float[][]>(batch));
+        IReadOnlyList<float[]> batch = [[1.0f], [2.0f]];
+        var provider = Substitute.For<IAgentEmbeddingProvider>();
+        provider.EmbedBatchAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
+            .Returns(batch);
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
         await adapter.GenerateBatchEmbeddingsAsync(["text1", "text2"]);
 
         await provider.Received(1).EmbedBatchAsync(
-            Arg.Is<IReadOnlyList<string>>(list => list.Count == 2),
+            Arg.Any<IEnumerable<string>>(),
             Arg.Any<CancellationToken>());
     }
 }

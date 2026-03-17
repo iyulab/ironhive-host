@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json;
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Agent;
-using IronHive.Cli.Core.Agent.Mode;
+using IronHive.Agent.Tracking;
+using IronHive.Agent.Mode;
 using IronHive.Cli.Core.Session;
 using IronHive.Cli.Core.Update;
 using Spectre.Console;

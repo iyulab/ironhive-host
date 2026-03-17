@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent.ErrorRecovery;
+using IronHive.Agent.ErrorRecovery;
 
 namespace IronHive.Cli.Tests.Agent;
 

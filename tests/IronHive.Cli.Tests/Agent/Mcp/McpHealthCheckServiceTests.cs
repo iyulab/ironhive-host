@@ -1,14 +1,15 @@
 using FluentAssertions;
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace IronHive.Cli.Tests.Agent.Mcp;
 
 public class McpHealthCheckServiceTests
 {
-    private static readonly string[] SingleHealthyPlugin = ["test-plugin"];
-    private static readonly string[] SingleUnhealthyPlugin = ["bad-plugin"];
+    private static readonly string[] SinglePlugin = ["test-plugin"];
 
     private readonly IMcpPluginManager _pluginManager = Substitute.For<IMcpPluginManager>();
 
@@ -22,16 +23,16 @@ public class McpHealthCheckServiceTests
             _pluginManager, "@every 1m", timeProvider);
 
         // No exception expected — nothing to check
-        await _pluginManager.DidNotReceive().IsHealthyAsync(
+        await _pluginManager.DidNotReceive().GetToolsAsync(
             Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Tick_with_healthy_plugin_should_not_raise_event()
     {
-        _pluginManager.ConnectedPlugins.Returns(SingleHealthyPlugin);
-        _pluginManager.IsHealthyAsync("test-plugin", Arg.Any<CancellationToken>())
-            .Returns(true);
+        _pluginManager.ConnectedPlugins.Returns(SinglePlugin);
+        _pluginManager.GetToolsAsync("test-plugin", Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<AITool>());
 
         var timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
         await using var sut = new McpHealthCheckService(
@@ -51,9 +52,9 @@ public class McpHealthCheckServiceTests
     [Fact]
     public async Task Tick_with_unhealthy_plugin_should_raise_PluginUnhealthy_event()
     {
-        _pluginManager.ConnectedPlugins.Returns(SingleUnhealthyPlugin);
-        _pluginManager.IsHealthyAsync("bad-plugin", Arg.Any<CancellationToken>())
-            .Returns(false);
+        _pluginManager.ConnectedPlugins.Returns(SinglePlugin);
+        _pluginManager.GetToolsAsync("test-plugin", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Plugin not responding"));
 
         var timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
         await using var sut = new McpHealthCheckService(
@@ -68,7 +69,7 @@ public class McpHealthCheckServiceTests
         await Task.Delay(200);
 
         receivedArgs.Should().NotBeNull();
-        receivedArgs!.PluginName.Should().Be("bad-plugin");
+        receivedArgs!.PluginName.Should().Be("test-plugin");
     }
 
     [Fact]

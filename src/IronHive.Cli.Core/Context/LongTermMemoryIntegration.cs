@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Memory;
+using IronHive.Agent.Memory;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Cli.Core.Context;

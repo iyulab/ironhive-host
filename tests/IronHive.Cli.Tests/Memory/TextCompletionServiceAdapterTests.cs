@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Memory;
+using IronHive.Agent.Memory;
 using MemoryIndexer.Interfaces;
 using Microsoft.Extensions.AI;
 using NSubstitute;

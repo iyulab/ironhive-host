@@ -1,4 +1,4 @@
-using IronHive.Cli.Core.Agent.Mcp;
+using IronHive.Agent.Mcp;
 
 namespace IronHive.Cli.Tests.Agent.Mcp;
 
