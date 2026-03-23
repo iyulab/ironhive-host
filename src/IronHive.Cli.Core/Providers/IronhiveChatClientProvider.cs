@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using IronHive.Abstractions.Catalog;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Providers;
-using IronHive.Cli.Core.Adapters;
+using IronHive.Core.Compatibility;
 using Microsoft.Extensions.AI;
 using TokenMeter;
 
@@ -44,7 +44,7 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
         var model = modelOverride ?? _defaultModel;
 
         var client = _clientCache.GetOrAdd(model, m =>
-            new MessageGeneratorChatClientAdapter(_generator, m));
+            new ChatClientAdapter(_generator, m));
 
         return Task.FromResult(client);
     }
