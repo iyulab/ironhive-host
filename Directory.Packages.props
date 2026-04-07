@@ -9,7 +9,7 @@
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.1" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.4.1" />
     <!-- OpenAI SDK -->
-    <PackageVersion Include="ModelContextProtocol" Version="1.1.0" />
+    <PackageVersion Include="ModelContextProtocol" Version="1.2.0" />
     <PackageVersion Include="OpenAI" Version="2.9.1" />
     <!-- DI & Hosting (.NET 10) -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
@@ -30,9 +30,9 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.1.1" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.25.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.25.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.25.0" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.26.0" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.26.0" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.26.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.15.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.15.0" />
