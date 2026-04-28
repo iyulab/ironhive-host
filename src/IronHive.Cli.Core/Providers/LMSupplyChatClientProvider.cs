@@ -303,7 +303,14 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 /// Maps lm-supply ChatCompletionResult/ChatStreamChunk to M.E.AI types
 /// including FunctionCallContent/FunctionResultContent for tool calling.
 /// </summary>
-internal sealed class LMSupplyChatClient : IChatClient
+/// <remarks>
+/// Public surface (since 0.10.2) so umbrella e2e harness and other dogfooding consumers
+/// can construct an IChatClient directly over a pre-loaded <see cref="ITextGenerator"/>
+/// without going through <see cref="LMSupplyChatClientProvider"/>'s broken
+/// <c>BuildGeneratorAsync</c> path (see umbrella's
+/// <c>ISSUE-ironhive-cli-lmsupply-provider-builder-routing-broken-20260429-005000</c>).
+/// </remarks>
+public sealed class LMSupplyChatClient : IChatClient
 {
     private readonly ITextGenerator _generator;
 
@@ -315,15 +322,15 @@ internal sealed class LMSupplyChatClient : IChatClient
     public ChatClientMetadata Metadata => new("LMSupply", null, _generator.ModelId);
 
     public async Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> chatMessages,
+        IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var messages = ConvertMessages(chatMessages);
+        var lmMessages = ConvertMessages(messages);
         var genOptions = ConvertOptions(options);
 
         // Use tool-aware method for structured response
-        var result = await _generator.GenerateChatWithToolsAsync(messages, genOptions, cancellationToken);
+        var result = await _generator.GenerateChatWithToolsAsync(lmMessages, genOptions, cancellationToken);
 
         // Build response contents
         var contents = new List<AIContent>();
@@ -352,17 +359,17 @@ internal sealed class LMSupplyChatClient : IChatClient
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> chatMessages,
+        IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var messages = ConvertMessages(chatMessages);
+        var lmMessages = ConvertMessages(messages);
         var genOptions = ConvertOptions(options);
 
         // Track tool call accumulation across chunks
         Dictionary<int, (string Id, string Name, string Args)>? toolCallAccumulator = null;
 
-        await foreach (var chunk in _generator.GenerateChatStreamAsync(messages, genOptions, cancellationToken))
+        await foreach (var chunk in _generator.GenerateChatStreamAsync(lmMessages, genOptions, cancellationToken))
         {
             // Text delta
             if (chunk.Text is not null)
@@ -431,7 +438,7 @@ internal sealed class LMSupplyChatClient : IChatClient
         }
     }
 
-    public object? GetService(Type serviceType, object? key = null)
+    public object? GetService(Type serviceType, object? serviceKey = null)
     {
         return serviceType == typeof(IChatClient) ? this : null;
     }
