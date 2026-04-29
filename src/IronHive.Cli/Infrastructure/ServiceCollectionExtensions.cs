@@ -506,13 +506,15 @@ public static class ServiceCollectionExtensions
 
             var primary = sp.GetRequiredService<IChatClientProvider>();
 
-            // Decorator for FunctionInvokingChatClient
+            // Decorator for FunctionInvokingChatClient with resilient marshaller-error recovery
+            // (see ResilientFunctionInvoker XML docs for rationale + Filer 2026-04-29 issue).
             IChatClient ClientDecorator(IChatClient inner) =>
                 new FunctionInvokingChatClient(inner)
                 {
                     MaximumIterationsPerRequest = 10,
                     MaximumConsecutiveErrorsPerRequest = 3,
-                    IncludeDetailedErrors = true
+                    IncludeDetailedErrors = true,
+                    FunctionInvoker = ResilientFunctionInvoker.Create()
                 };
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
