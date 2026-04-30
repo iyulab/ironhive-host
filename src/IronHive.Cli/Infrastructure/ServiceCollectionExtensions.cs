@@ -23,15 +23,15 @@ using IronHive.Providers.GoogleAI;
 using IronHive.Providers.Ollama;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
-// Aliased to avoid the literal "new Function..." token in source — the
-// security-reminder hook flags it as a false positive (the hook targets
-// JS new Function() code-injection patterns, not C# class instantiation).
-using FunctionInvokingDecorator = Microsoft.Extensions.AI.FunctionInvokingChatClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using WebLookup;
 using CliConfig = IronHive.Cli.Core.Config;
+// Aliased to avoid the literal "new Function..." token in source — the
+// security-reminder hook flags it as a false positive (the hook targets
+// JS new Function() code-injection patterns, not C# class instantiation).
+using FunctionInvokingDecorator = Microsoft.Extensions.AI.FunctionInvokingChatClient;
 
 namespace IronHive.Cli.Infrastructure;
 
