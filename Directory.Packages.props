@@ -32,10 +32,11 @@
     <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.1.1" />
-    <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.26.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.26.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.26.0" />
+    <!-- LMSupply packages (local AI inference fallback). 0.32.3 adds Gemma4
+         RenderToolPromptFragment for Option D-1 (umbrella ISSUE 2026-04-30). -->
+    <PackageVersion Include="LMSupply.Embedder" Version="0.32.3" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.32.3" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.32.3" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.15.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.15.0" />

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using IronHive.Agent.Providers;
 using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Tools;
 using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
@@ -440,12 +441,28 @@ public sealed class LMSupplyChatClient : IChatClient
 
     public object? GetService(Type serviceType, object? serviceKey = null)
     {
-        return serviceType == typeof(IChatClient) ? this : null;
+        if (serviceType == typeof(IChatClient))
+        {
+            return this;
+        }
+        // Expose the model's context window so a wrapping TokenBudgetChatClient
+        // can size its budget to the actual GGUF context length instead of a
+        // hard-coded default (Option D-2, ecosystem ISSUE 2026-04-30).
+        if (serviceType == typeof(IContextSizeProvider) && _generator is IGeneratorModel model && model.MaxContextLength > 0)
+        {
+            return new LMSupplyContextSizeProvider(model.MaxContextLength);
+        }
+        return null;
     }
 
     public void Dispose()
     {
         // Generator is disposed by the provider
+    }
+
+    private sealed class LMSupplyContextSizeProvider(int maxContextTokens) : IContextSizeProvider
+    {
+        public int MaxContextTokens { get; } = maxContextTokens;
     }
 
     private static IEnumerable<LmChatMessage> ConvertMessages(
