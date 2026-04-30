@@ -193,31 +193,18 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
         }
     }
 
-    private static async Task<IGeneratorModel> BuildGeneratorAsync(
+    private static Task<IGeneratorModel> BuildGeneratorAsync(
         string modelId,
         int maxContextLength,
         CancellationToken cancellationToken)
     {
-        var builder = TextGeneratorBuilder.Create();
-
-        // Configure model source
-        if (modelId == "auto" || modelId == "gguf:default")
-        {
-            builder.WithDefaultModel();
-        }
-        else if (modelId.StartsWith("gguf:", StringComparison.OrdinalIgnoreCase))
-        {
-            builder.WithHuggingFaceModel(modelId[5..]);
-        }
-        else
-        {
-            builder.WithHuggingFaceModel(modelId);
-        }
-
-        // Set max context length to prevent OOM on memory-constrained systems
-        builder.WithMaxContextLength(maxContextLength);
-
-        return await builder.BuildAsync(cancellationToken);
+        // Delegate to LMSupply's documented public surface. LocalGenerator.LoadAsync
+        // handles all dispatch (GGUF aliases, "auto"/"default" hardware-aware selection,
+        // ONNX repos, local file/dir paths) and routes to the correct factory. The
+        // previous TextGeneratorBuilder.With* path always landed on the ONNX factory,
+        // failing every GGUF alias including the default "gguf:default".
+        var options = new GeneratorOptions { MaxContextLength = maxContextLength };
+        return LocalGenerator.LoadAsync(modelId, options, progress: null, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -327,7 +314,7 @@ public sealed class LMSupplyChatClient : IChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var lmMessages = ConvertMessages(messages);
+        var lmMessages = ConvertMessages(messages, options);
         var genOptions = ConvertOptions(options);
 
         // Use tool-aware method for structured response
@@ -364,7 +351,7 @@ public sealed class LMSupplyChatClient : IChatClient
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var lmMessages = ConvertMessages(messages);
+        var lmMessages = ConvertMessages(messages, options);
         var genOptions = ConvertOptions(options);
 
         // Track tool call accumulation across chunks
@@ -466,8 +453,18 @@ public sealed class LMSupplyChatClient : IChatClient
     }
 
     private static IEnumerable<LmChatMessage> ConvertMessages(
-        IEnumerable<ChatMessage> messages)
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options)
     {
+        // M.E.AI standard ChatOptions.Instructions: emit as a leading System message
+        // so downstream chat formatters apply it like an explicit system prompt.
+        // If the messages collection already carries System messages, they remain
+        // intact behind this one — most chat formatters concatenate or honor each.
+        if (!string.IsNullOrEmpty(options?.Instructions))
+        {
+            yield return new LmChatMessage(LmChatRole.System, options.Instructions);
+        }
+
         foreach (var msg in messages)
         {
             // Check for tool-related content
