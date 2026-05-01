@@ -530,6 +530,59 @@ public sealed class LMSupplyChatClient : IChatClient
             genOptions.MaxTokens = options.MaxOutputTokens.Value;
         }
 
+        // Forward standard M.E.AI sampler properties so consumers can probe
+        // alternate decoding parameters from the chat-pipeline boundary
+        // (ecosystem ISSUE Surface B sampler-probe path, 2026-05-01).
+        if (options.TopP.HasValue)
+        {
+            genOptions.TopP = options.TopP.Value;
+        }
+
+        if (options.TopK.HasValue)
+        {
+            genOptions.TopK = options.TopK.Value;
+        }
+
+        if (options.FrequencyPenalty.HasValue)
+        {
+            genOptions.FrequencyPenalty = options.FrequencyPenalty.Value;
+        }
+
+        if (options.PresencePenalty.HasValue)
+        {
+            genOptions.PresencePenalty = options.PresencePenalty.Value;
+        }
+
+        if (options.Seed.HasValue)
+        {
+            genOptions.Seed = unchecked((int)options.Seed.Value);
+        }
+
+        if (options.StopSequences is { Count: > 0 })
+        {
+            genOptions.StopSequences = [.. options.StopSequences];
+        }
+
+        // Forward lm-supply native sampler params via M.E.AI AdditionalProperties
+        // bag (provider-specific opt-in). RepetitionPenalty and MinP have no
+        // standard M.E.AI surface (they're llama.cpp / hf-tgi family idioms,
+        // distinct from OpenAI's frequency/presence penalties), so the bag is
+        // the correct ingress per M.E.AI design. Keys match lm-supply
+        // property names in snake_case: repetition_penalty, min_p.
+        // Keeps lm-supply defaults (RepetitionPenalty=1.1f, MinP=0.05f) when
+        // unset so existing consumers see no behavior change.
+        if (options.AdditionalProperties is { Count: > 0 } extras)
+        {
+            if (extras.TryGetValue("repetition_penalty", out var rp) && TryToFloat(rp, out var rpVal))
+            {
+                genOptions.RepetitionPenalty = rpVal;
+            }
+            if (extras.TryGetValue("min_p", out var mp) && TryToFloat(mp, out var mpVal))
+            {
+                genOptions.MinP = mpVal;
+            }
+        }
+
         // Convert tool definitions
         if (options.Tools is { Count: > 0 })
         {
@@ -551,6 +604,35 @@ public sealed class LMSupplyChatClient : IChatClient
         }
 
         return genOptions;
+    }
+
+    private static bool TryToFloat(object? value, out float result)
+    {
+        switch (value)
+        {
+            case float f:
+                result = f;
+                return true;
+            case double d:
+                result = (float)d;
+                return true;
+            case int i:
+                result = i;
+                return true;
+            case long l:
+                result = l;
+                return true;
+            case string s when float.TryParse(
+                    s,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var parsed):
+                result = parsed;
+                return true;
+            default:
+                result = 0f;
+                return false;
+        }
     }
 
     private static List<AIContent> BuildToolCallContents(

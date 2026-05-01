@@ -516,12 +516,14 @@ public static class ServiceCollectionExtensions
             //       → inner LMSupply / OpenAI / Anthropic / etc.
             // ResilientFunctionInvoker handles per-tool-call marshaller errors;
             // TokenBudgetChatClient handles per-iteration history-size overflow.
-            // Both rationales: ecosystem ISSUE 2026-04-29 (throw layer) + 2026-04-30 (overflow layer).
+            // Iteration / consecutive-error caps come from ChatBehaviorConfig (D-4) so
+            // consumers can tune per-model without forking. Rationales: ecosystem ISSUE
+            // 2026-04-29 (throw), 2026-04-30 (overflow), 2026-05-01 (consumer-tunable caps).
             IChatClient ClientDecorator(IChatClient inner) =>
                 new FunctionInvokingDecorator(new TokenBudgetChatClient(inner))
                 {
-                    MaximumIterationsPerRequest = 10,
-                    MaximumConsecutiveErrorsPerRequest = 3,
+                    MaximumIterationsPerRequest = config.ChatBehavior.MaximumIterationsPerRequest,
+                    MaximumConsecutiveErrorsPerRequest = config.ChatBehavior.MaximumConsecutiveErrorsPerRequest,
                     IncludeDetailedErrors = true,
                     FunctionInvoker = ResilientFunctionInvoker.Create()
                 };

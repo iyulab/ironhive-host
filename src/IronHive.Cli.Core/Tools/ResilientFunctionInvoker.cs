@@ -21,11 +21,20 @@ namespace IronHive.Cli.Core.Tools;
 /// </para>
 /// <para>
 /// <b>What this does:</b> Wraps every tool invocation in a try/catch that converts
-/// the .NET-jargon-heavy exception into a directive sentence the model can act on
-/// ("missing required parameter 'X' — retry with all required parameters"). Because
-/// the delegate returns a string instead of throwing, M.E.AI synthesizes a
+/// the marshaller exception into a procedural recovery directive the model can act on.
+/// Because the delegate returns a string instead of throwing, M.E.AI synthesizes a
 /// <see cref="FunctionResultContent"/> and feeds it back to the model as the next-turn
 /// input. The model gets up to MaximumIterationsPerRequest rounds to self-correct.
+/// </para>
+/// <para>
+/// <b>Phase D-3 (2026-05-01):</b> The directive was rewritten from a single .NET-flavoured
+/// retry sentence into a numbered procedure that (1) names the missing parameter, (2) tells
+/// the model where to find its value, (3) explicitly forbids the empty-args retry pattern
+/// the model gets stuck in, and (4) offers two escape hatches (ask the user, pick a different
+/// tool). Filer cycle-699 (2026-05-01 §4.4) showed the prior phrasing did not move the
+/// needle on Gemma 4 E4B at gguf:default even with strengthened tool descriptions; the
+/// procedural rewrite shifts the cognitive burden from "interpret a stack-trace fragment"
+/// to "follow a procedure," which small instruction-tuned models handle better.
 /// </para>
 /// <para>
 /// <b>Reference:</b> https://learn.microsoft.com/dotnet/ai/how-to/handle-invalid-tool-input
@@ -49,13 +58,12 @@ public static class ResilientFunctionInvoker
             catch (ArgumentException ex) when (ex.ParamName == "arguments")
             {
                 // Marshaller validation failure. Extract the parameter name when present
-                // and reflect it back to the model with an actionable instruction.
+                // and synthesize a procedural recovery directive (D-3) the model can act on.
+                var toolName = context.Function.Name;
                 var paramName = TryExtractMissingParameterName(ex.Message);
                 return paramName is not null
-                    ? $"Tool '{context.Function.Name}' rejected the call: required parameter '{paramName}' was missing. " +
-                      $"Retry the call with ALL required parameters specified, including '{paramName}'."
-                    : $"Tool '{context.Function.Name}' rejected the call due to invalid arguments. " +
-                      $"Verify each required parameter is present and retry. Detail: {ex.Message}";
+                    ? BuildMissingParameterDirective(toolName, paramName)
+                    : BuildMalformedArgumentsDirective(toolName, ex.Message);
             }
             catch (JsonException ex)
             {
@@ -64,6 +72,34 @@ public static class ResilientFunctionInvoker
             }
         };
     }
+
+    /// <summary>
+    /// Procedural recovery directive (D-3) for the "required parameter missing" case.
+    /// Numbered steps + an explicit "do NOT retry with empty arguments" clause +
+    /// two named escape hatches. Optimized for small instruction-tuned models that
+    /// respond better to procedures than to stack-trace fragments.
+    /// </summary>
+    private static string BuildMissingParameterDirective(string toolName, string paramName) =>
+        $"Tool '{toolName}' rejected the call because required parameter '{paramName}' was not provided.\n" +
+        "\n" +
+        "To recover:\n" +
+        $"1. Look at the user's most recent message and any earlier context for the value of '{paramName}'. " +
+        $"If you find it, repeat the call to '{toolName}' with '{paramName}' set to that value.\n" +
+        $"2. If '{paramName}' is genuinely unknown, do NOT call '{toolName}' again with empty arguments. " +
+        $"Either ask the user to provide '{paramName}', or pick a different tool that fits the user's intent.\n" +
+        "\n" +
+        $"Do NOT retry '{toolName}' with the same empty arguments — that will fail again the same way.";
+
+    /// <summary>
+    /// Procedural recovery directive (D-3) for the "marshaller raised but no parameter
+    /// name was parseable" fallback case. Same procedural shape, scoped to schema review
+    /// since the missing key is unknown.
+    /// </summary>
+    private static string BuildMalformedArgumentsDirective(string toolName, string detail) =>
+        $"Tool '{toolName}' rejected the call because the arguments object was malformed. Detail: {detail}\n" +
+        "\n" +
+        $"Look at the schema for '{toolName}' and provide every required parameter with a non-empty value. " +
+        "If you cannot determine a value, ask the user instead of retrying with the same arguments.";
 
     /// <summary>
     /// Attempts to extract the parameter name from M.E.AI's marshaller error message.
