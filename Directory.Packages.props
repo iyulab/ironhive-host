@@ -6,42 +6,42 @@
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
     <PackageVersion Include="Ironbees.Core" Version="0.6.2" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.4.1" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.1" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.4.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.5.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.5.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.5.0" />
     <!-- OpenAI SDK -->
     <PackageVersion Include="ModelContextProtocol" Version="1.2.0" />
     <PackageVersion Include="OpenAI" Version="2.10.0" />
     <!-- Pin OpenTelemetry.Exporter.OpenTelemetryProtocol to non-vulnerable version (transitive from upstream) -->
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <!-- DI & Hosting (.NET 10) -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.7" />
     <!-- CLI & Console -->
-    <PackageVersion Include="Spectre.Console" Version="0.54.0" />
-    <PackageVersion Include="Spectre.Console.Cli" Version="0.53.1" />
+    <PackageVersion Include="Spectre.Console" Version="0.55.2" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <!-- Diff -->
     <PackageVersion Include="DiffPlex" Version="1.9.0" />
     <!-- Glob -->
-    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.7" />
     <!-- YAML Config -->
     <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <!-- .env support -->
-    <PackageVersion Include="DotNetEnv" Version="3.1.1" />
+    <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback). 0.32.3 adds Gemma4
          RenderToolPromptFragment for Option D-1 (umbrella ISSUE 2026-04-30). -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.32.3" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.32.3" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.32.3" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.32.6" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.32.6" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.32.6" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.15.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.15.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.2.8" />
+    <PackageVersion Include="IronHive.Agent" Version="0.2.10" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.5.4" />
     <PackageVersion Include="IronHive.Core" Version="0.5.4" />
@@ -52,20 +52,20 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.8" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.10" />
     <!-- Chronex (scheduling) -->
     <PackageVersion Include="Chronex" Version="0.4.0" />
     <!-- TokenMeter & ToolCallParser -->
     <PackageVersion Include="TokenMeter" Version="0.3.1" />
     <PackageVersion Include="ToolCallParser" Version="0.2.1" />
     <!-- Testing -->
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.5.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="FluentAssertions" Version="8.9.0" />
-    <PackageVersion Include="coverlet.collector" Version="8.0.1" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.0" />
   </ItemGroup>
 </Project>
