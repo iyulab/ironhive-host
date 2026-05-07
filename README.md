@@ -137,6 +137,53 @@ await foreach (var chunk in agentLoop.RunStreamingAsync("Hello"))
 
 See `samples/console-chat` for a complete example.
 
+### ChatBehaviorConfig
+
+Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration loop. Exposed in `IronHiveConfig.ChatBehavior` so you can tune per-model without forking the source.
+
+| Property | Default | Notes |
+|----------|---------|-------|
+| `MaximumIterationsPerRequest` | 10 | Lower (5–7) for small 4K-window models; raise (15–20) for large-context models |
+| `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back marshaller errors; rarely hit when `ResilientFunctionInvoker` is installed |
+
+```yaml
+# .ironhive/config.yaml
+chatBehavior:
+  maximumIterationsPerRequest: 7      # tune down for small/quantized models
+  maximumConsecutiveErrorsPerRequest: 3
+```
+
+### TokenBudgetChatClient
+
+`IChatClient` decorator that short-circuits streaming calls when the accumulated message-history size would exceed a configurable fraction of the model's context window. Prevents context-overflow silent failures on small quantized models (e.g. 4K-window Gemma E4B).
+
+- Sits between `FunctionInvokingChatClient` and the underlying provider
+- Estimates tokens as `total-chars ÷ 4` (conservative upper bound)
+- When the estimate exceeds `maxContextTokens × threshold`, emits a graceful `ChatFinishReason.Length` response instead of letting the model error silently
+- Context window auto-detected via `IContextSizeProvider` if the inner client exposes it; otherwise falls back to `defaultMaxContextTokens`
+
+```csharp
+var client = new TokenBudgetChatClient(
+    inner: innerClient,
+    defaultMaxContextTokens: 4096,
+    threshold: 0.8);   // trigger at 80 % of context window
+```
+
+### ResilientFunctionInvoker
+
+Factory for the M.E.AI `FunctionInvoker` delegate that converts marshaller-level `ArgumentException` (missing/malformed tool arguments) into model-actionable procedural error strings, enabling small quantized models to self-correct without aborting the stream.
+
+Install via `UseFunctionInvocation`:
+
+```csharp
+chatClient.UseFunctionInvocation(configure: c =>
+{
+    c.FunctionInvoker = ResilientFunctionInvoker.Create();
+});
+```
+
+When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the invoker returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern.
+
 ## Samples
 
 | Sample | Path | Description |
