@@ -39,7 +39,7 @@ public class SessionsCommand : AsyncCommand<SessionsCommand.Settings>
         public string? OutputFormat { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = Directory.GetCurrentDirectory();
         var outputFormat = settings.OutputFormat?.ToLowerInvariant() ?? "text";

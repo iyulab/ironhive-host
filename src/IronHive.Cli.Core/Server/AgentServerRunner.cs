@@ -24,7 +24,7 @@ public partial class AgentServerRunner
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    private readonly Func<string, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
+    private readonly Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
     private readonly ILogger<AgentServerRunner> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
 
@@ -42,7 +42,7 @@ public partial class AgentServerRunner
     public bool SkipContextEnrichment { get; set; }
 
     public AgentServerRunner(
-        Func<string, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
+        Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
         ILogger<AgentServerRunner> logger,
         JsonSerializerOptions? jsonOptions = null)
     {
@@ -108,7 +108,7 @@ public partial class AgentServerRunner
                     messageCts?.Dispose();
                     messageCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                     handleTask = HandleMessageAsync(
-                        BuildContextualContent(msg.Content), output, messageCts.Token);
+                        msg with { Content = BuildContextualContent(msg.Content) }, output, messageCts.Token);
 
                     // Fire-and-forget: keep draining the channel so CancelRequest
                     // can be processed while handleTask runs concurrently.
@@ -149,11 +149,11 @@ public partial class AgentServerRunner
     }
 
     private async Task HandleMessageAsync(
-        string content, TextWriter output, CancellationToken ct)
+        UserMessageRequest msg, TextWriter output, CancellationToken ct)
     {
         try
         {
-            await foreach (var evt in _processMessage(content, ct))
+            await foreach (var evt in _processMessage(msg, ct))
             {
                 await WriteEventAsync(output, evt, _jsonOptions);
             }

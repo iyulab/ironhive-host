@@ -35,7 +35,7 @@ public class ModelsCommand : AsyncCommand<ModelsCommand.Settings>
         public bool Json { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         IReadOnlyList<AvailableModelInfo> models;
 

@@ -94,7 +94,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         public bool Plain { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Start background update check (unless --update flag is used, which will check after execution)
         if (!settings.CheckUpdate)

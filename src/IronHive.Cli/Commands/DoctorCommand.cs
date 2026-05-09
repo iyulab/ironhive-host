@@ -33,7 +33,7 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         public bool Verbose { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var hasErrors = false;
         var hasWarnings = false;

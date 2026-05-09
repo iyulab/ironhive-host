@@ -394,6 +394,53 @@ public class AgentServerRunnerTests
         receivedContents.Should().Equal("first", "second");
     }
 
+    // ── UserMessageRequest.Model ──────────────────────────────────────────
+
+    [Fact]
+    public async Task ReadNextRequest_UserMessage_WithModel_PreservesModel()
+    {
+        var json = """{"type":"user_message","content":"hello","model":"claude-opus"}""";
+        using var reader = new StringReader(json);
+
+        var result = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+
+        var msg = result.Should().BeOfType<UserMessageRequest>().Subject;
+        msg.Content.Should().Be("hello");
+        msg.Model.Should().Be("claude-opus");
+    }
+
+    [Fact]
+    public async Task ReadNextRequest_UserMessage_WithoutModel_HasNullModel()
+    {
+        var json = """{"type":"user_message","content":"hello"}""";
+        using var reader = new StringReader(json);
+
+        var result = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+
+        result.Should().BeOfType<UserMessageRequest>()
+            .Which.Model.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RunAsync_UserMessage_ForwardsModelToDelegate()
+    {
+        UserMessageRequest? received = null;
+        var logger = Substitute.For<ILogger<AgentServerRunner>>();
+        var runner = new AgentServerRunner(
+            (msg, ct) => { received = msg; return EmptyEvents(ct); },
+            logger, JsonOpts);
+
+        var input = BuildInput(
+            """{"type":"user_message","content":"hello","model":"claude-opus"}""",
+            """{"type":"shutdown"}""");
+
+        await runner.RunAsync(input, new StringWriter(), CancellationToken.None);
+
+        received.Should().NotBeNull();
+        received!.Model.Should().Be("claude-opus");
+        received.Content.Should().Contain("hello");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────
 
     private static AgentServerRunner CreateRunner(
@@ -401,7 +448,7 @@ public class AgentServerRunnerTests
     {
         var logger = Substitute.For<ILogger<AgentServerRunner>>();
         return new AgentServerRunner(
-            (content, _) => handler(content),
+            (msg, _) => handler(msg.Content),
             logger,
             JsonOpts);
     }
@@ -410,7 +457,10 @@ public class AgentServerRunnerTests
         Func<string, CancellationToken, IAsyncEnumerable<ServerEvent>> handler)
     {
         var logger = Substitute.For<ILogger<AgentServerRunner>>();
-        return new AgentServerRunner(handler, logger, JsonOpts);
+        return new AgentServerRunner(
+            (msg, ct) => handler(msg.Content, ct),
+            logger,
+            JsonOpts);
     }
 
     /// <summary>

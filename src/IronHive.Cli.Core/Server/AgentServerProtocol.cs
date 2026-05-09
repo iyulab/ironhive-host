@@ -13,7 +13,7 @@ namespace IronHive.Cli.Core.Server;
 [JsonDerivedType(typeof(CancelRequest), "cancel")]
 public abstract record ServerRequest;
 
-public record UserMessageRequest(string Content) : ServerRequest;
+public record UserMessageRequest(string Content, string? Model = null) : ServerRequest;
 
 public record HitlResponseRequest(bool Approved, string? Reason = null) : ServerRequest;
 

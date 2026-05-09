@@ -76,7 +76,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         public string? GetPrompt() => PromptArg ?? PromptOption;
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         if (settings.Server)
         {
@@ -220,10 +220,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             }
 
             async IAsyncEnumerable<ServerEvent> ProcessMessage(
-                string content,
+                UserMessageRequest msg,
                 [EnumeratorCancellation] CancellationToken token)
             {
-                await foreach (var evt in agentLoop.RunStreamingAsync(content, token)
+                await foreach (var evt in agentLoop.RunStreamingAsync(msg.Content, token)
                     .ToServerEvents(executionLog, token))
                 {
                     yield return evt;
