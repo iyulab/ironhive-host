@@ -184,6 +184,38 @@ chatClient.UseFunctionInvocation(configure: c =>
 
 When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the invoker returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern.
 
+### AgentServerRunner
+
+Reads JSON Lines from stdin, dispatches to an agent processing delegate, and writes server-sent events as JSON Lines to stdout. Used by `ironhive run --server`.
+
+The delegate receives the full `UserMessageRequest` (not just the content string), enabling model routing per-message:
+
+```csharp
+async IAsyncEnumerable<ServerEvent> ProcessMessage(
+    UserMessageRequest msg,
+    CancellationToken token)
+{
+    // msg.Model carries the per-message model override (nullable)
+    await foreach (var evt in agentLoop.RunStreamingAsync(msg.Content, token)
+        .ToServerEvents(executionLog, token))
+    {
+        yield return evt;
+    }
+}
+
+var runner = new AgentServerRunner(ProcessMessage, logger);
+await runner.RunAsync(ct);
+```
+
+`UserMessageRequest` fields:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `Content` | `string` | User message text |
+| `Model` | `string?` | Optional per-message model override |
+
+The runner also handles `CancelRequest`, `ContextUpdateRequest`, and `ShutdownRequest` from stdin transparently.
+
 ## Samples
 
 | Sample | Path | Description |
@@ -222,18 +254,17 @@ dotnet test
 ironhive-cli/
 ├── src/
 │   ├── IronHive.Cli.Core/       # Core library (NuGet)
-│   │   ├── Agent/               # AgentLoop, modes
+│   │   ├── Config/              # Configuration classes
 │   │   ├── Extensions/          # DI helpers
+│   │   ├── Providers/           # LMSupply, IronHive chat client providers
+│   │   ├── Server/              # AgentServerRunner, protocol types
 │   │   ├── Session/             # Session management
-│   │   └── Tools/               # Built-in tools
+│   │   └── Tools/               # Built-in tools, ResilientFunctionInvoker, TokenBudgetChatClient
 │   └── IronHive.Cli/            # CLI application
 ├── samples/
 │   ├── console-chat/            # .NET Core integration
 │   └── web-ai-chat/             # Next.js + subprocess
-├── tests/
-└── submodules/
-    ├── TokenMeter/              # Token counting
-    └── ToolCallParser/          # tool_call parsing
+└── tests/
 ```
 
 ## Related Projects
