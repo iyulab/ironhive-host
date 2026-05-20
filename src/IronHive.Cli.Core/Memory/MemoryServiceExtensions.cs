@@ -1,3 +1,4 @@
+using Flux.Abstractions;
 using IronHive.Agent.Providers;
 using MemoryIndexer.Configuration;
 using MemoryIndexer.Interfaces;
@@ -75,7 +76,7 @@ public static class MemoryServiceExtensions
         });
 
         // Register MemoryIndexer's ITextCompletionService adapter (before AddMemoryIndexer)
-        services.AddSingleton<ITextCompletionService>(sp =>
+        services.AddSingleton<Flux.Abstractions.ITextCompletionService>(sp =>
         {
             var chatClient = sp.GetService<IChatClient>();
             if (chatClient is null)

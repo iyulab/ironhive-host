@@ -154,15 +154,15 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
         }
     }
 
-    private static IReadOnlyDictionary<string, ModelPricing>? GetPricingDataForProvider(string providerName)
+    private static IReadOnlyDictionary<string, ModelInfo>? GetPricingDataForProvider(string providerName)
     {
         return providerName.ToLowerInvariant() switch
         {
-            "openai" => ModelPricingData.OpenAI,
-            "anthropic" or "claude" => ModelPricingData.Anthropic,
-            "google" or "gemini" or "googleai" => ModelPricingData.Google,
-            "xai" or "grok" => ModelPricingData.XAI,
-            "azure" or "azure-openai" or "azureopenai" => ModelPricingData.Azure,
+            "openai" => ModelCatalog.OpenAI,
+            "anthropic" or "claude" => ModelCatalog.Anthropic,
+            "google" or "gemini" or "googleai" => ModelCatalog.Google,
+            "xai" or "grok" => ModelCatalog.XAI,
+            "azure" or "azure-openai" or "azureopenai" => ModelCatalog.Azure,
             _ => null
         };
     }
