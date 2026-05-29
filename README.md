@@ -184,11 +184,9 @@ chatClient.UseFunctionInvocation(configure: c =>
 
 When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the invoker returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern.
 
-### AgentServerRunner
+### AgentServerRunner / AgentHttpRunner
 
-Reads JSON Lines from stdin, dispatches to an agent processing delegate, and writes server-sent events as JSON Lines to stdout. Used by `ironhive run --server`.
-
-The delegate receives the full `UserMessageRequest` (not just the content string), enabling model routing per-message:
+Two runner implementations share the same processor delegate signature, enabling a single agent pipeline to serve either transport:
 
 ```csharp
 async IAsyncEnumerable<ServerEvent> ProcessMessage(
@@ -203,18 +201,47 @@ async IAsyncEnumerable<ServerEvent> ProcessMessage(
     }
 }
 
+// stdin/stdout JSON Lines (used by `ironhive run --server`)
 var runner = new AgentServerRunner(ProcessMessage, logger);
 await runner.RunAsync(ct);
+
+// HTTP/SSE (host spawns the agent and communicates via REST)
+var httpRunner = new AgentHttpRunner("http://localhost:5100", sessionId, ProcessMessage, logger);
+await httpRunner.RunAsync(ct);
 ```
 
-`UserMessageRequest` fields:
+**AgentHttpRunner** expects these host endpoints:
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `Content` | `string` | User message text |
-| `Model` | `string?` | Optional per-message model override |
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/agent/{id}/ready` | POST | Signal agent is up |
+| `/api/agent/{id}/inbox` | GET (SSE) | Receive `ServerRequest` commands |
+| `/api/agent/{id}/events` | POST | Deliver `ServerEvent` batches |
 
-The runner also handles `CancelRequest`, `ContextUpdateRequest`, and `ShutdownRequest` from stdin transparently.
+Both runners support `typeInfoModifiers` to extend polymorphic type registrations without mutating the base `JsonSerializerOptions`:
+
+```csharp
+var runner = new AgentServerRunner(ProcessMessage, logger,
+    typeInfoModifiers: [ApplyCustomPolymorphismOverrides]);
+```
+
+`AgentHttpRunner` additionally exposes `WaitForHitlResponseAsync` / `ResolveHitl` for human-in-the-loop flows, and `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices).
+
+**Protocol types** (`ServerRequest` → agent, `ServerEvent` → host):
+
+| Type | Discriminator | Key fields |
+|------|---------------|-----------|
+| `UserMessageRequest` | `user_message` | `Content`, `Model?` |
+| `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` |
+| `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?` |
+| `CancelRequest` | `cancel` | — |
+| `ShutdownRequest` | `shutdown` | — |
+| `ToolStartEvent` | `tool_start` | `Tool`, `Input?`, `CallId?` |
+| `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` |
+| `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
+| `TextDeltaEvent` | `text_delta` | `Content` |
+| `TurnEndEvent` | `turn_end` | — |
+| `ErrorEvent` | `error` | `Message` |
 
 ## Samples
 

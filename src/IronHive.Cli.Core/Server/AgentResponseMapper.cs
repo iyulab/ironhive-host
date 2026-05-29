@@ -32,7 +32,7 @@ public static class AgentResponseMapper
 
             if (chunk.ToolCallDelta?.NameDelta is not null)
             {
-                yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta);
+                yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta, CallId: chunk.ToolCallDelta.Id);
             }
         }
     }

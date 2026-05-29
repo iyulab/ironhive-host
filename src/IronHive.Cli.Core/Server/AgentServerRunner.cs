@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
 
 using Microsoft.Extensions.Logging;
@@ -41,14 +42,48 @@ public partial class AgentServerRunner
     /// </summary>
     public bool SkipContextEnrichment { get; set; }
 
+    /// <param name="processMessage">Processes a user message and yields server events.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="jsonOptions">Custom JSON options. Defaults to snake_case.</param>
+    /// <param name="typeInfoModifiers">
+    /// Optional modifiers applied to <see cref="System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver"/>
+    /// to extend or override polymorphic type registrations (e.g. adding custom <see cref="ServerRequest"/> or
+    /// <see cref="ServerEvent"/> derived types). Each modifier is appended to the resolver's modifier chain.
+    /// When provided, a new <see cref="JsonSerializerOptions"/> is created from <paramref name="jsonOptions"/>
+    /// with the modifiers applied — the original options object is not mutated.
+    /// </param>
     public AgentServerRunner(
         Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
         ILogger<AgentServerRunner> logger,
-        JsonSerializerOptions? jsonOptions = null)
+        JsonSerializerOptions? jsonOptions = null,
+        Action<JsonTypeInfo>[]? typeInfoModifiers = null)
     {
         _processMessage = processMessage;
         _logger = logger;
-        _jsonOptions = jsonOptions ?? DefaultJsonOpts;
+        _jsonOptions = ApplyModifiers(jsonOptions ?? DefaultJsonOpts, typeInfoModifiers);
+    }
+
+    internal static JsonSerializerOptions ApplyModifiers(
+        JsonSerializerOptions baseOptions,
+        Action<JsonTypeInfo>[]? modifiers)
+    {
+        if (modifiers is null or { Length: 0 })
+        {
+            return baseOptions;
+        }
+
+        var opts = new JsonSerializerOptions(baseOptions);
+        var resolver = new DefaultJsonTypeInfoResolver();
+        foreach (var modifier in modifiers)
+        {
+            resolver.Modifiers.Add(modifier);
+        }
+
+        opts.TypeInfoResolver = opts.TypeInfoResolver is null
+            ? resolver
+            : JsonTypeInfoResolver.Combine(opts.TypeInfoResolver, resolver);
+
+        return opts;
     }
 
     /// <summary>

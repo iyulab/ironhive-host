@@ -19,7 +19,7 @@ public record HitlResponseRequest(bool Approved, string? Reason = null) : Server
 
 public record ShutdownRequest() : ServerRequest;
 
-public record ContextUpdateRequest(string? WorkingPath) : ServerRequest;
+public record ContextUpdateRequest(string? WorkingPath, string[]? SelectedItems = null) : ServerRequest;
 
 /// <summary>
 /// Requests cancellation of the currently processing message.
@@ -43,6 +43,7 @@ public record CancelRequest() : ServerRequest;
 [JsonDerivedType(typeof(PlanStepStartedServerEvent), "plan_step_started")]
 [JsonDerivedType(typeof(PlanStepCompletedServerEvent), "plan_step_completed")]
 [JsonDerivedType(typeof(PlanCompletedServerEvent), "plan_completed")]
+[JsonDerivedType(typeof(FallbackServerEvent), "fallback")]
 public abstract record ServerEvent;
 
 public record SessionStartedEvent(string SessionId) : ServerEvent;
@@ -54,9 +55,15 @@ public record TextDeltaEvent(string Content) : ServerEvent;
 /// </summary>
 public record ThinkingDeltaEvent(string Content) : ServerEvent;
 
-public record ToolStartEvent(string Tool, JsonElement? Input = null) : ServerEvent;
+public record ToolStartEvent(string Tool, JsonElement? Input = null, string? CallId = null) : ServerEvent;
 
-public record ToolEndEvent(string Tool, bool Success) : ServerEvent;
+/// <summary>
+/// Signals completion of a tool call.
+/// <see cref="Output"/> carries the stringified return value (capped at 8 KB); null when the tool returned null/empty.
+/// On failure, <see cref="Output"/> carries "{ExceptionType}: {message}".
+/// <see cref="CallId"/> matches the corresponding <see cref="ToolStartEvent.CallId"/> for start/end pairing.
+/// </summary>
+public record ToolEndEvent(string Tool, bool Success, string? Output = null, string? CallId = null) : ServerEvent;
 
 public record HitlRequestEvent(string Id, string Action, string Target, string Description) : ServerEvent;
 
@@ -65,6 +72,20 @@ public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEv
 public record TurnEndEvent() : ServerEvent;
 
 public record ErrorEvent(string Message) : ServerEvent;
+
+/// <summary>
+/// LLM provider retry / fallback / exhaustion notice.
+/// Kind: "retry" | "fallback" | "exhausted".
+/// Category: "transient" | "rate_limit" | "auth" | "fatal".
+/// </summary>
+public sealed record FallbackServerEvent(
+    string Kind,
+    int ProviderIndex,
+    int TotalProviders,
+    string Category,
+    string Message,
+    int Attempt = 0,
+    int MaxAttempts = 0) : ServerEvent;
 
 public record PlanCreatedServerEvent(string PlanId, int StepCount, string[] StepDescriptions) : ServerEvent;
 
