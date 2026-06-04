@@ -54,3 +54,6 @@ claudedocs/
 dev-docs/
 CLAUDE.md
 nul
+
+# IDE language server cache
+*.lscache
