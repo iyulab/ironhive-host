@@ -51,8 +51,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Chronex (scheduling for health checks) -->
-    <PackageReference Include="Chronex" />
+    <!-- Cronex (scheduling for health checks) -->
+    <PackageReference Include="Cronex.Net" />
   </ItemGroup>
 
   <ItemGroup>

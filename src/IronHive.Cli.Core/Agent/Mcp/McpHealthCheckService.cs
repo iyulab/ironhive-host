@@ -1,16 +1,16 @@
-using Chronex;
+using Cronex;
 using Microsoft.Extensions.Logging;
 
 namespace IronHive.Agent.Mcp;
 
 /// <summary>
-/// Periodically checks the health of connected MCP plugins using a Chronex scheduler.
+/// Periodically checks the health of connected MCP plugins using a Cronex scheduler.
 /// Raises <see cref="PluginUnhealthy"/> when a plugin fails to respond.
 /// </summary>
 public sealed class McpHealthCheckService : IAsyncDisposable
 {
     private readonly IMcpPluginManager _pluginManager;
-    private readonly ChronexScheduler _scheduler;
+    private readonly CronexScheduler _scheduler;
     private readonly ILogger? _logger;
 
     /// <summary>
@@ -25,7 +25,7 @@ public sealed class McpHealthCheckService : IAsyncDisposable
         ILogger? logger = null)
     {
         _pluginManager = pluginManager;
-        _scheduler = new ChronexScheduler(timeProvider);
+        _scheduler = new CronexScheduler(timeProvider);
         _logger = logger;
         _scheduler.Register("mcp:health-check", expression, CheckHealthAsync);
     }

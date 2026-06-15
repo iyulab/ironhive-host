@@ -53,8 +53,8 @@
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
     <PackageVersion Include="IronHive.DeepResearch" Version="0.2.11" />
-    <!-- Chronex (scheduling) -->
-    <PackageVersion Include="Chronex" Version="0.4.0" />
+    <!-- Cronex (scheduling) -->
+    <PackageVersion Include="Cronex.Net" Version="0.3.1" />
     <!-- TokenMeter & ToolCallParser -->
     <PackageVersion Include="TokenMeter" Version="0.4.0" />
     <PackageVersion Include="ToolCallParser" Version="0.2.1" />
