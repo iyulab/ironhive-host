@@ -119,7 +119,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Restore failed" }
 
         Write-Host "[2/3] Building..." -ForegroundColor Yellow
-        & dotnet publish src/IronHive.Cli `
+        & dotnet publish src/IronHive.Host `
             -c $Configuration `
             -r $Runtime `
             --self-contained true `

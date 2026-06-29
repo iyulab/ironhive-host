@@ -1,7 +1,7 @@
 /**
  * Console Chat Sample
  *
- * IronHive.Cli.Core 라이브러리를 직접 통합하여
+ * IronHive.Host.Core 라이브러리를 직접 통합하여
  * 간단한 대화형 콘솔 채팅을 구현합니다.
  *
  * 목적: Core 라이브러리 API 완성도 검증
@@ -10,8 +10,8 @@
 using System.Runtime.CompilerServices;
 using DotNetEnv;
 using IronHive.Agent.Loop;
-using IronHive.Cli.Core.Extensions;
-using IronHive.Cli.Core.Session;
+using IronHive.Host.Core.Extensions;
+using IronHive.Host.Core.Session;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -219,11 +219,11 @@ if (serviceProvider is IAsyncDisposable asyncDisposable)
     await asyncDisposable.DisposeAsync();
 }
 
-static async Task<IronHive.Cli.Core.Session.Session> HandleCommand(
+static async Task<IronHive.Host.Core.Session.Session> HandleCommand(
     string command,
     IAgentLoop agentLoop,
     ISessionManager sessionManager,
-    IronHive.Cli.Core.Session.Session currentSession)
+    IronHive.Host.Core.Session.Session currentSession)
 {
     var parts = command.Split(' ', 2);
     var cmd = parts[0].ToLowerInvariant();

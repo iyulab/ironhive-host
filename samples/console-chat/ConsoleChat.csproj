@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IronHive.Cli.Core\IronHive.Cli.Core.csproj" />
+    <ProjectReference Include="..\..\src\IronHive.Host.Core\IronHive.Host.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

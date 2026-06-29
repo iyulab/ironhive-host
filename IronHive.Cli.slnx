@@ -1,9 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/IronHive.Cli.Core/IronHive.Cli.Core.csproj" />
-    <Project Path="src/IronHive.Cli/IronHive.Cli.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/IronHive.Cli.Tests/IronHive.Cli.Tests.csproj" />
-  </Folder>
-</Solution>

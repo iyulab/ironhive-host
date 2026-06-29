@@ -55,18 +55,18 @@
 |---|---|---|
 | **CLI** | `ironhive` / `ironhive -p "..."` | text · `--output json` · `--output jsonl` · `--plain` |
 | **서버** | `AgentServerRunner`(stdin/stdout JSON Lines) · `AgentHttpRunner`(HTTP/SSE) | `ServerEvent` 스트림 |
-| **임베드** | `IronHive.Cli.Core` NuGet + DI (`IAgentLoop`) | `RunAsync` · `RunStreamingAsync` |
+| **임베드** | `IronHive.Host.Core` NuGet + DI (`IAgentLoop`) | `RunAsync` · `RunStreamingAsync` |
 
 **표면 컴포넌트:**
-- **`AgentServerProtocol`** — 완전한 generic turn-stream: requests(`user_message`·`hitl_response`·`context_update`·`cancel`·`shutdown`) / events(`session_started`·`text_delta`·`thinking_delta`·`tool_start`·`tool_end`·`hitl_request`·`turn_end`·`agent_selected`·`error`·`fallback`·`plan_*`).
+- **`AgentServerProtocol`** (thin `IronHive.Host.Protocol` 패키지, 무의존) — 완전한 generic turn-stream: requests(`user_message`·`hitl_response`·`context_update`·`cancel`·`shutdown`) / events(`session_started`·`text_delta`·`thinking_delta`·`tool_start`·`tool_end`·`hitl_request`·`turn_end`·`agent_selected`·`error`·`fallback`·`plan_*`).
 - **세션 관리** (`-c`/`-r`, `sessions list`), **config 머지**(global→project→env→.env), **CLAUDE.md** 자동 지시.
 - **`ChatBehaviorConfig`** (iteration/error 루프 튜닝), **`TokenBudgetChatClient`**(context-overflow 차단), **`ResilientFunctionInvoker`**(tool-arg 자가교정).
 - **provider 주입** (`UseChatClient`/`UseChatClientFactory`).
 
 ### 목표 (M1 — 정체성 정렬 + 표면 정제)
 
-- **M1-1 내부 rename** `IronHive.Cli*` → `IronHive.Host*` (패키지 ID·네임스페이스·slnx·tool명). breaking, owner 게이트.
-- **M1-3 thin `IronHive.Host.Protocol`** contracts 패키지 추출 — 경량 client가 heavy Core 의존/hand-mirror 없이 프로토콜 채택. M1-1과 통합 breaking 권장.
+- **M1-1 내부 rename** `IronHive.Cli*` → `IronHive.Host*` (패키지 ID·네임스페이스·slnx·tool명). **✅ 완료 (0.13.0, D3 hard-cut)** — 실행 명령 `ironhive`는 유지.
+- **M1-3 thin `IronHive.Host.Protocol`** contracts 패키지 추출 — 경량 client가 heavy Core 의존/hand-mirror 없이 프로토콜 채택. **✅ 완료 (0.13.0, D3 통합 breaking)**.
 - **M1-4 primitive 통합 표면** — session · compaction · MCP-client · loop-guard · HITL (소비자 재구현 + vault-ai broken stub 흡수).
 - **M1-2 provider 중립 완결** — chat은 PASS. embedding/rerank GpuStack coupling 제거(주입 추상화).
 - **M1-5** 3표면(CLI·서버·임베드) 문서화.
@@ -89,8 +89,8 @@ host와 iron-prow는 **한 쌍**이며 책임이 인접해 혼동되기 쉽다. 
 
 ## 현재 상태 & 부채
 
-- **네이밍 부채**: 내부 전부 `IronHive.Cli*` (62개 파일 `namespace`, 2 프로젝트, slnx, tool명). repo는 host인데 코드는 cli.
-- **무료 창 닫힘**: nuget 배포됨 — `IronHive.Cli` 0.11.1(3,491 dl) · `IronHive.Cli.Core` 0.11.1(1,310 dl). 소비자 Filer 확인. → rename은 이제 **사후 breaking** (owner 결정: A안 hard-cut 추천 / B안 meta-package).
+- **네이밍 부채 ✅ 해소 (0.13.0)**: `IronHive.Cli*` → `IronHive.Host*` rename + thin `IronHive.Host.Protocol` 추출 + dual-`CompactionConfig` dedup(agent 단일 소스)을 D3 통합 breaking 1회로 정리. 실행 명령 `ironhive` 유지.
+- **마이그레이션**: 0.12.x `IronHive.Cli`(3,491 dl)·`IronHive.Cli.Core`(1,310 dl)는 배포 중단(unlist 아님). 소비자(Filer filer-ai)는 `IronHive.Host.Core` 재참조 + `using` 교체로 이전 — Filer inline-append 검증 대기.
 - **provider 중립**: chat ✅ PASS / embedding·rerank GpuStack coupling 잔존 (M2 비차단, provider-격리 후속).
 - 초안: `claudedocs/issues/ISSUE-ironhive-host-20260629-005241-...rename...md` · `...-m13-thin-protocol-...md` · `...-m12-provider-neutral-verdict.md`.
 

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>IronHive Host Protocol - thin, dependency-free turn-stream contracts (ServerRequest/ServerEvent) shared by agent servers and lightweight clients without pulling in IronHive.Host.Core.</Description>
+    <PackageId>IronHive.Host.Protocol</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/iyulab/ironhive-host</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/iyulab/ironhive-host</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>agent;protocol;contracts;turn-stream;sse</PackageTags>
+  </PropertyGroup>
+
+</Project>

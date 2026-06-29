@@ -17,7 +17,7 @@ env:
   DOTNET_VERSION: '10.0.x'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  RELEASE_REPO: iyulab/ironhive-cli-releases
+  RELEASE_REPO: iyulab/ironhive-host-releases
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -85,7 +85,7 @@ jobs:
         id: check-nuget
         run: |
           VERSION=${{ steps.get-version.outputs.version }}
-          PACKAGE_ID="IronHive.Cli"
+          PACKAGE_ID="IronHive.Host"
 
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             "https://api.nuget.org/v3-flatcontainer/${PACKAGE_ID,,}/${VERSION}/${PACKAGE_ID,,}.${VERSION}.nupkg")
@@ -119,22 +119,22 @@ jobs:
 
       - name: Build for Windows x64
         run: |
-          dotnet publish src/IronHive.Cli -c Release -r win-x64 \
+          dotnet publish src/IronHive.Host -c Release -r win-x64 \
             -o ./publish/win-x64
 
       - name: Build for Linux x64
         run: |
-          dotnet publish src/IronHive.Cli -c Release -r linux-x64 \
+          dotnet publish src/IronHive.Host -c Release -r linux-x64 \
             -o ./publish/linux-x64
 
       - name: Build for macOS x64
         run: |
-          dotnet publish src/IronHive.Cli -c Release -r osx-x64 \
+          dotnet publish src/IronHive.Host -c Release -r osx-x64 \
             -o ./publish/osx-x64
 
       - name: Build for macOS ARM64
         run: |
-          dotnet publish src/IronHive.Cli -c Release -r osx-arm64 \
+          dotnet publish src/IronHive.Host -c Release -r osx-arm64 \
             -o ./publish/osx-arm64
 
       - name: Create archives
@@ -176,7 +176,7 @@ jobs:
 
           **Via dotnet tool (Recommended)**
           \`\`\`bash
-          dotnet tool install -g IronHive.Cli
+          dotnet tool install -g IronHive.Host
           \`\`\`
 
           **Windows (x64)**
@@ -208,7 +208,7 @@ jobs:
 
           ### Update
           \`\`\`bash
-          dotnet tool update -g IronHive.Cli
+          dotnet tool update -g IronHive.Host
           \`\`\`
           " \
             $PRERELEASE_FLAG \
@@ -238,8 +238,8 @@ jobs:
 
       - name: Pack
         run: |
-          dotnet pack src/IronHive.Cli/IronHive.Cli.csproj --configuration Release --output ./nupkg
-          dotnet pack src/IronHive.Cli.Core/IronHive.Cli.Core.csproj --configuration Release --output ./nupkg
+          dotnet pack src/IronHive.Host/IronHive.Host.csproj --configuration Release --output ./nupkg
+          dotnet pack src/IronHive.Host.Core/IronHive.Host.Core.csproj --configuration Release --output ./nupkg
 
       - name: List packages
         run: ls -la ./nupkg/

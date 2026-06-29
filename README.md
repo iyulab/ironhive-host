@@ -1,9 +1,13 @@
-# ironhive-cli
+# ironhive-host
 
-> Universal CLI Agent Core
+> Universal Agent Host — CLI · server · embedded
 >
 > **역할·범위·기능 명세(미들웨어 정체성)는 [`CHARTER.md`](./CHARTER.md) 참조** — product-middleware §⑤ 에이전트 호스트.
-> (내부 네이밍 `IronHive.Cli*` → `IronHive.Host*` rename은 M1-1, owner 결정 대기.)
+>
+> **⚠️ 0.13.0 breaking rename**: 내부 패키지가 `IronHive.Cli*` → `IronHive.Host*`로 변경되었습니다.
+> NuGet 라이브러리 `IronHive.Cli.Core` → **`IronHive.Host.Core`**, dotnet tool `IronHive.Cli` → **`IronHive.Host`**
+> (실행 명령은 `ironhive` 그대로). turn-stream 프로토콜 계약은 새 thin 패키지 **`IronHive.Host.Protocol`**(무의존)로 분리.
+> 소비자는 PackageReference + `using IronHive.Cli.* → IronHive.Host.*` 교체로 마이그레이션. 0.12.x `IronHive.Cli*`는 배포 중단(unlist 아님 — 기존 복원 계속 동작).
 
 A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution.
 
@@ -21,7 +25,7 @@ Receive a command. Plan. Execute. Return.
                      │ invoke
                      ▼
 ┌─────────────────────────────────────────┐
-│             ironhive-cli                │
+│             ironhive-host                │
 │   Command → Plan → Execute → Done       │
 └────────────────────┬────────────────────┘
                      │ MCP
@@ -35,12 +39,12 @@ Receive a command. Plan. Execute. Return.
 ## Installation
 
 ```bash
-# Install as dotnet tool
-dotnet tool install -g IronHive.Cli
+# Install as dotnet tool (package id IronHive.Host; the command stays `ironhive`)
+dotnet tool install -g IronHive.Host
 
 # Or build from source
-git clone https://github.com/iyulab/ironhive-cli
-cd ironhive-cli
+git clone https://github.com/iyulab/ironhive-host
+cd ironhive-host
 git submodule update --init --recursive
 dotnet build
 ```
@@ -120,11 +124,11 @@ Place a `CLAUDE.md` file in your project root for automatic agent instructions.
 
 ## Core Library Integration
 
-Use `IronHive.Cli.Core` for direct .NET integration:
+Use `IronHive.Host.Core` for direct .NET integration:
 
 ```csharp
 // Add to your project
-<PackageReference Include="IronHive.Cli.Core" />
+<PackageReference Include="IronHive.Host.Core" />
 
 // Configure with DI
 services.AddIronHiveWithOpenAI(apiKey, "gpt-4o-mini");
@@ -163,7 +167,7 @@ chatBehavior:
 ### Context Compaction
 
 Long sessions are kept within the model's context window automatically. When the agent loop is built
-(via the CLI, the server runners, or `IronHive.Cli.Core` DI), a `ContextManager` is wired from the
+(via the CLI, the server runners, or `IronHive.Host.Core` DI), a `ContextManager` is wired from the
 `compaction` config so older history is compacted (token-based, protecting the most recent turns and
 important tool outputs) instead of silently overflowing.
 
@@ -298,16 +302,17 @@ dotnet test
 ### Project Structure
 
 ```
-ironhive-cli/
+ironhive-host/
 ├── src/
-│   ├── IronHive.Cli.Core/       # Core library (NuGet)
+│   ├── IronHive.Host.Protocol/  # Thin turn-stream contracts (zero-dep NuGet)
+│   ├── IronHive.Host.Core/      # Core library (NuGet)
 │   │   ├── Config/              # Configuration classes
 │   │   ├── Extensions/          # DI helpers
 │   │   ├── Providers/           # LMSupply, IronHive chat client providers
-│   │   ├── Server/              # AgentServerRunner, protocol types
+│   │   ├── Server/              # AgentServerRunner, AgentHttpRunner (references Host.Protocol)
 │   │   ├── Session/             # Session management
 │   │   └── Tools/               # Built-in tools, ResilientFunctionInvoker, TokenBudgetChatClient
-│   └── IronHive.Cli/            # CLI application
+│   └── IronHive.Host/           # CLI application (tool command: ironhive)
 ├── samples/
 │   ├── console-chat/            # .NET Core integration
 │   └── web-ai-chat/             # Next.js + subprocess

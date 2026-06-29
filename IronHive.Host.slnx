@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IronHive.Host.Protocol/IronHive.Host.Protocol.csproj" />
+    <Project Path="src/IronHive.Host.Core/IronHive.Host.Core.csproj" />
+    <Project Path="src/IronHive.Host/IronHive.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IronHive.Host.Tests/IronHive.Host.Tests.csproj" />
+  </Folder>
+</Solution>
