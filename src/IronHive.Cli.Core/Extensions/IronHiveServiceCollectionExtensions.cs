@@ -1,6 +1,8 @@
 using System.ClientModel;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Providers;
+using IronHive.Cli.Core.Config;
+using IronHive.Cli.Core.Context;
 using IronHive.Cli.Core.Providers;
 using IronHive.Cli.Core.Session;
 using Microsoft.Extensions.AI;
@@ -77,7 +79,9 @@ public static class IronHiveServiceCollectionExtensions
             {
                 var chatClient = sp.GetRequiredService<IChatClient>();
                 var agentOptions = sp.GetRequiredService<AgentOptions>();
-                return new AgentLoop(chatClient, agentOptions);
+                // Wire context compaction so embedded long sessions compact instead of overflowing.
+                var contextManager = HostContextManagerFactory.Create(options.Compaction, options.DefaultModel);
+                return new AgentLoop(chatClient, agentOptions, contextManager: contextManager);
             });
         }
 
@@ -226,6 +230,13 @@ public class IronHiveOptions
     /// Tools available to the agent.
     /// </summary>
     public IList<AITool>? Tools { get; set; }
+
+    /// <summary>
+    /// Context compaction settings. When the agent loop is constructed by this builder, these
+    /// settings are wired into a <see cref="ContextManager"/> so long sessions compact history
+    /// instead of overflowing. Defaults to token-based compaction enabled.
+    /// </summary>
+    public CompactionConfig Compaction { get; set; } = new();
 
     /// <summary>
     /// Uses a pre-configured IChatClient.

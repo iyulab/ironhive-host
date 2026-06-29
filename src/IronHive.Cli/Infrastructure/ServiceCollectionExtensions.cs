@@ -102,7 +102,7 @@ public static class ServiceCollectionExtensions
             var mcpPluginManager = sp.GetService<IMcpPluginManager>();
             var logger = sp.GetService<ILogger<AgentLoopFactory>>();
 
-            return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger);
+            return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger, config.Compaction);
         });
 
         // Register usage tracker for session-level token tracking

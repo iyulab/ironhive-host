@@ -3,10 +3,12 @@ using IndexThinking.Client;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Providers;
+using IronHive.Cli.Core.Context;
 using IronHive.Cli.Core.Oops;
 using IronHive.Cli.Core.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using HostCompactionConfig = IronHive.Cli.Core.Config.CompactionConfig;
 
 namespace IronHive.Cli.Infrastructure;
 
@@ -22,6 +24,7 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
     private readonly DeepResearchTool? _deepResearchTool;
     private readonly IMcpPluginManager? _mcpPluginManager;
     private readonly ILogger<AgentLoopFactory>? _logger;
+    private readonly HostCompactionConfig? _compactionConfig;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -62,7 +65,8 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
         WebSearchTool? webSearchTool = null,
         DeepResearchTool? deepResearchTool = null,
         IMcpPluginManager? mcpPluginManager = null,
-        ILogger<AgentLoopFactory>? logger = null)
+        ILogger<AgentLoopFactory>? logger = null,
+        HostCompactionConfig? compactionConfig = null)
     {
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
@@ -71,6 +75,7 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
         _deepResearchTool = deepResearchTool;
         _mcpPluginManager = mcpPluginManager;
         _logger = logger;
+        _compactionConfig = compactionConfig;
     }
 
     /// <inheritdoc />
@@ -101,8 +106,14 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
             Tools = tools
         };
 
+        // Wire context compaction from host config so long sessions compact history
+        // instead of overflowing. Without this the loop's ContextManager stays null and
+        // CompactionConfig is inert. Model-aware so the context window matches the active model.
+        var contextManager = HostContextManagerFactory.Create(_compactionConfig, options.Model);
+
         // Create ThinkingAgentLoop with IndexThinking support
-        return new ThinkingAgentLoop(chatClient, _turnManager, agentOptions, options.ThinkingOptions);
+        return new ThinkingAgentLoop(
+            chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager);
     }
 
     /// <summary>

@@ -1,6 +1,9 @@
 # ironhive-cli
 
 > Universal CLI Agent Core
+>
+> **역할·범위·기능 명세(미들웨어 정체성)는 [`CHARTER.md`](./CHARTER.md) 참조** — product-middleware §⑤ 에이전트 호스트.
+> (내부 네이밍 `IronHive.Cli*` → `IronHive.Host*` rename은 M1-1, owner 결정 대기.)
 
 A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution.
 
@@ -102,9 +105,13 @@ limits:
   maxSessionTokens: 100000
   maxSessionCost: 10.00
 
-context:
-  compactionThreshold: 0.92
-  goalReminderEnabled: true
+# Context compaction is active by default — long sessions compact history
+# instead of overflowing. Tune via the compaction section:
+compaction:
+  useTokenBasedCompaction: true
+  protectRecentTokens: 40000     # most-recent tokens always kept
+  minimumPruneTokens: 20000      # only compact when at least this much is prunable
+  targetRatio: 0.70              # compact down to ~70% of the context window
 ```
 
 ### CLAUDE.md Support
@@ -152,6 +159,19 @@ chatBehavior:
   maximumIterationsPerRequest: 7      # tune down for small/quantized models
   maximumConsecutiveErrorsPerRequest: 3
 ```
+
+### Context Compaction
+
+Long sessions are kept within the model's context window automatically. When the agent loop is built
+(via the CLI, the server runners, or `IronHive.Cli.Core` DI), a `ContextManager` is wired from the
+`compaction` config so older history is compacted (token-based, protecting the most recent turns and
+important tool outputs) instead of silently overflowing.
+
+- Enabled by default; tune via the `compaction:` config section (see Configuration above)
+- Model-aware — the context window is sized from the active model
+- Embedded consumers can set `options.Compaction` on `AddIronHive(...)`; manual loop builders can wire it
+  via `HostContextManagerFactory.Create(compactionConfig, modelName)` and pass the result to `AgentLoop`/`ThinkingAgentLoop`
+- Complements (does not replace) `TokenBudgetChatClient`, which remains the hard backstop against per-request overflow
 
 ### TokenBudgetChatClient
 
