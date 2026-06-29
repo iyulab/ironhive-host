@@ -17,7 +17,9 @@ env:
   DOTNET_VERSION: '10.0.x'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  RELEASE_REPO: iyulab/ironhive-host-releases
+  # Separate binary-distribution repo (NOT the code repo). Kept as ironhive-cli-releases — it was not
+  # renamed alongside the code repo. Owner decision to rename it (+ update this) is a follow-up.
+  RELEASE_REPO: iyulab/ironhive-cli-releases
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
