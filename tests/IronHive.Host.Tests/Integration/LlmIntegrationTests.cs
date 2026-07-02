@@ -4,7 +4,6 @@ using IronHive.Abstractions.Messages;
 using IronHive.Agent.Loop;
 using IronHive.Host.Core.Config;
 using IronHive.Host.Core.Providers;
-using IronHive.Core;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 
@@ -38,17 +37,14 @@ public class LlmIntegrationTests
     /// </summary>
     private static IronhiveChatClientProvider CreateGpuStackProvider()
     {
-        var hiveBuilder = new HiveServiceBuilder();
         var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
         {
             BaseUrl = GpuStackEndpoint!.TrimEnd('/') + "/v1-openai/",
-            ApiKey = GpuStackApiKey!
+            ApiKey = GpuStackApiKey!,
+            Api = OpenAIApiSurface.ChatCompletions
         };
-        hiveBuilder.AddOpenAIProviders("gpustack", openAIConfig, OpenAIServiceType.ChatCompletion);
-        var hiveService = hiveBuilder.Build();
-
-        hiveService.Providers.TryGet<IMessageGenerator>("gpustack", out var generator);
-        return new IronhiveChatClientProvider(generator!, "gpustack", GpuStackModel);
+        var generator = new OpenAIMessageGenerator(openAIConfig);
+        return new IronhiveChatClientProvider(generator, "gpustack", GpuStackModel);
     }
 
     [Fact]

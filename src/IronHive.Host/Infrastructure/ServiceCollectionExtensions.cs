@@ -2,7 +2,6 @@ using System.Globalization;
 using IndexThinking.Agents;
 using IndexThinking.Extensions;
 using IronHive.Abstractions;
-using IronHive.Abstractions.Catalog;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
@@ -16,11 +15,9 @@ using IronHive.Host.Core.Providers;
 using IronHive.Host.Core.Session;
 using IronHive.Host.Core.Tools;
 using IronHive.Host.Core.Update;
-using IronHive.Core;
 using IronHive.DeepResearch.Models.Research;
 using IronHive.Providers.Anthropic;
 using IronHive.Providers.GoogleAI;
-using IronHive.Providers.Ollama;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -299,22 +296,27 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
-        // Build IHiveService with ironhive providers
-        var hiveBuilder = new HiveServiceBuilder();
+        // ironhive 0.8.0 removed the keyed provider registry (HiveServiceBuilder/IHiveService.Providers).
+        // IHiveService itself was only ever used here as a lookup for the raw generator/finder instances
+        // this method registered a few lines above -- nothing else in this codebase consumes it -- so
+        // providers are now constructed directly instead of round-tripping through IHiveServiceBuilder.
+        var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
 
-        // Register providers based on configuration (priority order)
-        // 1. GpuStack (uses OpenAI-compatible API)
+        // 1. GpuStack (OpenAI-compatible API; these servers implement Chat Completions, not Responses)
         if (config.GpuStack.IsConfigured)
         {
             var gpuStackConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
                 BaseUrl = NormalizeEndpoint(config.GpuStack.Endpoint!, "v1-openai"),
-                ApiKey = config.GpuStack.ApiKey!
+                ApiKey = config.GpuStack.ApiKey!,
+                Api = OpenAIApiSurface.ChatCompletions
             };
-            hiveBuilder.AddOpenAIProviders("gpustack", gpuStackConfig, OpenAIServiceType.ChatCompletion);
+            var generator = new OpenAIMessageGenerator(gpuStackConfig);
+            var finder = new OpenAIModelFinder(gpuStackConfig);
+            providersDict["gpustack"] = new IronhiveChatClientProvider(generator, "gpustack", config.GpuStack.Model!, finder);
         }
 
-        // 2. OpenAI
+        // 2. OpenAI (first-party; default Responses surface)
         if (config.OpenAI.IsConfigured)
         {
             var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
@@ -322,7 +324,9 @@ public static class ServiceCollectionExtensions
                 BaseUrl = NormalizeEndpoint(config.OpenAI.Endpoint ?? "https://api.openai.com/v1"),
                 ApiKey = config.OpenAI.ApiKey!
             };
-            hiveBuilder.AddOpenAIProviders("openai", openAIConfig, OpenAIServiceType.ChatCompletion | OpenAIServiceType.Embeddings);
+            var generator = new OpenAIMessageGenerator(openAIConfig);
+            var finder = new OpenAIModelFinder(openAIConfig);
+            providersDict["openai"] = new IronhiveChatClientProvider(generator, "openai", config.OpenAI.Model!, finder);
         }
 
         // 3. Anthropic
@@ -333,7 +337,10 @@ public static class ServiceCollectionExtensions
                 BaseUrl = "https://api.anthropic.com/v1/",
                 ApiKey = config.Anthropic.ApiKey!
             };
-            hiveBuilder.AddAnthropicProviders("anthropic", anthropicConfig);
+            var generator = new AnthropicMessageGenerator(anthropicConfig);
+            var finder = new AnthropicModelFinder(anthropicConfig);
+            providersDict["anthropic"] = new IronhiveChatClientProvider(generator, "anthropic", config.Anthropic.Model!, finder);
+            providersDict["claude"] = providersDict["anthropic"]; // Alias
         }
 
         // 4. Google AI
@@ -347,84 +354,53 @@ public static class ServiceCollectionExtensions
                 },
                 ApiKey = config.GoogleAI.ApiKey!
             };
-            hiveBuilder.AddGoogleAIProviders("google", googleConfig);
+            var generator = new GoogleAIMessageGenerator(googleConfig);
+            var finder = new GoogleAIModelFinder(googleConfig);
+            providersDict["google"] = new IronhiveChatClientProvider(generator, "google", config.GoogleAI.Model!, finder);
+            providersDict["gemini"] = providersDict["google"]; // Alias
         }
 
-        // 5. Xai (uses OpenAI-compatible API)
+        // 5. Xai (OpenAI-compatible API; Chat Completions surface, same as GpuStack)
         if (config.Xai.IsConfigured)
         {
             var xaiConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
                 BaseUrl = NormalizeEndpoint(config.Xai.Endpoint),
-                ApiKey = config.Xai.ApiKey!
+                ApiKey = config.Xai.ApiKey!,
+                Api = OpenAIApiSurface.ChatCompletions
             };
-            hiveBuilder.AddOpenAIProviders("xai", xaiConfig, OpenAIServiceType.ChatCompletion);
+            var generator = new OpenAIMessageGenerator(xaiConfig);
+            var finder = new OpenAIModelFinder(xaiConfig);
+            providersDict["xai"] = new IronhiveChatClientProvider(generator, "xai", config.Xai.Model!, finder);
+            providersDict["grok"] = providersDict["xai"]; // Alias
         }
 
-        // 6. Ollama (local inference)
+        // 6. Ollama (local inference) -- NOT WIRED. IronHive.Providers.Ollama 0.3.3 (last published
+        // version; unbumped since ironhive core moved to 0.6.2+) implements IMessageGenerator without
+        // CountTokensAsync, added to the interface in 0.7.9 -- loading it against Abstractions 0.8.2
+        // throws TypeLoadException. See ironhive-host/claudedocs/issues/
+        // ISSUE-ironhive-host-20260703-130000-ollama-provider-abandoned-incompatible.md.
         if (config.Ollama.IsConfigured)
         {
-            var ollamaConfig = new IronHive.Providers.Ollama.OllamaConfig
-            {
-                BaseUrl = NormalizeEndpoint(config.Ollama.Endpoint, "api")
-            };
-            hiveBuilder.AddOllamaProviders("ollama", ollamaConfig);
+            throw new NotSupportedException(
+                "Ollama provider (OLLAMA_ENDPOINT) is temporarily unsupported: IronHive.Providers.Ollama " +
+                "0.3.3 is incompatible with the current IronHive.Abstractions contract (missing " +
+                "CountTokensAsync). Use '/model local' (LMSupply) for local inference until the Ollama " +
+                "provider is rebuilt against a current IronHive.Abstractions version.");
         }
 
-        // 7. LMStudio (OpenAI-compatible local inference)
+        // 7. LMStudio (OpenAI-compatible local inference; Chat Completions surface)
         if (config.LMStudio.IsConfigured)
         {
             var lmStudioConfig = new IronHive.Providers.OpenAI.OpenAIConfig
             {
                 BaseUrl = NormalizeEndpoint(config.LMStudio.Endpoint),
-                ApiKey = "lm-studio"
+                ApiKey = "lm-studio",
+                Api = OpenAIApiSurface.ChatCompletions
             };
-            hiveBuilder.AddOpenAIProviders("lmstudio", lmStudioConfig, OpenAIServiceType.ChatCompletion);
-        }
-
-        // Build and register IHiveService
-        var hiveService = hiveBuilder.Build();
-        services.AddSingleton(hiveService);
-
-        // Create IChatClientProvider instances from ironhive providers
-        var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
-
-        if (config.GpuStack.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("gpustack", out var gpuStackGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("gpustack", out var gpuStackCatalog);
-            providersDict["gpustack"] = new IronhiveChatClientProvider(gpuStackGenerator, "gpustack", config.GpuStack.Model!, gpuStackCatalog);
-        }
-
-        if (config.OpenAI.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("openai", out var openAIGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("openai", out var openAICatalog);
-            providersDict["openai"] = new IronhiveChatClientProvider(openAIGenerator, "openai", config.OpenAI.Model!, openAICatalog);
-        }
-
-        if (config.Anthropic.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("anthropic", out var anthropicGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("anthropic", out var anthropicCatalog);
-            providersDict["anthropic"] = new IronhiveChatClientProvider(anthropicGenerator, "anthropic", config.Anthropic.Model!, anthropicCatalog);
-            providersDict["claude"] = providersDict["anthropic"]; // Alias
-        }
-
-        if (config.GoogleAI.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("google", out var googleGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("google", out var googleCatalog);
-            providersDict["google"] = new IronhiveChatClientProvider(googleGenerator, "google", config.GoogleAI.Model!, googleCatalog);
-            providersDict["gemini"] = providersDict["google"]; // Alias
-        }
-
-        if (config.Xai.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("xai", out var xaiGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("xai", out var xaiCatalog);
-            providersDict["xai"] = new IronhiveChatClientProvider(xaiGenerator, "xai", config.Xai.Model!, xaiCatalog);
-            providersDict["grok"] = providersDict["xai"]; // Alias
+            var generator = new OpenAIMessageGenerator(lmStudioConfig);
+            var finder = new OpenAIModelFinder(lmStudioConfig);
+            providersDict["lmstudio"] = new IronhiveChatClientProvider(generator, "lmstudio", config.LMStudio.Model!, finder);
         }
 
         // LMSupply providers (local fallback)
@@ -443,22 +419,6 @@ public static class ServiceCollectionExtensions
         // LMSupply is always registered for /model command selection
         services.AddSingleton<LMSupplyChatClientProvider>(sp =>
             new LMSupplyChatClientProvider(new CliConfig.LMSupplyConfig { Enabled = true }));
-
-        // Ollama provider (local inference) - via ironhive
-        if (config.Ollama.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("ollama", out var ollamaGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("ollama", out var ollamaCatalog);
-            providersDict["ollama"] = new IronhiveChatClientProvider(ollamaGenerator, "ollama", config.Ollama.Model!, ollamaCatalog);
-        }
-
-        // LMStudio provider (local inference) - via ironhive
-        if (config.LMStudio.IsConfigured &&
-            hiveService.Providers.TryGet<IMessageGenerator>("lmstudio", out var lmStudioGenerator))
-        {
-            hiveService.Providers.TryGet<IModelCatalog>("lmstudio", out var lmStudioCatalog);
-            providersDict["lmstudio"] = new IronhiveChatClientProvider(lmStudioGenerator, "lmstudio", config.LMStudio.Model!, lmStudioCatalog);
-        }
 
         // Determine default provider (priority: GpuStack > OpenAI > Anthropic > GoogleAI > Xai > Ollama > LMStudio)
         IChatClientProvider? defaultProvider = null;

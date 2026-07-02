@@ -78,7 +78,9 @@
     <PackageReference Include="IronHive.Providers.OpenAI" />
     <PackageReference Include="IronHive.Providers.Anthropic" />
     <PackageReference Include="IronHive.Providers.GoogleAI" />
-    <PackageReference Include="IronHive.Providers.Ollama" />
+    <!-- IronHive.Providers.Ollama removed: 0.3.3 (last published version) is incompatible with the
+         current IronHive.Abstractions contract (missing CountTokensAsync, added 0.7.9). See
+         claudedocs/issues/ISSUE-ironhive-host-20260703-130000-ollama-provider-abandoned-incompatible.md -->
   </ItemGroup>
 
 </Project>

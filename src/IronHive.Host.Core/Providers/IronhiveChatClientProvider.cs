@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using IronHive.Abstractions.Catalog;
+using IronHive.Abstractions.Models;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Providers;
-using IronHive.Core.Compatibility;
+using IronHive.Core.Microsoft;
 using Microsoft.Extensions.AI;
 using TokenMeter;
 
@@ -16,7 +16,7 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
     private readonly IMessageGenerator _generator;
     private readonly string _providerName;
     private readonly string _defaultModel;
-    private readonly IModelCatalog? _catalog;
+    private readonly IModelFinder? _catalog;
     private readonly ConcurrentDictionary<string, IChatClient> _clientCache = new();
     private bool _disposed;
 
@@ -24,7 +24,7 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
         IMessageGenerator generator,
         string providerName,
         string defaultModel,
-        IModelCatalog? catalog = null)
+        IModelFinder? catalog = null)
     {
         _generator = generator ?? throw new ArgumentNullException(nameof(generator));
         _providerName = providerName ?? throw new ArgumentNullException(nameof(providerName));
@@ -60,7 +60,7 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
     /// <inheritdoc />
     public async Task<IReadOnlyList<AvailableModelInfo>> GetAvailableModelsAsync(CancellationToken cancellationToken = default)
     {
-        // 1. Try dynamic model list from ironhive IModelCatalog
+        // 1. Try dynamic model list from ironhive IModelFinder
         if (_catalog is not null)
         {
             try
@@ -75,7 +75,7 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
                         DisplayName = s.DisplayName ?? s.ModelId,
                         Source = ModelSource.Api,
                         IsDefault = string.Equals(s.ModelId, _defaultModel, StringComparison.OrdinalIgnoreCase),
-                        ContextWindow = s is ChatModelSpec chat ? chat.ContextWindow : null
+                        ContextWindow = s is LanguageModelCard chat ? chat.ContextWindow : null
                     };
                     return info;
                 }).ToList();
