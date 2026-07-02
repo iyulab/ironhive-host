@@ -3,10 +3,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-
-using Microsoft.Extensions.Logging;
-
 using IronHive.Host.Protocol;
+using Microsoft.Extensions.Logging;
 
 namespace IronHive.Host.Core.Server;
 

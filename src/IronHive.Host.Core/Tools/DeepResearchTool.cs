@@ -2,11 +2,11 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Text;
 using IronHive.Agent.Providers;
-using IronHive.Host.Core.Config;
 using IronHive.DeepResearch;
 using IronHive.DeepResearch.Abstractions;
 using IronHive.DeepResearch.Extensions;
 using IronHive.DeepResearch.Models.Research;
+using IronHive.Host.Core.Config;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IronHive.Host.Core.Tools;
