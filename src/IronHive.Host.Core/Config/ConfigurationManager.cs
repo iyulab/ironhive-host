@@ -226,6 +226,14 @@ public class ConfigurationManager
         return config;
     }
 
+    /// <summary>Persists the given config to the global config.yaml (YAML) and invalidates the cache.</summary>
+    public void SaveGlobal(IronHiveConfig config)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_globalConfigPath)!);
+        File.WriteAllText(_globalConfigPath, YamlConfigSerializer.Serialize(config));
+        _cachedConfig = null;
+    }
+
     /// <summary>
     /// Loads CLAUDE.md from current directory and parent directories.
     /// </summary>

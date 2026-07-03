@@ -336,4 +336,26 @@ public class ConfigurationManagerTests : IDisposable
         var config = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
         config.LMSupply.Enabled.Should().BeFalse(); // a real provider is configured -> do NOT auto-enable
     }
+
+    [Fact]
+    public void SaveGlobal_ThenLoad_RoundTripsAcrossSections()
+    {
+        using var tmp = new TempConfigDirs();
+        var manager = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        var src = new IronHiveConfig();
+        src.OpenAI.ApiKey = "k";
+        src.OpenAI.Model = "m";
+        src.Compaction.ProtectRecentTokens = 12345;   // real CompactionConfig field (default 40000)
+        src.SubAgent.MaxDepth = 4;
+        src.LMSupply.GeneratorModel = "gm";
+
+        manager.SaveGlobal(src);
+
+        var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        loaded.OpenAI.ApiKey.Should().Be("k");
+        loaded.OpenAI.Model.Should().Be("m");
+        loaded.Compaction.ProtectRecentTokens.Should().Be(12345);
+        loaded.SubAgent.MaxDepth.Should().Be(4);
+        loaded.LMSupply.GeneratorModel.Should().Be("gm");
+    }
 }
