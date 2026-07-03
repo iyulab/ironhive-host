@@ -170,7 +170,7 @@ public class PerformanceBenchmarks
 
         try
         {
-            var manager = new ConfigurationManager(tempDir);
+            var manager = new ConfigurationManager(tempDir, Path.Combine(tempDir, "config.yaml"));
 
             var sw = Stopwatch.StartNew();
             for (var i = 0; i < 100; i++)

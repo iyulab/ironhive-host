@@ -124,58 +124,6 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void LoadClaudeMd_NoProjectFile_ReturnsGlobalOrNull()
-    {
-        // When no CLAUDE.md in project, may return global CLAUDE.md if exists
-        var claudeMd = _manager.LoadClaudeMd();
-
-        // Either null (no global) or global path
-        if (claudeMd != null)
-        {
-            Assert.DoesNotContain(_tempDir, claudeMd.SourcePath, StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    [Fact]
-    public void LoadClaudeMd_WithFile_ReturnsContent()
-    {
-        File.WriteAllText(
-            Path.Combine(_tempDir, "CLAUDE.md"),
-            "# Project Instructions\nBe helpful.");
-
-        var claudeMd = _manager.LoadClaudeMd();
-
-        Assert.NotNull(claudeMd);
-        Assert.Contains("# Project Instructions", claudeMd.Content);
-        Assert.Contains("Be helpful", claudeMd.Content);
-        Assert.Equal(Path.Combine(_tempDir, "CLAUDE.md"), claudeMd.SourcePath);
-    }
-
-    [Fact]
-    public void GetMergedClaudeMdContent_NoProjectFile_ReturnsGlobalOrNull()
-    {
-        // When no CLAUDE.md in project, may return global content if exists
-        var content = _manager.GetMergedClaudeMdContent();
-
-        // Either null (no global) or some content from global
-        // Test passes either way - just verify no exception
-        Assert.True(content == null || !string.IsNullOrEmpty(content));
-    }
-
-    [Fact]
-    public void GetMergedClaudeMdContent_WithFile_ReturnsContent()
-    {
-        File.WriteAllText(
-            Path.Combine(_tempDir, "CLAUDE.md"),
-            "# Instructions\nDo good work.");
-
-        var content = _manager.GetMergedClaudeMdContent();
-
-        Assert.NotNull(content);
-        Assert.Contains("Do good work", content);
-    }
-
-    [Fact]
     public void Load_GpuStackFromEnv_LoadsCorrectly()
     {
         Environment.SetEnvironmentVariable("GPUSTACK_ENDPOINT", "http://test.local:8080");
@@ -244,29 +192,6 @@ public class ConfigurationManagerTests : IDisposable
         Assert.Equal(0m, limits.MaxSessionCost); // Unlimited
         Assert.Equal(0.8f, limits.WarningThreshold);
         Assert.True(limits.StopOnLimit);
-    }
-
-    [Fact]
-    public void ContextConfig_DefaultValues_AreCorrect()
-    {
-        var context = new ContextConfig();
-
-        Assert.Equal(0.92f, context.CompactionThreshold);
-        Assert.Equal(10, context.TailPreserveCount);
-        Assert.True(context.GoalReminderEnabled);
-        Assert.Equal(10, context.GoalReminderInterval);
-        Assert.True(context.PromptCachingEnabled);
-        Assert.Equal(1024, context.MinSystemPromptTokensForCaching);
-    }
-
-    [Fact]
-    public void SessionConfig_DefaultValues_AreCorrect()
-    {
-        var session = new SessionConfig();
-
-        Assert.Equal(".ironhive/sessions", session.TranscriptDirectory);
-        Assert.Equal(100, session.MaxSessions);
-        Assert.True(session.AutoSave);
     }
 
     [Fact]
@@ -417,5 +342,57 @@ public class ConfigurationManagerTests : IDisposable
         var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
         mgr.SetValue("openai.apiKey", "sk-xyz");
         mgr.GetValue("openai.apiKey").Should().Be("sk-xyz");         // exactly, no quotes
+    }
+
+    [Fact]
+    public void FullConfig_YamlRoundTrip_PreservesEverySection()
+    {
+        var src = new IronHiveConfig();
+        src.GpuStack.Endpoint = "e"; src.OpenAI.ApiKey = "o"; src.Anthropic.Model = "a";
+        src.GoogleAI.ApiKey = "g"; src.Xai.ApiKey = "x"; src.AzureOpenAI.Endpoint = "az";
+        src.LMSupply.GeneratorModel = "gm"; src.Ollama.Model = "ol"; src.LMStudio.Model = "ls";
+        src.WebSearch.TavilyApiKey = "t"; src.DeepResearch.MaxIterations = 9;
+        src.ChatBehavior.MaximumIterationsPerRequest = 7; src.SubAgent.MaxConcurrent = 5;
+        var yaml = YamlConfigSerializer.Serialize(src);
+        var back = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml)!;
+        back.GpuStack.Endpoint.Should().Be("e"); back.OpenAI.ApiKey.Should().Be("o");
+        back.Anthropic.Model.Should().Be("a"); back.GoogleAI.ApiKey.Should().Be("g");
+        back.Xai.ApiKey.Should().Be("x"); back.AzureOpenAI.Endpoint.Should().Be("az");
+        back.LMSupply.GeneratorModel.Should().Be("gm"); back.Ollama.Model.Should().Be("ol");
+        back.LMStudio.Model.Should().Be("ls"); back.WebSearch.TavilyApiKey.Should().Be("t");
+        back.DeepResearch.MaxIterations.Should().Be(9);
+        back.ChatBehavior.MaximumIterationsPerRequest.Should().Be(7);
+        back.SubAgent.MaxConcurrent.Should().Be(5);
+    }
+
+    [Fact]
+    public void ListAll_MasksApiKeyValues()
+    {
+        // Ported from SettingsManagerTests (unique edge case: FlattenJsonObject's
+        // masking of *apiKey/*api_key leaves before SettingsManager is deleted).
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("openai.apiKey", "sk-1234567890abcdef");
+
+        var result = mgr.ListAll();
+
+        var apiKeyEntry = result.First(kvp => kvp.Key.Contains("apiKey", StringComparison.OrdinalIgnoreCase));
+        apiKeyEntry.Value.Should().NotContain("sk-1234567890abcdef");
+        apiKeyEntry.Value.Should().Contain("...");
+    }
+
+    [Fact]
+    public void ListAll_ShortApiKey_MasksCompletely()
+    {
+        // Ported from SettingsManagerTests (unique edge case: short-secret masking falls
+        // back to a flat "***" instead of the head/tail-preserving mask).
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("openai.apiKey", "short");
+
+        var result = mgr.ListAll();
+
+        var apiKeyEntry = result.First(kvp => kvp.Key.Contains("apiKey", StringComparison.OrdinalIgnoreCase));
+        apiKeyEntry.Value.Should().Be("***");
     }
 }

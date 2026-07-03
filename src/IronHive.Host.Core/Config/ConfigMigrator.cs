@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace IronHive.Host.Core.Config;
@@ -5,6 +6,13 @@ namespace IronHive.Host.Core.Config;
 /// <summary>One-time migration of legacy settings.json to config.yaml.</summary>
 public static class ConfigMigrator
 {
+    private static readonly JsonSerializerOptions LegacyJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+
     public static bool MigrateIfNeeded(string globalConfigPath, string projectRoot,
         string legacySettingsPath, ILogger? logger = null)
     {
@@ -14,7 +22,7 @@ public static class ConfigMigrator
             return false;
         }
 
-        var legacy = SettingsManager.TryLoadLegacyJson(legacySettingsPath);
+        var legacy = TryLoadLegacyJson(legacySettingsPath);
         if (legacy is null)
         {
             return false;
@@ -35,6 +43,28 @@ public static class ConfigMigrator
             logger?.LogWarning(ex, "Failed to migrate settings.json to config.yaml");
 #pragma warning restore CA1848, CA1873
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Reads a legacy settings.json file at the given path into an IronHiveConfig.
+    /// Returns null if the file does not exist or fails to parse.
+    /// </summary>
+    private static IronHiveConfig? TryLoadLegacyJson(string settingsFilePath)
+    {
+        if (!File.Exists(settingsFilePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(settingsFilePath);
+            return JsonSerializer.Deserialize<IronHiveConfig>(json, LegacyJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 }
