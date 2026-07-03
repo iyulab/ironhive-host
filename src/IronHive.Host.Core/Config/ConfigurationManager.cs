@@ -679,5 +679,127 @@ public class ConfigurationManager
         {
             config.LMSupply.Enabled = bool.TryParse(lmSupplyEnabled, out var enabled) && enabled;
         }
+
+        // OpenAI from environment
+        var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        if (!string.IsNullOrEmpty(openAiApiKey))
+        {
+            config.OpenAI.ApiKey = openAiApiKey;
+        }
+
+        var openAiModel = Environment.GetEnvironmentVariable("OPENAI_MODEL");
+        if (!string.IsNullOrEmpty(openAiModel))
+        {
+            config.OpenAI.Model = openAiModel;
+        }
+
+        var openAiEndpoint = Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
+        if (!string.IsNullOrEmpty(openAiEndpoint))
+        {
+            config.OpenAI.Endpoint = openAiEndpoint;
+        }
+
+        // Anthropic from environment
+        var anthropicApiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+        if (!string.IsNullOrEmpty(anthropicApiKey))
+        {
+            config.Anthropic.ApiKey = anthropicApiKey;
+        }
+
+        var anthropicModel = Environment.GetEnvironmentVariable("ANTHROPIC_MODEL");
+        if (!string.IsNullOrEmpty(anthropicModel))
+        {
+            config.Anthropic.Model = anthropicModel;
+        }
+
+        // GoogleAI from environment (GOOGLE_API_KEY accepted as an alias for GOOGLEAI_API_KEY)
+        var googleAiApiKey = Environment.GetEnvironmentVariable("GOOGLEAI_API_KEY")
+            ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
+        if (!string.IsNullOrEmpty(googleAiApiKey))
+        {
+            config.GoogleAI.ApiKey = googleAiApiKey;
+        }
+
+        var googleAiModel = Environment.GetEnvironmentVariable("GOOGLEAI_MODEL");
+        if (!string.IsNullOrEmpty(googleAiModel))
+        {
+            config.GoogleAI.Model = googleAiModel;
+        }
+
+        // Xai from environment
+        var xaiApiKey = Environment.GetEnvironmentVariable("XAI_API_KEY");
+        if (!string.IsNullOrEmpty(xaiApiKey))
+        {
+            config.Xai.ApiKey = xaiApiKey;
+        }
+
+        var xaiModel = Environment.GetEnvironmentVariable("XAI_MODEL");
+        if (!string.IsNullOrEmpty(xaiModel))
+        {
+            config.Xai.Model = xaiModel;
+        }
+
+        var xaiEndpoint = Environment.GetEnvironmentVariable("XAI_ENDPOINT");
+        if (!string.IsNullOrEmpty(xaiEndpoint))
+        {
+            config.Xai.Endpoint = xaiEndpoint;
+        }
+
+        // AzureOpenAI from environment
+        var azureOpenAiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        if (!string.IsNullOrEmpty(azureOpenAiEndpoint))
+        {
+            config.AzureOpenAI.Endpoint = azureOpenAiEndpoint;
+        }
+
+        var azureOpenAiApiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+        if (!string.IsNullOrEmpty(azureOpenAiApiKey))
+        {
+            config.AzureOpenAI.ApiKey = azureOpenAiApiKey;
+        }
+
+        var azureOpenAiDeployment = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT");
+        if (!string.IsNullOrEmpty(azureOpenAiDeployment))
+        {
+            config.AzureOpenAI.DeploymentName = azureOpenAiDeployment;
+        }
+
+        // Ollama from environment
+        var ollamaEndpoint = Environment.GetEnvironmentVariable("OLLAMA_ENDPOINT");
+        if (!string.IsNullOrEmpty(ollamaEndpoint))
+        {
+            config.Ollama.Endpoint = ollamaEndpoint;
+        }
+
+        var ollamaModel = Environment.GetEnvironmentVariable("OLLAMA_MODEL");
+        if (!string.IsNullOrEmpty(ollamaModel))
+        {
+            config.Ollama.Model = ollamaModel;
+        }
+
+        var ollamaEnabled = Environment.GetEnvironmentVariable("OLLAMA_ENABLED");
+        if (!string.IsNullOrEmpty(ollamaEnabled))
+        {
+            config.Ollama.Enabled = bool.TryParse(ollamaEnabled, out var ollamaEnabledValue) && ollamaEnabledValue;
+        }
+
+        // LMStudio from environment
+        var lmStudioEndpoint = Environment.GetEnvironmentVariable("LMSTUDIO_ENDPOINT");
+        if (!string.IsNullOrEmpty(lmStudioEndpoint))
+        {
+            config.LMStudio.Endpoint = lmStudioEndpoint;
+        }
+
+        var lmStudioModel = Environment.GetEnvironmentVariable("LMSTUDIO_MODEL");
+        if (!string.IsNullOrEmpty(lmStudioModel))
+        {
+            config.LMStudio.Model = lmStudioModel;
+        }
+
+        var lmStudioEnabled = Environment.GetEnvironmentVariable("LMSTUDIO_ENABLED");
+        if (!string.IsNullOrEmpty(lmStudioEnabled))
+        {
+            config.LMStudio.Enabled = bool.TryParse(lmStudioEnabled, out var lmStudioEnabledValue) && lmStudioEnabledValue;
+        }
     }
 }

@@ -22,6 +22,26 @@ internal sealed class TempConfigDirs : IDisposable
     public void Dispose() { try { Directory.Delete(_root, true); } catch { } }
 }
 
+internal sealed class ScopedEnv : IDisposable
+{
+    private readonly (string Key, string? Prev)[] _prev;
+    public ScopedEnv(params (string Key, string Value)[] vars)
+    {
+        _prev = vars.Select(v => (v.Key, Environment.GetEnvironmentVariable(v.Key))).ToArray();
+        foreach (var (k, val) in vars)
+        {
+            Environment.SetEnvironmentVariable(k, val);
+        }
+    }
+    public void Dispose()
+    {
+        foreach (var (k, prev) in _prev)
+        {
+            Environment.SetEnvironmentVariable(k, prev);
+        }
+    }
+}
+
 public class ConfigurationManagerTests : IDisposable
 {
     private readonly string _tempDir;
@@ -176,6 +196,24 @@ public class ConfigurationManagerTests : IDisposable
             Environment.SetEnvironmentVariable("GPUSTACK_API_KEY", null);
             Environment.SetEnvironmentVariable("GPUSTACK_MODEL", null);
         }
+    }
+
+    [Fact]
+    public void Load_EnvironmentVariablesOverrideFileConfig_FullSurface()
+    {
+        using var tmp = new TempConfigDirs();
+        // NOTE: YamlDotNet's CamelCaseNamingConvention only lowercases the leading
+        // character of the property name (OpenAI -> openAI, not openai); verified
+        // empirically against YamlConfigSerializer before writing this fixture.
+        tmp.WriteGlobal("openAI:\n  apiKey: file-key\n  model: file-model\n");
+        using var env = new ScopedEnv(("OPENAI_API_KEY", "env-key"), ("ANTHROPIC_MODEL", "claude-x"));
+
+        var manager = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        var config = manager.Load();
+
+        config.OpenAI.ApiKey.Should().Be("env-key");     // env overrides file
+        config.OpenAI.Model.Should().Be("file-model");   // file value retained where no env
+        config.Anthropic.Model.Should().Be("claude-x");  // env-only field
     }
 
     [Fact]
