@@ -317,4 +317,23 @@ public class ConfigurationManagerTests : IDisposable
         unknown.Should().Contain("bogusSection");
         unknown.Should().NotContain("openai");  // valid alias
     }
+
+    [Fact]
+    public void Load_NoApiProvider_AutoEnablesLmSupply_OverridingExplicitFalse()
+    {
+        using var tmp = new TempConfigDirs();
+        // no provider configured; user explicitly disabled lmsupply
+        tmp.WriteGlobal("lmsupply:\n  enabled: false\n");
+        var config = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        config.LMSupply.Enabled.Should().BeTrue(); // auto-enable fires because no API provider is set
+    }
+
+    [Fact]
+    public void Load_ApiProviderConfigured_DoesNotForceLmSupply()
+    {
+        using var tmp = new TempConfigDirs();
+        tmp.WriteGlobal("openai:\n  apiKey: k\n  model: m\nlmsupply:\n  enabled: false\n");
+        var config = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        config.LMSupply.Enabled.Should().BeFalse(); // a real provider is configured -> do NOT auto-enable
+    }
 }

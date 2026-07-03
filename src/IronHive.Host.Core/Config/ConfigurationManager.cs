@@ -213,6 +213,15 @@ public class ConfigurationManager
         // 4. Apply environment variables (highest priority)
         ApplyEnvironmentVariables(config);
 
+        // 5. Load permission config from default locations (mirrors EnvConfigLoader.Load())
+        config.Permissions = PermissionConfigLoader.LoadFromDefaultLocations(Directory.GetCurrentDirectory());
+
+        // 6. Auto-enable LMSupply if no API provider is configured (mirrors EnvConfigLoader.Load())
+        if (!HasAnyApiProvider(config))
+        {
+            config.LMSupply.Enabled = true;
+        }
+
         _cachedConfig = config;
         return config;
     }
@@ -688,6 +697,14 @@ public class ConfigurationManager
             target.ChatBehavior.MaximumConsecutiveErrorsPerRequest = source.ChatBehavior.MaximumConsecutiveErrorsPerRequest;
         }
     }
+
+    /// <summary>
+    /// Checks if any API provider is configured. Mirrors <c>EnvConfigLoader.HasAnyApiProvider</c>.
+    /// </summary>
+    private static bool HasAnyApiProvider(IronHiveConfig config) =>
+        config.GpuStack.IsConfigured || config.OpenAI.IsConfigured || config.Anthropic.IsConfigured ||
+        config.GoogleAI.IsConfigured || config.Xai.IsConfigured || config.AzureOpenAI.IsConfigured ||
+        config.Ollama.IsConfigured || config.LMStudio.IsConfigured;
 
     private static void ApplyEnvironmentVariables(IronHiveConfig config)
     {
