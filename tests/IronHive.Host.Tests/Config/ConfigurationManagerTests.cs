@@ -398,4 +398,24 @@ public class ConfigurationManagerTests : IDisposable
         using var tmp = new TempConfigDirs();
         new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).GetValue("openai.apiKey").Should().BeNull();
     }
+
+    [Fact]
+    public void GetValue_NonStringLeaf_ReturnsStringNotThrow_AndTypedLoadReadsIt()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("subAgent.maxDepth", "7");
+        mgr.GetValue("subAgent.maxDepth").Should().Be("7");          // no throw, no quotes
+        var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        loaded.SubAgent.MaxDepth.Should().Be(7);                     // int round-trips through the bridge to typed Load
+    }
+
+    [Fact]
+    public void GetValue_StringLeaf_HasNoSurroundingQuotes()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("openai.apiKey", "sk-xyz");
+        mgr.GetValue("openai.apiKey").Should().Be("sk-xyz");         // exactly, no quotes
+    }
 }

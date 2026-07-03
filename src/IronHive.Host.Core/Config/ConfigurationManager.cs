@@ -998,7 +998,17 @@ public class ConfigurationManager
             }
         }
 
-        return current?.GetValue<string>();
+        if (current is null)
+        {
+            return null;
+        }
+
+        if (current is JsonValue jsonValue)
+        {
+            return jsonValue.TryGetValue<string>(out var stringValue) ? stringValue : jsonValue.ToString();
+        }
+
+        return current.ToString();
     }
 
     private static void SetNestedValue(JsonNode root, string key, string value)
