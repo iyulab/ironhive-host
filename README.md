@@ -105,9 +105,6 @@ Configuration is merged in order (later overrides earlier):
 
 ```yaml
 # .ironhive/config.yaml
-limits:
-  maxSessionTokens: 100000
-  maxSessionCost: 10.00
 
 # Context compaction is active by default — long sessions compact history
 # instead of overflowing. Tune via the compaction section:
