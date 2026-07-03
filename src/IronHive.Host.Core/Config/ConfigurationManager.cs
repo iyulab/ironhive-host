@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using IronHive.Agent.Permissions;
 using IronHive.Agent.Webhook;
@@ -5,6 +6,7 @@ using IronHive.Host.Core.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Core;
+using YamlDotNet.Serialization;
 
 namespace IronHive.Host.Core.Config;
 
@@ -317,11 +319,58 @@ public class ConfigurationManager
     /// </summary>
     public string ProjectConfigPath => Path.Combine(_projectRoot, ".ironhive", "config.yaml");
 
+    /// <summary>
+    /// Returns the top-level YAML keys in <paramref name="yaml"/> that do not correspond to a
+    /// known <see cref="IronHiveConfig"/> section (its <see cref="YamlMemberAttribute.Alias"/> if
+    /// annotated, else the CamelCaseNamingConvention-derived key). Comparison is ordinal/
+    /// case-sensitive, so a wrong-case key (e.g. "openAI" instead of "openai") is reported as
+    /// unknown even though it "looks" close to a valid section — this is intentional: it is the
+    /// exact silent-drop defect this hardening closes. Malformed YAML is not reported here (it is
+    /// handled separately by <see cref="MergeFromYaml"/>'s own try/catch blocks).
+    /// </summary>
+    public static IReadOnlyList<string> FindUnknownTopLevelKeys(string yaml)
+    {
+        var known = typeof(IronHiveConfig).GetProperties()
+            .Select(p => p.GetCustomAttribute<YamlMemberAttribute>()?.Alias
+                         ?? (char.ToLowerInvariant(p.Name[0]) + p.Name[1..]))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var unknown = new List<string>();
+        try
+        {
+            var root = YamlConfigSerializer.Deserialize<Dictionary<string, object>>(yaml);
+            if (root != null)
+            {
+                foreach (var key in root.Keys)
+                {
+                    if (!known.Contains(key))
+                    {
+                        unknown.Add(key);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Malformed YAML is handled by MergeFromYaml's own catch blocks.
+        }
+
+        return unknown;
+    }
+
     private void MergeFromYaml(IronHiveConfig config, string path)
     {
         try
         {
             var yaml = File.ReadAllText(path);
+
+            foreach (var key in FindUnknownTopLevelKeys(yaml))
+            {
+#pragma warning disable CA1848 // Use LoggerMessage delegates for performance-critical paths
+                _logger?.LogWarning("Unknown config key '{Key}' in {Path} ignored", key, path);
+#pragma warning restore CA1848
+            }
+
             var loaded = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml);
             if (loaded != null)
             {

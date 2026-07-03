@@ -1,5 +1,6 @@
 using IronHive.Agent.Context;
 using IronHive.Agent.Permissions;
+using YamlDotNet.Serialization;
 
 namespace IronHive.Host.Core.Config;
 
@@ -17,6 +18,7 @@ public class IronHiveConfig
     /// <summary>
     /// OpenAI configuration.
     /// </summary>
+    [YamlMember(Alias = "openai")]
     public OpenAIConfig OpenAI { get; set; } = new();
 
     /// <summary>
@@ -27,6 +29,7 @@ public class IronHiveConfig
     /// <summary>
     /// Google AI configuration.
     /// </summary>
+    [YamlMember(Alias = "googleai")]
     public GoogleAIConfig GoogleAI { get; set; } = new();
 
     /// <summary>
@@ -37,11 +40,13 @@ public class IronHiveConfig
     /// <summary>
     /// Azure OpenAI configuration.
     /// </summary>
+    [YamlMember(Alias = "azureopenai")]
     public AzureOpenAIConfig AzureOpenAI { get; set; } = new();
 
     /// <summary>
     /// LMSupply configuration (fallback provider).
     /// </summary>
+    [YamlMember(Alias = "lmsupply")]
     public LMSupplyConfig LMSupply { get; set; } = new();
 
     /// <summary>
@@ -52,6 +57,7 @@ public class IronHiveConfig
     /// <summary>
     /// LMStudio configuration.
     /// </summary>
+    [YamlMember(Alias = "lmstudio")]
     public LMStudioConfig LMStudio { get; set; } = new();
 
     /// <summary>

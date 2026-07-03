@@ -202,10 +202,10 @@ public class ConfigurationManagerTests : IDisposable
     public void Load_EnvironmentVariablesOverrideFileConfig_FullSurface()
     {
         using var tmp = new TempConfigDirs();
-        // NOTE: YamlDotNet's CamelCaseNamingConvention only lowercases the leading
-        // character of the property name (OpenAI -> openAI, not openai); verified
-        // empirically against YamlConfigSerializer before writing this fixture.
-        tmp.WriteGlobal("openAI:\n  apiKey: file-key\n  model: file-model\n");
+        // NOTE: OpenAI's clean lowercase alias is "openai" (Task 2.5 explicit
+        // [YamlMember(Alias)]); the naive CamelCaseNamingConvention key "openAI"
+        // (only the leading char lowercased) is intentionally NOT accepted anymore.
+        tmp.WriteGlobal("openai:\n  apiKey: file-key\n  model: file-model\n");
         using var env = new ScopedEnv(("OPENAI_API_KEY", "env-key"), ("ANTHROPIC_MODEL", "claude-x"));
 
         var manager = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
@@ -293,5 +293,28 @@ public class ConfigurationManagerTests : IDisposable
 
         Assert.NotSame(config1, config3);
         Assert.Equal(99, config3.ChatBehavior.MaximumIterationsPerRequest);
+    }
+
+    [Fact]
+    public void Load_AcronymSectionKeys_UseCleanLowercaseAliases()
+    {
+        using var tmp = new TempConfigDirs();
+        tmp.WriteGlobal("openai:\n  apiKey: k1\nlmsupply:\n  generatorModel: gm\nlmstudio:\n  model: ls\ngoogleai:\n  apiKey: g\nazureopenai:\n  deploymentName: d\n");
+        var config = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        config.OpenAI.ApiKey.Should().Be("k1");
+        config.LMSupply.GeneratorModel.Should().Be("gm");
+        config.LMStudio.Model.Should().Be("ls");
+        config.GoogleAI.ApiKey.Should().Be("g");
+        config.AzureOpenAI.DeploymentName.Should().Be("d");
+    }
+
+    [Fact]
+    public void FindUnknownTopLevelKeys_ReportsMisspelledSection()
+    {
+        var yaml = "openai:\n  apiKey: k\nopenAI:\n  apiKey: dup\nbogusSection:\n  x: 1\n";
+        var unknown = ConfigurationManager.FindUnknownTopLevelKeys(yaml);
+        unknown.Should().Contain("openAI");     // wrong-case duplicate is unknown
+        unknown.Should().Contain("bogusSection");
+        unknown.Should().NotContain("openai");  // valid alias
     }
 }
