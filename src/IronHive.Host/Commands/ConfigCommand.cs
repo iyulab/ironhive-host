@@ -47,12 +47,12 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
             .AddColumn("Value");
 
         // GpuStack configuration
-        AddConfigRow(table, "gpustack", "endpoint", _config.GpuStack.Endpoint);
-        AddSecretRow(table, "gpustack", "apiKey", _config.GpuStack.ApiKey);
-        AddConfigRow(table, "gpustack", "model", _config.GpuStack.Model);
-        AddConfigRow(table, "gpustack", "embeddingModel", _config.GpuStack.EmbeddingModel);
-        AddConfigRow(table, "gpustack", "rerankModel", _config.GpuStack.RerankModel);
-        AddStatusRow(table, "gpustack", "configured", _config.GpuStack.IsConfigured);
+        AddConfigRow(table, "gpuStack", "endpoint", _config.GpuStack.Endpoint);
+        AddSecretRow(table, "gpuStack", "apiKey", _config.GpuStack.ApiKey);
+        AddConfigRow(table, "gpuStack", "model", _config.GpuStack.Model);
+        AddConfigRow(table, "gpuStack", "embeddingModel", _config.GpuStack.EmbeddingModel);
+        AddConfigRow(table, "gpuStack", "rerankModel", _config.GpuStack.RerankModel);
+        AddStatusRow(table, "gpuStack", "configured", _config.GpuStack.IsConfigured);
 
         // OpenAI configuration
         AddSecretRow(table, "openai", "apiKey", _config.OpenAI.ApiKey);
@@ -66,9 +66,9 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AddStatusRow(table, "anthropic", "configured", _config.Anthropic.IsConfigured);
 
         // Google AI configuration
-        AddSecretRow(table, "google", "apiKey", _config.GoogleAI.ApiKey);
-        AddConfigRow(table, "google", "model", _config.GoogleAI.Model);
-        AddStatusRow(table, "google", "configured", _config.GoogleAI.IsConfigured);
+        AddSecretRow(table, "googleai", "apiKey", _config.GoogleAI.ApiKey);
+        AddConfigRow(table, "googleai", "model", _config.GoogleAI.Model);
+        AddStatusRow(table, "googleai", "configured", _config.GoogleAI.IsConfigured);
 
         // Xai configuration
         AddConfigRow(table, "xai", "endpoint", _config.Xai.Endpoint);
@@ -77,10 +77,10 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AddStatusRow(table, "xai", "configured", _config.Xai.IsConfigured);
 
         // Azure OpenAI configuration
-        AddConfigRow(table, "azure", "endpoint", _config.AzureOpenAI.Endpoint);
-        AddSecretRow(table, "azure", "apiKey", _config.AzureOpenAI.ApiKey);
-        AddConfigRow(table, "azure", "deploymentName", _config.AzureOpenAI.DeploymentName);
-        AddStatusRow(table, "azure", "configured", _config.AzureOpenAI.IsConfigured);
+        AddConfigRow(table, "azureopenai", "endpoint", _config.AzureOpenAI.Endpoint);
+        AddSecretRow(table, "azureopenai", "apiKey", _config.AzureOpenAI.ApiKey);
+        AddConfigRow(table, "azureopenai", "deploymentName", _config.AzureOpenAI.DeploymentName);
+        AddStatusRow(table, "azureopenai", "configured", _config.AzureOpenAI.IsConfigured);
 
         // Ollama configuration
         AddBoolRow(table, "ollama", "enabled", _config.Ollama.Enabled);

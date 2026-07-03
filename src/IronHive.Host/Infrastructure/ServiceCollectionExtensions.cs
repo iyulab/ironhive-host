@@ -47,8 +47,10 @@ public static class ServiceCollectionExtensions
         var globalConfigPath = Path.Combine(userProfile, ".ironhive", "config.yaml");
         var projectRoot = Directory.GetCurrentDirectory();
         var legacySettingsPath = Path.Combine(userProfile, ".ironhive", "settings.json");
-        ConfigMigrator.MigrateIfNeeded(globalConfigPath, projectRoot, legacySettingsPath);
-        var configManager = new ConfigurationManager(projectRoot, globalConfigPath);
+        using var bootstrapLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
+        var configLogger = bootstrapLoggerFactory.CreateLogger<ConfigurationManager>();
+        ConfigMigrator.MigrateIfNeeded(globalConfigPath, projectRoot, legacySettingsPath, configLogger);
+        var configManager = new ConfigurationManager(projectRoot, globalConfigPath, configLogger);
         services.AddSingleton(configManager);
         var config = configManager.Load();
         services.AddSingleton(config);

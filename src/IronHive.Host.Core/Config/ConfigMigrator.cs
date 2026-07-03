@@ -62,7 +62,7 @@ public static class ConfigMigrator
             var json = File.ReadAllText(settingsFilePath);
             return JsonSerializer.Deserialize<IronHiveConfig>(json, LegacyJsonOptions);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
