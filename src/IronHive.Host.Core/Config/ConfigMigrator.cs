@@ -29,7 +29,7 @@ public static class ConfigMigrator
 #pragma warning restore CA1848, CA1873
             return true;
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
 #pragma warning disable CA1848, CA1873
             logger?.LogWarning(ex, "Failed to migrate settings.json to config.yaml");
