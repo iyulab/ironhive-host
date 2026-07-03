@@ -5,8 +5,6 @@ using IronHive.Host.Core.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Core;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace IronHive.Host.Core.Config;
 
@@ -162,18 +160,16 @@ public class ConfigurationManager
     private readonly string _globalConfigPath;
     private readonly string _projectRoot;
     private readonly ILogger<ConfigurationManager>? _logger;
-    private MergedConfig? _cachedConfig;
+    private IronHiveConfig? _cachedConfig;
 
-    private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .IgnoreUnmatchedProperties()
-        .Build();
-
-    public ConfigurationManager(string? projectRoot = null, ILogger<ConfigurationManager>? logger = null)
+    public ConfigurationManager(
+        string? projectRoot = null,
+        string? globalConfigPath = null,
+        ILogger<ConfigurationManager>? logger = null)
     {
         _projectRoot = projectRoot ?? Directory.GetCurrentDirectory();
         _logger = logger;
-        _globalConfigPath = Path.Combine(
+        _globalConfigPath = globalConfigPath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".ironhive",
             "config.yaml");
@@ -183,14 +179,14 @@ public class ConfigurationManager
     /// Loads and merges configuration from all sources.
     /// Priority: Environment > .env > Project > Global
     /// </summary>
-    public MergedConfig Load(bool forceReload = false)
+    public IronHiveConfig Load(bool forceReload = false)
     {
         if (_cachedConfig != null && !forceReload)
         {
             return _cachedConfig;
         }
 
-        var config = new MergedConfig();
+        var config = new IronHiveConfig();
 
         // 1. Load global config
         if (File.Exists(_globalConfigPath))
@@ -214,9 +210,6 @@ public class ConfigurationManager
 
         // 4. Apply environment variables (highest priority)
         ApplyEnvironmentVariables(config);
-
-        // 5. Load CLAUDE.md
-        config.ClaudeMd = LoadClaudeMd();
 
         _cachedConfig = config;
         return config;
@@ -324,12 +317,12 @@ public class ConfigurationManager
     /// </summary>
     public string ProjectConfigPath => Path.Combine(_projectRoot, ".ironhive", "config.yaml");
 
-    private void MergeFromYaml(MergedConfig config, string path)
+    private void MergeFromYaml(IronHiveConfig config, string path)
     {
         try
         {
             var yaml = File.ReadAllText(path);
-            var loaded = YamlDeserializer.Deserialize<MergedConfig>(yaml);
+            var loaded = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml);
             if (loaded != null)
             {
                 MergeConfig(config, loaded);
@@ -355,9 +348,17 @@ public class ConfigurationManager
         }
     }
 
-    private static void MergeConfig(MergedConfig target, MergedConfig source)
+    /// <summary>
+    /// Mechanical field-by-field merge of <paramref name="source"/> into <paramref name="target"/>
+    /// across every <see cref="IronHiveConfig"/> section. String/reference-type fields fall through
+    /// from the earlier scope when unset (non-empty-wins); value-type/bool fields overwrite
+    /// unconditionally on presence (YAML omission = the type's default, so a later scope that omits
+    /// a key cannot be distinguished from one that explicitly sets the default — acceptable per
+    /// Task 1 scope; a round-trip regression test lands in a later task).
+    /// </summary>
+    private static void MergeConfig(IronHiveConfig target, IronHiveConfig source)
     {
-        // Merge GpuStack
+        // GpuStack
         if (!string.IsNullOrEmpty(source.GpuStack.Endpoint))
         {
             target.GpuStack.Endpoint = source.GpuStack.Endpoint;
@@ -383,30 +384,263 @@ public class ConfigurationManager
             target.GpuStack.RerankModel = source.GpuStack.RerankModel;
         }
 
-        // Merge Limits
-        if (source.Limits.MaxSessionTokens > 0)
+        // OpenAI
+        if (!string.IsNullOrEmpty(source.OpenAI.ApiKey))
         {
-            target.Limits.MaxSessionTokens = source.Limits.MaxSessionTokens;
+            target.OpenAI.ApiKey = source.OpenAI.ApiKey;
         }
 
-        if (source.Limits.MaxSessionCost > 0)
+        if (!string.IsNullOrEmpty(source.OpenAI.Model))
         {
-            target.Limits.MaxSessionCost = source.Limits.MaxSessionCost;
+            target.OpenAI.Model = source.OpenAI.Model;
         }
 
-        // Merge Webhook endpoints
-        if (source.Webhook.Endpoints.Count > 0)
+        if (!string.IsNullOrEmpty(source.OpenAI.Endpoint))
         {
-            target.Webhook.Endpoints.AddRange(source.Webhook.Endpoints);
+            target.OpenAI.Endpoint = source.OpenAI.Endpoint;
         }
 
-        // Merge Context settings
-        target.Context.CompactionThreshold = source.Context.CompactionThreshold;
-        target.Context.TailPreserveCount = source.Context.TailPreserveCount;
-        target.Context.GoalReminderEnabled = source.Context.GoalReminderEnabled;
+        // Anthropic
+        if (!string.IsNullOrEmpty(source.Anthropic.ApiKey))
+        {
+            target.Anthropic.ApiKey = source.Anthropic.ApiKey;
+        }
+
+        if (!string.IsNullOrEmpty(source.Anthropic.Model))
+        {
+            target.Anthropic.Model = source.Anthropic.Model;
+        }
+
+        // GoogleAI
+        if (!string.IsNullOrEmpty(source.GoogleAI.ApiKey))
+        {
+            target.GoogleAI.ApiKey = source.GoogleAI.ApiKey;
+        }
+
+        if (!string.IsNullOrEmpty(source.GoogleAI.Model))
+        {
+            target.GoogleAI.Model = source.GoogleAI.Model;
+        }
+
+        // Xai — Endpoint has a non-empty default; only overwrite when source differs from it,
+        // otherwise an unset project scope would clobber a real global override with the default.
+        if (!string.IsNullOrEmpty(source.Xai.ApiKey))
+        {
+            target.Xai.ApiKey = source.Xai.ApiKey;
+        }
+
+        if (!string.IsNullOrEmpty(source.Xai.Model))
+        {
+            target.Xai.Model = source.Xai.Model;
+        }
+
+        if (!string.IsNullOrEmpty(source.Xai.Endpoint) && source.Xai.Endpoint != new XaiConfig().Endpoint)
+        {
+            target.Xai.Endpoint = source.Xai.Endpoint;
+        }
+
+        // AzureOpenAI
+        if (!string.IsNullOrEmpty(source.AzureOpenAI.Endpoint))
+        {
+            target.AzureOpenAI.Endpoint = source.AzureOpenAI.Endpoint;
+        }
+
+        if (!string.IsNullOrEmpty(source.AzureOpenAI.ApiKey))
+        {
+            target.AzureOpenAI.ApiKey = source.AzureOpenAI.ApiKey;
+        }
+
+        if (!string.IsNullOrEmpty(source.AzureOpenAI.DeploymentName))
+        {
+            target.AzureOpenAI.DeploymentName = source.AzureOpenAI.DeploymentName;
+        }
+
+        // LMSupply
+        target.LMSupply.Enabled = source.LMSupply.Enabled;
+        if (!string.IsNullOrEmpty(source.LMSupply.EmbedderModel))
+        {
+            target.LMSupply.EmbedderModel = source.LMSupply.EmbedderModel;
+        }
+
+        if (!string.IsNullOrEmpty(source.LMSupply.RerankerModel))
+        {
+            target.LMSupply.RerankerModel = source.LMSupply.RerankerModel;
+        }
+
+        if (!string.IsNullOrEmpty(source.LMSupply.GeneratorModel))
+        {
+            target.LMSupply.GeneratorModel = source.LMSupply.GeneratorModel;
+        }
+
+        if (source.LMSupply.MaxContextLength is not null)
+        {
+            target.LMSupply.MaxContextLength = source.LMSupply.MaxContextLength;
+        }
+
+        // Ollama
+        if (!string.IsNullOrEmpty(source.Ollama.Endpoint))
+        {
+            target.Ollama.Endpoint = source.Ollama.Endpoint;
+        }
+
+        if (!string.IsNullOrEmpty(source.Ollama.Model))
+        {
+            target.Ollama.Model = source.Ollama.Model;
+        }
+
+        target.Ollama.Enabled = source.Ollama.Enabled;
+
+        // LMStudio
+        if (!string.IsNullOrEmpty(source.LMStudio.Endpoint))
+        {
+            target.LMStudio.Endpoint = source.LMStudio.Endpoint;
+        }
+
+        if (!string.IsNullOrEmpty(source.LMStudio.Model))
+        {
+            target.LMStudio.Model = source.LMStudio.Model;
+        }
+
+        target.LMStudio.Enabled = source.LMStudio.Enabled;
+
+        // Permissions — replace wholesale when the source scope defines any rule. Permissions is
+        // re-loaded from its own file post-merge (Task 3), so this is a best-effort fallback only.
+        if (source.Permissions.Read.Count > 0 || source.Permissions.Edit.Count > 0 ||
+            source.Permissions.Bash.Count > 0 || source.Permissions.ExternalDirectory.Count > 0 ||
+            source.Permissions.McpTools.Count > 0)
+        {
+            target.Permissions = source.Permissions;
+        }
+
+        // Compaction — mechanical port of every IronHive.Agent.Context.CompactionConfig scalar.
+        target.Compaction.ProtectRecentTokens = source.Compaction.ProtectRecentTokens;
+        target.Compaction.MinimumPruneTokens = source.Compaction.MinimumPruneTokens;
+        if (source.Compaction.ProtectedToolOutputs.Count > 0)
+        {
+            target.Compaction.ProtectedToolOutputs = source.Compaction.ProtectedToolOutputs;
+        }
+
+        target.Compaction.TargetRatio = source.Compaction.TargetRatio;
+        target.Compaction.UseTokenBasedCompaction = source.Compaction.UseTokenBasedCompaction;
+        target.Compaction.ThresholdPercentage = source.Compaction.ThresholdPercentage;
+        target.Compaction.EnableObservationMasking = source.Compaction.EnableObservationMasking;
+        target.Compaction.ObservationMaskingProtectedTurns = source.Compaction.ObservationMaskingProtectedTurns;
+        target.Compaction.ObservationMaskingMinResultLength = source.Compaction.ObservationMaskingMinResultLength;
+        target.Compaction.ToolSchemaCompression = source.Compaction.ToolSchemaCompression;
+        target.Compaction.EnableToolResultCompaction = source.Compaction.EnableToolResultCompaction;
+        target.Compaction.MaxToolResultChars = source.Compaction.MaxToolResultChars;
+        target.Compaction.ToolResultKeepHeadLines = source.Compaction.ToolResultKeepHeadLines;
+        target.Compaction.ToolResultKeepTailLines = source.Compaction.ToolResultKeepTailLines;
+        target.Compaction.UseAnchoredCompaction = source.Compaction.UseAnchoredCompaction;
+        target.Compaction.MaxAnchorStateChars = source.Compaction.MaxAnchorStateChars;
+        if (source.Compaction.MaxContextTokens is not null)
+        {
+            target.Compaction.MaxContextTokens = source.Compaction.MaxContextTokens;
+        }
+
+        // SubAgent
+        if (source.SubAgent.MaxDepth > 0)
+        {
+            target.SubAgent.MaxDepth = source.SubAgent.MaxDepth;
+        }
+
+        if (source.SubAgent.MaxConcurrent > 0)
+        {
+            target.SubAgent.MaxConcurrent = source.SubAgent.MaxConcurrent;
+        }
+
+        if (source.SubAgent.Explore.MaxTurns > 0)
+        {
+            target.SubAgent.Explore.MaxTurns = source.SubAgent.Explore.MaxTurns;
+        }
+
+        if (source.SubAgent.Explore.MaxTokens > 0)
+        {
+            target.SubAgent.Explore.MaxTokens = source.SubAgent.Explore.MaxTokens;
+        }
+
+        if (source.SubAgent.Explore.AllowedTools.Count > 0)
+        {
+            target.SubAgent.Explore.AllowedTools = source.SubAgent.Explore.AllowedTools;
+        }
+
+        if (source.SubAgent.General.MaxTurns > 0)
+        {
+            target.SubAgent.General.MaxTurns = source.SubAgent.General.MaxTurns;
+        }
+
+        if (source.SubAgent.General.MaxTokens > 0)
+        {
+            target.SubAgent.General.MaxTokens = source.SubAgent.General.MaxTokens;
+        }
+
+        // WebSearch
+        target.WebSearch.Enabled = source.WebSearch.Enabled;
+        if (source.WebSearch.DefaultMaxResults > 0)
+        {
+            target.WebSearch.DefaultMaxResults = source.WebSearch.DefaultMaxResults;
+        }
+
+        if (source.WebSearch.MaxSitemapEntries > 0)
+        {
+            target.WebSearch.MaxSitemapEntries = source.WebSearch.MaxSitemapEntries;
+        }
+
+        if (!string.IsNullOrEmpty(source.WebSearch.DuckDuckGoRegion))
+        {
+            target.WebSearch.DuckDuckGoRegion = source.WebSearch.DuckDuckGoRegion;
+        }
+
+        if (!string.IsNullOrEmpty(source.WebSearch.TavilyApiKey))
+        {
+            target.WebSearch.TavilyApiKey = source.WebSearch.TavilyApiKey;
+        }
+
+        if (!string.IsNullOrEmpty(source.WebSearch.SearchApiKey))
+        {
+            target.WebSearch.SearchApiKey = source.WebSearch.SearchApiKey;
+        }
+
+        if (!string.IsNullOrEmpty(source.WebSearch.SearchApiEngine))
+        {
+            target.WebSearch.SearchApiEngine = source.WebSearch.SearchApiEngine;
+        }
+
+        // DeepResearch
+        target.DeepResearch.Enabled = source.DeepResearch.Enabled;
+        if (!string.IsNullOrEmpty(source.DeepResearch.TavilyApiKey))
+        {
+            target.DeepResearch.TavilyApiKey = source.DeepResearch.TavilyApiKey;
+        }
+
+        if (source.DeepResearch.MaxIterations > 0)
+        {
+            target.DeepResearch.MaxIterations = source.DeepResearch.MaxIterations;
+        }
+
+        if (!string.IsNullOrEmpty(source.DeepResearch.Provider))
+        {
+            target.DeepResearch.Provider = source.DeepResearch.Provider;
+        }
+
+        if (!string.IsNullOrEmpty(source.DeepResearch.Model))
+        {
+            target.DeepResearch.Model = source.DeepResearch.Model;
+        }
+
+        // ChatBehavior
+        if (source.ChatBehavior.MaximumIterationsPerRequest > 0)
+        {
+            target.ChatBehavior.MaximumIterationsPerRequest = source.ChatBehavior.MaximumIterationsPerRequest;
+        }
+
+        if (source.ChatBehavior.MaximumConsecutiveErrorsPerRequest > 0)
+        {
+            target.ChatBehavior.MaximumConsecutiveErrorsPerRequest = source.ChatBehavior.MaximumConsecutiveErrorsPerRequest;
+        }
     }
 
-    private static void ApplyEnvironmentVariables(MergedConfig config)
+    private static void ApplyEnvironmentVariables(IronHiveConfig config)
     {
         // GpuStack from environment
         var gpuStackEndpoint = Environment.GetEnvironmentVariable("GPUSTACK_ENDPOINT");
@@ -444,19 +678,6 @@ public class ConfigurationManager
         if (!string.IsNullOrEmpty(lmSupplyEnabled))
         {
             config.LMSupply.Enabled = bool.TryParse(lmSupplyEnabled, out var enabled) && enabled;
-        }
-
-        // Limits from environment
-        var maxTokens = Environment.GetEnvironmentVariable("IRONHIVE_MAX_SESSION_TOKENS");
-        if (!string.IsNullOrEmpty(maxTokens) && int.TryParse(maxTokens, out var tokens))
-        {
-            config.Limits.MaxSessionTokens = tokens;
-        }
-
-        var maxCost = Environment.GetEnvironmentVariable("IRONHIVE_MAX_SESSION_COST");
-        if (!string.IsNullOrEmpty(maxCost) && decimal.TryParse(maxCost, out var cost))
-        {
-            config.Limits.MaxSessionCost = cost;
         }
     }
 }

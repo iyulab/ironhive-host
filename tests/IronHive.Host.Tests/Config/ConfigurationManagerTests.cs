@@ -1,6 +1,26 @@
+using FluentAssertions;
 using IronHive.Host.Core.Config;
 
 namespace IronHive.Host.Tests.Config;
+
+internal sealed class TempConfigDirs : IDisposable
+{
+    public string ProjectRoot { get; }
+    public string GlobalConfigPath { get; }
+    private readonly string _root;
+    public TempConfigDirs()
+    {
+        _root = Path.Combine(Path.GetTempPath(), "ihcfg-" + Guid.NewGuid().ToString("N"));
+        ProjectRoot = Path.Combine(_root, "proj");
+        Directory.CreateDirectory(Path.Combine(ProjectRoot, ".ironhive"));
+        GlobalConfigPath = Path.Combine(_root, "global", "config.yaml");
+        Directory.CreateDirectory(Path.GetDirectoryName(GlobalConfigPath)!);
+    }
+    public void WriteGlobal(string yaml) => File.WriteAllText(GlobalConfigPath, yaml);
+    public void WriteProject(string yaml) => File.WriteAllText(Path.Combine(ProjectRoot, ".ironhive", "config.yaml"), yaml);
+    public string LegacySettingsPath => Path.Combine(_root, "global", "settings.json");
+    public void Dispose() { try { Directory.Delete(_root, true); } catch { } }
+}
 
 public class ConfigurationManagerTests : IDisposable
 {
@@ -24,18 +44,41 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void Load_ProjectConfigOverridesGlobal_UnsetFieldsFallThrough()
+    {
+        using var tmp = new TempConfigDirs();
+        tmp.WriteGlobal("gpuStack:\n  endpoint: http://global:8080\n  model: global-model\n  apiKey: gk\n");
+        tmp.WriteProject("gpuStack:\n  model: project-model\n"); // only model set
+
+        var manager = new ConfigurationManager(projectRoot: tmp.ProjectRoot, globalConfigPath: tmp.GlobalConfigPath);
+        var config = manager.Load();
+
+        config.GpuStack.Model.Should().Be("project-model");        // project wins
+        config.GpuStack.Endpoint.Should().Be("http://global:8080"); // falls through from global
+        config.GpuStack.ApiKey.Should().Be("gk");
+    }
+
+    [Fact]
     public void Load_NoConfigFiles_ReturnsDefaults()
     {
         var config = _manager.Load();
 
         Assert.NotNull(config);
         Assert.NotNull(config.GpuStack);
+        Assert.NotNull(config.OpenAI);
+        Assert.NotNull(config.Anthropic);
+        Assert.NotNull(config.GoogleAI);
+        Assert.NotNull(config.Xai);
+        Assert.NotNull(config.AzureOpenAI);
         Assert.NotNull(config.LMSupply);
+        Assert.NotNull(config.Ollama);
+        Assert.NotNull(config.LMStudio);
         Assert.NotNull(config.Permissions);
-        Assert.NotNull(config.Webhook);
-        Assert.NotNull(config.Limits);
-        Assert.NotNull(config.Context);
-        Assert.NotNull(config.Session);
+        Assert.NotNull(config.Compaction);
+        Assert.NotNull(config.SubAgent);
+        Assert.NotNull(config.WebSearch);
+        Assert.NotNull(config.DeepResearch);
+        Assert.NotNull(config.ChatBehavior);
     }
 
     [Fact]
@@ -46,18 +89,18 @@ public class ConfigurationManagerTests : IDisposable
         File.WriteAllText(
             Path.Combine(projectConfigDir, "config.yaml"),
             """
-            limits:
-              maxSessionTokens: 50000
-              maxSessionCost: 5.00
-            context:
-              compactionThreshold: 0.85
+            chatBehavior:
+              maximumIterationsPerRequest: 5
+              maximumConsecutiveErrorsPerRequest: 7
+            compaction:
+              thresholdPercentage: 0.85
             """);
 
         var config = _manager.Load(forceReload: true);
 
-        Assert.Equal(50000, config.Limits.MaxSessionTokens);
-        Assert.Equal(5.00m, config.Limits.MaxSessionCost);
-        Assert.Equal(0.85f, config.Context.CompactionThreshold);
+        Assert.Equal(5, config.ChatBehavior.MaximumIterationsPerRequest);
+        Assert.Equal(7, config.ChatBehavior.MaximumConsecutiveErrorsPerRequest);
+        Assert.Equal(0.85f, config.Compaction.ThresholdPercentage);
     }
 
     [Fact]
@@ -110,24 +153,6 @@ public class ConfigurationManagerTests : IDisposable
 
         Assert.NotNull(content);
         Assert.Contains("Do good work", content);
-    }
-
-    [Fact]
-    public void Load_EnvironmentVariables_TakePriority()
-    {
-        // Set environment variable
-        Environment.SetEnvironmentVariable("IRONHIVE_MAX_SESSION_TOKENS", "100000");
-
-        try
-        {
-            var config = _manager.Load(forceReload: true);
-
-            Assert.Equal(100000, config.Limits.MaxSessionTokens);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("IRONHIVE_MAX_SESSION_TOKENS", null);
-        }
     }
 
     [Fact]
@@ -217,18 +242,18 @@ public class ConfigurationManagerTests : IDisposable
         Directory.CreateDirectory(projectConfigDir);
         File.WriteAllText(
             Path.Combine(projectConfigDir, "config.yaml"),
-            "limits:\n  maxSessionTokens: 99999");
+            "chatBehavior:\n  maximumIterationsPerRequest: 99");
 
         // Second load without force - should return cached
         var config2 = _manager.Load();
 
         Assert.Same(config1, config2);
-        Assert.Equal(0, config2.Limits.MaxSessionTokens); // Original default
+        Assert.Equal(10, config2.ChatBehavior.MaximumIterationsPerRequest); // Original default
 
         // Force reload
         var config3 = _manager.Load(forceReload: true);
 
         Assert.NotSame(config1, config3);
-        Assert.Equal(99999, config3.Limits.MaxSessionTokens);
+        Assert.Equal(99, config3.ChatBehavior.MaximumIterationsPerRequest);
     }
 }
