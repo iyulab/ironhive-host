@@ -214,10 +214,10 @@ public class ConfigurationManager
         // 4. Apply environment variables (highest priority)
         ApplyEnvironmentVariables(config);
 
-        // 5. Load permission config from default locations (mirrors EnvConfigLoader.Load())
+        // 5. Load permission config from default locations
         config.Permissions = PermissionConfigLoader.LoadFromDefaultLocations(Directory.GetCurrentDirectory());
 
-        // 6. Auto-enable LMSupply if no API provider is configured (mirrors EnvConfigLoader.Load())
+        // 6. Auto-enable LMSupply if no API provider is configured
         if (!HasAnyApiProvider(config))
         {
             config.LMSupply.Enabled = true;
@@ -755,7 +755,7 @@ public class ConfigurationManager
     }
 
     /// <summary>
-    /// Checks if any API provider is configured. Mirrors <c>EnvConfigLoader.HasAnyApiProvider</c>.
+    /// Checks if any API provider is configured.
     /// </summary>
     private static bool HasAnyApiProvider(IronHiveConfig config) =>
         config.GpuStack.IsConfigured || config.OpenAI.IsConfigured || config.Anthropic.IsConfigured ||

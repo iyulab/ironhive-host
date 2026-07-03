@@ -42,10 +42,15 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddIronHiveServices(this IServiceCollection services)
     {
-        // Load configuration
-        var settings = new SettingsManager();
-        services.AddSingleton(settings);
-        var config = new EnvConfigLoader(settings).Load();
+        // Load configuration (config.yaml, 4-scope merge; migrate legacy settings.json once)
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var globalConfigPath = Path.Combine(userProfile, ".ironhive", "config.yaml");
+        var projectRoot = Directory.GetCurrentDirectory();
+        var legacySettingsPath = Path.Combine(userProfile, ".ironhive", "settings.json");
+        ConfigMigrator.MigrateIfNeeded(globalConfigPath, projectRoot, legacySettingsPath);
+        var configManager = new ConfigurationManager(projectRoot, globalConfigPath);
+        services.AddSingleton(configManager);
+        var config = configManager.Load();
         services.AddSingleton(config);
 
         // Register HttpClient factory with named clients

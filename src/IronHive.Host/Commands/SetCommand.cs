@@ -11,11 +11,11 @@ namespace IronHive.Host.Commands;
 /// </summary>
 public class SetCommand : Command<SetCommand.Settings>
 {
-    private readonly SettingsManager _settings;
+    private readonly ConfigurationManager _configManager;
 
-    public SetCommand(SettingsManager settings)
+    public SetCommand(ConfigurationManager configManager)
     {
-        _settings = settings;
+        _configManager = configManager;
     }
 
     public class Settings : CommandSettings
@@ -40,14 +40,14 @@ public class SetCommand : Command<SetCommand.Settings>
 
         try
         {
-            _settings.SetValue(settings.Key, settings.Value);
+            _configManager.SetValue(settings.Key, settings.Value);
 
             var displayValue = IsSecretKey(settings.Key)
                 ? MaskValue(settings.Value)
                 : settings.Value;
 
             AnsiConsole.MarkupLine($"[green]Set[/] [blue]{Markup.Escape(settings.Key)}[/] = [cyan]{Markup.Escape(displayValue)}[/]");
-            AnsiConsole.MarkupLine($"[grey]Saved to: {Markup.Escape(_settings.SettingsFilePath)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Saved to: {Markup.Escape(_configManager.GlobalConfigPath)}[/]");
 
             return 0;
         }

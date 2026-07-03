@@ -11,11 +11,11 @@ namespace IronHive.Host.Commands;
 /// </summary>
 public class GetCommand : Command<GetCommand.Settings>
 {
-    private readonly SettingsManager _settings;
+    private readonly ConfigurationManager _configManager;
 
-    public GetCommand(SettingsManager settings)
+    public GetCommand(ConfigurationManager configManager)
     {
-        _settings = settings;
+        _configManager = configManager;
     }
 
     public class Settings : CommandSettings
@@ -37,7 +37,7 @@ public class GetCommand : Command<GetCommand.Settings>
             return ShowAllSettings(settings.Raw);
         }
 
-        var value = _settings.GetValue(settings.Key);
+        var value = _configManager.GetValue(settings.Key);
 
         if (value is null)
         {
@@ -69,14 +69,14 @@ public class GetCommand : Command<GetCommand.Settings>
 
     private int ShowAllSettings(bool raw)
     {
-        var allSettings = _settings.ListAll();
+        var allSettings = _configManager.ListAll();
 
         if (allSettings.Count == 0)
         {
             if (!raw)
             {
                 AnsiConsole.MarkupLine("[yellow]No settings configured.[/]");
-                AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(_settings.SettingsFilePath)}[/]");
+                AnsiConsole.MarkupLine($"[grey]Config file: {Markup.Escape(_configManager.GlobalConfigPath)}[/]");
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("[grey]Use 'ironhive set <key> <value>' to configure.[/]");
             }
@@ -107,7 +107,7 @@ public class GetCommand : Command<GetCommand.Settings>
 
             AnsiConsole.Write(table);
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(_settings.SettingsFilePath)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Config file: {Markup.Escape(_configManager.GlobalConfigPath)}[/]");
         }
 
         return 0;

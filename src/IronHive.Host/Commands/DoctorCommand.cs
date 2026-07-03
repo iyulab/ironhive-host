@@ -12,13 +12,13 @@ namespace IronHive.Host.Commands;
 public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
 {
     private readonly IronHiveConfig _config;
-    private readonly SettingsManager _settings;
+    private readonly ConfigurationManager _configManager;
     private readonly IChatClientFactory _clientFactory;
 
-    public DoctorCommand(IronHiveConfig config, SettingsManager settings, IChatClientFactory clientFactory)
+    public DoctorCommand(IronHiveConfig config, ConfigurationManager configManager, IChatClientFactory clientFactory)
     {
         _config = config;
-        _settings = settings;
+        _configManager = configManager;
         _clientFactory = clientFactory;
     }
 
@@ -73,20 +73,20 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
 
     private bool CheckSettingsFile(List<string> recommendations, bool verbose)
     {
-        var settingsPath = _settings.SettingsFilePath;
-        var exists = File.Exists(settingsPath);
+        var configPath = _configManager.GlobalConfigPath;
+        var exists = File.Exists(configPath);
 
         if (exists)
         {
-            PrintCheck(true, "Settings file exists");
+            PrintCheck(true, "Config file exists");
             if (verbose)
             {
-                AnsiConsole.MarkupLine($"    [grey]{Markup.Escape(settingsPath)}[/]");
+                AnsiConsole.MarkupLine($"    [grey]{Markup.Escape(configPath)}[/]");
             }
         }
         else
         {
-            PrintCheck(false, "Settings file not found", isWarning: true);
+            PrintCheck(false, "Config file not found", isWarning: true);
             recommendations.Add("Create settings with: ironhive set <key> <value>");
         }
 
@@ -279,7 +279,7 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         // Check disk space (settings directory)
         try
         {
-            var settingsDir = _settings.SettingsDirectory;
+            var settingsDir = Path.GetDirectoryName(_configManager.GlobalConfigPath)!;
             if (Directory.Exists(settingsDir))
             {
                 var drive = new DriveInfo(Path.GetPathRoot(settingsDir) ?? "C:");

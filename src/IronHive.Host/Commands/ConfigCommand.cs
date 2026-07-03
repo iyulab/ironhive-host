@@ -11,12 +11,12 @@ namespace IronHive.Host.Commands;
 public class ConfigCommand : Command<ConfigCommand.Settings>
 {
     private readonly IronHiveConfig _config;
-    private readonly SettingsManager _settings;
+    private readonly ConfigurationManager _configManager;
 
-    public ConfigCommand(IronHiveConfig config, SettingsManager settings)
+    public ConfigCommand(IronHiveConfig config, ConfigurationManager configManager)
     {
         _config = config;
-        _settings = settings;
+        _configManager = configManager;
     }
 
     public class Settings : CommandSettings
@@ -105,7 +105,7 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AnsiConsole.Write(table);
 
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine($"[grey]Settings file: {Markup.Escape(_settings.SettingsFilePath)}[/]");
+        AnsiConsole.MarkupLine($"[grey]Config file: {Markup.Escape(_configManager.GlobalConfigPath)}[/]");
 
         return 0;
     }
@@ -140,10 +140,10 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
     private int ShowConfigPath()
     {
         AnsiConsole.MarkupLine("[bold]Configuration:[/]");
-        AnsiConsole.MarkupLine($"  Settings file: [blue]{Markup.Escape(_settings.SettingsFilePath)}[/]");
-        AnsiConsole.MarkupLine($"  Directory:     [blue]{Markup.Escape(_settings.SettingsDirectory)}[/]");
+        AnsiConsole.MarkupLine($"  Config file:   [blue]{Markup.Escape(_configManager.GlobalConfigPath)}[/]");
+        AnsiConsole.MarkupLine($"  Directory:     [blue]{Markup.Escape(Path.GetDirectoryName(_configManager.GlobalConfigPath)!)}[/]");
 
-        if (File.Exists(_settings.SettingsFilePath))
+        if (File.Exists(_configManager.GlobalConfigPath))
         {
             AnsiConsole.MarkupLine("  Status:        [green]exists[/]");
         }

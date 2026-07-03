@@ -11,11 +11,11 @@ namespace IronHive.Host.Commands;
 /// </summary>
 public class UnsetCommand : Command<UnsetCommand.Settings>
 {
-    private readonly SettingsManager _settings;
+    private readonly ConfigurationManager _configManager;
 
-    public UnsetCommand(SettingsManager settings)
+    public UnsetCommand(ConfigurationManager configManager)
     {
-        _settings = settings;
+        _configManager = configManager;
     }
 
     public class Settings : CommandSettings
@@ -35,7 +35,7 @@ public class UnsetCommand : Command<UnsetCommand.Settings>
 
         try
         {
-            var removed = _settings.UnsetValue(settings.Key);
+            var removed = _configManager.UnsetValue(settings.Key);
 
             if (removed)
             {
