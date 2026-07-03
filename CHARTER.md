@@ -59,7 +59,7 @@
 
 **표면 컴포넌트:**
 - **`AgentServerProtocol`** (thin `IronHive.Host.Protocol` 패키지, 무의존) — 완전한 generic turn-stream: requests(`user_message`·`hitl_response`·`context_update`·`cancel`·`shutdown`) / events(`session_started`·`text_delta`·`thinking_delta`·`tool_start`·`tool_end`·`hitl_request`·`turn_end`·`agent_selected`·`error`·`fallback`·`plan_*`).
-- **세션 관리** (`-c`/`-r`, `sessions list`), **config 머지**(global→project→env→.env), **CLAUDE.md** 자동 지시.
+- **세션 관리** (`-c`/`-r`, `sessions list`), **config 머지**(global→project→env→.env, `config.yaml` 4-scope + settings.json 자동 마이그레이션).
 - **`ChatBehaviorConfig`** (iteration/error 루프 튜닝), **`TokenBudgetChatClient`**(context-overflow 차단), **`ResilientFunctionInvoker`**(tool-arg 자가교정).
 - **provider 주입** (`UseChatClient`/`UseChatClientFactory`).
 

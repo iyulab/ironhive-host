@@ -100,8 +100,43 @@ Configuration is merged in order (later overrides earlier):
 
 1. **Global**: `~/.ironhive/config.yaml`
 2. **Project**: `.ironhive/config.yaml`
-3. **Environment**: `IRONHIVE_*`, `GPUSTACK_*`, `OPENAI_*`
+3. **Environment**: `IRONHIVE_*`, `GPUSTACK_*`, `OPENAI_*`, `ANTHROPIC_*`, `GOOGLEAI_*` / `GOOGLE_API_KEY`, `XAI_*`, `AZURE_OPENAI_*`, `OLLAMA_*`, `LMSTUDIO_*`, `LMSUPPLY_ENABLED`, and other provider-specific vars
 4. **.env file**: Project root `.env`
+
+> On first run, a legacy `~/.ironhive/settings.json` (from earlier versions) is automatically migrated to `config.yaml`.
+
+### Config keys
+
+The loader accepts these top-level keys in `config.yaml`. Acronym provider sections use **lowercase** keys; unknown top-level keys are ignored with a logged warning.
+
+| Key | Notes |
+|-----|-------|
+| `gpuStack` | camelCase |
+| `openai` | lowercase (acronym) |
+| `anthropic` | |
+| `googleai` | lowercase (acronym) |
+| `azureopenai` | lowercase (acronym) |
+| `xai` | |
+| `ollama` | |
+| `lmstudio` | lowercase (acronym) |
+| `lmsupply` | lowercase (acronym) |
+| `permissions` | |
+| `compaction` | |
+| `subAgent` | camelCase |
+| `webSearch` | camelCase |
+| `deepResearch` | camelCase |
+| `chatBehavior` | camelCase |
+
+```yaml
+# ~/.ironhive/config.yaml
+openai:
+  apiKey: sk-...
+  model: gpt-4o-mini
+gpuStack:
+  endpoint: http://localhost:8080
+  apiKey: ...
+  model: gpt-4o-mini
+```
 
 ```yaml
 # .ironhive/config.yaml
@@ -114,10 +149,6 @@ compaction:
   minimumPruneTokens: 20000      # only compact when at least this much is prunable
   targetRatio: 0.70              # compact down to ~70% of the context window
 ```
-
-### CLAUDE.md Support
-
-Place a `CLAUDE.md` file in your project root for automatic agent instructions.
 
 ## Core Library Integration
 
