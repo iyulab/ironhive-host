@@ -358,4 +358,44 @@ public class ConfigurationManagerTests : IDisposable
         loaded.SubAgent.MaxDepth.Should().Be(4);
         loaded.LMSupply.GeneratorModel.Should().Be("gm");
     }
+
+    [Fact]
+    public void SetValue_ThenTypedLoad_SeesTheChange_NoSilentIgnore()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("openai.apiKey", "sk-123");
+        mgr.GetValue("openai.apiKey").Should().Be("sk-123");                 // raw get sees it
+        var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        loaded.OpenAI.ApiKey.Should().Be("sk-123");                          // typed Load ALSO sees it
+    }
+
+    [Fact]
+    public void UnsetValue_RemovesKey()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("openai.model", "gpt-x");
+        mgr.UnsetValue("openai.model").Should().BeTrue();
+        mgr.GetValue("openai.model").Should().BeNull();
+    }
+
+    [Fact]
+    public void ListAll_FlattensDottedKeys()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("openai.apiKey", "k");
+        mgr.SetValue("anthropic.model", "claude");
+        var all = mgr.ListAll();
+        all.Should().ContainKey("openai.apiKey");
+        all["anthropic.model"].Should().Be("claude");
+    }
+
+    [Fact]
+    public void GetValue_MissingFile_ReturnsNull()
+    {
+        using var tmp = new TempConfigDirs();
+        new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).GetValue("openai.apiKey").Should().BeNull();
+    }
 }

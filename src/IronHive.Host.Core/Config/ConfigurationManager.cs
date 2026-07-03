@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using IronHive.Agent.Permissions;
 using IronHive.Agent.Webhook;
 using IronHive.Host.Core.Exceptions;
@@ -232,6 +233,53 @@ public class ConfigurationManager
         Directory.CreateDirectory(Path.GetDirectoryName(_globalConfigPath)!);
         File.WriteAllText(_globalConfigPath, YamlConfigSerializer.Serialize(config));
         _cachedConfig = null;
+    }
+
+    /// <summary>Gets a config value by dot-notation key (e.g. "openai.apiKey") from config.yaml.</summary>
+    public string? GetValue(string key)
+    {
+        var node = ReadConfigAsJsonNode();
+        return node is null ? null : GetNestedValue(node, key);
+    }
+
+    /// <summary>Sets a config value by dot-notation key in config.yaml, then invalidates the cache.</summary>
+    public void SetValue(string key, string value)
+    {
+        var node = ReadConfigAsJsonNode() ?? new JsonObject();
+        SetNestedValue(node, key, value);
+        WriteJsonNodeAsYaml(node);
+        _cachedConfig = null;
+    }
+
+    /// <summary>Removes a config value by dot-notation key. Returns true if removed.</summary>
+    public bool UnsetValue(string key)
+    {
+        var node = ReadConfigAsJsonNode();
+        if (node is null)
+        {
+            return false;
+        }
+
+        var removed = RemoveNestedValue(node, key);
+        if (removed)
+        {
+            WriteJsonNodeAsYaml(node);
+            _cachedConfig = null;
+        }
+
+        return removed;
+    }
+
+    /// <summary>Lists all config values as flat dot-notation key/value pairs.</summary>
+    public IReadOnlyDictionary<string, string> ListAll()
+    {
+        var result = new Dictionary<string, string>();
+        if (ReadConfigAsJsonNode() is JsonObject obj)
+        {
+            FlattenJsonObject(obj, string.Empty, result);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -875,5 +923,200 @@ public class ConfigurationManager
         {
             config.LMStudio.Enabled = bool.TryParse(lmStudioEnabled, out var lmStudioEnabledValue) && lmStudioEnabledValue;
         }
+    }
+
+    // --- YAML <-> JsonNode bridge for key-path mutation (GetValue/SetValue/UnsetValue/ListAll) ---
+    // Reuses SettingsManager's proven dotted-key JsonNode navigation (copied verbatim below) so a
+    // SetValue writes the same clean aliased top-level keys (e.g. "openai") that Load()/MergeFromYaml
+    // read via YamlConfigSerializer — no silent ignore between the mutation API and the typed loader.
+
+    private JsonNode? ReadConfigAsJsonNode()
+    {
+        if (!File.Exists(_globalConfigPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var yaml = File.ReadAllText(_globalConfigPath);
+            var obj = new DeserializerBuilder().Build().Deserialize<object?>(yaml);
+            if (obj is null)
+            {
+                return null;
+            }
+
+            var json = new SerializerBuilder().JsonCompatible().Build().Serialize(obj);
+            return JsonNode.Parse(json);
+        }
+        catch (YamlException)
+        {
+            return null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private void WriteJsonNodeAsYaml(JsonNode node)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_globalConfigPath)!);
+        var obj = new DeserializerBuilder().Build().Deserialize<object?>(node.ToJsonString());
+        var yaml = new SerializerBuilder().Build().Serialize(obj ?? new Dictionary<string, object>());
+        File.WriteAllText(_globalConfigPath, yaml);
+    }
+
+    // --- Copied verbatim from SettingsManager.cs (pure JsonNode/string logic, no instance state).
+    // Do NOT modify SettingsManager's copies here; a later task removes SettingsManager entirely.
+
+    private static string? GetNestedValue(JsonNode node, string key)
+    {
+        var parts = key.Split('.');
+        var current = node;
+
+        foreach (var part in parts)
+        {
+            if (current is JsonObject obj && obj.TryGetPropertyValue(part, out var next))
+            {
+                current = next;
+            }
+            else
+            {
+                // Try case-insensitive match
+                if (current is JsonObject objCi)
+                {
+                    var match = objCi.FirstOrDefault(p =>
+                        p.Key.Equals(part, StringComparison.OrdinalIgnoreCase));
+                    if (match.Value is not null)
+                    {
+                        current = match.Value;
+                        continue;
+                    }
+                }
+                return null;
+            }
+        }
+
+        return current?.GetValue<string>();
+    }
+
+    private static void SetNestedValue(JsonNode root, string key, string value)
+    {
+        var parts = key.Split('.');
+        var current = root.AsObject();
+
+        for (var i = 0; i < parts.Length - 1; i++)
+        {
+            var part = parts[i];
+            var camelPart = ToCamelCase(part);
+
+            if (!current.TryGetPropertyValue(camelPart, out var next) || next is not JsonObject)
+            {
+                var newObj = new JsonObject();
+                current[camelPart] = newObj;
+                current = newObj;
+            }
+            else
+            {
+                current = next.AsObject();
+            }
+        }
+
+        var finalKey = ToCamelCase(parts[^1]);
+
+        // Try to parse as appropriate type
+        if (bool.TryParse(value, out var boolValue))
+        {
+            current[finalKey] = boolValue;
+        }
+        else if (int.TryParse(value, out var intValue))
+        {
+            current[finalKey] = intValue;
+        }
+        else
+        {
+            current[finalKey] = value;
+        }
+    }
+
+    private static bool RemoveNestedValue(JsonNode root, string key)
+    {
+        var parts = key.Split('.');
+        var current = root.AsObject();
+
+        for (var i = 0; i < parts.Length - 1; i++)
+        {
+            var part = parts[i];
+            var camelPart = ToCamelCase(part);
+
+            if (current.TryGetPropertyValue(camelPart, out var next) && next is JsonObject nextObj)
+            {
+                current = nextObj;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        var finalKey = ToCamelCase(parts[^1]);
+        return current.Remove(finalKey);
+    }
+
+    private static void FlattenJsonObject(JsonObject obj, string prefix, Dictionary<string, string> result)
+    {
+        foreach (var prop in obj)
+        {
+            var key = string.IsNullOrEmpty(prefix) ? prop.Key : $"{prefix}.{prop.Key}";
+
+            if (prop.Value is JsonObject nested)
+            {
+                FlattenJsonObject(nested, key, result);
+            }
+            else if (prop.Value is not null)
+            {
+                var value = prop.Value.ToString();
+
+                // Mask sensitive values
+                if (key.Contains("apiKey", StringComparison.OrdinalIgnoreCase) ||
+                    key.Contains("api_key", StringComparison.OrdinalIgnoreCase))
+                {
+                    value = MaskValue(value);
+                }
+
+                result[key] = value;
+            }
+        }
+    }
+
+    private static string ToCamelCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
+
+        // Handle snake_case
+        if (input.Contains('_'))
+        {
+            var parts = input.Split('_');
+            return parts[0].ToLowerInvariant() +
+                string.Concat(parts.Skip(1).Select(p =>
+                    char.ToUpperInvariant(p[0]) + p[1..].ToLowerInvariant()));
+        }
+
+        // Simple lowercase first char
+        return char.ToLowerInvariant(input[0]) + input[1..];
+    }
+
+    private static string MaskValue(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length <= 8)
+        {
+            return "***";
+        }
+
+        return value[..4] + "..." + value[^4..];
     }
 }
