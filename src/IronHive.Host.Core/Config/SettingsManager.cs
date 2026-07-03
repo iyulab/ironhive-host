@@ -75,6 +75,29 @@ public class SettingsManager
     }
 
     /// <summary>
+    /// Reads a legacy settings.json file at the given path into an IronHiveConfig,
+    /// without regard to the configured SettingsDirectory. Returns null if the file
+    /// does not exist or fails to parse.
+    /// </summary>
+    public static IronHiveConfig? TryLoadLegacyJson(string settingsFilePath)
+    {
+        if (!File.Exists(settingsFilePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(settingsFilePath);
+            return JsonSerializer.Deserialize<IronHiveConfig>(json, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Gets a value by dot-notation key (e.g., "openai.apiKey").
     /// </summary>
     public string? GetValue(string key)
