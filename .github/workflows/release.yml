@@ -234,9 +234,9 @@ jobs:
         run: dotnet restore
 
       - name: Pack
-        # Solution-unit pack (unified-version family): packs IronHive.Host.Protocol + .Core + the CLI tool
-        # together at the same version so the dependency closure (Core -> Protocol) is complete. Test
-        # projects are IsPackable=false and excluded.
+        # Solution-unit pack (unified-version family): packs IronHive.Host (SDK) + IronHive.Host.Protocol
+        # + IronHive.Cli (tool) together at the same version so the dependency closure (Host -> Protocol)
+        # is complete. Test projects are IsPackable=false and excluded.
         run: dotnet pack IronHive.Host.slnx --configuration Release --output ./nupkg
 
       - name: List packages
