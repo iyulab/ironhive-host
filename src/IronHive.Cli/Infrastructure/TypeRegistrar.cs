@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Infrastructure;
+namespace IronHive.Cli.Infrastructure;
 
 /// <summary>
 /// Type registrar for Spectre.Console.Cli with Microsoft.Extensions.DependencyInjection.

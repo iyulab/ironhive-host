@@ -1,7 +1,7 @@
 using IronHive.Agent.Mode;
 using Spectre.Console;
 
-namespace IronHive.Host.Services;
+namespace IronHive.Cli.Services;
 
 /// <summary>
 /// Console-based implementation of human approval service.

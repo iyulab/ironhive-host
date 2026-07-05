@@ -4,7 +4,7 @@ using IronHive.Host.Core.Session;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Command to manage sessions.

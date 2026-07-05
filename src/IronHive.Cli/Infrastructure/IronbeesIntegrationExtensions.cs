@@ -5,7 +5,7 @@ using IronHive.Host.Core.Providers;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IronHive.Host.Infrastructure;
+namespace IronHive.Cli.Infrastructure;
 
 /// <summary>
 /// Extension methods for configuring Ironbees multi-agent orchestration in IronHive CLI.

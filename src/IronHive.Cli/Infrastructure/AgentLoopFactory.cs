@@ -10,7 +10,7 @@ using IronHive.Host.Core.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace IronHive.Host.Infrastructure;
+namespace IronHive.Cli.Infrastructure;
 
 /// <summary>
 /// Factory for creating IAgentLoop instances with runtime configuration.

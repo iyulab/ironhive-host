@@ -3,7 +3,7 @@ using IronHive.Host.Core.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Command to check for and install updates.

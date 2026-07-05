@@ -86,7 +86,7 @@ public class HostCompactionWiringTests
             .Returns(Task.FromResult<IChatClient>(new MockChatClient()));
         var turnManager = Substitute.For<IThinkingTurnManager>();
 
-        var factory = new IronHive.Host.Infrastructure.AgentLoopFactory(
+        var factory = new IronHive.Cli.Infrastructure.AgentLoopFactory(
             clientFactory,
             turnManager,
             compactionConfig: new HostCompactionConfig());

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Run command - executes a single prompt and exits.

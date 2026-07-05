@@ -4,7 +4,7 @@ using IronHive.Agent.Providers;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Models command - lists available models from configured providers.

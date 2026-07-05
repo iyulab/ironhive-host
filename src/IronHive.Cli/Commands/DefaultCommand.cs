@@ -8,7 +8,7 @@ using IronHive.Host.Core.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Default command - enters interactive chat mode.

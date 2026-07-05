@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>ironhive</AssemblyName>
-    <Description>IronHive CLI - Universal CLI Agent Core for AI-powered automation</Description>
+    <Description>IronHive CLI - command-line agent frontend for the IronHive.Host SDK</Description>
 
     <!-- Native AOT support (disabled for now - Spectre.Console.Cli doesn't fully support AOT) -->
     <PublishAot>false</PublishAot>
@@ -25,7 +25,7 @@
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
     <!-- NuGet package metadata -->
-    <PackageId>IronHive.Host</PackageId>
+    <PackageId>IronHive.Cli</PackageId>
     <!-- Version is inherited from Directory.Build.props -->
     <Authors>iyulab</Authors>
     <Company>iyulab</Company>

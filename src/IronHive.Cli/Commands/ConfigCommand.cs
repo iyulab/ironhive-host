@@ -3,7 +3,7 @@ using IronHive.Host.Core.Config;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Config command - manages configuration.

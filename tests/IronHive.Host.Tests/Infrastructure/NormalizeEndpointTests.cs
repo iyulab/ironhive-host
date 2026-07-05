@@ -1,5 +1,5 @@
 using FluentAssertions;
-using IronHive.Host.Infrastructure;
+using IronHive.Cli.Infrastructure;
 
 namespace IronHive.Host.Tests.Infrastructure;
 

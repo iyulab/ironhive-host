@@ -30,7 +30,7 @@ using CliConfig = IronHive.Host.Core.Config;
 // JS new Function() code-injection patterns, not C# class instantiation).
 using FunctionInvokingDecorator = Microsoft.Extensions.AI.FunctionInvokingChatClient;
 
-namespace IronHive.Host.Infrastructure;
+namespace IronHive.Cli.Infrastructure;
 
 /// <summary>
 /// Extension methods for configuring IronHive services.

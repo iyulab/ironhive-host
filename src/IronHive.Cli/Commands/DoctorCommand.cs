@@ -4,7 +4,7 @@ using IronHive.Host.Core.Config;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace IronHive.Host.Commands;
+namespace IronHive.Cli.Commands;
 
 /// <summary>
 /// Doctor command - diagnoses configuration and connectivity issues.

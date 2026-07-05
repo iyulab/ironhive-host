@@ -1,6 +1,6 @@
 using System.Reflection;
-using IronHive.Host.Commands;
-using IronHive.Host.Infrastructure;
+using IronHive.Cli.Commands;
+using IronHive.Cli.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using Spectre.Console.Cli;
