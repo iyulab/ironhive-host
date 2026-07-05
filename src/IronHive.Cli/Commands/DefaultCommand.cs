@@ -3,8 +3,8 @@ using System.Text.Json;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mode;
 using IronHive.Agent.Tracking;
-using IronHive.Host.Core.Session;
-using IronHive.Host.Core.Update;
+using IronHive.Host.Session;
+using IronHive.Host.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

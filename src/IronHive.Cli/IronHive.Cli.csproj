@@ -47,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IronHive.Host.Core\IronHive.Host.Core.csproj" />
+    <ProjectReference Include="..\IronHive.Host\IronHive.Host.csproj" />
   </ItemGroup>
 
   <ItemGroup>

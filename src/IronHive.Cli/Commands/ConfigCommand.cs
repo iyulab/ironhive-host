@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using IronHive.Host.Core.Config;
+using IronHive.Host.Config;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

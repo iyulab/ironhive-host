@@ -1,10 +1,10 @@
 using IronHive.Agent.Loop;
-using IronHive.Host.Core.Extensions;
-using IronHive.Host.Core.Session;
+using IronHive.Host.Extensions;
+using IronHive.Host.Session;
 using IronHive.Host.Tests.Mocks;
 using Microsoft.Extensions.AI;
 using NSubstitute;
-using SessionData = IronHive.Host.Core.Session.Session;
+using SessionData = IronHive.Host.Session.Session;
 
 namespace IronHive.Host.Tests.Extensions;
 

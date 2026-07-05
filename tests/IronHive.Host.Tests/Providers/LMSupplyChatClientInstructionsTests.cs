@@ -1,4 +1,4 @@
-using IronHive.Host.Core.Providers;
+using IronHive.Host.Providers;
 using LMSupply.Generator.Abstractions;
 using NSubstitute;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;

@@ -1,6 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Host.Tests.Tools;

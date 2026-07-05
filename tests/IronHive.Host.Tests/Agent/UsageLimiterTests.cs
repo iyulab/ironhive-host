@@ -1,6 +1,6 @@
 using IronHive.Agent.Loop;
 using IronHive.Agent.Tracking;
-using IronHive.Host.Core.Config;
+using IronHive.Host.Config;
 
 namespace IronHive.Host.Tests.Agent;
 

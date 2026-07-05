@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
-using IronHive.Host.Core.Session;
+using IronHive.Host.Session;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

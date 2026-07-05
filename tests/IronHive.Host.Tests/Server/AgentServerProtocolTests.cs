@@ -2,7 +2,7 @@ using System.Text.Json;
 
 using FluentAssertions;
 
-using IronHive.Host.Core.Server;
+using IronHive.Host.Server;
 using IronHive.Host.Protocol;
 
 namespace IronHive.Host.Tests.Server;

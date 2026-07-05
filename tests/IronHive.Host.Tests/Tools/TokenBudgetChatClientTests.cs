@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using FluentAssertions;
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 
 // Aliases avoid the literal "new Function..." token in source which the

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
 using IronHive.Agent.Loop;
-using IronHive.Host.Core.Server;
+using IronHive.Host.Server;
 using Xunit;
 
 namespace IronHive.Host.Tests.Server;

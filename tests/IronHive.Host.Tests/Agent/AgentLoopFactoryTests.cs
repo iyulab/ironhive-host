@@ -1,6 +1,6 @@
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Tools;
 using IronHive.Host.Tests.Mocks;
 using Microsoft.Extensions.AI;
 using NSubstitute;

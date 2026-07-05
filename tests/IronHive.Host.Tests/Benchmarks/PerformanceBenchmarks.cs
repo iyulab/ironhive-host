@@ -5,7 +5,7 @@ using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Tracking;
 using IronHive.Agent.Webhook;
-using IronHive.Host.Core.Config;
+using IronHive.Host.Config;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Host.Tests.Benchmarks;

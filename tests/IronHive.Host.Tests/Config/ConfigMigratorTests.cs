@@ -1,6 +1,6 @@
 using System.IO;
 using FluentAssertions;
-using IronHive.Host.Core.Config;
+using IronHive.Host.Config;
 using Xunit;
 
 namespace IronHive.Host.Tests.Config;

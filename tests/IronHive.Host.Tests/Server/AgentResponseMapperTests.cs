@@ -1,6 +1,6 @@
 using FluentAssertions;
 using IronHive.Agent.Loop;
-using IronHive.Host.Core.Server;
+using IronHive.Host.Server;
 using IronHive.Host.Protocol;
 using NSubstitute;
 using Xunit;

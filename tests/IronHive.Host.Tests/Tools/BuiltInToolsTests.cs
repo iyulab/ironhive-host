@@ -1,6 +1,6 @@
 using IronHive.Agent.Providers;
-using IronHive.Host.Core.Config;
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Config;
+using IronHive.Host.Tools;
 using NSubstitute;
 
 namespace IronHive.Host.Tests.Tools;

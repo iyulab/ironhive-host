@@ -1,6 +1,6 @@
 using System.Text.Json;
 using IronHive.Agent.Mcp;
-using IronHive.Host.Core.Integration;
+using IronHive.Host.Integration;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Host.Tests.Integration;

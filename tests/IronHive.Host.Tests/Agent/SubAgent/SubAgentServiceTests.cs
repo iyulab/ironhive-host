@@ -1,5 +1,5 @@
-using IronHive.Host.Core.Agent.SubAgent;
-using IronHive.Host.Core.Config;
+using IronHive.Host.Agent.SubAgent;
+using IronHive.Host.Config;
 using IronHive.Host.Tests.Mocks;
 
 namespace IronHive.Host.Tests.Agent.SubAgent;

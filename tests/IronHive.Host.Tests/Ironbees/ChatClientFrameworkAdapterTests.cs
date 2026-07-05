@@ -1,5 +1,5 @@
 using Ironbees.Core;
-using IronHive.Host.Core.Ironbees;
+using IronHive.Host.Ironbees;
 using IronHive.Host.Tests.Mocks;
 
 namespace IronHive.Host.Tests.Ironbees;

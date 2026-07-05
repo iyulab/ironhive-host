@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Tools;
 using WebLookup;
 
 namespace IronHive.Host.Tests.Tools;

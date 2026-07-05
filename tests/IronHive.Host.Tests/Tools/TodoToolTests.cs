@@ -1,4 +1,4 @@
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Tools;
 
 namespace IronHive.Host.Tests.Tools;
 

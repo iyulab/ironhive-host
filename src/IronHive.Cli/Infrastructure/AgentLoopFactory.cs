@@ -4,9 +4,9 @@ using IronHive.Agent.Context;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Providers;
-using IronHive.Host.Core.Context;
-using IronHive.Host.Core.Oops;
-using IronHive.Host.Core.Tools;
+using IronHive.Host.Context;
+using IronHive.Host.Oops;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 

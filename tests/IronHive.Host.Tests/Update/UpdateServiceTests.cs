@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using IronHive.Host.Core.Update;
+using IronHive.Host.Update;
 
 namespace IronHive.Host.Tests.Update;
 

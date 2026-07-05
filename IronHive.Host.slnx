@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/IronHive.Host.Protocol/IronHive.Host.Protocol.csproj" />
-    <Project Path="src/IronHive.Host.Core/IronHive.Host.Core.csproj" />
+    <Project Path="src/IronHive.Host/IronHive.Host.csproj" />
     <Project Path="src/IronHive.Cli/IronHive.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -10,12 +10,12 @@ using IronHive.Agent.Mode;
 using IronHive.Agent.Providers;
 using IronHive.Agent.Tracking;
 using IronHive.DeepResearch.Models.Research;
-using IronHive.Host.Core.Config;
-using IronHive.Host.Core.Oops;
-using IronHive.Host.Core.Providers;
-using IronHive.Host.Core.Session;
-using IronHive.Host.Core.Tools;
-using IronHive.Host.Core.Update;
+using IronHive.Host.Config;
+using IronHive.Host.Oops;
+using IronHive.Host.Providers;
+using IronHive.Host.Session;
+using IronHive.Host.Tools;
+using IronHive.Host.Update;
 using IronHive.Providers.Anthropic;
 using IronHive.Providers.GoogleAI;
 using IronHive.Providers.OpenAI;
@@ -24,7 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using WebLookup;
-using CliConfig = IronHive.Host.Core.Config;
+using CliConfig = IronHive.Host.Config;
 // Aliased to avoid the literal "new Function..." token in source — the
 // security-reminder hook flags it as a false positive (the hook targets
 // JS new Function() code-injection patterns, not C# class instantiation).

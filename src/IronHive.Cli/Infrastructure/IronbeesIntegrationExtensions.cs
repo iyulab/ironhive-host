@@ -1,7 +1,7 @@
 using Ironbees.Core;
 using IronHive.Agent.Loop;
-using IronHive.Host.Core.Ironbees;
-using IronHive.Host.Core.Providers;
+using IronHive.Host.Ironbees;
+using IronHive.Host.Providers;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 

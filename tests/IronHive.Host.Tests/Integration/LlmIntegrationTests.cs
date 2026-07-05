@@ -2,8 +2,8 @@ using System.Globalization;
 using IronHive.Abstractions;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Loop;
-using IronHive.Host.Core.Config;
-using IronHive.Host.Core.Providers;
+using IronHive.Host.Config;
+using IronHive.Host.Providers;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 

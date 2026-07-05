@@ -1,4 +1,4 @@
-using IronHive.Host.Core.Session;
+using IronHive.Host.Session;
 
 namespace IronHive.Host.Tests.Session;
 

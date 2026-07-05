@@ -1,5 +1,5 @@
 using IronHive.Agent.Memory;
-using IronHive.Host.Core.Context;
+using IronHive.Host.Context;
 using Microsoft.Extensions.AI;
 using NSubstitute;
 

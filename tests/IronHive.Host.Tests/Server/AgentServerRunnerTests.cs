@@ -4,7 +4,7 @@ using System.Threading.Channels;
 
 using FluentAssertions;
 
-using IronHive.Host.Core.Server;
+using IronHive.Host.Server;
 using IronHive.Host.Protocol;
 
 using Microsoft.Extensions.Logging;

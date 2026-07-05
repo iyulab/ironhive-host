@@ -1,4 +1,4 @@
-using IronHive.Host.Core.Integration;
+using IronHive.Host.Integration;
 
 namespace IronHive.Host.Tests.Integration;
 
