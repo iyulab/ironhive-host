@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using IronHive.Host.Agent.SubAgent;
+using IronHive.Agent.Tools;
 using IronHive.Host.Oops;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.FileSystemGlobbing;
@@ -75,48 +75,6 @@ public static class BuiltInTools
         }
 
         return toolList;
-    }
-
-    /// <summary>
-    /// Gets all built-in tools including sub-agent tools.
-    /// </summary>
-    /// <param name="workingDirectory">Working directory for tools.</param>
-    /// <param name="subAgentService">Sub-agent service for spawning sub-agents.</param>
-    /// <returns>List of AI tools.</returns>
-    public static IList<AITool> GetAll(string? workingDirectory, ISubAgentService subAgentService)
-    {
-        return GetAll(workingDirectory, subAgentService, oopsService: null);
-    }
-
-    /// <summary>
-    /// Gets all built-in tools including sub-agent tools and oops versioning.
-    /// </summary>
-    /// <param name="workingDirectory">Working directory for tools.</param>
-    /// <param name="subAgentService">Sub-agent service for spawning sub-agents.</param>
-    /// <param name="oopsService">Optional oops service for file versioning.</param>
-    /// <returns>List of AI tools.</returns>
-    public static IList<AITool> GetAll(string? workingDirectory, ISubAgentService subAgentService, IOopsService? oopsService)
-    {
-        return GetAll(workingDirectory, subAgentService, oopsService, webSearchTool: null, deepResearchTool: null);
-    }
-
-    /// <summary>
-    /// Gets all built-in tools including sub-agent, oops, web search, and deep research.
-    /// </summary>
-    public static IList<AITool> GetAll(
-        string? workingDirectory,
-        ISubAgentService subAgentService,
-        IOopsService? oopsService,
-        WebSearchTool? webSearchTool,
-        DeepResearchTool? deepResearchTool = null)
-    {
-        ArgumentNullException.ThrowIfNull(subAgentService);
-
-        var tools = GetAll(workingDirectory, oopsService, webSearchTool, deepResearchTool).ToList();
-        var subAgentTool = new SubAgentTool(subAgentService);
-        tools.AddRange(subAgentTool.GetAITools());
-
-        return tools;
     }
 }
 

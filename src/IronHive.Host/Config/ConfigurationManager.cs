@@ -415,42 +415,6 @@ public class ConfigurationManager
             target.Compaction.MaxContextTokens = source.Compaction.MaxContextTokens;
         }
 
-        // SubAgent
-        if (source.SubAgent.MaxDepth > 0)
-        {
-            target.SubAgent.MaxDepth = source.SubAgent.MaxDepth;
-        }
-
-        if (source.SubAgent.MaxConcurrent > 0)
-        {
-            target.SubAgent.MaxConcurrent = source.SubAgent.MaxConcurrent;
-        }
-
-        if (source.SubAgent.Explore.MaxTurns > 0)
-        {
-            target.SubAgent.Explore.MaxTurns = source.SubAgent.Explore.MaxTurns;
-        }
-
-        if (source.SubAgent.Explore.MaxTokens > 0)
-        {
-            target.SubAgent.Explore.MaxTokens = source.SubAgent.Explore.MaxTokens;
-        }
-
-        if (source.SubAgent.Explore.AllowedTools.Count > 0)
-        {
-            target.SubAgent.Explore.AllowedTools = source.SubAgent.Explore.AllowedTools;
-        }
-
-        if (source.SubAgent.General.MaxTurns > 0)
-        {
-            target.SubAgent.General.MaxTurns = source.SubAgent.General.MaxTurns;
-        }
-
-        if (source.SubAgent.General.MaxTokens > 0)
-        {
-            target.SubAgent.General.MaxTokens = source.SubAgent.General.MaxTokens;
-        }
-
         // WebSearch
         target.WebSearch.Enabled = source.WebSearch.Enabled;
         if (source.WebSearch.DefaultMaxResults > 0)

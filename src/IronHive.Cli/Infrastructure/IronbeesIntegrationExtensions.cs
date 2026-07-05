@@ -1,6 +1,7 @@
 using Ironbees.Core;
+using Ironbees.Core.Conversation;
+using IronHive.Agent.Ironbees;
 using IronHive.Agent.Loop;
-using IronHive.Host.Ironbees;
 using IronHive.Host.Providers;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +24,7 @@ public static class IronbeesIntegrationExtensions
         this IServiceCollection services,
         string agentsDirectory = "./agents")
     {
-        services.AddIronbees(options =>
+        return services.AddIronbeesOrchestration(options =>
         {
             options.AgentsDirectory = agentsDirectory;
             options.SelectorType = AgentSelectorType.Keyword;
@@ -38,15 +39,6 @@ public static class IronbeesIntegrationExtensions
                 return chatClient;
             };
         });
-
-        // Register OrchestratedAgentLoop as an alternative IAgentLoop
-        services.AddKeyedTransient<IAgentLoop>("orchestrated", (sp, _) =>
-        {
-            var orchestrator = sp.GetRequiredService<IAgentOrchestrator>();
-            return new OrchestratedAgentLoop(orchestrator);
-        });
-
-        return services;
     }
 
     /// <summary>
@@ -61,13 +53,23 @@ public static class IronbeesIntegrationExtensions
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        services.AddIronbees(configure);
+        // Captured so the keyed "orchestrated" registration below can honor the same
+        // DefaultAgentName/ConversationsDirectory settings AddIronbees applies internally.
+        IronbeesOptions? capturedOptions = null;
+        services.AddIronbees(options =>
+        {
+            configure(options);
+            capturedOptions = options;
+        });
 
-        // Register OrchestratedAgentLoop as an alternative IAgentLoop
+        // Register OrchestratedAgentLoop as an alternative IAgentLoop. Resolves the same
+        // IConversationStore that AddIronbees registers so history persists on this path too
+        // (previously dropped: this factory ignored both the store and DefaultAgentName).
         services.AddKeyedTransient<IAgentLoop>("orchestrated", (sp, _) =>
         {
             var orchestrator = sp.GetRequiredService<IAgentOrchestrator>();
-            return new OrchestratedAgentLoop(orchestrator);
+            var conversationStore = sp.GetService<IConversationStore>();
+            return new OrchestratedAgentLoop(orchestrator, capturedOptions?.DefaultAgentName, conversationStore);
         });
 
         return services;

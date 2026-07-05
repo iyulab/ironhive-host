@@ -132,7 +132,6 @@ The loader accepts these top-level keys in `config.yaml`. Acronym provider secti
 | `lmsupply` | lowercase (acronym) |
 | `permissions` | |
 | `compaction` | |
-| `subAgent` | camelCase |
 | `webSearch` | camelCase |
 | `deepResearch` | camelCase |
 | `chatBehavior` | camelCase |

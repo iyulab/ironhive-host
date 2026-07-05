@@ -95,7 +95,6 @@ public class ConfigurationManagerTests : IDisposable
         Assert.NotNull(config.LMStudio);
         Assert.NotNull(config.Permissions);
         Assert.NotNull(config.Compaction);
-        Assert.NotNull(config.SubAgent);
         Assert.NotNull(config.WebSearch);
         Assert.NotNull(config.DeepResearch);
         Assert.NotNull(config.ChatBehavior);
@@ -271,7 +270,6 @@ public class ConfigurationManagerTests : IDisposable
         src.OpenAI.ApiKey = "k";
         src.OpenAI.Model = "m";
         src.Compaction.ProtectRecentTokens = 12345;   // real CompactionConfig field (default 40000)
-        src.SubAgent.MaxDepth = 4;
         src.LMSupply.GeneratorModel = "gm";
 
         manager.SaveGlobal(src);
@@ -280,7 +278,6 @@ public class ConfigurationManagerTests : IDisposable
         loaded.OpenAI.ApiKey.Should().Be("k");
         loaded.OpenAI.Model.Should().Be("m");
         loaded.Compaction.ProtectRecentTokens.Should().Be(12345);
-        loaded.SubAgent.MaxDepth.Should().Be(4);
         loaded.LMSupply.GeneratorModel.Should().Be("gm");
     }
 
@@ -329,10 +326,10 @@ public class ConfigurationManagerTests : IDisposable
     {
         using var tmp = new TempConfigDirs();
         var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
-        mgr.SetValue("subAgent.maxDepth", "7");
-        mgr.GetValue("subAgent.maxDepth").Should().Be("7");          // no throw, no quotes
+        mgr.SetValue("deepResearch.maxIterations", "7");
+        mgr.GetValue("deepResearch.maxIterations").Should().Be("7"); // no throw, no quotes
         var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
-        loaded.SubAgent.MaxDepth.Should().Be(7);                     // int round-trips through the bridge to typed Load
+        loaded.DeepResearch.MaxIterations.Should().Be(7);            // int round-trips through the bridge to typed Load
     }
 
     [Fact]
@@ -352,7 +349,7 @@ public class ConfigurationManagerTests : IDisposable
         src.GoogleAI.ApiKey = "g"; src.Xai.ApiKey = "x"; src.AzureOpenAI.Endpoint = "az";
         src.LMSupply.GeneratorModel = "gm"; src.Ollama.Model = "ol"; src.LMStudio.Model = "ls";
         src.WebSearch.TavilyApiKey = "t"; src.DeepResearch.MaxIterations = 9;
-        src.ChatBehavior.MaximumIterationsPerRequest = 7; src.SubAgent.MaxConcurrent = 5;
+        src.ChatBehavior.MaximumIterationsPerRequest = 7;
         var yaml = YamlConfigSerializer.Serialize(src);
         var back = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml)!;
         back.GpuStack.Endpoint.Should().Be("e"); back.OpenAI.ApiKey.Should().Be("o");
@@ -362,7 +359,6 @@ public class ConfigurationManagerTests : IDisposable
         back.LMStudio.Model.Should().Be("ls"); back.WebSearch.TavilyApiKey.Should().Be("t");
         back.DeepResearch.MaxIterations.Should().Be(9);
         back.ChatBehavior.MaximumIterationsPerRequest.Should().Be(7);
-        back.SubAgent.MaxConcurrent.Should().Be(5);
     }
 
     [Fact]
