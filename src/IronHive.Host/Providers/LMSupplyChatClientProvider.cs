@@ -293,10 +293,9 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 /// </summary>
 /// <remarks>
 /// Public surface (since 0.10.2) so umbrella e2e harness and other dogfooding consumers
-/// can construct an IChatClient directly over a pre-loaded <see cref="ITextGenerator"/>
-/// without going through <see cref="LMSupplyChatClientProvider"/>'s broken
-/// <c>BuildGeneratorAsync</c> path (see umbrella's
-/// <c>ISSUE-ironhive-cli-lmsupply-provider-builder-routing-broken-20260429-005000</c>).
+/// can construct an IChatClient directly over a pre-loaded <see cref="ITextGenerator"/>,
+/// instead of letting <see cref="LMSupplyChatClientProvider"/> load a second generator
+/// through <c>BuildGeneratorAsync</c>.
 /// </remarks>
 public sealed class LMSupplyChatClient : IChatClient
 {
