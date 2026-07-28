@@ -78,6 +78,9 @@
     <PackageReference Include="IronHive.Providers.OpenAI" />
     <PackageReference Include="IronHive.Providers.Anthropic" />
     <PackageReference Include="IronHive.Providers.GoogleAI" />
+    <!-- OpenAI-compatible services (GPUStack, xAI, LM Studio) belong here, not in
+         IronHive.Providers.OpenAI — 0.14.0 removed OpenAIConfig.Api and made that split explicit. -->
+    <PackageReference Include="IronHive.Providers.OpenAI.Compatible" />
     <!-- IronHive.Providers.Ollama removed: 0.3.3 (last published version) is incompatible with the
          current IronHive.Abstractions contract (missing CountTokensAsync, added 0.7.9). Whether the
          provider is revived is an open maintainer decision. -->

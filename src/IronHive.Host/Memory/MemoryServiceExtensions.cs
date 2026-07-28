@@ -1,4 +1,3 @@
-using Flux.Abstractions;
 using IronHive.Agent.Providers;
 using MemoryIndexer.Configuration;
 using MemoryIndexer.Interfaces;
@@ -75,8 +74,10 @@ public static class MemoryServiceExtensions
             return new EmbeddingServiceAdapter(agentEmbedding);
         });
 
-        // Register MemoryIndexer's ITextCompletionService adapter (before AddMemoryIndexer)
-        services.AddSingleton<Flux.Abstractions.ITextCompletionService>(sp =>
+        // Register MemoryIndexer's ITextCompletionService adapter (before AddMemoryIndexer).
+        // MemoryIndexer 0.16.0 dropped its Flux.Abstractions edge and owns this contract itself
+        // (MemoryIndexer.Interfaces), so host no longer pulls flux transitively for it.
+        services.AddSingleton<ITextCompletionService>(sp =>
         {
             var chatClient = sp.GetService<IChatClient>();
             if (chatClient is null)

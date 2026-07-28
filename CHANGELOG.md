@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.18.0
+
+Dependency realignment (umbrella DF-1): host had been pinned to `IronHive.* 0.8.2` while the core
+moved to 0.14.0 (six minors), with the rest of the iyulab set drifting alongside it. This lifts the
+whole set and drops the NU1903 suppression that the stale pins had made necessary.
+
+### Changed (breaking, 0.x)
+- **OpenAI-compatible providers moved to `IronHive.Providers.OpenAI.Compatible`.** IronHive 0.14.0
+  removed `OpenAIConfig.Api`/`OpenAIApiSurface`, making the provider-isolation split explicit:
+  GPUStack now uses `GpuStackConfig` + `GpuStackMessageGenerator`, and xAI / LM Studio use
+  `OpenAICompatibleConfig` + `OpenAICompatibleMessageGenerator`. Model listing still goes through
+  `OpenAIModelFinder`, built from each config's `ToOpenAI()` view — the wiring upstream's own
+  `AddGpuStackProviders` uses. Behavior is preserved; only the types behind the registration changed.
+- **`ITextCompletionService` for memory services is now `MemoryIndexer.Interfaces.ITextCompletionService`.**
+  MemoryIndexer 0.16.0 dropped its `Flux.Abstractions` edge and owns the contract itself, so host no
+  longer pulls flux transitively.
+
+### Fixed
+- **NU1903 suppression removed.** The `NoWarn` entry hid transitive high-severity advisories rather
+  than being inert; with the pins current, no vulnerable transitive remains and a future one will fail
+  the build instead of being silently absorbed. `NU1902` (OpenTelemetry/MessagePack, no fix published)
+  and `NU5104` (MCP prerelease) keep their suppressions — those premises still hold.
+
+### Dependencies
+- `IronHive.*` 0.8.2 → **0.14.0** · `IronHive.Agent`/`.DeepResearch` 0.2.18 → **0.4.0** ·
+  `Ironbees.Core` 0.6.4 → **0.10.0** · `LMSupply.*` 0.34.17 → **0.37.1** ·
+  `MemoryIndexer(.Sdk)` 0.15.2 → **0.16.1** · `TokenMeter` 0.4.0 → **0.6.2** ·
+  `ToolCallParser` 0.2.1 → **0.4.0** · `OpenAI` 2.11.0 → **2.12.0**.
+- Added `IronHive.Providers.OpenAI.Compatible`.
+
 ## 0.17.0
 
 D14: dedupe host's forked copies of three `IronHive.Agent` clusters (SubAgent, Tools, Ironbees) that had silently diverged since the 0.16.0 rename — host now consumes the canonical `IronHive.Agent` types directly.

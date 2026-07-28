@@ -3,6 +3,7 @@ using IronHive.Abstractions;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.Loop;
 using IronHive.Host.Config;
+using IronHive.Cli.Infrastructure;
 using IronHive.Host.Providers;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
@@ -37,13 +38,15 @@ public class LlmIntegrationTests
     /// </summary>
     private static IronhiveChatClientProvider CreateGpuStackProvider()
     {
-        var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+        // Mirrors production wiring: GPUStack is an OpenAI-*compatible* service, so it goes through
+        // IronHive.Providers.OpenAI.Compatible (0.14.0 removed OpenAIConfig.Api). GpuStackConfig
+        // appends /v1-openai/ itself, so hand it the bare host.
+        var gpuStackConfig = new IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackConfig
         {
-            BaseUrl = GpuStackEndpoint!.TrimEnd('/') + "/v1-openai/",
-            ApiKey = GpuStackApiKey!,
-            Api = OpenAIApiSurface.ChatCompletions
+            BaseUrl = ServiceCollectionExtensions.StripApiPath(GpuStackEndpoint!),
+            ApiKey = GpuStackApiKey!
         };
-        var generator = new OpenAIMessageGenerator(openAIConfig);
+        var generator = new IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackMessageGenerator(gpuStackConfig);
         return new IronhiveChatClientProvider(generator, "gpustack", GpuStackModel);
     }
 

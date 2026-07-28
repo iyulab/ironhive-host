@@ -18,6 +18,7 @@ using IronHive.Host.Tools;
 using IronHive.Host.Update;
 using IronHive.Providers.Anthropic;
 using IronHive.Providers.GoogleAI;
+using IronHive.Providers.OpenAI.Compatible;
 using IronHive.Providers.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -142,6 +143,25 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISessionManager, SessionManager>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Strips a trailing OpenAI-style API path segment so a provider config that appends its own
+    /// path does not produce a doubled one. <c>GpuStackConfig</c> appends <c>/v1-openai/</c>
+    /// unconditionally (unlike <c>OpenAICompatibleConfig</c>, whose append is idempotent), so an
+    /// operator who configured the full URL would otherwise get <c>/v1-openai/v1-openai/</c>.
+    /// </summary>
+    internal static string StripApiPath(string endpoint)
+    {
+        var trimmed = endpoint.TrimEnd('/');
+        foreach (var segment in (string[])["/v1-openai", "/v1"])
+        {
+            if (trimmed.EndsWith(segment, StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed[..^segment.Length];
+            }
+        }
+        return trimmed;
     }
 
     /// <summary>
@@ -309,17 +329,20 @@ public static class ServiceCollectionExtensions
         // providers are now constructed directly instead of round-tripping through IHiveServiceBuilder.
         var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
 
-        // 1. GpuStack (OpenAI-compatible API; these servers implement Chat Completions, not Responses)
+        // 1. GpuStack (OpenAI-compatible API; these servers implement Chat Completions, not Responses).
+        // IronHive 0.14.0 removed OpenAIConfig.Api — OpenAI-compatible services now belong to
+        // IronHive.Providers.OpenAI.Compatible (provider isolation). GpuStackConfig owns the
+        // /v1-openai/ path itself, so hand it the bare host and keep the model finder on the
+        // OpenAI-shaped view it derives (upstream's own AddGpuStackProviders wiring).
         if (config.GpuStack.IsConfigured)
         {
-            var gpuStackConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            var gpuStackConfig = new IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackConfig
             {
-                BaseUrl = NormalizeEndpoint(config.GpuStack.Endpoint!, "v1-openai"),
-                ApiKey = config.GpuStack.ApiKey!,
-                Api = OpenAIApiSurface.ChatCompletions
+                BaseUrl = StripApiPath(config.GpuStack.Endpoint!),
+                ApiKey = config.GpuStack.ApiKey!
             };
-            var generator = new OpenAIMessageGenerator(gpuStackConfig);
-            var finder = new OpenAIModelFinder(gpuStackConfig);
+            var generator = new IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackMessageGenerator(gpuStackConfig);
+            var finder = new OpenAIModelFinder(gpuStackConfig.ToOpenAI());
             providersDict["gpustack"] = new IronhiveChatClientProvider(generator, "gpustack", config.GpuStack.Model!, finder);
         }
 
@@ -370,14 +393,13 @@ public static class ServiceCollectionExtensions
         // 5. Xai (OpenAI-compatible API; Chat Completions surface, same as GpuStack)
         if (config.Xai.IsConfigured)
         {
-            var xaiConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            var xaiConfig = new OpenAICompatibleConfig
             {
-                BaseUrl = NormalizeEndpoint(config.Xai.Endpoint),
-                ApiKey = config.Xai.ApiKey!,
-                Api = OpenAIApiSurface.ChatCompletions
+                BaseUrl = config.Xai.Endpoint.TrimEnd('/'),
+                ApiKey = config.Xai.ApiKey!
             };
-            var generator = new OpenAIMessageGenerator(xaiConfig);
-            var finder = new OpenAIModelFinder(xaiConfig);
+            var generator = new OpenAICompatibleMessageGenerator(xaiConfig);
+            var finder = new OpenAIModelFinder(xaiConfig.ToOpenAI());
             providersDict["xai"] = new IronhiveChatClientProvider(generator, "xai", config.Xai.Model!, finder);
             providersDict["grok"] = providersDict["xai"]; // Alias
         }
@@ -398,14 +420,13 @@ public static class ServiceCollectionExtensions
         // 7. LMStudio (OpenAI-compatible local inference; Chat Completions surface)
         if (config.LMStudio.IsConfigured)
         {
-            var lmStudioConfig = new IronHive.Providers.OpenAI.OpenAIConfig
+            var lmStudioConfig = new OpenAICompatibleConfig
             {
-                BaseUrl = NormalizeEndpoint(config.LMStudio.Endpoint),
-                ApiKey = "lm-studio",
-                Api = OpenAIApiSurface.ChatCompletions
+                BaseUrl = config.LMStudio.Endpoint.TrimEnd('/'),
+                ApiKey = "lm-studio"
             };
-            var generator = new OpenAIMessageGenerator(lmStudioConfig);
-            var finder = new OpenAIModelFinder(lmStudioConfig);
+            var generator = new OpenAICompatibleMessageGenerator(lmStudioConfig);
+            var finder = new OpenAIModelFinder(lmStudioConfig.ToOpenAI());
             providersDict["lmstudio"] = new IronhiveChatClientProvider(generator, "lmstudio", config.LMStudio.Model!, finder);
         }
 

@@ -5,13 +5,13 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.6.4" />
+    <PackageVersion Include="Ironbees.Core" Version="0.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.7.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.7.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
     <!-- OpenAI SDK -->
     <PackageVersion Include="ModelContextProtocol" Version="1.3.0" />
-    <PackageVersion Include="OpenAI" Version="2.11.0" />
+    <PackageVersion Include="OpenAI" Version="2.12.0" />
     <!-- Pin OpenTelemetry.Exporter.OpenTelemetryProtocol to non-vulnerable version (transitive from upstream) -->
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <!-- DI & Hosting (.NET 10) -->
@@ -34,29 +34,30 @@
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback). 0.32.3 adds Gemma4
          RenderToolPromptFragment for Option D-1 (umbrella ISSUE 2026-04-30). -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.34.17" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.34.17" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.34.17" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.37.1" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.37.1" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.37.1" />
     <!-- MemoryIndexer (conversation memory, session management) -->
-    <PackageVersion Include="MemoryIndexer" Version="0.15.2" />
-    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.15.2" />
+    <PackageVersion Include="MemoryIndexer" Version="0.16.1" />
+    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.16.1" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.2.18" />
+    <PackageVersion Include="IronHive.Agent" Version="0.4.0" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.8.2" />
-    <PackageVersion Include="IronHive.Core" Version="0.8.2" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.8.2" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.8.2" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.8.2" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.14.0" />
+    <PackageVersion Include="IronHive.Core" Version="0.14.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.14.0" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.14.0" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.14.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.14.0" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.2.18" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.4.0" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.3.1" />
     <!-- TokenMeter & ToolCallParser -->
-    <PackageVersion Include="TokenMeter" Version="0.4.0" />
-    <PackageVersion Include="ToolCallParser" Version="0.2.1" />
+    <PackageVersion Include="TokenMeter" Version="0.6.2" />
+    <PackageVersion Include="ToolCallParser" Version="0.4.0" />
     <!-- Testing -->
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.6.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />

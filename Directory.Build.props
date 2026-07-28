@@ -5,11 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- Ignore NU1902/NU1903 (known moderate/high vulnerabilities in transitive dependencies from
-         upstream — MessagePack/Scriban via MCP+templating, e_sqlite3 via ironhive; host cannot pin
-         these directly. Tracked for proper transitive bump). -->
+    <!-- Ignore NU1902 (known moderate vulnerabilities in transitive dependencies from upstream —
+         MessagePack/Scriban via MCP+templating; no fixed release available yet). -->
     <!-- Ignore NU5104 (stable package with prerelease dependency: ModelContextProtocol has no GA release yet) -->
-    <NoWarn>$(NoWarn);NU1902;NU1903;NU5104</NoWarn>
+    <!-- NU1903 is deliberately NOT suppressed: the e_sqlite3 floor that motivated it cleared once the
+         upstream iyulab pins were brought current (IronHive 0.14.0 / IndexThinking 0.21.1 /
+         MemoryIndexer 0.16.1 all carry SQLitePCLRaw 2.1.12). A high-severity transitive must fail the
+         build, not be hidden — a suppression here previously masked live advisories in ironhive-agent. -->
+    <NoWarn>$(NoWarn);NU1902;NU5104</NoWarn>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
   </PropertyGroup>
@@ -25,7 +28,7 @@
 
   <!-- Version: Update this to trigger a new release -->
   <PropertyGroup>
-    <Version>0.17.0</Version>
+    <Version>0.18.0</Version>
   </PropertyGroup>
 
   <!-- Release build: exclude PDB files -->
