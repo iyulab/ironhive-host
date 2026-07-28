@@ -92,7 +92,7 @@ host와 iron-prow는 **한 쌍**이며 책임이 인접해 혼동되기 쉽다. 
 - **네이밍 부채 ✅ 해소 (0.13.0)**: `IronHive.Cli*` → `IronHive.Host*` rename + thin `IronHive.Host.Protocol` 추출 + dual-`CompactionConfig` dedup(agent 단일 소스)을 D3 통합 breaking 1회로 정리. 실행 명령 `ironhive` 유지.
 - **마이그레이션**: 0.12.x `IronHive.Cli`(3,491 dl)·`IronHive.Cli.Core`(1,310 dl)는 배포 중단(unlist 아님). 소비자(Filer filer-ai)는 `IronHive.Host.Core` 재참조 + `using` 교체로 이전 — Filer inline-append 검증 대기.
 - **provider 중립**: chat ✅ PASS / embedding·rerank GpuStack coupling 잔존 (M2 비차단, provider-격리 후속).
-- 초안: `claudedocs/issues/ISSUE-ironhive-host-20260629-005241-...rename...md` · `...-m13-thin-protocol-...md` · `...-m12-provider-neutral-verdict.md`.
+- 초안(maintainer-local, `ironhive-umbrella/claudedocs/issues/`): `ISSUE-ironhive-host-20260629-005241-...rename...md` · `...-m13-thin-protocol-...md` · `...-m12-provider-neutral-verdict.md`.
 
 ---
 

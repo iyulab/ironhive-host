@@ -244,7 +244,7 @@ public class FallbackMessageGenerator : IMessageGenerator
 
 ## Dogfooding 피드백 항목
 
-ironhive 사용 중 발견된 개선점은 `d:/data/ironhive/claudedocs/issues/`에 기록합니다.
+ironhive 사용 중 발견된 개선점은 엄브렐러의 `ironhive-umbrella/claudedocs/ironhive/issues/`에 기록합니다 (maintainer-local — dev-추적 문서는 OSS 서브모듈이 아니라 엄브렐러에 둔다).
 
 **예상 이슈:**
 1. `ISSUE-*-meai-adapter.md` - M.E.AI IChatClient 어댑터 필요

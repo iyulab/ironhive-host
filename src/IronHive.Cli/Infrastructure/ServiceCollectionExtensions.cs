@@ -385,8 +385,7 @@ public static class ServiceCollectionExtensions
         // 6. Ollama (local inference) -- NOT WIRED. IronHive.Providers.Ollama 0.3.3 (last published
         // version; unbumped since ironhive core moved to 0.6.2+) implements IMessageGenerator without
         // CountTokensAsync, added to the interface in 0.7.9 -- loading it against Abstractions 0.8.2
-        // throws TypeLoadException. See ironhive-host/claudedocs/issues/
-        // ISSUE-ironhive-host-20260703-130000-ollama-provider-abandoned-incompatible.md.
+        // throws TypeLoadException. Whether the provider is revived is an open maintainer decision.
         if (config.Ollama.IsConfigured)
         {
             throw new NotSupportedException(
