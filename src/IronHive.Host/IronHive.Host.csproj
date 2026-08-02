@@ -61,9 +61,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- TokenMeter & ToolCallParser (via local-packages NuGet source) -->
+    <!-- TokenMeter (model catalog & cost calculation) -->
     <PackageReference Include="TokenMeter" />
-    <PackageReference Include="ToolCallParser" />
   </ItemGroup>
 
   <ItemGroup>
