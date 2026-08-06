@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.0
+
+### Changed — the browser runtime leaves the dependency graph
+
+`IronHive.Agent` and `IronHive.DeepResearch` move to 0.5.0, which take WebFlux 0.7.0. WebFlux no
+longer carries `Microsoft.Playwright`; dynamic rendering now lives in a separate `WebFlux.Playwright`
+package that only consumers who crawl JavaScript-rendered pages install.
+
+Host is where the DeepResearch reference lives, so without this hop the payload reached every Host
+consumer regardless of what the layers below it did. A clean rebuild with the previous pins produced
+a `.playwright` directory, a Playwright assembly and a bundled node runtime; with these it produces
+none of them. In a self-contained single-RID publish the same reference had been observed pulling in
+platform-specific node runtimes for platforms that were not the publish target.
+
+Host does not use dynamic rendering, so `WebFlux.Playwright` is deliberately not referenced. A
+consumer that needs it adds the package directly; the namespace and registration call are unchanged.
+
+The `IronHive.Abstractions`/`IronHive.Core` pins are unchanged at 0.14.0. That drift predates this
+release and spans a breaking version, so advancing it is a separate decision.
+
 ## 0.18.0
 
 Dependency realignment (umbrella DF-1): host had been pinned to `IronHive.* 0.8.2` while the core
