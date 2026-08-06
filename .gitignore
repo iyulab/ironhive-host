@@ -57,3 +57,8 @@ nul
 
 # IDE language server cache
 *.lscache
+
+# Local clone of the companion release-artifact repository (iyulab/ironhive-cli-releases).
+# It is a separate repository, not a submodule; leaving it untracked keeps a stray gitlink
+# out of commits made with "git add -A".
+releases/
