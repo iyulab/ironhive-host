@@ -261,6 +261,68 @@ public class SessionManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task RestoreContextAsync_RestoresToolUseAndToolResult()
+    {
+        // Arrange
+        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        await _sessionManager.SaveUserMessageAsync(session, "Read the file");
+        await _sessionManager.SaveToolUseAsync(session, "Read", new { file_path = "/test/file.txt" }, "toolu_01ABC");
+        await _sessionManager.SaveToolResultAsync(session, "toolu_01ABC", "file contents here");
+        await _sessionManager.SaveAssistantMessageAsync(session, "Here's the file content.");
+
+        // Act
+        var messages = await _sessionManager.RestoreContextAsync(session);
+
+        // Assert
+        Assert.Equal(4, messages.Count);
+
+        var toolUseContent = Assert.Single(messages[1].Contents);
+        var functionCall = Assert.IsType<Microsoft.Extensions.AI.FunctionCallContent>(toolUseContent);
+        Assert.Equal("toolu_01ABC", functionCall.CallId);
+        Assert.Equal("Read", functionCall.Name);
+        Assert.Equal("/test/file.txt", functionCall.Arguments?["file_path"]?.ToString());
+
+        var toolResultContent = Assert.Single(messages[2].Contents);
+        var functionResult = Assert.IsType<Microsoft.Extensions.AI.FunctionResultContent>(toolResultContent);
+        Assert.Equal("toolu_01ABC", functionResult.CallId);
+        Assert.Equal("file contents here", functionResult.Result);
+    }
+
+    [Fact]
+    public async Task RestoreContextAsync_ToolResultError_PrefixesOutputWithError()
+    {
+        // Arrange
+        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        await _sessionManager.SaveToolUseAsync(session, "Read", new { file_path = "/missing" }, "toolu_01ERR");
+        await _sessionManager.SaveToolResultAsync(session, "toolu_01ERR", "File not found", isError: true);
+
+        // Act
+        var messages = await _sessionManager.RestoreContextAsync(session);
+
+        // Assert
+        var functionResult = Assert.IsType<Microsoft.Extensions.AI.FunctionResultContent>(
+            Assert.Single(messages[1].Contents));
+        Assert.Equal("Error: File not found", functionResult.Result);
+    }
+
+    [Fact]
+    public async Task RestoreContextAsync_ToolUseInputAsPreSerializedJsonString_ParsesArguments()
+    {
+        // Arrange — mirrors AgentLoopSessionExtensions.SaveTurnAsync, which passes
+        // ToolCallResult.Arguments (a JSON string) as the Input object.
+        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        await _sessionManager.SaveToolUseAsync(session, "Read", "{\"file_path\":\"/test/file.txt\"}", "toolu_01JSON");
+
+        // Act
+        var messages = await _sessionManager.RestoreContextAsync(session);
+
+        // Assert
+        var functionCall = Assert.IsType<Microsoft.Extensions.AI.FunctionCallContent>(
+            Assert.Single(messages[0].Contents));
+        Assert.Equal("/test/file.txt", functionCall.Arguments?["file_path"]?.ToString());
+    }
+
+    [Fact]
     public async Task ForkSessionAsync_CreatesNewSessionWithHistory()
     {
         // Arrange

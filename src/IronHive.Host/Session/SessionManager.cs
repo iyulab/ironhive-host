@@ -218,13 +218,14 @@ public class SessionManager : ISessionManager
                     break;
 
                 case ToolUseEntry toolUse:
-                    // Tool uses are typically embedded in assistant messages in the actual API
-                    // For restoration, we note them but the actual handling depends on the provider
+                    messages.Add(new ChatMessage(ChatRole.Assistant,
+                        [new FunctionCallContent(toolUse.ToolUseId, toolUse.Tool, ParseToolInput(toolUse.Input))]));
                     break;
 
                 case ToolResultEntry toolResult:
-                    // Tool results are typically embedded in the conversation flow
-                    // For restoration, we note them but the actual handling depends on the provider
+                    messages.Add(new ChatMessage(ChatRole.Tool,
+                        [new FunctionResultContent(toolResult.ToolUseId,
+                            toolResult.IsError ? $"Error: {toolResult.Output}" : toolResult.Output)]));
                     break;
             }
         }
@@ -485,4 +486,57 @@ public class SessionManager : ISessionManager
         var version = assembly.GetName().Version;
         return version?.ToString();
     }
+
+    // ToolUseEntry.Input round-trips through JSON as a JsonElement. It can surface either as a JSON
+    // object (e.g. transcripts written from an already-structured input) or as a JSON string containing
+    // pre-serialized arguments (AgentLoopSessionExtensions.SaveTurnAsync passes ToolCallResult.Arguments,
+    // which is a JSON string, as the Input). Treat any other shape as "no args" rather than throwing —
+    // same convention as IronHive.Core.Microsoft.ChatClientAdapter.ParseToolArguments.
+    private static Dictionary<string, object?>? ParseToolInput(object input)
+    {
+        if (input is not JsonElement element)
+        {
+            return null;
+        }
+
+        if (element.ValueKind == JsonValueKind.String)
+        {
+            var raw = element.GetString();
+            if (string.IsNullOrEmpty(raw))
+            {
+                return null;
+            }
+
+            try
+            {
+                element = JsonSerializer.Deserialize<JsonElement>(raw);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var arguments = new Dictionary<string, object?>();
+        foreach (var prop in element.EnumerateObject())
+        {
+            arguments[prop.Name] = ConvertJsonElement(prop.Value);
+        }
+        return arguments;
+    }
+
+    private static object? ConvertJsonElement(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.String => element.GetString(),
+        JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        JsonValueKind.Null or JsonValueKind.Undefined => null,
+        _ => element
+    };
 }
