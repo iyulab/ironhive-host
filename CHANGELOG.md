@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.1
+
+### Fixed — resumed sessions lost their tool-call history
+
+`SessionManager.RestoreContextAsync` silently dropped tool-use and tool-result transcript entries
+when rebuilding a session's context, so a resumed session lost every tool call it had ever made
+with no trace it happened. Both entry kinds are now mapped onto the same
+`FunctionCallContent`/`FunctionResultContent` types the rest of the `Microsoft.Extensions.AI`
+surface already uses, so tool history survives a restore like the rest of the transcript does.
+
 ## 0.19.0
 
 ### Changed — the browser runtime leaves the dependency graph
