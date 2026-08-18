@@ -1,16 +1,50 @@
 # ironhive-host
 
+[![NuGet: IronHive.Host](https://img.shields.io/nuget/v/IronHive.Host.svg?label=IronHive.Host)](https://www.nuget.org/packages/IronHive.Host)
+[![NuGet: IronHive.Cli](https://img.shields.io/nuget/v/IronHive.Cli.svg?label=IronHive.Cli)](https://www.nuget.org/packages/IronHive.Cli)
+[![NuGet: IronHive.Host.Protocol](https://img.shields.io/nuget/v/IronHive.Host.Protocol.svg?label=IronHive.Host.Protocol)](https://www.nuget.org/packages/IronHive.Host.Protocol)
+[![CI](https://github.com/iyulab/ironhive-host/actions/workflows/ci.yml/badge.svg)](https://github.com/iyulab/ironhive-host/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 > Universal Agent Host — CLI · server · embedded
 >
 > **역할·범위·기능 명세(미들웨어 정체성)는 [`CHARTER.md`](./CHARTER.md) 참조** — product-middleware §⑤ 에이전트 호스트.
->
-> **⚠️ 0.16.0 breaking repackage**: SDK 라이브러리 `IronHive.Host.Core` → **`IronHive.Host`**(SDK가 top-level 이름을 소유,
-> 네임스페이스 `IronHive.Host.Core.*` → `IronHive.Host.*`). CLI tool 패키지 `IronHive.Host` → **`IronHive.Cli`**
-> (실행 명령은 `ironhive` 그대로). turn-stream 프로토콜 계약은 별도 thin 패키지 **`IronHive.Host.Protocol`**(무의존)로 분리 유지.
-> 옛 `IronHive.Host` tool 패키지는 배포 중단(unlist 아님 — 기존 복원 계속 동작); 신규 설치는 `dotnet tool install -g IronHive.Cli`.
-> 릴리스는 이제 `iyulab/ironhive-host`에서 self-host — 옛 `ironhive-cli-releases`는 archive(read-only, 기존 v0.11-0.15 다운로드 URL 유지).
 
-A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution.
+A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution. One agent core (plan → execute → tool-call), exposed as an installable CLI, an embeddable .NET SDK, or a long-running server (stdio/JSON-Lines or HTTP/SSE) — pick the surface that fits, without re-implementing the agent loop.
+
+## Features
+
+- **Three surfaces, one core** — CLI (`ironhive`), embeddable SDK (`IronHive.Host`), and server runners (stdio or HTTP/SSE) all drive the same agent loop.
+- **MCP-native tooling** — plugs into MCP servers (memory, code execution, custom tools) instead of hardcoding a tool set.
+- **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
+- **Context-window safe by default** — automatic history compaction (`ContextManager`) and a hard-backstop `TokenBudgetChatClient` prevent silent context overflows, including on small quantized models.
+- **Resilient tool-calling** — `ResilientFunctionInvoker` turns malformed tool-call arguments into model-actionable recovery hints instead of aborting the stream.
+- **Layered configuration** — global → project → environment → `.env`, with automatic migration from legacy `settings.json`.
+
+<details>
+<summary><strong>⚠️ 0.16.0 breaking repackage</strong> (upgrading from an older version? read this)</summary>
+
+SDK 라이브러리 `IronHive.Host.Core` → **`IronHive.Host`**(SDK가 top-level 이름을 소유,
+네임스페이스 `IronHive.Host.Core.*` → `IronHive.Host.*`). CLI tool 패키지 `IronHive.Host` → **`IronHive.Cli`**
+(실행 명령은 `ironhive` 그대로). turn-stream 프로토콜 계약은 별도 thin 패키지 **`IronHive.Host.Protocol`**(무의존)로 분리 유지.
+옛 `IronHive.Host` tool 패키지는 배포 중단(unlist 아님 — 기존 복원 계속 동작); 신규 설치는 `dotnet tool install -g IronHive.Cli`.
+릴리스는 이제 `iyulab/ironhive-host`에서 self-host — 옛 `ironhive-cli-releases`는 archive(read-only, 기존 v0.11-0.15 다운로드 URL 유지).
+
+</details>
+
+## Contents
+
+- [Philosophy](#philosophy)
+- [As an SDK (IronHive.Host)](#as-an-sdk-ironhivehost)
+- [As a CLI (IronHive.Cli)](#as-a-cli-ironhivecli)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Core Library Integration](#core-library-integration)
+- [Samples](#samples)
+- [Development](#development)
+- [Contributing](#contributing)
+- [Related Projects](#related-projects)
+- [License](#license)
 
 ## Philosophy
 
@@ -354,6 +388,13 @@ ironhive-host/
 │   └── web-ai-chat/             # Next.js + subprocess
 └── tests/
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. This project is pre-1.0 (`0.x`) — breaking changes land
+freely for structural correctness; see [`CHARTER.md`](./CHARTER.md) for scope and design intent
+before proposing a feature. `dotnet build && dotnet test` (see [Development](#development)) should
+pass before opening a PR.
 
 ## Related Projects
 
