@@ -217,7 +217,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             if (_pluginManager is not null && _pluginManager.ConnectedPlugins.Count > 0)
             {
                 healthCheck = new McpHealthCheckService(_pluginManager);
-                healthCheck.Start();
+                await healthCheck.StartAsync(ct);
             }
 
             async IAsyncEnumerable<ServerEvent> ProcessMessage(

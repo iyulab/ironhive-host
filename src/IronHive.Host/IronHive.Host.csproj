@@ -56,8 +56,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Cronex (scheduling for health checks) -->
+    <!-- Cronex (scheduling for health checks — hosted via Cronex.Net.Hosting's ICronexHandler) -->
     <PackageReference Include="Cronex.Net" />
+    <PackageReference Include="Cronex.Net.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

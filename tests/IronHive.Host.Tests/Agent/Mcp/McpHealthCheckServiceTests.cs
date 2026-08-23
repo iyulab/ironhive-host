@@ -39,7 +39,7 @@ public class McpHealthCheckServiceTests
         var eventRaised = false;
         sut.PluginUnhealthy += (_, _) => eventRaised = true;
 
-        sut.Start();
+        await sut.StartAsync();
         timeProvider.Advance(TimeSpan.FromMinutes(2));
         await Task.Delay(200);
 
@@ -60,7 +60,7 @@ public class McpHealthCheckServiceTests
         McpPluginEventArgs? receivedArgs = null;
         sut.PluginUnhealthy += (_, args) => receivedArgs = args;
 
-        sut.Start();
+        await sut.StartAsync();
         timeProvider.Advance(TimeSpan.FromMinutes(2));
         await Task.Delay(200);
 
@@ -75,7 +75,7 @@ public class McpHealthCheckServiceTests
         var sut = new McpHealthCheckService(
             _pluginManager, "@every 1m", timeProvider);
 
-        sut.Start();
+        await sut.StartAsync();
         await sut.DisposeAsync();
 
         true.Should().BeTrue();

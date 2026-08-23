@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.2
+
+### Changed — MCP plugin health checks now run on Cronex's hosted scheduler
+
+`McpHealthCheckService` used to build its own `CronexScheduler` and drive it directly. It now wires
+the same periodic health check through `Cronex.Net.Hosting`'s `ICronexHandler`/`CronexBackgroundService`,
+so the scheduling and background-execution logic is exercised through the shared library surface
+instead of being reimplemented locally. `Start()` is now `StartAsync(CancellationToken)` — the one
+caller in `RunCommand` has been updated; no other observable behavior changes (same expression,
+same event, same disposal semantics).
+
 ## 0.19.1
 
 ### Fixed — resumed sessions lost their tool-call history

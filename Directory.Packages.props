@@ -54,7 +54,9 @@
     <!-- IronHive.DeepResearch (deep research agent) -->
     <PackageVersion Include="IronHive.DeepResearch" Version="0.5.0" />
     <!-- Cronex (scheduling) -->
-    <PackageVersion Include="Cronex.Net" Version="0.3.1" />
+    <PackageVersion Include="Cronex.Net" Version="0.4.1" />
+    <PackageVersion Include="Cronex.Net.Hosting" Version="0.4.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
     <!-- TokenMeter (model catalog & cost calculation) -->
     <PackageVersion Include="TokenMeter" Version="0.6.2" />
     <!-- Testing -->
