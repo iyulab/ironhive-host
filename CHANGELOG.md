@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.3
+
+### Changed
+- Bumped `Ironbees.Core` 0.10.0 → 0.12.1, `IronHive.*` 0.14.0 → 0.19.1, `IronHive.Agent`/
+  `.DeepResearch` 0.5.0 → 0.7.1, `LMSupply.*` 0.37.1 → 0.42.2, `MemoryIndexer`/`.Sdk` 0.16.1 →
+  0.16.5, `TokenMeter` 0.6.2 → 0.7.0 (dependency freshness, no known breaking changes consumed —
+  full test suite unchanged at 860/860, one flaky wall-clock benchmark test observed under
+  concurrent-build load and confirmed passing in isolation).
+
 ## 0.19.2
 
 ### Changed — MCP plugin health checks now run on Cronex's hosted scheduler
