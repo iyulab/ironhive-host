@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.5
+
+### Changed
+- Bumped `Ironbees.Core` 0.12.1 → 0.13.1, `IronHive.Agent`/`.DeepResearch` 0.7.1 → 0.7.2,
+  `IronHive.Abstractions`/`.Core`/`.Providers.*` 0.19.1 → 0.20.0 (dependency freshness, no known
+  breaking changes consumed — 860/860 tests unchanged).
+
 ## 0.19.4
 
 ### Documentation
