@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.4
+
+### Documentation
+- CHARTER.md/README.md never stated that `IronHive.Host` is built on top of the separate
+  `IronHive.Agent` package (PackageReference; the agent loop, context/compaction, mode system,
+  MCP plugins, and permission engine live there) — CHARTER.md's own responsibility line even
+  described host as owning the runtime "그 자체", and README's Philosophy section/feature list
+  implied host owns the agent loop directly. An external consumer evaluating `ironhive-host` vs
+  `ironhive-agent` for an integration point had no documented way to tell they aren't competing
+  implementations. Both docs now name the dependency explicitly; no code changed.
+
 ## 0.19.3
 
 ### Changed

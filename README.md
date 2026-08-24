@@ -12,9 +12,16 @@
 
 A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution. One agent core (plan → execute → tool-call), exposed as an installable CLI, an embeddable .NET SDK, or a long-running server (stdio/JSON-Lines or HTTP/SSE) — pick the surface that fits, without re-implementing the agent loop.
 
+The agent loop, context/compaction, mode system, MCP plugins, and permission engine itself live in
+[`IronHive.Agent`](https://www.nuget.org/packages/IronHive.Agent) (from [`ironhive-agent`](https://github.com/iyulab/ironhive-agent)),
+which this package consumes as a `PackageReference`. `IronHive.Host` adds the hosting surface on top:
+CLI/server/embed entry points, the `IronHive.Host.Protocol` turn-stream contract, layered config,
+provider adapters, and session/execution-log/memory integration. See [`CHARTER.md`](./CHARTER.md) for
+the full role boundary.
+
 ## Features
 
-- **Three surfaces, one core** — CLI (`ironhive`), embeddable SDK (`IronHive.Host`), and server runners (stdio or HTTP/SSE) all drive the same agent loop.
+- **Three surfaces, one core** — CLI (`ironhive`), embeddable SDK (`IronHive.Host`), and server runners (stdio or HTTP/SSE) all drive the same `IronHive.Agent` loop.
 - **MCP-native tooling** — plugs into MCP servers (memory, code execution, custom tools) instead of hardcoding a tool set.
 - **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
 - **Context-window safe by default** — automatic history compaction (`ContextManager`) and a hard-backstop `TokenBudgetChatClient` prevent silent context overflows, including on small quantized models.

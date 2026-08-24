@@ -26,6 +26,17 @@
 ### 1. 책임
 에이전트를 어떤 표면으로든 호스팅한다 — **루프 · 모드 · MCP · 권한 · 세션 · compaction · HITL.**
 
+이 책임의 엔진 자체(루프·컨텍스트·모드·MCP·권한·플래닝·체크포인트 등 재사용 가능한 코어)는
+별도 repo·NuGet 패키지 **[`ironhive-agent`](https://github.com/iyulab/ironhive-agent)
+(`IronHive.Agent`)가 소유한다** — host는 이를 `PackageReference`로 소비한다(`IronHive.Host.csproj`).
+host가 이 위에 얹는 것은 **호스팅 표면**이다: CLI(`ironhive`)·서버(stdio/HTTP-SSE) 진입점,
+`IronHive.Host.Protocol`(turn-stream 계약), config 시스템(4-scope 머지), provider 어댑터
+(GpuStack/LMSupply 등), 세션·실행로그·메모리 통합, host 전용 도구(`DeepResearchTool` 등). 즉
+"에이전트 런타임 그 자체"가 아니라 **그 런타임(`IronHive.Agent`)을 감싸는 호스트**다 —
+D14(host↔agent 11클래스 dedupe, 2026-07-06, host 0.17.0)에서 host의 자체 SubAgent/Tools/
+Ironbees 클러스터를 삭제하고 `IronHive.Agent`를 canonical 소스로 채택한 이후 이 구조가
+정본이다(권위: `ironhive-umbrella/docs/MIDDLEWARE-ALIGNMENT.md` D14).
+
 ### 2. 경계
 - **도메인 모름** — 파일도 재고도 모른다 (그건 소비 앱).
 - **provider 모름** — `IChatClient`를 **주입받는다**. vendor(OpenAI/Anthropic/Ollama/Gemini) 분기 0. 어느 모델로 갈지 + 안전하게 갈지는 ⑥ `iron-prow`의 책임.
