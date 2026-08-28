@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.6
+
+### Changed
+- Updated `ModelContextProtocol` to 2.2.0 (previously 1.3.0). No public API changes — this
+  package has no MCP wiring of its own (only test code exercises basic tool listing/calling via
+  `IronHive.Agent`'s MCP plugin manager), so it is unaffected by the capabilities the 2.0
+  protocol revision deprecated (roots, sampling, logging).
+- Aligned the `Microsoft.Extensions.*` 10.0.9 family to 10.0.11 and the
+  `Microsoft.Extensions.AI`/`.AI.Abstractions`/`.AI.OpenAI` trio to 10.9.0 — transitive floors
+  raised by the `ModelContextProtocol` update.
+
 ## 0.19.5
 
 ### Changed
