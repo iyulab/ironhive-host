@@ -45,7 +45,7 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test (Unit tests only)
-        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --filter "Category!=E2E&Category!=Integration&Category!=Benchmark"
+        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --filter "Category!=E2E&Category!=Integration&Category!=Benchmark" --blame-hang --blame-hang-timeout 5m
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest'
