@@ -1,5 +1,5 @@
 using System.Reflection;
-using FluentAssertions;
+using AwesomeAssertions;
 using IndexThinking.Agents;
 using IronHive.Agent.Loop;
 using IronHive.Host.Context;

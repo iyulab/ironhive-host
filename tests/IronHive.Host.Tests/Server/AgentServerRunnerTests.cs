@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Channels;
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 using Microsoft.Extensions.Logging;

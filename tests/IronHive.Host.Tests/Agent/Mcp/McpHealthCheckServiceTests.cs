@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Agent.Mcp;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;

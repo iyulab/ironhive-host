@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 

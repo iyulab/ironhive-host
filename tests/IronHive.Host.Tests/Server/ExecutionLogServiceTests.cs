@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Agent.Loop;
 using IronHive.Host.Server;
 using Xunit;

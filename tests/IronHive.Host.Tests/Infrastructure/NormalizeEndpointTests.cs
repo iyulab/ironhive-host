@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Cli.Infrastructure;
 
 namespace IronHive.Host.Tests.Infrastructure;

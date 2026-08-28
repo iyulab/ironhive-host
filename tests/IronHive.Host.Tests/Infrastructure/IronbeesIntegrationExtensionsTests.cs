@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ironbees.Core;
 using Ironbees.Core.Conversation;
 using IronHive.Agent.Ironbees;

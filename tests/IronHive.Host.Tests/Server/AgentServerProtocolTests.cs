@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 

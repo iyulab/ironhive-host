@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FluentAssertions;
+using AwesomeAssertions;
 using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 
