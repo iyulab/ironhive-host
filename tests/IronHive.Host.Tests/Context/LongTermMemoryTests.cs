@@ -34,7 +34,7 @@ public class LongTermMemoryTests
         var mockService = Substitute.For<ISessionMemoryService>();
         var manager = new LongTermMemoryManager(mockService);
 
-        await manager.SaveUserMessageAsync("Hello");
+        await manager.SaveUserMessageAsync("Hello", TestContext.Current.CancellationToken);
 
         await mockService.Received(1).RememberUserMessageAsync("Hello", Arg.Any<CancellationToken>());
     }
@@ -45,7 +45,7 @@ public class LongTermMemoryTests
         var manager = new LongTermMemoryManager();
 
         // Should not throw
-        await manager.SaveUserMessageAsync("Hello");
+        await manager.SaveUserMessageAsync("Hello", TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class LongTermMemoryTests
         var options = new LongTermMemoryOptions { AutoSaveUserMessages = false };
         var manager = new LongTermMemoryManager(mockService, options);
 
-        await manager.SaveUserMessageAsync("Hello");
+        await manager.SaveUserMessageAsync("Hello", TestContext.Current.CancellationToken);
 
         await mockService.DidNotReceive().RememberUserMessageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
@@ -66,7 +66,7 @@ public class LongTermMemoryTests
         var mockService = Substitute.For<ISessionMemoryService>();
         var manager = new LongTermMemoryManager(mockService);
 
-        await manager.SaveAssistantMessageAsync("Hi there!");
+        await manager.SaveAssistantMessageAsync("Hi there!", TestContext.Current.CancellationToken);
 
         await mockService.Received(1).RememberAssistantMessageAsync("Hi there!", Arg.Any<CancellationToken>());
     }
@@ -76,7 +76,7 @@ public class LongTermMemoryTests
     {
         var manager = new LongTermMemoryManager();
 
-        var result = await manager.RecallAsync("test query");
+        var result = await manager.RecallAsync("test query", TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.TotalCount);
     }
@@ -99,7 +99,7 @@ public class LongTermMemoryTests
         var options = new LongTermMemoryOptions { MinRelevanceScore = 0.7f };
         var manager = new LongTermMemoryManager(mockService, options);
 
-        var result = await manager.RecallAsync("test query");
+        var result = await manager.RecallAsync("test query", TestContext.Current.CancellationToken);
 
         Assert.Single(result.UserMemories);
         Assert.Equal("High relevance", result.UserMemories[0].Content);
@@ -114,7 +114,7 @@ public class LongTermMemoryTests
             new(ChatRole.User, "Hello")
         };
 
-        var result = await manager.InjectMemoriesAsync(history, "Hello");
+        var result = await manager.InjectMemoriesAsync(history, "Hello", TestContext.Current.CancellationToken);
 
         Assert.Same(history, result);
     }
@@ -140,7 +140,7 @@ public class LongTermMemoryTests
             new(ChatRole.User, "Hello")
         };
 
-        var result = await manager.InjectMemoriesAsync(history, "Hello");
+        var result = await manager.InjectMemoriesAsync(history, "Hello", TestContext.Current.CancellationToken);
 
         Assert.Equal(3, result.Count);
         Assert.Equal(ChatRole.System, result[0].Role);
@@ -165,7 +165,7 @@ public class LongTermMemoryTests
             new(ChatRole.User, "Hello")
         };
 
-        var result = await manager.InjectMemoriesAsync(history, "Hello");
+        var result = await manager.InjectMemoriesAsync(history, "Hello", TestContext.Current.CancellationToken);
 
         Assert.Same(history, result);
     }
@@ -182,7 +182,7 @@ public class LongTermMemoryTests
             new(ChatRole.User, "Hello")
         };
 
-        var result = await manager.InjectMemoriesAsync(history, "Hello");
+        var result = await manager.InjectMemoriesAsync(history, "Hello", TestContext.Current.CancellationToken);
 
         Assert.Same(history, result);
         await mockService.DidNotReceive().RecallAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
@@ -205,7 +205,7 @@ public class LongTermMemoryTests
         var mockService = Substitute.For<ISessionMemoryService>();
         var manager = new LongTermMemoryManager(mockService);
 
-        await manager.EndSessionAsync();
+        await manager.EndSessionAsync(TestContext.Current.CancellationToken);
 
         await mockService.Received(1).EndSessionAsync(Arg.Any<CancellationToken>());
     }

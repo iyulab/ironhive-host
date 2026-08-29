@@ -64,7 +64,7 @@ public class AgentLoopFactoryTests
             .Returns(mcpTools.AsReadOnly());
 
         // Act
-        var tools = await mcpManager.GetToolsAsync();
+        var tools = await mcpManager.GetToolsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, tools.Count);
@@ -80,7 +80,7 @@ public class AgentLoopFactoryTests
             .Returns(new List<AITool>().AsReadOnly());
 
         // Act
-        var tools = await mcpManager.GetToolsAsync();
+        var tools = await mcpManager.GetToolsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(tools);
@@ -97,7 +97,7 @@ public class AgentLoopFactoryTests
 
         // Act & Assert — error can be caught and handled
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => mcpManager.GetToolsAsync());
+            () => mcpManager.GetToolsAsync(TestContext.Current.CancellationToken));
         Assert.Equal("Plugin disconnected", ex.Message);
     }
 
@@ -119,7 +119,7 @@ public class AgentLoopFactoryTests
             }.AsReadOnly());
 
         // Act — merge tools like AgentLoopFactory.LoadMcpToolsAsync does
-        var mcpTools = await mcpManager.GetToolsAsync();
+        var mcpTools = await mcpManager.GetToolsAsync(TestContext.Current.CancellationToken);
         foreach (var tool in mcpTools)
         {
             builtInTools.Add(tool);
@@ -152,13 +152,13 @@ public class AgentLoopFactoryTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Get system info and save it");
+        var r1 = await agentLoop.RunAsync("Get system info and save it", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_get", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("System: Windows 11, 8 cores, 16GB");
+        var r2 = await agentLoop.RunAsync("System: Windows 11, 8 cores, 16GB", TestContext.Current.CancellationToken);
         Assert.Equal("WriteFile", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("File written successfully");
+        var r3 = await agentLoop.RunAsync("File written successfully", TestContext.Current.CancellationToken);
         Assert.Contains("report.md", r3.Content);
     }
 
@@ -177,10 +177,10 @@ public class AgentLoopFactoryTests
         });
 
         // Act — agent uses built-in tool despite MCP unavailability
-        var r1 = await agentLoop.RunAsync("Read README.md");
+        var r1 = await agentLoop.RunAsync("Read README.md", TestContext.Current.CancellationToken);
         Assert.Equal("ReadFile", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("# My Project\nDocumentation here.");
+        var r2 = await agentLoop.RunAsync("# My Project\nDocumentation here.", TestContext.Current.CancellationToken);
         Assert.Contains("documentation", r2.Content, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -217,7 +217,7 @@ public class AgentLoopFactoryTests
         var mcpManager = Substitute.For<IMcpPluginManager>();
 
         // Act
-        await mcpManager.LoadFromConfigAsync(config);
+        await mcpManager.LoadFromConfigAsync(config, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert — only allowed-plugin should be connected
         await mcpManager.Received(1).ConnectAsync(
@@ -242,11 +242,11 @@ public class AgentLoopFactoryTests
         var mcpManager = Substitute.For<IMcpPluginManager>();
 
         // Act
-        await mcpManager.LoadFromConfigAsync(config);
+        await mcpManager.LoadFromConfigAsync(config, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert — no plugins connected
         await mcpManager.DidNotReceiveWithAnyArgs()
-            .ConnectAsync(default!, default!, default);
+            .ConnectAsync(default!, default!, TestContext.Current.CancellationToken);
     }
 
     #endregion

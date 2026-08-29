@@ -35,7 +35,7 @@ public class EmbeddingServiceAdapterTests
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
-        var result = await adapter.GenerateEmbeddingAsync("test text");
+        var result = await adapter.GenerateEmbeddingAsync("test text", TestContext.Current.CancellationToken);
 
         Assert.Equal(3, result.Length);
         Assert.Equal(0.1f, result.Span[0]);
@@ -52,7 +52,7 @@ public class EmbeddingServiceAdapterTests
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
-        await adapter.GenerateEmbeddingAsync("query text");
+        await adapter.GenerateEmbeddingAsync("query text", TestContext.Current.CancellationToken);
 
         await provider.Received(1).EmbedAsync("query text", Arg.Any<CancellationToken>());
     }
@@ -72,7 +72,7 @@ public class EmbeddingServiceAdapterTests
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
-        var results = await adapter.GenerateBatchEmbeddingsAsync(["text1", "text2", "text3"]);
+        var results = await adapter.GenerateBatchEmbeddingsAsync(["text1", "text2", "text3"], TestContext.Current.CancellationToken);
 
         Assert.Equal(3, results.Count);
         Assert.Equal(0.1f, results[0].Span[0]);
@@ -90,7 +90,7 @@ public class EmbeddingServiceAdapterTests
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
-        var results = await adapter.GenerateBatchEmbeddingsAsync(["a", "b", "c"]);
+        var results = await adapter.GenerateBatchEmbeddingsAsync(["a", "b", "c"], TestContext.Current.CancellationToken);
 
         Assert.Equal(1.0f, results[0].Span[0]);
         Assert.Equal(2.0f, results[1].Span[0]);
@@ -107,7 +107,7 @@ public class EmbeddingServiceAdapterTests
 
         var adapter = new EmbeddingServiceAdapter(provider);
 
-        await adapter.GenerateBatchEmbeddingsAsync(["text1", "text2"]);
+        await adapter.GenerateBatchEmbeddingsAsync(["text1", "text2"], TestContext.Current.CancellationToken);
 
         await provider.Received(1).EmbedBatchAsync(
             Arg.Any<IEnumerable<string>>(),

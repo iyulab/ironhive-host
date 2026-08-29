@@ -41,7 +41,7 @@ public class GitHubUpdateServiceTests
         var service = new GitHubUpdateService(httpClient);
 
         // Act
-        var result = await service.CheckForUpdateAsync();
+        var result = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -59,7 +59,7 @@ public class GitHubUpdateServiceTests
         var service = new GitHubUpdateService(httpClient);
 
         // Act
-        var result = await service.CheckForUpdateAsync();
+        var result = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -76,7 +76,7 @@ public class GitHubUpdateServiceTests
         var service = new GitHubUpdateService(httpClient);
 
         // Act
-        var result = await service.CheckForUpdateAsync();
+        var result = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -94,7 +94,7 @@ public class GitHubUpdateServiceTests
         var service = new GitHubUpdateService(httpClient);
 
         // Act
-        var result = await service.CheckForUpdateAsync();
+        var result = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -114,7 +114,7 @@ public class GitHubUpdateServiceTests
         var service = new GitHubUpdateService(httpClient);
 
         // Act
-        var result = await service.UpdateAsync();
+        var result = await service.UpdateAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result.Success);
@@ -132,7 +132,7 @@ public class GitHubUpdateServiceTests
         var service = new GitHubUpdateService(httpClient);
 
         // Act
-        var result = await service.UpdateAsync();
+        var result = await service.UpdateAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result.Success);
@@ -153,7 +153,7 @@ public class GitHubUpdateServiceTests
         var progress = new Progress<UpdateProgress>(p => progressReports.Add(p));
 
         // Act
-        await service.UpdateAsync(progress);
+        await service.UpdateAsync(progress, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(progressReports);

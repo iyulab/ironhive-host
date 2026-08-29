@@ -52,7 +52,7 @@ public class WebSearchToolTests : IDisposable
         ];
 
         // Act
-        var result = await _tool.WebSearch("test query");
+        var result = await _tool.WebSearch("test query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Found 2 results", result);
@@ -67,14 +67,14 @@ public class WebSearchToolTests : IDisposable
     [Fact]
     public async Task WebSearch_WithEmptyQuery_ReturnsError()
     {
-        var result = await _tool.WebSearch("");
+        var result = await _tool.WebSearch("", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Error: Search query is required.", result);
     }
 
     [Fact]
     public async Task WebSearch_WithWhitespaceQuery_ReturnsError()
     {
-        var result = await _tool.WebSearch("   ");
+        var result = await _tool.WebSearch("   ", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Error: Search query is required.", result);
     }
 
@@ -85,7 +85,7 @@ public class WebSearchToolTests : IDisposable
         _fakeProvider.Results = [];
 
         // Act
-        var result = await _tool.WebSearch("obscure query");
+        var result = await _tool.WebSearch("obscure query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("No results found for: obscure query", result);
@@ -101,7 +101,7 @@ public class WebSearchToolTests : IDisposable
         ];
 
         // Act
-        var result = await _tool.WebSearch("query");
+        var result = await _tool.WebSearch("query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("[No Desc]", result);
@@ -120,7 +120,7 @@ public class WebSearchToolTests : IDisposable
         ];
 
         // Act
-        var result = await _tool.WebSearch("query", maxResults: 3);
+        var result = await _tool.WebSearch("query", maxResults: 3, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, _fakeProvider.LastRequestedCount);
@@ -133,7 +133,7 @@ public class WebSearchToolTests : IDisposable
         _fakeProvider.Results = [];
 
         // Act
-        await _tool.WebSearch("query");
+        await _tool.WebSearch("query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - defaultMaxResults is 5 (set in constructor)
         Assert.Equal(5, _fakeProvider.LastRequestedCount);
@@ -146,7 +146,7 @@ public class WebSearchToolTests : IDisposable
         _fakeProvider.ThrowException = new HttpRequestException("Network error");
 
         // Act
-        var result = await _tool.WebSearch("query");
+        var result = await _tool.WebSearch("query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert — WebSearchClient catches provider exceptions and returns empty,
         // so WebSearchTool should report "No results found"
@@ -160,14 +160,14 @@ public class WebSearchToolTests : IDisposable
     [Fact]
     public async Task ExploreSite_WithEmptyUrl_ReturnsError()
     {
-        var result = await _tool.ExploreSite("");
+        var result = await _tool.ExploreSite("", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Error: Base URL is required.", result);
     }
 
     [Fact]
     public async Task ExploreSite_WithInvalidUrl_ReturnsError()
     {
-        var result = await _tool.ExploreSite("not-a-url");
+        var result = await _tool.ExploreSite("not-a-url", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Error: Invalid URL: not-a-url", result);
     }
 
@@ -203,7 +203,7 @@ public class WebSearchToolTests : IDisposable
         };
 
         // Act
-        var result = await _tool.ExploreSite("https://example.com");
+        var result = await _tool.ExploreSite("https://example.com", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Site exploration: https://example.com", result);
@@ -232,7 +232,7 @@ public class WebSearchToolTests : IDisposable
         };
 
         // Act
-        var result = await _tool.ExploreSite("https://example.com", includeSitemap: false);
+        var result = await _tool.ExploreSite("https://example.com", includeSitemap: false, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Site exploration: https://example.com", result);
@@ -264,7 +264,7 @@ public class WebSearchToolTests : IDisposable
         };
 
         // Act
-        var result = await _tool.ExploreSite("https://example.com");
+        var result = await _tool.ExploreSite("https://example.com", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert — should show only 3 entries (maxSitemapEntries)
         Assert.Contains("https://example.com/page1", result);
@@ -288,7 +288,7 @@ public class WebSearchToolTests : IDisposable
         };
 
         // Act
-        var result = await _tool.ExploreSite("https://example.com");
+        var result = await _tool.ExploreSite("https://example.com", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Sitemaps found: 0", result);
@@ -303,7 +303,7 @@ public class WebSearchToolTests : IDisposable
             new HttpResponseMessage(HttpStatusCode.NotFound);
 
         // Act
-        var result = await _tool.ExploreSite("https://example.com");
+        var result = await _tool.ExploreSite("https://example.com", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Site exploration: https://example.com", result);
@@ -325,7 +325,7 @@ public class WebSearchToolTests : IDisposable
         ];
 
         // Act
-        var result = await _tool.WebSearch("최신 .NET 변경사항");
+        var result = await _tool.WebSearch("최신 .NET 변경사항", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Found 1 results", result);
@@ -337,14 +337,14 @@ public class WebSearchToolTests : IDisposable
     [Fact]
     public async Task WebSearch_WithNullQuery_ReturnsError()
     {
-        var result = await _tool.WebSearch(null!);
+        var result = await _tool.WebSearch(null!, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Error: Search query is required.", result);
     }
 
     [Fact]
     public async Task ExploreSite_WithRelativeUrl_ReturnsError()
     {
-        var result = await _tool.ExploreSite("/relative/path");
+        var result = await _tool.ExploreSite("/relative/path", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("Error: Invalid URL: /relative/path", result);
     }
 
@@ -384,7 +384,7 @@ public class WebSearchToolTests : IDisposable
         };
 
         // Act
-        var result = await _tool.ExploreSite("https://example.com");
+        var result = await _tool.ExploreSite("https://example.com", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Sitemaps found: 2", result);
@@ -403,7 +403,7 @@ public class WebSearchToolTests : IDisposable
         ];
 
         // Act
-        var result = await _tool.WebSearch("query");
+        var result = await _tool.WebSearch("query", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert — whitespace-only description should be omitted
         Assert.Contains("[Title]", result);

@@ -46,13 +46,17 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test (Unit tests only)
-        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --filter "Category!=E2E&Category!=Integration&Category!=Benchmark" --blame-hang --blame-hang-timeout 5m
+        # coverlet.MTP's --coverlet/--coverlet-output-format is MTP's equivalent of VSTest's
+        # --collect "XPlat Code Coverage"; --filter-not-trait (repeated, ANDs together) is MTP's
+        # equivalent of VSTest's compound "Category!=A&Category!=B" filter syntax;
+        # --hangdump/--hangdump-timeout is the equivalent of --blame-hang.
+        run: dotnet test --no-build --configuration Release --verbosity normal --coverlet --coverlet-output-format cobertura --results-directory ./coverage --filter-not-trait "Category=E2E" --filter-not-trait "Category=Integration" --filter-not-trait "Category=Benchmark" --hangdump --hangdump-timeout 5m
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
-          files: '**/coverage.cobertura.xml'
+          directory: ./coverage
           fail_ci_if_error: false
 
   format:

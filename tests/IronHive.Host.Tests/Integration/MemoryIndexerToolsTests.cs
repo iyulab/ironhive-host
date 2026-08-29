@@ -66,11 +66,7 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        var result = await provider.StoreAsync(
-            "user1",
-            "Test content",
-            0.8f,
-            "test-category");
+        var result = await provider.StoreAsync("user1", "Test content", 0.8f, "test-category", TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.NotNull(result.MemoryId);
@@ -84,16 +80,16 @@ public class InMemoryToolsProviderTests
         var provider = new InMemoryToolsProvider();
 
         // Test tier assignments based on importance
-        var bufferResult = await provider.StoreAsync("user1", "low", 0.1f, null);
+        var bufferResult = await provider.StoreAsync("user1", "low", 0.1f, null, TestContext.Current.CancellationToken);
         Assert.Equal("Buffer", bufferResult.Tier);
 
-        var shortResult = await provider.StoreAsync("user1", "medium-low", 0.3f, null);
+        var shortResult = await provider.StoreAsync("user1", "medium-low", 0.3f, null, TestContext.Current.CancellationToken);
         Assert.Equal("Short", shortResult.Tier);
 
-        var longResult = await provider.StoreAsync("user1", "medium", 0.6f, null);
+        var longResult = await provider.StoreAsync("user1", "medium", 0.6f, null, TestContext.Current.CancellationToken);
         Assert.Equal("Long", longResult.Tier);
 
-        var archiveResult = await provider.StoreAsync("user1", "high", 0.9f, null);
+        var archiveResult = await provider.StoreAsync("user1", "high", 0.9f, null, TestContext.Current.CancellationToken);
         Assert.Equal("Archive", archiveResult.Tier);
     }
 
@@ -102,11 +98,11 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        await provider.StoreAsync("user1", "The quick brown fox", 0.8f, null);
-        await provider.StoreAsync("user1", "jumps over the lazy dog", 0.7f, null);
-        await provider.StoreAsync("user1", "Unrelated content", 0.9f, null);
+        await provider.StoreAsync("user1", "The quick brown fox", 0.8f, null, TestContext.Current.CancellationToken);
+        await provider.StoreAsync("user1", "jumps over the lazy dog", 0.7f, null, TestContext.Current.CancellationToken);
+        await provider.StoreAsync("user1", "Unrelated content", 0.9f, null, TestContext.Current.CancellationToken);
 
-        var result = await provider.RecallAsync("user1", "fox", 10);
+        var result = await provider.RecallAsync("user1", "fox", 10, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Single(result.Memories!);
@@ -118,9 +114,9 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        await provider.StoreAsync("user1", "Some content", 0.5f, null);
+        await provider.StoreAsync("user1", "Some content", 0.5f, null, TestContext.Current.CancellationToken);
 
-        var result = await provider.RecallAsync("user1", "nonexistent", 10);
+        var result = await provider.RecallAsync("user1", "nonexistent", 10, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Empty(result.Memories!);
@@ -131,7 +127,7 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        var result = await provider.RecallAsync("nonexistent-user", "query", 10);
+        var result = await provider.RecallAsync("nonexistent-user", "query", 10, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Empty(result.Memories!);
@@ -142,13 +138,13 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        await provider.StoreAsync("user1", "Content A", 0.5f, "category-a");
-        await provider.StoreAsync("user1", "Content B", 0.6f, "category-b");
+        await provider.StoreAsync("user1", "Content A", 0.5f, "category-a", TestContext.Current.CancellationToken);
+        await provider.StoreAsync("user1", "Content B", 0.6f, "category-b", TestContext.Current.CancellationToken);
 
         var result = await provider.SearchAsync("user1", new MemorySearchOptions
         {
             Category = "category-a"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Single(result.Memories!);
@@ -160,13 +156,13 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        await provider.StoreAsync("user1", "Low importance", 0.1f, null);
-        await provider.StoreAsync("user1", "High importance", 0.9f, null);
+        await provider.StoreAsync("user1", "Low importance", 0.1f, null, TestContext.Current.CancellationToken);
+        await provider.StoreAsync("user1", "High importance", 0.9f, null, TestContext.Current.CancellationToken);
 
         var result = await provider.SearchAsync("user1", new MemorySearchOptions
         {
             Tier = "Archive"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Single(result.Memories!);
@@ -178,16 +174,16 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        var storeResult = await provider.StoreAsync("user1", "To be forgotten", 0.5f, null);
+        var storeResult = await provider.StoreAsync("user1", "To be forgotten", 0.5f, null, TestContext.Current.CancellationToken);
         var memoryId = storeResult.MemoryId!;
 
-        var forgetResult = await provider.ForgetAsync("user1", memoryId);
+        var forgetResult = await provider.ForgetAsync("user1", memoryId, TestContext.Current.CancellationToken);
 
         Assert.True(forgetResult.Success);
         Assert.Equal("Memory forgotten", forgetResult.Message);
 
         // Verify memory is gone
-        var searchResult = await provider.SearchAsync("user1", new MemorySearchOptions());
+        var searchResult = await provider.SearchAsync("user1", new MemorySearchOptions(), TestContext.Current.CancellationToken);
         Assert.Empty(searchResult.Memories!);
     }
 
@@ -196,7 +192,7 @@ public class InMemoryToolsProviderTests
     {
         var provider = new InMemoryToolsProvider();
 
-        var result = await provider.ForgetAsync("user1", "nonexistent-id");
+        var result = await provider.ForgetAsync("user1", "nonexistent-id", TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("Memory not found", result.Message);

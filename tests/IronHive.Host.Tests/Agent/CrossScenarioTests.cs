@@ -29,15 +29,15 @@ public class CrossScenarioTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Search for .NET 10 new features and save to a file");
+        var r1 = await agentLoop.RunAsync("Search for .NET 10 new features and save to a file", TestContext.Current.CancellationToken);
         Assert.Single(r1.ToolCalls);
         Assert.Equal("WebSearch", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("Search results: [1] .NET 10 features - New API, Performance improvements");
+        var r2 = await agentLoop.RunAsync("Search results: [1] .NET 10 features - New API, Performance improvements", TestContext.Current.CancellationToken);
         Assert.Single(r2.ToolCalls);
         Assert.Equal("WriteFile", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("Successfully wrote to file: dotnet10-notes.md");
+        var r3 = await agentLoop.RunAsync("Successfully wrote to file: dotnet10-notes.md", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("dotnet10-notes.md", r3.Content);
@@ -62,13 +62,13 @@ public class CrossScenarioTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Explore docs.python.org and find asyncio changes");
+        var r1 = await agentLoop.RunAsync("Explore docs.python.org and find asyncio changes", TestContext.Current.CancellationToken);
         Assert.Equal("ExploreSite", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("Site has sitemap with /library/asyncio*.html pages");
+        var r2 = await agentLoop.RunAsync("Site has sitemap with /library/asyncio*.html pages", TestContext.Current.CancellationToken);
         Assert.Equal("WebSearch", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("Search found 3 relevant pages about asyncio improvements");
+        var r3 = await agentLoop.RunAsync("Search found 3 relevant pages about asyncio improvements", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("asyncio", r3.Content);
@@ -98,13 +98,13 @@ public class CrossScenarioTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Capture the screen and help me fix the error shown");
+        var r1 = await agentLoop.RunAsync("Capture the screen and help me fix the error shown", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_do", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("Screen captured: NullReferenceException at Line 42");
+        var r2 = await agentLoop.RunAsync("Screen captured: NullReferenceException at Line 42", TestContext.Current.CancellationToken);
         Assert.Equal("WebSearch", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("Found: Initialize collections before use");
+        var r3 = await agentLoop.RunAsync("Found: Initialize collections before use", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("NullReferenceException", r3.Content);
@@ -130,13 +130,13 @@ public class CrossScenarioTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Collect system info and save as a report");
+        var r1 = await agentLoop.RunAsync("Collect system info and save as a report", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_get", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("System info: Windows 11, 8 cores, 16GB RAM");
+        var r2 = await agentLoop.RunAsync("System info: Windows 11, 8 cores, 16GB RAM", TestContext.Current.CancellationToken);
         Assert.Equal("WriteFile", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("Successfully wrote to file: system-report.md");
+        var r3 = await agentLoop.RunAsync("Successfully wrote to file: system-report.md", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("system-report.md", r3.Content);
@@ -168,16 +168,16 @@ public class CrossScenarioTests
         });
 
         // Act - 4-step conversation
-        var r1 = await agentLoop.RunAsync("Compare React, Vue, Svelte SSR and save to a comparison file");
+        var r1 = await agentLoop.RunAsync("Compare React, Vue, Svelte SSR and save to a comparison file", TestContext.Current.CancellationToken);
         Assert.Equal("WebSearch", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("Search results: React has RSC, Vue uses Nuxt, Svelte has SvelteKit");
+        var r2 = await agentLoop.RunAsync("Search results: React has RSC, Vue uses Nuxt, Svelte has SvelteKit", TestContext.Current.CancellationToken);
         Assert.Equal("ReadFile", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("File not found: existing-notes.md");
+        var r3 = await agentLoop.RunAsync("File not found: existing-notes.md", TestContext.Current.CancellationToken);
         Assert.Equal("WriteFile", r3.ToolCalls[0].ToolName);
 
-        var r4 = await agentLoop.RunAsync("Successfully wrote to file: framework-comparison.md");
+        var r4 = await agentLoop.RunAsync("Successfully wrote to file: framework-comparison.md", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("framework-comparison.md", r4.Content);
@@ -206,16 +206,16 @@ public class CrossScenarioTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Open notepad and type 'Hello IronHive!'");
+        var r1 = await agentLoop.RunAsync("Open notepad and type 'Hello IronHive!'", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_help", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("Available app commands: open, close, list, focus");
+        var r2 = await agentLoop.RunAsync("Available app commands: open, close, list, focus", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_do", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("Notepad opened successfully");
+        var r3 = await agentLoop.RunAsync("Notepad opened successfully", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_do", r3.ToolCalls[0].ToolName);
 
-        var r4 = await agentLoop.RunAsync("Text typed successfully");
+        var r4 = await agentLoop.RunAsync("Text typed successfully", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Hello IronHive!", r4.Content);
@@ -245,7 +245,7 @@ public class CrossScenarioTests
         var textChunks = new List<string>();
         var toolCalls = new List<ToolCallChunk>();
 
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Compare Rust and Go performance"))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Compare Rust and Go performance", TestContext.Current.CancellationToken))
         {
             if (!string.IsNullOrEmpty(chunk.TextDelta))
             {
@@ -263,7 +263,7 @@ public class CrossScenarioTests
 
         // Act - Second turn with search results
         var resultChunks = new List<string>();
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Results: Rust is faster, Go is simpler"))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Results: Rust is faster, Go is simpler", TestContext.Current.CancellationToken))
         {
             if (!string.IsNullOrEmpty(chunk.TextDelta))
             {
@@ -297,17 +297,17 @@ public class CrossScenarioTests
         });
 
         // Act
-        await agentLoop.RunAsync("Do a complex task");
+        await agentLoop.RunAsync("Do a complex task", TestContext.Current.CancellationToken);
         // System(1) + User(1) + Assistant(1) = 3 messages after first call
         Assert.Equal(3, agentLoop.History.Count);
 
-        await agentLoop.RunAsync("Search result: OK");
+        await agentLoop.RunAsync("Search result: OK", TestContext.Current.CancellationToken);
         Assert.Equal(5, agentLoop.History.Count); // +User +Assistant
 
-        await agentLoop.RunAsync("System time: 14:30");
+        await agentLoop.RunAsync("System time: 14:30", TestContext.Current.CancellationToken);
         Assert.Equal(7, agentLoop.History.Count);
 
-        await agentLoop.RunAsync("File written");
+        await agentLoop.RunAsync("File written", TestContext.Current.CancellationToken);
         Assert.Equal(9, agentLoop.History.Count);
 
         // Assert - MockClient received correct message counts
@@ -328,7 +328,7 @@ public class CrossScenarioTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        var response = await agentLoop.RunAsync("Type some text with quotes");
+        var response = await agentLoop.RunAsync("Type some text with quotes", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(response.ToolCalls);
@@ -359,15 +359,15 @@ public class CrossScenarioTests
         });
 
         // Act - First tool (web search)
-        var r1 = await agentLoop.RunAsync("Find the cause of the NullReferenceException");
+        var r1 = await agentLoop.RunAsync("Find the cause of the NullReferenceException", TestContext.Current.CancellationToken);
         Assert.Equal("WebSearch", r1.ToolCalls[0].ToolName);
 
         // Simulate web search failure
-        var r2 = await agentLoop.RunAsync("Error: Web search timed out");
+        var r2 = await agentLoop.RunAsync("Error: Web search timed out", TestContext.Current.CancellationToken);
         Assert.Equal("GrepFiles", r2.ToolCalls[0].ToolName);
 
         // Grep succeeds
-        var r3 = await agentLoop.RunAsync("Found match in app.log: line 42 NullReferenceException");
+        var r3 = await agentLoop.RunAsync("Found match in app.log: line 42 NullReferenceException", TestContext.Current.CancellationToken);
 
         // Assert - Agent recovered and provided solution
         Assert.Contains("line 42", r3.Content);
@@ -392,13 +392,13 @@ public class CrossScenarioTests
         });
 
         // Act
-        var r1 = await agentLoop.RunAsync("Read config.json");
+        var r1 = await agentLoop.RunAsync("Read config.json", TestContext.Current.CancellationToken);
         Assert.Equal("mcp__system-harness_get", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("Error: MCP plugin 'system-harness' is not connected");
+        var r2 = await agentLoop.RunAsync("Error: MCP plugin 'system-harness' is not connected", TestContext.Current.CancellationToken);
         Assert.Equal("ReadFile", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("""{"database": "localhost", "port": 5432}""");
+        var r3 = await agentLoop.RunAsync("""{"database": "localhost", "port": 5432}""", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("localhost", r3.Content);
@@ -420,16 +420,16 @@ public class CrossScenarioTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        var r1 = await agentLoop.RunAsync("Compare React and Vue latest versions");
+        var r1 = await agentLoop.RunAsync("Compare React and Vue latest versions", TestContext.Current.CancellationToken);
         Assert.Equal("WebSearch", r1.ToolCalls[0].ToolName);
 
-        var r2 = await agentLoop.RunAsync("React 19.1 released in 2026");
+        var r2 = await agentLoop.RunAsync("React 19.1 released in 2026", TestContext.Current.CancellationToken);
         Assert.Equal("WebSearch", r2.ToolCalls[0].ToolName);
 
-        var r3 = await agentLoop.RunAsync("Error: Search timeout for Vue query");
+        var r3 = await agentLoop.RunAsync("Error: Search timeout for Vue query", TestContext.Current.CancellationToken);
         Assert.Equal("WriteFile", r3.ToolCalls[0].ToolName);
 
-        var r4 = await agentLoop.RunAsync("Successfully wrote to file: comparison.md");
+        var r4 = await agentLoop.RunAsync("Successfully wrote to file: comparison.md", TestContext.Current.CancellationToken);
 
         // Assert - Agent completed with partial data
         Assert.Contains("comparison.md", r4.Content);

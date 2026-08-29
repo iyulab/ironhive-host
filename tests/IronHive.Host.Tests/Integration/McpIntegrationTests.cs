@@ -83,7 +83,7 @@ public class McpIntegrationTests
             autoConnect: true
             defaultTimeoutMs: 30000
             """;
-        await File.WriteAllTextAsync(yamlPath, yamlContent);
+        await File.WriteAllTextAsync(yamlPath, yamlContent, TestContext.Current.CancellationToken);
 
         try
         {
@@ -139,7 +139,7 @@ public class McpIntegrationTests
             AutoConnect = false
         };
 
-        await reloader.ReloadAsync(newConfig);
+        await reloader.ReloadAsync(newConfig, TestContext.Current.CancellationToken);
 
         // Assert: Verify reload event
         Assert.Single(reloadEvents);
@@ -165,11 +165,11 @@ public class McpIntegrationTests
             manager, config, enableFileWatcher: false);
 
         // Act & Assert: Exclude plugin
-        await reloader.ExcludePluginAsync("plugin-a");
+        await reloader.ExcludePluginAsync("plugin-a", TestContext.Current.CancellationToken);
         Assert.Contains("plugin-a", reloader.ExcludedPlugins);
 
         // Act & Assert: Include plugin back
-        await reloader.IncludePluginAsync("plugin-a");
+        await reloader.IncludePluginAsync("plugin-a", TestContext.Current.CancellationToken);
         Assert.DoesNotContain("plugin-a", reloader.ExcludedPlugins);
     }
 
@@ -184,17 +184,9 @@ public class McpIntegrationTests
         var provider = new InMemoryToolsProvider();
 
         // Act: Store memories with different importance levels
-        var storeResult1 = await provider.StoreAsync(
-            "test-user",
-            "User prefers dark mode UI",
-            0.9f,
-            "preferences");
+        var storeResult1 = await provider.StoreAsync("test-user", "User prefers dark mode UI", 0.9f, "preferences", TestContext.Current.CancellationToken);
 
-        var storeResult2 = await provider.StoreAsync(
-            "test-user",
-            "Temporary note about meeting",
-            0.2f,
-            "notes");
+        var storeResult2 = await provider.StoreAsync("test-user", "Temporary note about meeting", 0.2f, "notes", TestContext.Current.CancellationToken);
 
         // Assert: Verify tier assignment
         Assert.True(storeResult1.Success);
@@ -204,10 +196,7 @@ public class McpIntegrationTests
         Assert.Equal("Short", storeResult2.Tier); // Low importance
 
         // Act: Recall memories
-        var recallResult = await provider.RecallAsync(
-            "test-user",
-            "dark mode",
-            5);
+        var recallResult = await provider.RecallAsync("test-user", "dark mode", 5, TestContext.Current.CancellationToken);
 
         // Assert: Verify recall finds relevant memory
         Assert.True(recallResult.Success);
@@ -215,9 +204,7 @@ public class McpIntegrationTests
         Assert.Contains("dark mode", recallResult.Memories![0].Content);
 
         // Act: Search with category filter
-        var searchResult = await provider.SearchAsync(
-            "test-user",
-            new MemorySearchOptions { Category = "preferences" });
+        var searchResult = await provider.SearchAsync("test-user", new MemorySearchOptions { Category = "preferences" }, TestContext.Current.CancellationToken);
 
         // Assert: Verify search filters correctly
         Assert.True(searchResult.Success);
@@ -232,10 +219,10 @@ public class McpIntegrationTests
         var provider = new InMemoryToolsProvider();
 
         // Act: Store memories with various importance levels
-        var buffer = await provider.StoreAsync("user1", "Buffer tier", 0.1f, null);
-        var shortTerm = await provider.StoreAsync("user1", "Short tier", 0.3f, null);
-        var longTerm = await provider.StoreAsync("user1", "Long tier", 0.6f, null);
-        var archive = await provider.StoreAsync("user1", "Archive tier", 0.9f, null);
+        var buffer = await provider.StoreAsync("user1", "Buffer tier", 0.1f, null, TestContext.Current.CancellationToken);
+        var shortTerm = await provider.StoreAsync("user1", "Short tier", 0.3f, null, TestContext.Current.CancellationToken);
+        var longTerm = await provider.StoreAsync("user1", "Long tier", 0.6f, null, TestContext.Current.CancellationToken);
+        var archive = await provider.StoreAsync("user1", "Archive tier", 0.9f, null, TestContext.Current.CancellationToken);
 
         // Assert: Verify tier assignments
         Assert.Equal("Buffer", buffer.Tier);
@@ -244,12 +231,10 @@ public class McpIntegrationTests
         Assert.Equal("Archive", archive.Tier);
 
         // Verify search by tier
-        var archiveSearch = await provider.SearchAsync("user1",
-            new MemorySearchOptions { Tier = "Archive" });
+        var archiveSearch = await provider.SearchAsync("user1", new MemorySearchOptions { Tier = "Archive" }, TestContext.Current.CancellationToken);
         Assert.Equal(1, archiveSearch.Count);
 
-        var allSearch = await provider.SearchAsync("user1",
-            new MemorySearchOptions { Limit = 10 });
+        var allSearch = await provider.SearchAsync("user1", new MemorySearchOptions { Limit = 10 }, TestContext.Current.CancellationToken);
         Assert.Equal(4, allSearch.Count);
     }
 
@@ -259,22 +244,18 @@ public class McpIntegrationTests
         // Arrange
         var provider = new InMemoryToolsProvider();
 
-        var storeResult = await provider.StoreAsync(
-            "user1",
-            "Sensitive information to forget",
-            0.5f,
-            null);
+        var storeResult = await provider.StoreAsync("user1", "Sensitive information to forget", 0.5f, null, TestContext.Current.CancellationToken);
         var memoryId = storeResult.MemoryId!;
 
         // Act: Forget the memory
-        var forgetResult = await provider.ForgetAsync("user1", memoryId);
+        var forgetResult = await provider.ForgetAsync("user1", memoryId, TestContext.Current.CancellationToken);
 
         // Assert: Verify forget succeeded
         Assert.True(forgetResult.Success);
         Assert.Equal("Memory forgotten", forgetResult.Message);
 
         // Verify memory is gone
-        var searchResult = await provider.SearchAsync("user1", new MemorySearchOptions());
+        var searchResult = await provider.SearchAsync("user1", new MemorySearchOptions(), TestContext.Current.CancellationToken);
         Assert.Empty(searchResult.Memories!);
     }
 
@@ -289,33 +270,29 @@ public class McpIntegrationTests
         var provider = new InMemoryCodeExecutionProvider();
 
         // Act: Create a session
-        var createResult = await provider.CreateSessionAsync("javascript");
+        var createResult = await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
         Assert.True(createResult.Success);
         Assert.NotNull(createResult.SessionId);
         var sessionId = createResult.SessionId;
 
         // Act: Execute code in session
-        var executeResult = await provider.ExecuteAsync(
-            "console.log('Hello, World!')",
-            "javascript",
-            sessionId,
-            30);
+        var executeResult = await provider.ExecuteAsync("console.log('Hello, World!')", "javascript", sessionId, 30, TestContext.Current.CancellationToken);
 
         // Assert: Verify execution
         Assert.True(executeResult.Success);
         Assert.Equal("Hello, World!", executeResult.Stdout);
 
         // Act: List sessions
-        var listResult = await provider.ListSessionsAsync();
+        var listResult = await provider.ListSessionsAsync(TestContext.Current.CancellationToken);
         Assert.True(listResult.Success);
         Assert.Single(listResult.Sessions!);
 
         // Act: Destroy session
-        var destroyResult = await provider.DestroySessionAsync(sessionId);
+        var destroyResult = await provider.DestroySessionAsync(sessionId, TestContext.Current.CancellationToken);
         Assert.True(destroyResult.Success);
 
         // Verify session is gone
-        var listAfter = await provider.ListSessionsAsync();
+        var listAfter = await provider.ListSessionsAsync(TestContext.Current.CancellationToken);
         Assert.Empty(listAfter.Sessions!);
     }
 
@@ -326,27 +303,15 @@ public class McpIntegrationTests
         var provider = new InMemoryCodeExecutionProvider();
 
         // Act & Assert: JavaScript
-        var jsResult = await provider.ExecuteAsync(
-            "console.log('JavaScript output')",
-            "javascript",
-            null,
-            30);
+        var jsResult = await provider.ExecuteAsync("console.log('JavaScript output')", "javascript", null, 30, TestContext.Current.CancellationToken);
         Assert.Equal("JavaScript output", jsResult.Stdout);
 
         // Act & Assert: Python
-        var pyResult = await provider.ExecuteAsync(
-            "print('Python output')",
-            "python",
-            null,
-            30);
+        var pyResult = await provider.ExecuteAsync("print('Python output')", "python", null, 30, TestContext.Current.CancellationToken);
         Assert.Equal("Python output", pyResult.Stdout);
 
         // Act & Assert: Unsupported language
-        var unsupportedResult = await provider.ExecuteAsync(
-            "code",
-            "ruby",
-            null,
-            30);
+        var unsupportedResult = await provider.ExecuteAsync("code", "ruby", null, 30, TestContext.Current.CancellationToken);
         Assert.Contains("Unsupported language", unsupportedResult.Stdout);
     }
 
@@ -355,12 +320,10 @@ public class McpIntegrationTests
     {
         // Arrange
         var provider = new InMemoryCodeExecutionProvider();
-        var session = await provider.CreateSessionAsync("javascript");
+        var session = await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
 
         // Act: Install packages
-        var installResult = await provider.InstallPackagesAsync(
-            session.SessionId!,
-            ["lodash", "axios", "moment"]);
+        var installResult = await provider.InstallPackagesAsync(session.SessionId!, ["lodash", "axios", "moment"], TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(installResult.Success);
@@ -382,26 +345,15 @@ public class McpIntegrationTests
         var codeProvider = new InMemoryCodeExecutionProvider();
 
         // Step 1: Execute code
-        var codeResult = await codeProvider.ExecuteAsync(
-            "console.log('Calculation result: 42')",
-            "javascript",
-            null,
-            30);
+        var codeResult = await codeProvider.ExecuteAsync("console.log('Calculation result: 42')", "javascript", null, 30, TestContext.Current.CancellationToken);
         var codeOutput = codeResult.Stdout;
 
         // Step 2: Store the result in memory
-        var storeResult = await memoryProvider.StoreAsync(
-            "agent-1",
-            $"Code execution result: {codeOutput}",
-            0.7f,
-            "code-results");
+        var storeResult = await memoryProvider.StoreAsync("agent-1", $"Code execution result: {codeOutput}", 0.7f, "code-results", TestContext.Current.CancellationToken);
         Assert.True(storeResult.Success);
 
         // Step 3: Later, recall the result
-        var recallResult = await memoryProvider.RecallAsync(
-            "agent-1",
-            "calculation",
-            5);
+        var recallResult = await memoryProvider.RecallAsync("agent-1", "calculation", 5, TestContext.Current.CancellationToken);
 
         // Assert: Memory contains the code result
         Assert.Equal(1, recallResult.Count);
@@ -416,40 +368,22 @@ public class McpIntegrationTests
         var codeProvider = new InMemoryCodeExecutionProvider();
 
         // Create a session
-        var session = await codeProvider.CreateSessionAsync("javascript");
+        var session = await codeProvider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
 
         // Step 1: Define a variable
-        await codeProvider.ExecuteAsync(
-            "console.log('Step 1: Initialized')",
-            "javascript",
-            session.SessionId,
-            30);
+        await codeProvider.ExecuteAsync("console.log('Step 1: Initialized')", "javascript", session.SessionId, 30, TestContext.Current.CancellationToken);
 
         // Step 2: Store step completion in memory
-        await memoryProvider.StoreAsync(
-            "workflow-1",
-            "Step 1 completed: Initialized",
-            0.8f,
-            "workflow-steps");
+        await memoryProvider.StoreAsync("workflow-1", "Step 1 completed: Initialized", 0.8f, "workflow-steps", TestContext.Current.CancellationToken);
 
         // Step 3: Execute next step
-        var step2Result = await codeProvider.ExecuteAsync(
-            "console.log('Step 2: Processing complete')",
-            "javascript",
-            session.SessionId,
-            30);
+        var step2Result = await codeProvider.ExecuteAsync("console.log('Step 2: Processing complete')", "javascript", session.SessionId, 30, TestContext.Current.CancellationToken);
 
         // Store step 2
-        await memoryProvider.StoreAsync(
-            "workflow-1",
-            $"Step 2 completed: {step2Result.Stdout}",
-            0.8f,
-            "workflow-steps");
+        await memoryProvider.StoreAsync("workflow-1", $"Step 2 completed: {step2Result.Stdout}", 0.8f, "workflow-steps", TestContext.Current.CancellationToken);
 
         // Verify workflow history
-        var workflowMemories = await memoryProvider.SearchAsync(
-            "workflow-1",
-            new MemorySearchOptions { Category = "workflow-steps", Limit = 10 });
+        var workflowMemories = await memoryProvider.SearchAsync("workflow-1", new MemorySearchOptions { Category = "workflow-steps", Limit = 10 }, TestContext.Current.CancellationToken);
 
         Assert.Equal(2, workflowMemories.Count);
     }
@@ -465,9 +399,7 @@ public class McpIntegrationTests
         var provider = new InMemoryCodeExecutionProvider();
 
         // Act: Try to install packages on non-existent session
-        var result = await provider.InstallPackagesAsync(
-            "nonexistent-session",
-            ["lodash"]);
+        var result = await provider.InstallPackagesAsync("nonexistent-session", ["lodash"], TestContext.Current.CancellationToken);
 
         // Assert: Should return error gracefully
         Assert.False(result.Success);
@@ -481,7 +413,7 @@ public class McpIntegrationTests
         var provider = new InMemoryToolsProvider();
 
         // Act: Try to forget non-existent memory
-        var result = await provider.ForgetAsync("user1", "nonexistent-memory");
+        var result = await provider.ForgetAsync("user1", "nonexistent-memory", TestContext.Current.CancellationToken);
 
         // Assert: Should return failure gracefully
         Assert.False(result.Success);
@@ -495,7 +427,7 @@ public class McpIntegrationTests
         var provider = new InMemoryToolsProvider();
 
         // Act: Recall from empty store
-        var result = await provider.RecallAsync("user1", "anything", 10);
+        var result = await provider.RecallAsync("user1", "anything", 10, TestContext.Current.CancellationToken);
 
         // Assert: Should return empty, not error
         Assert.True(result.Success);
@@ -529,9 +461,7 @@ public class McpIntegrationTests
         }
 
         // Verify all memories were stored
-        var searchResult = await provider.SearchAsync(
-            "user1",
-            new MemorySearchOptions { Category = "concurrent", Limit = 20 });
+        var searchResult = await provider.SearchAsync("user1", new MemorySearchOptions { Category = "concurrent", Limit = 20 }, TestContext.Current.CancellationToken);
         Assert.Equal(10, searchResult.Count);
     }
 
@@ -642,9 +572,9 @@ public class McpIntegrationTests
         await manager.DisposeAsync();
 
         // Assert: Operations should throw after disposal
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => manager.GetToolsAsync());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => manager.GetToolsAsync(TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ObjectDisposedException>(() =>
-            manager.ConnectAsync("test", new McpPluginConfig { Command = "test" }));
+            manager.ConnectAsync("test", new McpPluginConfig { Command = "test" }, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -659,7 +589,7 @@ public class McpIntegrationTests
         await reloader.DisposeAsync();
 
         // Assert: Operations should throw after disposal
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => reloader.InitializeAsync());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => reloader.InitializeAsync(TestContext.Current.CancellationToken));
 
         // Cleanup
         await manager.DisposeAsync();

@@ -62,8 +62,8 @@ public class IronbeesIntegrationExtensionsTests : IDisposable
         var conversationStoreProbe = provider.GetService<IConversationStore>();
         conversationStoreProbe.Should().NotBeNull("AddIronbees registers IConversationStore when ConversationsDirectory is set");
 
-        await conversationStoreProbe!.AppendMessageAsync("probe-id", new ConversationMessage { Role = "user", Content = "probe" });
-        var probeCount = await conversationStoreProbe.GetMessageCountAsync("probe-id");
+        await conversationStoreProbe!.AppendMessageAsync("probe-id", new ConversationMessage { Role = "user", Content = "probe" }, TestContext.Current.CancellationToken);
+        var probeCount = await conversationStoreProbe.GetMessageCountAsync("probe-id", TestContext.Current.CancellationToken);
         probeCount.Should().Be(1, "the store itself must persist independent of OrchestratedAgentLoop");
 
         var loop = provider.GetRequiredKeyedService<IAgentLoop>("orchestrated");
@@ -75,12 +75,12 @@ public class IronbeesIntegrationExtensionsTests : IDisposable
             new ChatMessage(ChatRole.Assistant, "hi there")
         };
 
-        await loop.InitializeHistoryAsync(seedMessages);
+        await loop.InitializeHistoryAsync(seedMessages, TestContext.Current.CancellationToken);
 
         var filesAfterInit = Directory.GetFiles(_conversationsDirectory, "*.json", SearchOption.AllDirectories);
         filesAfterInit.Should().HaveCount(2, "InitializeHistoryAsync should have written a conversation file beyond the probe's");
 
-        var history = await loop.GetHistoryAsync();
+        var history = await loop.GetHistoryAsync(TestContext.Current.CancellationToken);
 
         history.Should().HaveCount(2);
         history[0].Role.Should().Be(ChatRole.User);
@@ -90,14 +90,14 @@ public class IronbeesIntegrationExtensionsTests : IDisposable
 
         // Prove the file-system backing (not just an in-memory field): read the conversation
         // straight from IConversationStore under this loop's own conversation id.
-        var storedIds = await conversationStoreProbe.ListAsync();
+        var storedIds = await conversationStoreProbe.ListAsync(cancellationToken: TestContext.Current.CancellationToken);
         var loopConversationId = storedIds.Single(id => id != "probe-id");
-        var reloaded = await conversationStoreProbe.LoadAsync(loopConversationId);
+        var reloaded = await conversationStoreProbe.LoadAsync(loopConversationId, TestContext.Current.CancellationToken);
         reloaded.Should().NotBeNull();
         reloaded!.Messages.Should().HaveCount(2);
 
-        await loop.ClearHistoryAsync();
-        var historyAfterClear = await loop.GetHistoryAsync();
+        await loop.ClearHistoryAsync(TestContext.Current.CancellationToken);
+        var historyAfterClear = await loop.GetHistoryAsync(TestContext.Current.CancellationToken);
         historyAfterClear.Should().BeEmpty();
     }
 
@@ -119,8 +119,8 @@ public class IronbeesIntegrationExtensionsTests : IDisposable
         await using var provider = services.BuildServiceProvider();
         var loop = provider.GetRequiredKeyedService<IAgentLoop>("orchestrated");
 
-        await loop.InitializeHistoryAsync([new ChatMessage(ChatRole.User, "hello")]);
-        var history = await loop.GetHistoryAsync();
+        await loop.InitializeHistoryAsync([new ChatMessage(ChatRole.User, "hello")], TestContext.Current.CancellationToken);
+        var history = await loop.GetHistoryAsync(TestContext.Current.CancellationToken);
 
         history.Should().BeEmpty();
     }

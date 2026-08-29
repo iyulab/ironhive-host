@@ -57,7 +57,7 @@ public class PerformanceBenchmarks
         var history = CreateLargeHistory(50);
 
         var sw = Stopwatch.StartNew();
-        var result = await compactor.CompactAsync(history, 5000);
+        var result = await compactor.CompactAsync(history, 5000, TestContext.Current.CancellationToken);
         sw.Stop();
 
         Assert.True(sw.ElapsedMilliseconds < 500, $"Compaction took {sw.ElapsedMilliseconds}ms");

@@ -64,11 +64,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.ExecuteAsync(
-            "console.log('Hello')",
-            "javascript",
-            null,
-            30);
+        var result = await provider.ExecuteAsync("console.log('Hello')", "javascript", null, 30, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.NotNull(result.Stdout);
@@ -79,11 +75,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.ExecuteAsync(
-            "console.log('Hello World')",
-            "javascript",
-            null,
-            30);
+        var result = await provider.ExecuteAsync("console.log('Hello World')", "javascript", null, 30, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal("Hello World", result.Stdout);
@@ -94,11 +86,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.ExecuteAsync(
-            "print('Hello Python')",
-            "python",
-            null,
-            30);
+        var result = await provider.ExecuteAsync("print('Hello Python')", "python", null, 30, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal("Hello Python", result.Stdout);
@@ -109,11 +97,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.ExecuteAsync(
-            "code",
-            "ruby",
-            null,
-            30);
+        var result = await provider.ExecuteAsync("code", "ruby", null, 30, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Contains("Unsupported language", result.Stdout);
@@ -124,7 +108,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.CreateSessionAsync("javascript");
+        var result = await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.NotNull(result.SessionId);
@@ -137,8 +121,8 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var session1 = await provider.CreateSessionAsync("javascript");
-        var session2 = await provider.CreateSessionAsync("python");
+        var session1 = await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
+        var session2 = await provider.CreateSessionAsync("python", TestContext.Current.CancellationToken);
 
         Assert.NotEqual(session1.SessionId, session2.SessionId);
     }
@@ -148,13 +132,13 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var createResult = await provider.CreateSessionAsync("javascript");
-        var destroyResult = await provider.DestroySessionAsync(createResult.SessionId!);
+        var createResult = await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
+        var destroyResult = await provider.DestroySessionAsync(createResult.SessionId!, TestContext.Current.CancellationToken);
 
         Assert.True(destroyResult.Success);
 
         // Verify session is gone
-        var listResult = await provider.ListSessionsAsync();
+        var listResult = await provider.ListSessionsAsync(TestContext.Current.CancellationToken);
         Assert.DoesNotContain(listResult.Sessions!, s => s.SessionId == createResult.SessionId);
     }
 
@@ -163,7 +147,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.DestroySessionAsync("nonexistent");
+        var result = await provider.DestroySessionAsync("nonexistent", TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("Session not found", result.Error);
@@ -174,10 +158,10 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        await provider.CreateSessionAsync("javascript");
-        await provider.CreateSessionAsync("python");
+        await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
+        await provider.CreateSessionAsync("python", TestContext.Current.CancellationToken);
 
-        var result = await provider.ListSessionsAsync();
+        var result = await provider.ListSessionsAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(2, result.Sessions!.Count);
@@ -188,7 +172,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.ListSessionsAsync();
+        var result = await provider.ListSessionsAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Empty(result.Sessions!);
@@ -199,8 +183,8 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var session = await provider.CreateSessionAsync("javascript");
-        var result = await provider.InstallPackagesAsync(session.SessionId!, ["lodash", "axios"]);
+        var session = await provider.CreateSessionAsync("javascript", TestContext.Current.CancellationToken);
+        var result = await provider.InstallPackagesAsync(session.SessionId!, ["lodash", "axios"], TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(2, result.InstalledPackages!.Count);
@@ -213,7 +197,7 @@ public class InMemoryCodeExecutionProviderTests
     {
         var provider = new InMemoryCodeExecutionProvider();
 
-        var result = await provider.InstallPackagesAsync("nonexistent", ["lodash"]);
+        var result = await provider.InstallPackagesAsync("nonexistent", ["lodash"], TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("Session not found", result.Error);

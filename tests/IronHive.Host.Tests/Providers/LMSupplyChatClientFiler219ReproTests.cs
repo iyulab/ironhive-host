@@ -5,7 +5,6 @@ using IronHive.Host.Providers;
 using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
-using Xunit.Abstractions;
 using MeaiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace IronHive.Host.Tests.Providers;
@@ -56,9 +55,7 @@ public class LMSupplyChatClientFiler219ReproTests
     [Fact]
     public async Task Call3_FaithfulReplay_ThroughAdapter_TextDeltaCount()
     {
-        await using var generator = await LocalGenerator.LoadAsync(
-            "gguf:qwen3-fast",
-            new GeneratorOptions { MaxContextLength = 16384 });
+        await using var generator = await LocalGenerator.LoadAsync("gguf:qwen3-fast", new GeneratorOptions { MaxContextLength = 16384 }, cancellationToken: TestContext.Current.CancellationToken);
 
         LogModel(generator);
         var client = new LMSupplyChatClient(generator);
@@ -84,9 +81,7 @@ public class LMSupplyChatClientFiler219ReproTests
     [Fact]
     public async Task Call3_FaithfulReplay_AutoPath_LogsSelectionDiagnostics()
     {
-        await using var generator = await LocalGenerator.LoadAsync(
-            "gguf:auto",
-            new GeneratorOptions { MaxContextLength = 16384 });
+        await using var generator = await LocalGenerator.LoadAsync("gguf:auto", new GeneratorOptions { MaxContextLength = 16384 }, cancellationToken: TestContext.Current.CancellationToken);
 
         LogModel(generator);
         var client = new LMSupplyChatClient(generator);
@@ -112,9 +107,7 @@ public class LMSupplyChatClientFiler219ReproTests
     [Fact]
     public async Task FullSequence_Call1Call2Call3_OnPersistentGenerator()
     {
-        await using var generator = await LocalGenerator.LoadAsync(
-            "gguf:auto",
-            new GeneratorOptions { MaxContextLength = 16384 });
+        await using var generator = await LocalGenerator.LoadAsync("gguf:auto", new GeneratorOptions { MaxContextLength = 16384 }, cancellationToken: TestContext.Current.CancellationToken);
 
         LogModel(generator);
         var client = new LMSupplyChatClient(generator);

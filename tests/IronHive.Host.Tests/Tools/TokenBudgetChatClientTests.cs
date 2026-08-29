@@ -33,7 +33,7 @@ public class TokenBudgetChatClientTests
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 4096, threshold: 0.8);
 
         var collected = new List<ChatResponseUpdate>();
-        await foreach (var update in client.GetStreamingResponseAsync(MessageOf("short prompt")))
+        await foreach (var update in client.GetStreamingResponseAsync(MessageOf("short prompt"), cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.Add(update);
         }
@@ -55,7 +55,7 @@ public class TokenBudgetChatClientTests
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 4096, threshold: 0.8);
 
         var collected = new List<ChatResponseUpdate>();
-        await foreach (var update in client.GetStreamingResponseAsync(MessageOf(huge)))
+        await foreach (var update in client.GetStreamingResponseAsync(MessageOf(huge), cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.Add(update);
         }
@@ -83,7 +83,7 @@ public class TokenBudgetChatClientTests
 
         var medium = new string('x', 5000); // exceeds 1024 × 0.8 budget but well under 99999 default
         var collected = new List<ChatResponseUpdate>();
-        await foreach (var update in client.GetStreamingResponseAsync(MessageOf(medium)))
+        await foreach (var update in client.GetStreamingResponseAsync(MessageOf(medium), cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.Add(update);
         }
@@ -101,7 +101,7 @@ public class TokenBudgetChatClientTests
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 256, threshold: 0.8);
 
         var collected = new List<ChatResponseUpdate>();
-        await foreach (var update in client.GetStreamingResponseAsync(MessageOf("hi")))
+        await foreach (var update in client.GetStreamingResponseAsync(MessageOf("hi"), cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.Add(update);
         }
@@ -124,7 +124,7 @@ public class TokenBudgetChatClientTests
         };
 
         var collected = new List<ChatResponseUpdate>();
-        await foreach (var update in client.GetStreamingResponseAsync(messages))
+        await foreach (var update in client.GetStreamingResponseAsync(messages, cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.Add(update);
         }
@@ -149,7 +149,7 @@ public class TokenBudgetChatClientTests
         };
 
         var collected = new List<ChatResponseUpdate>();
-        await foreach (var update in client.GetStreamingResponseAsync(messages))
+        await foreach (var update in client.GetStreamingResponseAsync(messages, cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.Add(update);
         }

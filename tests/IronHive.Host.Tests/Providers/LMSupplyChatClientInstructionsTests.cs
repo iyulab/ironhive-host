@@ -49,9 +49,7 @@ public class LMSupplyChatClientInstructionsTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions { Instructions = "You are a terse assistant." };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         Assert.Single(captured);
         var sent = captured[0];
@@ -67,9 +65,7 @@ public class LMSupplyChatClientInstructionsTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions();
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         Assert.Single(captured);
         var sent = captured[0];
@@ -83,9 +79,7 @@ public class LMSupplyChatClientInstructionsTests
         var generator = BuildStubGenerator(out var captured);
         var client = new LMSupplyChatClient(generator);
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options: null);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options: null, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(captured);
         var sent = captured[0];
@@ -105,7 +99,7 @@ public class LMSupplyChatClientInstructionsTests
             new ChatMessage(ChatRole.User, "Hi")
         };
 
-        await client.GetResponseAsync(messages, options);
+        await client.GetResponseAsync(messages, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0];
         Assert.Equal(3, sent.Count);

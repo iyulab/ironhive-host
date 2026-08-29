@@ -342,7 +342,7 @@ public class AgentServerRunnerTests
         input.Enqueue("""{"type":"shutdown"}""");
         input.Complete();
 
-        await runTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await runTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         var events = ParseEvents(output);
         events.Should().NotBeEmpty();
@@ -386,7 +386,7 @@ public class AgentServerRunnerTests
         input.Enqueue("""{"type":"shutdown"}""");
         input.Complete();
 
-        await runTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await runTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         receivedContents.Should().Equal("first", "second");
     }

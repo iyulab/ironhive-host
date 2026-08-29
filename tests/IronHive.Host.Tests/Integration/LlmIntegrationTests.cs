@@ -79,7 +79,7 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(client);
     }
@@ -94,9 +94,9 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var response = await client.GetResponseAsync("Say 'Hello' and nothing else.");
+        var response = await client.GetResponseAsync("Say 'Hello' and nothing else.", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.NotNull(response.Text);
@@ -111,10 +111,10 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var tokens = new List<string>();
-        await foreach (var update in client.GetStreamingResponseAsync("Count from 1 to 5."))
+        await foreach (var update in client.GetStreamingResponseAsync("Count from 1 to 5.", cancellationToken: TestContext.Current.CancellationToken))
         {
             if (!string.IsNullOrEmpty(update.Text))
             {
@@ -134,10 +134,10 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var agentLoop = new AgentLoop(client);
-        var response = await agentLoop.RunAsync("What is 2 + 2?");
+        var response = await agentLoop.RunAsync("What is 2 + 2?", TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.NotNull(response.Content);
@@ -153,16 +153,16 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var agentLoop = new AgentLoop(client);
 
         // First turn: introduce information
-        var response1 = await agentLoop.RunAsync("The secret number is 42. Remember this.");
+        var response1 = await agentLoop.RunAsync("The secret number is 42. Remember this.", TestContext.Current.CancellationToken);
         Assert.NotNull(response1);
 
         // Second turn: ask about the information
-        var response2 = await agentLoop.RunAsync("What is the secret number I mentioned?");
+        var response2 = await agentLoop.RunAsync("What is the secret number I mentioned?", TestContext.Current.CancellationToken);
         Assert.NotNull(response2);
         Assert.Contains("42", response2.Content);
     }
@@ -176,7 +176,7 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var agentLoop = new AgentLoop(client);
         using var cts = new CancellationTokenSource();
@@ -209,12 +209,12 @@ public class LlmIntegrationTests
         }
 
         using var provider = CreateGpuStackProvider();
-        var client = await provider.GetChatClientAsync();
+        var client = await provider.GetChatClientAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var agentLoop = new AgentLoop(client);
         var chunks = new List<string>();
 
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Count from 1 to 5, one per line."))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Count from 1 to 5, one per line.", TestContext.Current.CancellationToken))
         {
             if (!string.IsNullOrEmpty(chunk.TextDelta))
             {

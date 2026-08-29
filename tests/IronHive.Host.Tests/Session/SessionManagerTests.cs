@@ -53,7 +53,7 @@ public class SessionManagerTests : IDisposable
         var session = await _sessionManager.CreateSessionAsync(projectPath, model);
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("session_start", content);
         Assert.Contains(session.Id, content);
         Assert.Contains(model, content);
@@ -93,7 +93,7 @@ public class SessionManagerTests : IDisposable
         // Arrange
         var projectPath = "/test/project";
         var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model1");
-        await Task.Delay(10); // Ensure different timestamps
+        await Task.Delay(10, TestContext.Current.CancellationToken); // Ensure different timestamps
         var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model2");
 
         // Act
@@ -120,9 +120,9 @@ public class SessionManagerTests : IDisposable
         // Arrange
         var projectPath = "/test/project";
         var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model1");
-        await Task.Delay(10);
+        await Task.Delay(10, TestContext.Current.CancellationToken);
         var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model2");
-        await Task.Delay(10);
+        await Task.Delay(10, TestContext.Current.CancellationToken);
         var session3 = await _sessionManager.CreateSessionAsync(projectPath, "model3");
 
         // Act
@@ -143,7 +143,7 @@ public class SessionManagerTests : IDisposable
         for (var i = 0; i < 5; i++)
         {
             await _sessionManager.CreateSessionAsync(projectPath, $"model{i}");
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         // Act
@@ -164,7 +164,7 @@ public class SessionManagerTests : IDisposable
         await _sessionManager.SaveUserMessageAsync(session, message);
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("user_message", content);
         Assert.Contains(message, content);
     }
@@ -180,7 +180,7 @@ public class SessionManagerTests : IDisposable
         await _sessionManager.SaveAssistantMessageAsync(session, message);
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("assistant_message", content);
         Assert.Contains(message, content);
     }
@@ -198,7 +198,7 @@ public class SessionManagerTests : IDisposable
         await _sessionManager.SaveToolUseAsync(session, tool, input, toolUseId);
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("tool_use", content);
         Assert.Contains(tool, content);
         Assert.Contains(toolUseId, content);
@@ -216,7 +216,7 @@ public class SessionManagerTests : IDisposable
         await _sessionManager.SaveToolResultAsync(session, toolUseId, output);
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("tool_result", content);
         Assert.Contains(toolUseId, content);
         Assert.Contains(output, content);
@@ -234,7 +234,7 @@ public class SessionManagerTests : IDisposable
         await _sessionManager.SaveToolResultAsync(session, toolUseId, error, isError: true);
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("is_error", content);
         Assert.Contains("true", content);
     }
@@ -341,7 +341,7 @@ public class SessionManagerTests : IDisposable
         Assert.True(File.Exists(forked.TranscriptPath));
 
         // Verify forked session has resume entry
-        var content = await File.ReadAllTextAsync(forked.TranscriptPath);
+        var content = await File.ReadAllTextAsync(forked.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("session_resume", content);
         Assert.Contains(session.Id, content); // forked_from reference
     }
@@ -356,7 +356,7 @@ public class SessionManagerTests : IDisposable
         await _sessionManager.EndSessionAsync(session, "user_exit");
 
         // Assert
-        var content = await File.ReadAllTextAsync(session.TranscriptPath);
+        var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
         Assert.Contains("session_end", content);
         Assert.Contains("user_exit", content);
     }
@@ -413,7 +413,7 @@ public class SessionManagerTests : IDisposable
     {
         // Arrange & Act
         var session1 = await _sessionManager.CreateSessionAsync("/test", "model");
-        await Task.Delay(10);
+        await Task.Delay(10, TestContext.Current.CancellationToken);
         var session2 = await _sessionManager.CreateSessionAsync("/test", "model");
 
         // Assert

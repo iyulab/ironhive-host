@@ -17,7 +17,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        var response = await agentLoop.RunAsync("Hello");
+        var response = await agentLoop.RunAsync("Hello", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Hello! I'm here to help.", response.Content);
@@ -39,7 +39,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient, options);
 
         // Act
-        await agentLoop.RunAsync("Who are you?");
+        await agentLoop.RunAsync("Who are you?", TestContext.Current.CancellationToken);
 
         // Assert
         var history = agentLoop.History;
@@ -59,8 +59,8 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        await agentLoop.RunAsync("Hello");
-        await agentLoop.RunAsync("Nice to meet you");
+        await agentLoop.RunAsync("Hello", TestContext.Current.CancellationToken);
+        await agentLoop.RunAsync("Nice to meet you", TestContext.Current.CancellationToken);
 
         // Assert
         var history = agentLoop.History;
@@ -86,7 +86,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        var response = await agentLoop.RunAsync("Test");
+        var response = await agentLoop.RunAsync("Test", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(response.Usage);
@@ -110,7 +110,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient, options);
 
         // Act - Add a message then clear
-        await agentLoop.RunAsync("Hello");
+        await agentLoop.RunAsync("Hello", TestContext.Current.CancellationToken);
         agentLoop.ClearHistory();
 
         // Assert - Only system prompt remains
@@ -126,8 +126,8 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => agentLoop.RunAsync(""));
-        await Assert.ThrowsAsync<ArgumentException>(() => agentLoop.RunAsync("   "));
+        await Assert.ThrowsAsync<ArgumentException>(() => agentLoop.RunAsync("", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => agentLoop.RunAsync("   ", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        var response = await agentLoop.RunAsync("Read the test.txt file");
+        var response = await agentLoop.RunAsync("Read the test.txt file", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(response.ToolCalls);
@@ -177,7 +177,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act - First call returns tool call
-        var response1 = await agentLoop.RunAsync("List directory and read README");
+        var response1 = await agentLoop.RunAsync("List directory and read README", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(response1.ToolCalls);
@@ -195,7 +195,7 @@ public class AgentLoopTests
 
         // Act
         var chunks = new List<AgentResponseChunk>();
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Hello"))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Hello", TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -221,7 +221,7 @@ public class AgentLoopTests
 
         // Act
         var chunks = new List<AgentResponseChunk>();
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Write hello to output.txt"))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Write hello to output.txt", TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }
@@ -242,7 +242,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient);
 
         // Act
-        await foreach (var _ in agentLoop.RunStreamingAsync("Test prompt"))
+        await foreach (var _ in agentLoop.RunStreamingAsync("Test prompt", TestContext.Current.CancellationToken))
         {
             // Consume all chunks
         }
@@ -266,7 +266,7 @@ public class AgentLoopTests
 
         // Act
         var chunks = new List<AgentResponseChunk>();
-        var enumerator = agentLoop.RunStreamingAsync("Test", cts.Token).GetAsyncEnumerator();
+        var enumerator = agentLoop.RunStreamingAsync("Test", cts.Token).GetAsyncEnumerator(TestContext.Current.CancellationToken);
 
         // Get first chunk then cancel
         if (await enumerator.MoveNextAsync())
@@ -297,7 +297,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient, options);
 
         // Act
-        await agentLoop.RunAsync("Test");
+        await agentLoop.RunAsync("Test", TestContext.Current.CancellationToken);
 
         // Assert - Verify system prompt was included
         var history = agentLoop.History;
@@ -404,7 +404,7 @@ public class AgentLoopTests
         agentLoop.InitializeHistory(restoredMessages);
 
         // Act
-        var response = await agentLoop.RunAsync("How are you?");
+        var response = await agentLoop.RunAsync("How are you?", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("I'm doing great, thanks for asking!", response.Content);
@@ -425,7 +425,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient, contextManager: contextManager);
 
         // Act
-        var response = await agentLoop.RunAsync("Help me write code");
+        var response = await agentLoop.RunAsync("Help me write code", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(agentLoop.ContextManager);
@@ -481,7 +481,7 @@ public class AgentLoopTests
         var agentLoop = new AgentLoop(mockClient, contextManager: contextManager);
 
         // Act
-        await agentLoop.RunAsync("Optimize the database queries for better performance");
+        await agentLoop.RunAsync("Optimize the database queries for better performance", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Optimize the database queries for better performance", contextManager.GoalReminder.CurrentGoal);
@@ -501,7 +501,7 @@ public class AgentLoopTests
 
         // Act
         var chunks = new List<AgentResponseChunk>();
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Test streaming"))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Test streaming", TestContext.Current.CancellationToken))
         {
             chunks.Add(chunk);
         }

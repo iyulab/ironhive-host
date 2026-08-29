@@ -48,7 +48,7 @@ public class ExecutionLogServiceTests : IDisposable
         await sut.BeginTurnAsync("Hello, world!");
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         lines.Should().HaveCount(1);
 
         var entry = JsonDocument.Parse(lines[0]);
@@ -95,7 +95,7 @@ public class ExecutionLogServiceTests : IDisposable
         await sut.EndTurnAsync();
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         // turn_start + tool_call + turn_end = 3 entries
         lines.Should().HaveCount(3);
 
@@ -140,7 +140,7 @@ public class ExecutionLogServiceTests : IDisposable
         sut.TotalSteps.Should().Be(2);
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         // turn_start + tool_call(GlobFiles) + tool_call(ReadFile) + turn_end = 4
         lines.Should().HaveCount(4);
 
@@ -169,7 +169,7 @@ public class ExecutionLogServiceTests : IDisposable
         sut.TotalSteps.Should().Be(0);
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         // turn_start only -- no turn_end because stepCount is 0
         lines.Should().HaveCount(1);
     }
@@ -213,7 +213,7 @@ public class ExecutionLogServiceTests : IDisposable
         await sut.BeginTurnAsync(longPrompt);
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         var entry = JsonDocument.Parse(lines[0]);
         var prompt = entry.RootElement.GetProperty("prompt").GetString();
         prompt!.Length.Should().BeLessThanOrEqualTo(504); // 500 + "..."
@@ -234,7 +234,7 @@ public class ExecutionLogServiceTests : IDisposable
         await sut.EndTurnAsync(responseLength: 1500);
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         var endEntry = JsonDocument.Parse(lines[^1]);
         endEntry.RootElement.GetProperty("responseChars").GetInt32().Should().Be(1500);
     }
@@ -280,7 +280,7 @@ public class ExecutionLogServiceTests : IDisposable
         await sut.EndTurnAsync();
         await sut.DisposeAsync();
 
-        var lines = await File.ReadAllLinesAsync(path);
+        var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
         var toolEntry = JsonDocument.Parse(lines[1]);
         toolEntry.RootElement.TryGetProperty("timestamp", out _).Should().BeTrue();
     }

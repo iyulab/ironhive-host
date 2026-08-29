@@ -91,7 +91,7 @@ public class HostCompactionWiringTests
             turnManager,
             compactionConfig: new HostCompactionConfig());
 
-        var loop = await factory.CreateAsync(new AgentLoopFactoryOptions { Model = "gpt-4o" });
+        var loop = await factory.CreateAsync(new AgentLoopFactoryOptions { Model = "gpt-4o" }, TestContext.Current.CancellationToken);
 
         var field = typeof(ThinkingAgentLoop).GetField("_contextManager", BindingFlags.NonPublic | BindingFlags.Instance);
         field.Should().NotBeNull();

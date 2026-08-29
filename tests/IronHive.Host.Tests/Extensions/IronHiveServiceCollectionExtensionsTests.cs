@@ -181,7 +181,7 @@ public class IronHiveServiceCollectionExtensionsTests
         var agentLoop = provider.GetRequiredService<IAgentLoop>();
 
         // Act
-        var response = await agentLoop.RunAsync("Hi there");
+        var response = await agentLoop.RunAsync("Hi there", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Hello! How can I help you?", response.Content);

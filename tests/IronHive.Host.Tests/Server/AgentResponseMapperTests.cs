@@ -14,7 +14,7 @@ public class AgentResponseMapperTests
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk { TextDelta = "hello" });
         var events = new List<ServerEvent>();
-        await foreach (var evt in chunks.ToServerEvents())
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
         {
             events.Add(evt);
         }
@@ -32,7 +32,7 @@ public class AgentResponseMapperTests
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", NameDelta = "ReadFile" }
         });
         var events = new List<ServerEvent>();
-        await foreach (var evt in chunks.ToServerEvents())
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
         {
             events.Add(evt);
         }
@@ -50,7 +50,7 @@ public class AgentResponseMapperTests
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", ArgumentsDelta = "{\"a\":1}" }
         });
         var events = new List<ServerEvent>();
-        await foreach (var evt in chunks.ToServerEvents())
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
         {
             events.Add(evt);
         }
@@ -65,7 +65,7 @@ public class AgentResponseMapperTests
         var chunk = new AgentResponseChunk { TextDelta = "hi" };
         var chunks = ToAsyncEnumerable(chunk);
 
-        await foreach (var _ in chunks.ToServerEvents(logger))
+        await foreach (var _ in chunks.ToServerEvents(logger, ct: TestContext.Current.CancellationToken))
         {
         }
 
@@ -84,7 +84,7 @@ public class AgentResponseMapperTests
             new AgentResponseChunk { TextDelta = "B" }
         );
         var events = new List<ServerEvent>();
-        await foreach (var evt in chunks.ToServerEvents())
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
         {
             events.Add(evt);
         }

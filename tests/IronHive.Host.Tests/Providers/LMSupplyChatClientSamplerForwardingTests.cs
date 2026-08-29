@@ -52,9 +52,7 @@ public class LMSupplyChatClientSamplerForwardingTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions { TopP = 0.95f, TopK = 40 };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         Assert.Single(captured);
         var sent = captured[0];
@@ -70,9 +68,7 @@ public class LMSupplyChatClientSamplerForwardingTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions { FrequencyPenalty = 0.3f, PresencePenalty = 0.5f };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(0.3f, sent.FrequencyPenalty);
@@ -90,9 +86,7 @@ public class LMSupplyChatClientSamplerForwardingTests
             StopSequences = ["</answer>", "###"]
         };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(42, sent.Seed);
@@ -109,9 +103,7 @@ public class LMSupplyChatClientSamplerForwardingTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions { Temperature = 0.7f, MaxOutputTokens = 256 };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(0.7f, sent.Temperature);
@@ -124,9 +116,7 @@ public class LMSupplyChatClientSamplerForwardingTests
         var generator = BuildStubGenerator(out var captured);
         var client = new LMSupplyChatClient(generator);
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options: null);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options: null, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(captured);
         Assert.Null(captured[0]);
@@ -139,9 +129,7 @@ public class LMSupplyChatClientSamplerForwardingTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions { Temperature = 0.7f };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         // Temperature was set; everything else stays at LmGenerationOptions defaults
@@ -176,9 +164,7 @@ public class LMSupplyChatClientSamplerForwardingTests
             }
         };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(1.0f, sent.RepetitionPenalty);
@@ -197,9 +183,7 @@ public class LMSupplyChatClientSamplerForwardingTests
             }
         };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(0.0f, sent.MinP);
@@ -221,9 +205,7 @@ public class LMSupplyChatClientSamplerForwardingTests
             }
         };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(1.0f, sent.RepetitionPenalty);
@@ -246,9 +228,7 @@ public class LMSupplyChatClientSamplerForwardingTests
             }
         };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(1.0f, sent.RepetitionPenalty);
@@ -265,9 +245,7 @@ public class LMSupplyChatClientSamplerForwardingTests
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions { Temperature = 0.7f };
 
-        await client.GetResponseAsync(
-            new[] { new ChatMessage(ChatRole.User, "Hi") },
-            options);
+        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(1.1f, sent.RepetitionPenalty);

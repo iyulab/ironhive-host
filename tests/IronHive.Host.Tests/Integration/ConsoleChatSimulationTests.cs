@@ -54,9 +54,9 @@ public class ConsoleChatSimulationTests : IDisposable
         _mockClient.EnqueueResponse("Goodbye! Have a great day!");
 
         // Act - Simulate 3-turn conversation
-        var response1 = await agentLoop.RunAsync("Hello");
-        var response2 = await agentLoop.RunAsync("How are you?");
-        var response3 = await agentLoop.RunAsync("Bye");
+        var response1 = await agentLoop.RunAsync("Hello", TestContext.Current.CancellationToken);
+        var response2 = await agentLoop.RunAsync("How are you?", TestContext.Current.CancellationToken);
+        var response3 = await agentLoop.RunAsync("Bye", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Hello! How can I assist you today?", response1.Content);
@@ -76,7 +76,7 @@ public class ConsoleChatSimulationTests : IDisposable
 
         // Act
         var chunks = new List<string>();
-        await foreach (var chunk in agentLoop.RunStreamingAsync("Tell me something"))
+        await foreach (var chunk in agentLoop.RunStreamingAsync("Tell me something", TestContext.Current.CancellationToken))
         {
             if (!string.IsNullOrEmpty(chunk.TextDelta))
             {
@@ -106,7 +106,7 @@ public class ConsoleChatSimulationTests : IDisposable
 
         // Simulate conversation
         _mockClient.EnqueueResponse("Hello from session!");
-        var response = await agentLoop.RunAsync("Hi");
+        var response = await agentLoop.RunAsync("Hi", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Hello from session!", response.Content);
@@ -139,9 +139,9 @@ public class ConsoleChatSimulationTests : IDisposable
 
         // Create multiple sessions
         await sessionManager.CreateSessionAsync(_testDir, "model1");
-        await Task.Delay(10); // Ensure different timestamps
+        await Task.Delay(10, TestContext.Current.CancellationToken); // Ensure different timestamps
         await sessionManager.CreateSessionAsync(_testDir, "model2");
-        await Task.Delay(10);
+        await Task.Delay(10, TestContext.Current.CancellationToken);
         await sessionManager.CreateSessionAsync(_testDir, "model3");
 
         // Act - List sessions
@@ -201,7 +201,7 @@ public class ConsoleChatSimulationTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => agentLoop.RunAsync("Trigger error"));
+            () => agentLoop.RunAsync("Trigger error", TestContext.Current.CancellationToken));
     }
 
     [Fact]
