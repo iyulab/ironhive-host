@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using IronHive.Host.Update;
@@ -149,13 +150,23 @@ public class GitHubUpdateServiceTests
         var httpClient = new HttpClient(mockHandler);
         var service = new GitHubUpdateService(httpClient);
 
-        var progressReports = new List<UpdateProgress>();
-        var progress = new Progress<UpdateProgress>(p => progressReports.Add(p));
+        var progressReports = new ConcurrentQueue<UpdateProgress>();
+        var progressGate = new SemaphoreSlim(0);
+        var progress = new Progress<UpdateProgress>(p =>
+        {
+            progressReports.Enqueue(p);
+            progressGate.Release();
+        });
 
         // Act
         await service.UpdateAsync(progress, TestContext.Current.CancellationToken);
 
-        // Assert
+        // Assert — Progress<T> without a captured SynchronizationContext (the case for this test
+        // host) dispatches each Report() call through the ThreadPool, which does not block the
+        // caller: by the time UpdateAsync returns, the callback may simply not have run yet.
+        // https://learn.microsoft.com/dotnet/api/system.progress-1
+        var signaled = await progressGate.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.True(signaled, "progress callback should fire within 5s");
         Assert.NotEmpty(progressReports);
         Assert.Contains(progressReports, p => p.Operation.Contains("Checking", StringComparison.OrdinalIgnoreCase));
     }

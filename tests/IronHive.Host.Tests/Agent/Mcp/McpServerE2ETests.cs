@@ -89,10 +89,10 @@ public class McpServerE2ETests : IAsyncLifetime
         await _manager!.ConnectAsync(EverythingServerName, config, TestContext.Current.CancellationToken);
 
         var result = await _manager.CallToolAsync(EverythingServerName, "add", new Dictionary<string, object?>
-            {
-                ["a"] = 5,
-                ["b"] = 3
-            }, TestContext.Current.CancellationToken);
+        {
+            ["a"] = 5,
+            ["b"] = 3
+        }, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsError, $"Tool call failed: {result.Content}");
         // The result should contain 8 (5 + 3)

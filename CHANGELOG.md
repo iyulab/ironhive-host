@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.7
+
+### Fixed
+- `GitHubUpdateServiceTests.UpdateAsync_ReportsProgress` asserted on `IProgress<T>` reports
+  immediately after `await`, with no wait for delivery. Without a captured `SynchronizationContext`
+  (the case for this test host), `Progress<T>.Report()` dispatches through the ThreadPool and does
+  not block the caller, so the callback could still be pending when the assertion ran — observed as
+  an intermittent `Collection was empty` CI failure after the xUnit v3/MTP migration. The test now
+  gates on the callback actually firing before asserting. Test-only; `GitHubUpdateService` itself
+  is unchanged.
+
+### Changed
+- Fixed a `dotnet format` whitespace violation in `McpServerE2ETests.cs` (over-indented
+  `Dictionary` initializer) flagged by CI's `format` job.
+
 ## 0.19.6
 
 ### Changed
