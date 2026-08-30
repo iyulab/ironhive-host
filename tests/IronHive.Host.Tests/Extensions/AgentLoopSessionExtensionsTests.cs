@@ -247,6 +247,38 @@ public class AgentLoopSessionExtensionsTests : IDisposable
             true); // isError = true
     }
 
+    [Fact]
+    public async Task SaveTurnAsync_UnknownToolCallOutcome_IsNotReportedAsError()
+    {
+        // Arrange — Success is null when no function-invocation middleware observed the outcome.
+        var session = CreateTestSession("test-session");
+        var prompt = "Run a command";
+        var response = new AgentResponse
+        {
+            Content = "Done!",
+            ToolCalls =
+            [
+                new ToolCallResult
+                {
+                    ToolName = "shell",
+                    Arguments = "{\"command\":\"ls\"}",
+                    Result = "file1.txt\nfile2.txt",
+                    Success = null
+                }
+            ]
+        };
+
+        // Act
+        await _mockSessionManager.SaveTurnAsync(session, prompt, response);
+
+        // Assert — unknown outcome is not treated as an error.
+        await _mockSessionManager.Received(1).SaveToolResultAsync(
+            session,
+            Arg.Any<string>(),
+            "file1.txt\nfile2.txt",
+            false); // isError = false
+    }
+
     private static SessionData CreateTestSession(string id)
     {
         return new SessionData

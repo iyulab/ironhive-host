@@ -103,7 +103,9 @@ public static class AgentLoopSessionExtensions
         {
             var toolUseId = Guid.NewGuid().ToString("N")[..12];
             await sessionManager.SaveToolUseAsync(session, toolCall.ToolName, toolCall.Arguments, toolUseId);
-            await sessionManager.SaveToolResultAsync(session, toolUseId, toolCall.Result, !toolCall.Success);
+            // ToolCallResult.Success is null when the outcome is unknown (no function-invocation
+            // middleware in the pipeline) — only an explicit false is reported as an error.
+            await sessionManager.SaveToolResultAsync(session, toolUseId, toolCall.Result, toolCall.Success == false);
         }
 
         // Save assistant response

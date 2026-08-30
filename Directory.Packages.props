@@ -41,18 +41,18 @@
     <PackageVersion Include="MemoryIndexer" Version="0.16.5" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.16.5" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.7.2" />
+    <PackageVersion Include="IronHive.Agent" Version="0.9.1" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.20.0" />
-    <PackageVersion Include="IronHive.Core" Version="0.20.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.20.0" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.20.0" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.20.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.20.0" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.22.1" />
+    <PackageVersion Include="IronHive.Core" Version="0.22.1" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.22.1" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.22.1" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.22.1" />
+    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.22.1" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.7.2" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.9.1" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.4.1" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.4.1" />

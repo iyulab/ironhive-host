@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.8
+
+### Changed
+- Repinned `IronHive.Agent`/`IronHive.DeepResearch` 0.7.2 → 0.9.1 and `IronHive.Abstractions`/
+  `.Core`/`.Providers.*` 0.20.0 → 0.22.1 to clear a pin-drift gap that had opened since 2026-08-07.
+
+### Fixed
+- `AgentLoopSessionExtensions.SaveTurnAsync` treated `ToolCallResult.Success == null` (outcome
+  unknown — no function-invocation middleware in the pipeline) as an error when negating it
+  directly. `IronHive.Agent` 0.9.0 made `Success` nullable for exactly this case; the negation now
+  only reports an error on an explicit `false`, leaving unknown outcomes unmarked. Regression test:
+  `AgentLoopSessionExtensionsTests.SaveTurnAsync_UnknownToolCallOutcome_IsNotReportedAsError`.
+
 ## 0.19.7
 
 ### Fixed
