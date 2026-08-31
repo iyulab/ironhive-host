@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.9
+
+### Documentation
+- `README.md` documents the actual response schema for `-o json`/`jsonl` and `sessions
+  list`/`delete --output json` for the first time — the "Quick Start" section previously showed
+  only invocation examples, never the shape of what came back. Includes the `toolCalls[].success`
+  3-state (`true`/`false`/`null`) semantics and the "fields serializing to `null` are omitted, not
+  written as `null`" behavior of the shared `JsonSerializerOptions`.
+
 ## 0.19.8
 
 ### Changed

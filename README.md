@@ -119,6 +119,74 @@ ironhive -p "Hello" --output jsonl
 ironhive -p "Hello" --plain
 ```
 
+### JSON Output Schema
+
+`--output json`/`jsonl` is meant for programmatic consumption — piping into `jq`, another process,
+or a script. Fields that would otherwise serialize as `null` (`sessionId`, `usage`, `thinking`,
+`toolCalls`) are **omitted from the object entirely** rather than written as `null`.
+
+**`--output json`** (single response, `-p`/`--prompt`):
+
+```jsonc
+{
+  "content": "string",                 // always present — the assistant's text reply
+  "sessionId": "string",               // omitted if no session is active
+  "usage": {                           // omitted if usage wasn't reported
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0
+  },
+  "thinking": {                        // present only with --show-thinking AND the model returned thinking content
+    "content": "string",
+    "tokenCount": 0
+  },
+  "toolCalls": [                       // omitted if no tools were called
+    {
+      "name": "string",
+      "arguments": "string",           // JSON-encoded arguments, as a string
+      "result": "string",
+      "success": true                  // true | false | null — null means the outcome is unknown
+                                        // (unset unless the underlying IChatClient has
+                                        // Microsoft.Extensions.AI function-invocation middleware)
+    }
+  ]
+}
+```
+
+On cancellation (Ctrl+C) or an unhandled error, the object is replaced with an error shape instead:
+`{ "error": "cancelled", "code": 130 }` or `{ "error": "<message>", "code": 1 }`.
+
+**`--output jsonl`** (streaming JSON Lines — one object per line, discriminated by `type`):
+
+| `type` | Fields | When |
+|---|---|---|
+| `start` | `sessionId` | First line, always |
+| `thinking` | `content` | Only with `--show-thinking`, once per thinking delta |
+| `text` | `content` | Once per text delta |
+| `tool_call` | `id`, `name`, `arguments` | Once per tool-call delta (`arguments` is JSON-encoded) |
+| `done` | `sessionId` | Last line on success |
+| `error` | `error` | Instead of `done`, on cancellation or an unhandled exception |
+
+**`sessions list --output json`** — an array (`[]` if empty), one object per session:
+
+```jsonc
+[
+  {
+    "id": "string",
+    "status": "string",        // lowercased, e.g. "active", "completed"
+    "model": "string",
+    "created": "2026-08-31T00:00:00.0000000Z",  // ISO 8601 (round-trip "o" format)
+    "messageCount": 0,
+    "firstMessage": "string"
+  }
+]
+```
+
+**`sessions delete <id> --output json`**:
+
+- Success: `{ "deleted": "<id>", "success": true }`
+- Missing `<id>` or session not found: `{ "error": "string", "code": 1 }`
+
 ### Session Management
 
 ```bash
