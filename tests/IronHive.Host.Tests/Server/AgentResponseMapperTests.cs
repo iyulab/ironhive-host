@@ -19,9 +19,9 @@ public class AgentResponseMapperTests
             events.Add(evt);
         }
 
-        events.Should().ContainSingle()
-            .Which.Should().BeOfType<TextDeltaEvent>()
-            .Which.Content.Should().Be("hello");
+        events.Should().HaveCount(2);
+        events[0].Should().BeOfType<TextDeltaEvent>().Which.Content.Should().Be("hello");
+        events[1].Should().BeOfType<TurnEndEvent>();
     }
 
     [Fact]
@@ -37,13 +37,13 @@ public class AgentResponseMapperTests
             events.Add(evt);
         }
 
-        events.Should().ContainSingle()
-            .Which.Should().BeOfType<ToolStartEvent>()
-            .Which.Tool.Should().Be("ReadFile");
+        events.Should().HaveCount(2);
+        events[0].Should().BeOfType<ToolStartEvent>().Which.Tool.Should().Be("ReadFile");
+        events[1].Should().BeOfType<TurnEndEvent>();
     }
 
     [Fact]
-    public async Task ToServerEvents_ToolCallArgumentsOnly_YieldsNothing()
+    public async Task ToServerEvents_ToolCallArgumentsOnly_YieldsOnlyTurnEndEvent()
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk
         {
@@ -55,7 +55,70 @@ public class AgentResponseMapperTests
             events.Add(evt);
         }
 
-        events.Should().BeEmpty();
+        events.Should().ContainSingle().Which.Should().BeOfType<TurnEndEvent>();
+    }
+
+    [Fact]
+    public async Task ToServerEvents_NoChunkCarriesUsage_TurnEndEventHasNullTokens()
+    {
+        var chunks = ToAsyncEnumerable(new AgentResponseChunk { TextDelta = "hi" });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var turnEnd = events.OfType<TurnEndEvent>().Should().ContainSingle().Which;
+        turnEnd.InputTokens.Should().BeNull();
+        turnEnd.OutputTokens.Should().BeNull();
+        turnEnd.TotalTokens.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ToServerEvents_SingleChunkWithUsage_TurnEndEventCarriesThatUsage()
+    {
+        var chunks = ToAsyncEnumerable(new AgentResponseChunk
+        {
+            TextDelta = "hi",
+            Usage = new TokenUsage { InputTokens = 100, OutputTokens = 20 }
+        });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var turnEnd = events.OfType<TurnEndEvent>().Should().ContainSingle().Which;
+        turnEnd.InputTokens.Should().Be(100);
+        turnEnd.OutputTokens.Should().Be(20);
+        turnEnd.TotalTokens.Should().Be(120);
+    }
+
+    [Fact]
+    public async Task ToServerEvents_MultipleRoundTripsWithUsage_SumsAcrossRoundTrips()
+    {
+        // A tool-calling turn makes several model round-trips — each round-trip's final chunk
+        // carries that round-trip's own usage, not the whole turn's.
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { TextDelta = "thinking" },
+            new AgentResponseChunk
+            {
+                ToolCallDelta = new ToolCallChunk { Id = "tc-001", NameDelta = "ReadFile" },
+                Usage = new TokenUsage { InputTokens = 50, OutputTokens = 10 }
+            },
+            new AgentResponseChunk { TextDelta = "done" },
+            new AgentResponseChunk { Usage = new TokenUsage { InputTokens = 80, OutputTokens = 15 } }
+        );
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var turnEnd = events.OfType<TurnEndEvent>().Should().ContainSingle().Which;
+        turnEnd.InputTokens.Should().Be(130);
+        turnEnd.OutputTokens.Should().Be(25);
+        turnEnd.TotalTokens.Should().Be(155);
     }
 
     [Fact]
@@ -89,10 +152,11 @@ public class AgentResponseMapperTests
             events.Add(evt);
         }
 
-        events.Should().HaveCount(3);
+        events.Should().HaveCount(4);
         events[0].Should().BeOfType<TextDeltaEvent>().Which.Content.Should().Be("A");
         events[1].Should().BeOfType<ToolStartEvent>().Which.Tool.Should().Be("Glob");
         events[2].Should().BeOfType<TextDeltaEvent>().Which.Content.Should().Be("B");
+        events[3].Should().BeOfType<TurnEndEvent>();
     }
 
     private static async IAsyncEnumerable<AgentResponseChunk> ToAsyncEnumerable(

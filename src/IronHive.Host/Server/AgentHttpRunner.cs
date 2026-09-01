@@ -283,16 +283,22 @@ public sealed partial class AgentHttpRunner : IDisposable
 
     private async Task HandleMessageAsync(UserMessageRequest msg, CancellationToken ct)
     {
+        var turnEndSent = false;
         try
         {
             await foreach (var evt in _processMessage(msg, ct))
             {
+                if (evt is TurnEndEvent)
+                {
+                    turnEndSent = true;
+                }
+
                 await PostEventAsync(evt, ct);
             }
         }
         catch (OperationCanceledException)
         {
-            // Intentional cancellation via CancelRequest — TurnEndEvent posted in finally.
+            // Intentional cancellation via CancelRequest — fallback TurnEndEvent posted in finally.
         }
         catch (Exception ex)
         {
@@ -301,7 +307,14 @@ public sealed partial class AgentHttpRunner : IDisposable
         }
         finally
         {
-            await PostEventAsync(new TurnEndEvent(), CancellationToken.None);
+            // _processMessage's own pipeline (AgentResponseMapper.ToServerEvents) yields a
+            // usage-populated TurnEndEvent as its last event on normal completion — this is
+            // only a fallback for the exception/cancellation paths above that abandon the
+            // stream before it gets there.
+            if (!turnEndSent)
+            {
+                await PostEventAsync(new TurnEndEvent(), CancellationToken.None);
+            }
         }
     }
 

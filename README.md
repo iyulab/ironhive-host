@@ -410,7 +410,7 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` |
 | `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
 | `TextDeltaEvent` | `text_delta` | `Content` |
-| `TurnEndEvent` | `turn_end` | — |
+| `TurnEndEvent` | `turn_end` | `InputTokens?`, `OutputTokens?`, `TotalTokens?` (summed across every model round-trip in the turn; null when the provider reported no usage) |
 | `ErrorEvent` | `error` | `Message` |
 
 ## Samples

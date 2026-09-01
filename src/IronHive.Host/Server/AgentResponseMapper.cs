@@ -20,6 +20,10 @@ public static class AgentResponseMapper
         IExecutionLogger? logger = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
+        long inputTokens = 0;
+        long outputTokens = 0;
+        var hasUsage = false;
+
         await foreach (var chunk in chunks.WithCancellation(ct))
         {
             if (logger is not null)
@@ -36,6 +40,19 @@ public static class AgentResponseMapper
             {
                 yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta, CallId: chunk.ToolCallDelta.Id);
             }
+
+            if (chunk.Usage is not null)
+            {
+                // Each round-trip's final chunk carries that round-trip's own usage — sum
+                // across every round-trip in the turn (tool-calling turns make several).
+                inputTokens += chunk.Usage.InputTokens;
+                outputTokens += chunk.Usage.OutputTokens;
+                hasUsage = true;
+            }
         }
+
+        yield return hasUsage
+            ? new TurnEndEvent(inputTokens, outputTokens)
+            : new TurnEndEvent();
     }
 }

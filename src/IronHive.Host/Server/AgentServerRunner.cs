@@ -186,16 +186,22 @@ public partial class AgentServerRunner
     private async Task HandleMessageAsync(
         UserMessageRequest msg, TextWriter output, CancellationToken ct)
     {
+        var turnEndSent = false;
         try
         {
             await foreach (var evt in _processMessage(msg, ct))
             {
+                if (evt is TurnEndEvent)
+                {
+                    turnEndSent = true;
+                }
+
                 await WriteEventAsync(output, evt, _jsonOptions);
             }
         }
         catch (OperationCanceledException)
         {
-            // Intentional cancellation via CancelRequest — TurnEndEvent written in finally.
+            // Intentional cancellation via CancelRequest — fallback TurnEndEvent written in finally.
         }
         catch (Exception ex)
         {
@@ -204,7 +210,14 @@ public partial class AgentServerRunner
         }
         finally
         {
-            await WriteEventAsync(output, new TurnEndEvent(), _jsonOptions);
+            // _processMessage's own pipeline (AgentResponseMapper.ToServerEvents) yields a
+            // usage-populated TurnEndEvent as its last event on normal completion — this is
+            // only a fallback for the exception/cancellation paths above that abandon the
+            // stream before it gets there.
+            if (!turnEndSent)
+            {
+                await WriteEventAsync(output, new TurnEndEvent(), _jsonOptions);
+            }
         }
     }
 

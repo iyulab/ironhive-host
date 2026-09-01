@@ -253,6 +253,27 @@ public class AgentServerRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_ProcessorYieldsOwnTurnEnd_DoesNotAppendFallback()
+    {
+        // AgentResponseMapper.ToServerEvents (the real _processMessage pipeline) yields a
+        // usage-populated TurnEndEvent as its own last event — the runner must forward that
+        // one as-is, not append a second bare TurnEndEvent behind it.
+        var runner = CreateRunner(_ => SingleEvent(new TurnEndEvent(InputTokens: 42, OutputTokens: 8)));
+
+        var input = BuildInput(
+            """{"type":"user_message","content":"hi"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        var events = ParseEvents(output);
+        var turnEnd = events.Should().ContainSingle().Which.Should().BeOfType<TurnEndEvent>().Subject;
+        turnEnd.InputTokens.Should().Be(42);
+        turnEnd.OutputTokens.Should().Be(8);
+    }
+
+    [Fact]
     public async Task RunAsync_OnContextUpdate_CallbackInvoked()
     {
         ContextUpdateRequest? received = null;

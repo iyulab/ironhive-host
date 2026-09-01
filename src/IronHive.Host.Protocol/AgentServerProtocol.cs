@@ -69,7 +69,21 @@ public record HitlRequestEvent(string Id, string Action, string Target, string D
 
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;
 
-public record TurnEndEvent() : ServerEvent;
+/// <summary>
+/// Signals completion of a turn. <see cref="InputTokens"/>/<see cref="OutputTokens"/>, when
+/// present, are summed across every model round-trip within the turn (a single turn commonly
+/// makes several via tool-calling) — null when the underlying provider reported no usage data
+/// for any round-trip in the turn.
+/// </summary>
+public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) : ServerEvent
+{
+    /// <summary>
+    /// <see cref="InputTokens"/> + <see cref="OutputTokens"/>; null when both are null.
+    /// </summary>
+    public long? TotalTokens => InputTokens is null && OutputTokens is null
+        ? null
+        : (InputTokens ?? 0) + (OutputTokens ?? 0);
+}
 
 public record ErrorEvent(string Message) : ServerEvent;
 

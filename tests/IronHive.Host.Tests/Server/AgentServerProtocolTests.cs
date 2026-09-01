@@ -227,6 +227,27 @@ public class AgentServerProtocolTests
     }
 
     [Fact]
+    public void Roundtrip_TurnEndEvent_WithUsage()
+    {
+        ServerEvent original = new TurnEndEvent(InputTokens: 1234, OutputTokens: 567);
+        var json = JsonSerializer.Serialize(original, Options);
+        var deserialized = JsonSerializer.Deserialize<ServerEvent>(json, Options);
+
+        var turnEnd = deserialized.Should().BeOfType<TurnEndEvent>().Subject;
+        turnEnd.InputTokens.Should().Be(1234);
+        turnEnd.OutputTokens.Should().Be(567);
+        turnEnd.TotalTokens.Should().Be(1801);
+    }
+
+    [Fact]
+    public void TurnEndEvent_TotalTokens_NullWhenBothTokenFieldsNull()
+    {
+        var turnEnd = new TurnEndEvent();
+
+        turnEnd.TotalTokens.Should().BeNull();
+    }
+
+    [Fact]
     public void Roundtrip_ErrorEvent()
     {
         ServerEvent original = new ErrorEvent("something went wrong");

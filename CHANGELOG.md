@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.0
+
+### Added
+- `TurnEndEvent` now carries `InputTokens`/`OutputTokens`/`TotalTokens` (`long?`), summed across
+  every model round-trip within the turn. `AgentResponseChunk.Usage` was already being handed to
+  `AgentResponseMapper.ToServerEvents` and silently discarded — no new instrumentation needed on
+  the agent side. Purely additive (`init`-only properties on an existing record); both server
+  transports (`AgentServerRunner`, `AgentHttpRunner`) forward the mapper's own populated
+  `TurnEndEvent` and only fall back to a bare one when the turn ends via exception/cancellation
+  before the mapper reaches it.
+
 ## 0.19.13
 
 ### Changed
