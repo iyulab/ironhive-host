@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.13
+
+### Changed
+- Re-pinned `Ironbees.Core` from `0.13.2` to `0.13.3` — patch re-consumption of an already-consumed
+  sibling package (lowers the `Microsoft.ML.OnnxRuntime` transitive floor to avoid a known DirectML
+  crash). No source changes.
+
 ## 0.19.12
 
 ### Changed
