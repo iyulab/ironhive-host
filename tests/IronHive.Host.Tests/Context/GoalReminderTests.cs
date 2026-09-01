@@ -90,7 +90,7 @@ public class GoalReminderTests
 
         var message = reminder.CreateReminderMessage();
 
-        Assert.Equal(ChatRole.System, message.Role);
+        Assert.Equal(ChatRole.User, message.Role);
         Assert.Contains("Implement feature X", message.Text);
         Assert.Contains("[REMINDER]", message.Text);
     }

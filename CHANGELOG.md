@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.10
+
+### Changed
+- Re-pinned already-consumed sibling packages to their latest patch/minor: `Cronex.Net`/
+  `.Hosting` (`0.4.1`→`0.6.0`), `IronHive.Agent`/`.DeepResearch` (`0.9.1`→`0.9.4`),
+  `LMSupply.Embedder`/`.Reranker`/`.Generator` (`0.42.2`→`0.42.10`), `MemoryIndexer`/`.Sdk`
+  (`0.16.5`→`0.16.7`), `TokenMeter` (`0.7.0`→`0.7.3`). No source changes.
+
 ## 0.19.9
 
 ### Documentation
