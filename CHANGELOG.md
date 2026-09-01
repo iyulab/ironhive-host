@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.1
+
+### Changed
+- Re-pinned `IronHive.Agent`/`.DeepResearch` from `0.9.5` to `0.9.6` — patch re-consumption of
+  an already-consumed sibling package (`check-pin-drift.ps1` flagged this as drift, within
+  threshold, right after `ironhive-agent` 0.9.6 was published). No source changes.
+
 ## 0.20.0
 
 ### Added
