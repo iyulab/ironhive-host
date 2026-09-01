@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.19.12
+
+### Changed
+- Re-pinned `IronHive.Agent`/`.DeepResearch` from `0.9.4` to `0.9.5` — patch re-consumption of
+  an already-consumed sibling package. No source changes.
+
 ## 0.19.11
 
 ### Changed
