@@ -27,7 +27,7 @@
 
   <!-- Version: Update this to trigger a new release -->
   <PropertyGroup>
-    <Version>0.20.1</Version>
+    <Version>0.20.2</Version>
   </PropertyGroup>
 
   <!-- Release build: exclude PDB files -->

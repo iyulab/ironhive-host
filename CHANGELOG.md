@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.2
+
+### Changed
+- Re-pinned `LMSupply.Embedder`/`.Reranker`/`.Generator` from `0.42.10` to `0.54.0` — patch
+  re-consumption of already-consumed sibling packages (`check-pin-drift.ps1 -Strict` flagged
+  this as threshold-exceeding drift, minor gap 12; cold-GPU-kernel-hang protection propagated
+  to all ONNX-backed lm-supply modules). No source changes.
+
 ## 0.20.1
 
 ### Changed
