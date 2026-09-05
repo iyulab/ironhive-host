@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.3
+
+### Fixed
+- The CLI no longer prints an `InvalidOperationException` ("... type only implements
+  IAsyncDisposable. Use DisposeAsync to dispose the container.") after every command exits.
+  `TypeResolver.Dispose()` was unconditionally calling the DI container's synchronous
+  `IDisposable.Dispose()`, which throws whenever any registered service implements only
+  `IAsyncDisposable` (e.g. the MCP plugin manager). It now disposes through
+  `IAsyncDisposable.DisposeAsync()` when the container supports it, falling back to synchronous
+  disposal otherwise.
+
 ## 0.20.2
 
 ### Changed

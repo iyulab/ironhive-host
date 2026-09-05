@@ -111,7 +111,17 @@ public sealed class TypeResolver : ITypeResolver, IDisposable
 
     public void Dispose()
     {
-        if (_provider is IDisposable disposable)
+        // The built ServiceProvider implements both IDisposable and IAsyncDisposable, but its
+        // synchronous IDisposable.Dispose() throws InvalidOperationException whenever any resolved
+        // service implements only IAsyncDisposable (e.g. McpPluginManager). Spectre.Console.Cli only
+        // ever calls this synchronous Dispose(), so prefer the async path (blocking here, since there
+        // is no async disposal hook available from the caller) and fall back to sync disposal only
+        // for providers that genuinely have no async path.
+        if (_provider is IAsyncDisposable asyncDisposable)
+        {
+            asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+        else if (_provider is IDisposable disposable)
         {
             disposable.Dispose();
         }
