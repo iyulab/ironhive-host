@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.4
+
+### Fixed
+- Re-pinned `LMSupply.Embedder`/`.Reranker`/`.Generator` from `0.54.0` to `0.55.0` — `0.54.0` was
+  never actually published to nuget.org for these packages (their published history jumps
+  `0.45.0` -> `0.55.0`), so `0.20.3`'s restore failed with NU1603 escalated to error and no nupkg
+  for `0.20.3` was ever produced.
+
 ## 0.20.3
 
 ### Fixed
