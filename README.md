@@ -119,6 +119,22 @@ ironhive -p "Hello" --output jsonl
 ironhive -p "Hello" --plain
 ```
 
+### Without an API key
+
+`ironhive` does not need a cloud provider to be useful. Local inference is **on by default**
+(`lmsupply.enabled: true`; `LMSUPPLY_ENABLED=false` turns it off): with no other provider
+configured, the first run downloads a GGUF model (cached under the LMSupply model cache) and runs
+it in-process through [LMSupply](https://github.com/iyulab/lm-supply) — no key, no server:
+
+```bash
+ironhive -p "Summarize this directory"   # works with an empty config
+ironhive doctor                          # shows which providers are configured and reachable
+```
+
+`doctor` reports `Using local inference only (lmsupply)` on such a setup and suggests a remote
+provider only as a performance option — that is the expected state, not a warning to fix. The first
+run is slower (model download + load); later runs start from the cache.
+
 ### JSON Output Schema
 
 `--output json`/`jsonl` is meant for programmatic consumption — piping into `jq`, another process,
