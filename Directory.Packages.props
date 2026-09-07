@@ -32,12 +32,12 @@
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback). 0.32.3 adds Gemma4
          RenderToolPromptFragment for Option D-1 (umbrella ISSUE 2026-04-30). -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.55.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.55.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.55.0" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.55.4" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.55.4" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.55.4" />
     <!-- MemoryIndexer (conversation memory, session management) -->
-    <PackageVersion Include="MemoryIndexer" Version="0.16.8" />
-    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.16.8" />
+    <PackageVersion Include="MemoryIndexer" Version="0.16.11" />
+    <PackageVersion Include="MemoryIndexer.Sdk" Version="0.16.11" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
     <PackageVersion Include="IronHive.Agent" Version="0.9.6" />
     <!-- IronHive (LLM abstraction) -->
