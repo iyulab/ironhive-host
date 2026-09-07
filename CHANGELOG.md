@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.5
+
+### Changed
+- GpuStack embedding/rerank provider failures now say what to change: a missing model names the
+  `gpustack.embedding_model` / `gpustack.rerank_model` config keys and their `GPUSTACK_*` environment
+  variables (and the endpoint/key/model settings when GpuStack is not configured at all), and a
+  malformed response names the endpoint path and model that answered. Regression tests pin the
+  handles each message must contain.
+
 ## 0.20.4
 
 ### Fixed

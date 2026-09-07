@@ -49,7 +49,13 @@ public sealed class GpuStackRerankProvider : IRerankProvider, IDisposable
     {
         if (!IsAvailable)
         {
-            throw new InvalidOperationException("No rerank model configured.");
+            throw new InvalidOperationException(
+                _config.IsConfigured
+                    ? "No GpuStack rerank model is configured. Set 'gpustack.rerank_model' in config.yaml, or the " +
+                      "GPUSTACK_RERANK_MODEL environment variable, to the id of a rerank model served by your GpuStack endpoint."
+                    : "GpuStack is not configured, so no rerank model can be used. Set 'gpustack.endpoint', 'gpustack.api_key' " +
+                      "and 'gpustack.model' in config.yaml (or GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, GPUSTACK_MODEL), then " +
+                      "'gpustack.rerank_model' (GPUSTACK_RERANK_MODEL).");
         }
 
         var docList = documents.ToList();
@@ -73,7 +79,10 @@ public sealed class GpuStackRerankProvider : IRerankProvider, IDisposable
         var result = await response.Content.ReadFromJsonAsync<RerankResponse>(JsonOptions, cancellationToken);
         if (result?.Results == null)
         {
-            throw new InvalidOperationException("Invalid rerank response.");
+            throw new InvalidOperationException(
+                $"GpuStack rerank response from '{_httpClient.BaseAddress}v1/rerank' for model '{_config.RerankModel}' has no " +
+                "'results' array, so no ranking could be read. Check that 'gpustack.endpoint' serves the /v1/rerank extension " +
+                "and that 'gpustack.rerank_model' names a rerank model on that server.");
         }
 
         return result.Results

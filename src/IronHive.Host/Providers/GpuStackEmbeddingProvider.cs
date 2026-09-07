@@ -62,7 +62,15 @@ public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider, IDisposable
         var model = GetEmbeddingModel();
         if (string.IsNullOrEmpty(model))
         {
-            throw new InvalidOperationException("No embedding model configured.");
+            throw new InvalidOperationException(
+                _config.IsConfigured
+                    ? "No GpuStack embedding model is configured. Set 'gpustack.embedding_model' (or 'gpustack.model') " +
+                      "in config.yaml, or the GPUSTACK_EMBEDDING_MODEL environment variable, to the id of an embedding " +
+                      "model served by your GpuStack endpoint."
+                    : "GpuStack is not configured, so no embedding model can be used. Set 'gpustack.endpoint', " +
+                      "'gpustack.api_key' and 'gpustack.model' in config.yaml (or GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, " +
+                      "GPUSTACK_MODEL), then 'gpustack.embedding_model' (GPUSTACK_EMBEDDING_MODEL) if the embedding model " +
+                      "differs from the chat model.");
         }
 
         var request = new EmbeddingRequest
@@ -82,7 +90,10 @@ public sealed class GpuStackEmbeddingProvider : IEmbeddingProvider, IDisposable
         var result = await response.Content.ReadFromJsonAsync<EmbeddingResponse>(JsonOptions, cancellationToken);
         if (result?.Data == null)
         {
-            throw new InvalidOperationException("Invalid embedding response.");
+            throw new InvalidOperationException(
+                $"GpuStack embedding response from '{_httpClient.BaseAddress}v1/embeddings' for model '{model}' has no 'data' " +
+                "array, so no embeddings could be read. Check that 'gpustack.endpoint' points at an OpenAI-compatible " +
+                "embeddings API and that 'gpustack.embedding_model' names an embedding (not chat) model on that server.");
         }
 
         var embeddings = result.Data
