@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.7
+
+### Changed
+- Re-pinned sibling package(s) `IronHive.Agent` 0.9.6 -> 0.9.7, `IronHive.DeepResearch` 0.9.6 -> 0.9.7, `LMSupply.Embedder` 0.55.4 -> 0.57.0, `LMSupply.Generator` 0.55.4 -> 0.57.0, `LMSupply.Reranker` 0.55.4 -> 0.57.0, `MemoryIndexer` 0.16.11 -> 0.16.12, `MemoryIndexer.Sdk` 0.16.11 -> 0.16.12 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.20.6
 
 ### Changed
