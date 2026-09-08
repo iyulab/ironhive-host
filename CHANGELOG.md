@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.20.9
+
+### Changed
+- Re-pinned `Ironbees.Core` 0.13.3 -> 0.13.4, `IronHive.Abstractions` 0.22.2 -> 0.24.0, `IronHive.Agent` 0.9.8 -> 0.9.9, `IronHive.Core` 0.22.2 -> 0.24.0, `IronHive.DeepResearch` 0.9.8 -> 0.9.9, `IronHive.Providers.Anthropic` 0.22.2 -> 0.24.0, `IronHive.Providers.GoogleAI` 0.22.2 -> 0.24.0, `IronHive.Providers.OpenAI` 0.22.2 -> 0.24.0, `IronHive.Providers.OpenAI.Compatible` 0.22.2 -> 0.24.0, `LMSupply.Embedder` 0.58.0 -> 0.59.1, `LMSupply.Generator` 0.58.0 -> 0.59.1, `LMSupply.Reranker` 0.58.0 -> 0.59.1, `MemoryIndexer` 0.16.13 -> 0.17.2, `MemoryIndexer.Sdk` 0.16.13 -> 0.17.2.
+- GPUStack provider wiring adapted to IronHive 0.23.0/0.24.0: `GpuStackMessageGenerator` was folded into `OpenAICompatibleMessageGenerator`; the host now builds it from `GpuStackConfig.ToOpenAICompatible()` (public since 0.24.0). No behaviour change.
+
 ## 0.20.8
 
 ### Changed

@@ -46,7 +46,7 @@ public class LlmIntegrationTests
             BaseUrl = ServiceCollectionExtensions.StripApiPath(GpuStackEndpoint!),
             ApiKey = GpuStackApiKey!
         };
-        var generator = new IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackMessageGenerator(gpuStackConfig);
+        var generator = new IronHive.Providers.OpenAI.Compatible.OpenAICompatibleMessageGenerator(gpuStackConfig.ToOpenAICompatible());
         return new IronhiveChatClientProvider(generator, "gpustack", GpuStackModel);
     }
 
