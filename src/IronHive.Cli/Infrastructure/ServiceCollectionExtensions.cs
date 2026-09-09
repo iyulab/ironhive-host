@@ -343,7 +343,8 @@ public static class ServiceCollectionExtensions
             };
             // IronHive 0.23.0 folded GpuStackMessageGenerator into OpenAICompatibleMessageGenerator; 0.24.0 made
             // the config converter public (it carries the /v1-openai/ path, resolvers and connect timeout).
-            var generator = new OpenAICompatibleMessageGenerator(gpuStackConfig.ToOpenAICompatible());            var finder = new OpenAIModelFinder(gpuStackConfig.ToOpenAI());
+            var generator = new OpenAICompatibleMessageGenerator(gpuStackConfig.ToOpenAICompatible());
+            var finder = new OpenAIModelFinder(gpuStackConfig.ToOpenAI());
             providersDict["gpustack"] = new IronhiveChatClientProvider(generator, "gpustack", config.GpuStack.Model!, finder);
         }
 

@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.13.4" />
+    <PackageVersion Include="Ironbees.Core" Version="0.13.5" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
@@ -32,14 +32,14 @@
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback). 0.32.3 adds Gemma4
          RenderToolPromptFragment for Option D-1 (umbrella ISSUE 2026-04-30). -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.59.1" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.59.1" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.59.1" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.60.0" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.60.0" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.60.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.17.2" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.17.2" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.9.9" />
+    <PackageVersion Include="IronHive.Agent" Version="0.9.10" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.24.0" />
     <PackageVersion Include="IronHive.Core" Version="0.24.0" />
@@ -50,7 +50,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.1" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.9.9" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.9.10" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.6.0" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.6.0" />
