@@ -36,6 +36,13 @@ public static class AgentResponseMapper
                 yield return new TextDeltaEvent(chunk.TextDelta);
             }
 
+            // An observer's note rides on the final chunk as its own field; relay it as its own event
+            // so the client can tell it from the model's text.
+            if (chunk.Addendum is not null)
+            {
+                yield return new AddendumEvent(chunk.Addendum);
+            }
+
             if (chunk.ToolCallDelta?.NameDelta is not null)
             {
                 yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta, CallId: chunk.ToolCallDelta.Id);

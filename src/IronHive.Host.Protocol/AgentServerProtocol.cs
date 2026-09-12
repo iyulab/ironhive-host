@@ -32,6 +32,7 @@ public record CancelRequest() : ServerRequest;
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(SessionStartedEvent), "session_started")]
 [JsonDerivedType(typeof(TextDeltaEvent), "text_delta")]
+[JsonDerivedType(typeof(AddendumEvent), "addendum")]
 [JsonDerivedType(typeof(ToolStartEvent), "tool_start")]
 [JsonDerivedType(typeof(ToolEndEvent), "tool_end")]
 [JsonDerivedType(typeof(HitlRequestEvent), "hitl_request")]
@@ -49,6 +50,15 @@ public abstract record ServerEvent;
 public record SessionStartedEvent(string SessionId) : ServerEvent;
 
 public record TextDeltaEvent(string Content) : ServerEvent;
+
+/// <summary>
+/// Text a turn observer appended after the turn's output — a note about the turn, not the model's
+/// words. Emitted at most once per turn, after the last <see cref="TextDeltaEvent"/> and before
+/// <see cref="TurnEndEvent"/>, and only when an observer appended something. It is never part of
+/// the conversation history; a client renders it apart from the assistant text (and may leave it
+/// out of what it aggregates or persists as the model's answer).
+/// </summary>
+public record AddendumEvent(string Content) : ServerEvent;
 
 /// <summary>
 /// Thinking/reasoning content delta from extended-thinking models.

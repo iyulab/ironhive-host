@@ -426,6 +426,7 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` |
 | `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
 | `TextDeltaEvent` | `text_delta` | `Content` |
+| `AddendumEvent` | `addendum` | `Content` — a turn observer's note, at most once per turn, after the last `text_delta` and before `turn_end`; not the model's words, never in history |
 | `TurnEndEvent` | `turn_end` | `InputTokens?`, `OutputTokens?`, `TotalTokens?` (summed across every model round-trip in the turn; null when the provider reported no usage) |
 | `ErrorEvent` | `error` | `Message` |
 

@@ -130,6 +130,18 @@ public class AgentServerProtocolTests
     // ── ServerEvent roundtrips ──────────────────────────────────────
 
     [Fact]
+    public void Roundtrip_AddendumEvent()
+    {
+        ServerEvent original = new AddendumEvent("(no tool was called)");
+        var json = JsonSerializer.Serialize(original, Options);
+        var deserialized = JsonSerializer.Deserialize<ServerEvent>(json, Options);
+
+        json.Should().Contain("\"type\":\"addendum\"");
+        deserialized.Should().BeOfType<AddendumEvent>()
+            .Which.Content.Should().Be("(no tool was called)");
+    }
+
+    [Fact]
     public void Roundtrip_TextDeltaEvent()
     {
         ServerEvent original = new TextDeltaEvent("chunk");

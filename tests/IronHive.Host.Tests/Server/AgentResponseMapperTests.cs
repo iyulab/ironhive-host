@@ -25,6 +25,42 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_AddendumOnTheFinalChunk_YieldsItsOwnEventBeforeTurnEnd()
+    {
+        // The observer's note must not leave the host as one more text_delta: a client that
+        // aggregates the assistant's text would fold it into the model's words.
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { TextDelta = "Task registered." },
+            new AgentResponseChunk { Turn = new TurnRecord { Content = "Task registered." }, Addendum = "(no tool was called)" });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        events.Should().HaveCount(3);
+        events[0].Should().BeOfType<TextDeltaEvent>().Which.Content.Should().Be("Task registered.");
+        events[1].Should().BeOfType<AddendumEvent>().Which.Content.Should().Be("(no tool was called)");
+        events[2].Should().BeOfType<TurnEndEvent>();
+        events.OfType<TextDeltaEvent>().Should().ContainSingle("the note is not a text delta");
+    }
+
+    [Fact]
+    public async Task ToServerEvents_FinalChunkWithoutAddendum_YieldsNoAddendumEvent()
+    {
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { TextDelta = "hello" },
+            new AgentResponseChunk { Turn = new TurnRecord { Content = "hello" } });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        events.OfType<AddendumEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task ToServerEvents_ToolCallNameDelta_YieldsToolStartEvent()
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk

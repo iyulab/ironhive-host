@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.21.0
+
+### Added
+- `AddendumEvent` (`addendum`) in `IronHive.Host.Protocol`: the text a turn observer appended after a turn now leaves the host as its own event — at most once per turn, after the last `text_delta` and before `turn_end`, only when an observer appended something. Until now it was relayed as one more `text_delta` (the agent carried it as the final chunk's text delta), so a client could not tell the note from the model's words without re-deriving it from the concatenated text. `AgentResponseMapper` maps `AgentResponseChunk.Addendum` (IronHive.Agent 0.11.0) to it.
+
+### Changed
+- Re-pinned `IronHive.Agent` / `IronHive.DeepResearch` 0.10.5 -> 0.11.0.
+- A client that concatenated every `text_delta` into the assistant's answer no longer sees an observer's note in that answer; render `addendum` separately.
+
 ## 0.20.15
 
 ### Changed
