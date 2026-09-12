@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.21.1
+
+### Changed
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.3 -> 0.14.4, `MemoryIndexer` 0.17.7 -> 0.17.8, `MemoryIndexer.Sdk` 0.17.7 -> 0.17.8 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.21.0
 
 ### Added
