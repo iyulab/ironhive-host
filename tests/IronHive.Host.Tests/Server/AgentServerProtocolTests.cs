@@ -73,6 +73,35 @@ public class AgentServerProtocolTests
     // ── ServerRequest roundtrip ─────────────────────────────────────
 
     [Fact]
+    public void Serialize_UserMessageRequest_WithoutOptions_IsByteIdenticalToBeforeOptionsExisted()
+    {
+        // Existing clients and hosts must see exactly the wire form they saw before 0.21.0.
+        ServerRequest request = new UserMessageRequest("hello", "gpt-4o");
+        var json = JsonSerializer.Serialize(request, Options);
+
+        json.Should().Be("{\"type\":\"user_message\",\"content\":\"hello\",\"model\":\"gpt-4o\"}");
+    }
+
+    [Fact]
+    public void Roundtrip_UserMessageRequest_WithTurnOptions()
+    {
+        var json = "{\"type\":\"user_message\",\"content\":\"do it\",\"options\":{\"tool_names\":[\"ReadFile\"],\"tool_mode\":\"none\",\"reasoning_effort\":\"low\",\"temperature\":0.1,\"max_output_tokens\":256}}";
+
+        var request = JsonSerializer.Deserialize<ServerRequest>(json, Options);
+
+        var msg = request.Should().BeOfType<UserMessageRequest>().Which;
+        msg.Options.Should().NotBeNull();
+        msg.Options!.ToolNames.Should().Equal("ReadFile");
+        msg.Options.ToolMode.Should().Be("none");
+        msg.Options.ReasoningEffort.Should().Be("low");
+        msg.Options.Temperature.Should().Be(0.1f);
+        msg.Options.MaxOutputTokens.Should().Be(256);
+
+        var roundtripped = JsonSerializer.Deserialize<ServerRequest>(JsonSerializer.Serialize(request, Options), Options);
+        roundtripped.Should().BeOfType<UserMessageRequest>().Which.Options.Should().BeEquivalentTo(msg.Options);
+    }
+
+    [Fact]
     public void Roundtrip_UserMessageRequest()
     {
         ServerRequest original = new UserMessageRequest("test content");

@@ -15,7 +15,7 @@ namespace IronHive.Cli.Infrastructure;
 /// <summary>
 /// Factory for creating IAgentLoop instances with runtime configuration.
 /// </summary>
-public sealed partial class AgentLoopFactory : IAgentLoopFactory
+public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 {
     private readonly IChatClientFactory _clientFactory;
     private readonly IThinkingTurnManager _turnManager;
@@ -84,6 +84,10 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
 
     /// <inheritdoc />
     public async Task<IAgentLoop> CreateAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default)
+        => (await CreateWithToolsAsync(options, cancellationToken)).Loop;
+
+    /// <inheritdoc />
+    public async Task<CreatedAgentLoop> CreateWithToolsAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -112,8 +116,9 @@ public sealed partial class AgentLoopFactory : IAgentLoopFactory
         var contextManager = HostContextManagerFactory.Create(_compactionConfig, options.Model);
 
         // Create ThinkingAgentLoop with IndexThinking support
-        return new ThinkingAgentLoop(
+        var loop = new ThinkingAgentLoop(
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager);
+        return new CreatedAgentLoop(loop, tools.AsReadOnly());
     }
 
     /// <summary>

@@ -417,7 +417,7 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 
 | Type | Discriminator | Key fields |
 |------|---------------|-----------|
-| `UserMessageRequest` | `user_message` | `Content`, `Model?` |
+| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens` — see below) |
 | `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` |
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?` |
 | `CancelRequest` | `cancel` | — |
@@ -429,6 +429,15 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `AddendumEvent` | `addendum` | `Content` — a turn observer's note, at most once per turn, after the last `text_delta` and before `turn_end`; not the model's words, never in history |
 | `TurnEndEvent` | `turn_end` | `InputTokens?`, `OutputTokens?`, `TotalTokens?` (summed across every model round-trip in the turn; null when the provider reported no usage) |
 | `ErrorEvent` | `error` | `Message` |
+
+**Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
+the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |
+`require:<tool>`), `reasoning_effort` (`none` | `low` | `medium` | `high` | `extra_high`),
+`temperature`, `max_output_tokens`. The merge is field by field: a set field replaces the agent's
+configured value for this turn only, an unset field keeps it, and the next request without `options`
+is back on the agent's configuration — nothing is remembered across turns. A tool name that is not
+registered, or an unknown mode/effort, is answered with an `error` event, never silently dropped. A
+request without `options` is byte-identical to the pre-0.21.0 wire form.
 
 ## Samples
 

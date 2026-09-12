@@ -358,6 +358,12 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                     OutputJsonLine(new { type = "text", content = chunk.TextDelta });
                 }
 
+                // A turn observer's note — its own record type, so a reader can keep it apart from the model's text.
+                if (!string.IsNullOrEmpty(chunk.Addendum))
+                {
+                    OutputJsonLine(new { type = "addendum", content = chunk.Addendum });
+                }
+
                 if (chunk.ToolCallDelta is not null && !string.IsNullOrEmpty(chunk.ToolCallDelta.NameDelta))
                 {
                     OutputJsonLine(new
@@ -546,6 +552,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 }
                 // Write text directly for real-time streaming (no markup processing)
                 Console.Write(chunk.TextDelta);
+            }
+
+            // A turn observer's note follows the model's text, set apart by a blank line.
+            if (!string.IsNullOrEmpty(chunk.Addendum))
+            {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.Write(chunk.Addendum);
             }
 
             // Handle tool calls
@@ -753,6 +767,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 }
                 // Write text directly for real-time streaming (no markup processing)
                 Console.Write(chunk.TextDelta);
+            }
+
+            // A turn observer's note follows the model's text, set apart by a blank line.
+            if (!string.IsNullOrEmpty(chunk.Addendum))
+            {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.Write(chunk.Addendum);
             }
 
             // Handle tool calls

@@ -13,7 +13,38 @@ namespace IronHive.Host.Protocol;
 [JsonDerivedType(typeof(CancelRequest), "cancel")]
 public abstract record ServerRequest;
 
-public record UserMessageRequest(string Content, string? Model = null) : ServerRequest;
+/// <summary>
+/// A user turn. <paramref name="Options"/> narrows or tunes this turn only; a request without it runs
+/// the agent exactly as configured.
+/// </summary>
+public record UserMessageRequest(
+    string Content,
+    string? Model = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TurnOptions? Options = null) : ServerRequest;
+
+/// <summary>
+/// Per-turn override a client sends with a <see cref="UserMessageRequest"/>. Every field is optional
+/// and the merge is field by field: a set field replaces the agent's configured value for this turn
+/// only, an unset (<c>null</c>) field keeps the agent's value, and the next request without options
+/// is back on the agent's configuration. Nothing here is remembered across turns.
+/// </summary>
+/// <param name="ToolNames">Names of the tools this turn may use — a subset of the tools registered on
+/// the agent. An empty array means no tools this turn. A name that is not registered is rejected with
+/// an <see cref="ErrorEvent"/> rather than dropped, so a client cannot believe a turn was restricted
+/// when it was not.</param>
+/// <param name="ToolMode"><c>auto</c> (the model decides), <c>none</c> (no tool call this turn),
+/// <c>require_any</c> (the model must call some tool) or <c>require:&lt;tool name&gt;</c> (it must
+/// call that registered tool).</param>
+/// <param name="ReasoningEffort"><c>none</c>, <c>low</c>, <c>medium</c>, <c>high</c> or
+/// <c>extra_high</c>, for models that expose a reasoning effort.</param>
+/// <param name="Temperature">Sampling temperature for this turn.</param>
+/// <param name="MaxOutputTokens">Output token cap for this turn.</param>
+public record TurnOptions(
+    string[]? ToolNames = null,
+    string? ToolMode = null,
+    string? ReasoningEffort = null,
+    float? Temperature = null,
+    int? MaxOutputTokens = null);
 
 public record HitlResponseRequest(bool Approved, string? Reason = null) : ServerRequest;
 

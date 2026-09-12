@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
+using IronHive.Cli.Infrastructure;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 using IronHive.Host.Utils;
@@ -19,10 +20,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly IAgentLoopFactory _factory;
+    private readonly IHostAgentLoopFactory _factory;
     private readonly IMcpPluginManager? _pluginManager;
 
-    public RunCommand(IAgentLoopFactory factory, IMcpPluginManager? pluginManager = null)
+    public RunCommand(IHostAgentLoopFactory factory, IMcpPluginManager? pluginManager = null)
     {
         _factory = factory;
         _pluginManager = pluginManager;
@@ -191,11 +192,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     private async Task<int> RunServerModeAsync(Settings settings, CancellationToken ct)
     {
-        var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
+        var created = await _factory.CreateWithToolsAsync(new AgentLoopFactoryOptions
         {
             Provider = settings.Provider,
             Model = settings.Model
         }, ct);
+        var agentLoop = created.Loop;
 
         McpHealthCheckService? healthCheck = null;
         try
@@ -224,7 +226,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 UserMessageRequest msg,
                 [EnumeratorCancellation] CancellationToken token)
             {
-                await foreach (var evt in agentLoop.RunStreamingAsync(msg.Content, token)
+                // Per-turn options become the loop's override for this turn only; a request without
+                // them runs on the loop's configuration. Unknown tool names throw here and reach the
+                // client as an ErrorEvent (the runner turns exceptions into one) — never a silent drop.
+                var overrideOptions = TurnOptionsMapper.ToChatOptions(msg.Options, created.Tools);
+
+                await foreach (var evt in agentLoop.RunStreamingAsync(msg.Content, overrideOptions, token)
                     .ToServerEvents(executionLog, token))
                 {
                     yield return evt;

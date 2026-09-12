@@ -96,8 +96,10 @@ public static class ServiceCollectionExtensions
         // Note: IAgentLoop is obtained via IAgentLoopFactory.CreateAsync() at runtime
         // This avoids synchronous blocking during DI resolution
 
-        // Register IAgentLoopFactory for runtime model/provider selection
-        services.AddSingleton<IAgentLoopFactory>(sp =>
+        // Register the loop factory for runtime model/provider selection. The host-side interface
+        // also hands back the registered tools (per-turn tool selection resolves names against them).
+        services.AddSingleton<IAgentLoopFactory>(sp => sp.GetRequiredService<IHostAgentLoopFactory>());
+        services.AddSingleton<IHostAgentLoopFactory>(sp =>
         {
             var clientFactory = sp.GetRequiredService<IChatClientFactory>();
             var turnManager = sp.GetRequiredService<IThinkingTurnManager>();

@@ -10,6 +10,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Added
 - `AddendumEvent` (`addendum`) in `IronHive.Host.Protocol`: the text a turn observer appended after a turn now leaves the host as its own event — at most once per turn, after the last `text_delta` and before `turn_end`, only when an observer appended something. Until now it was relayed as one more `text_delta` (the agent carried it as the final chunk's text delta), so a client could not tell the note from the model's words without re-deriving it from the concatenated text. `AgentResponseMapper` maps `AgentResponseChunk.Addendum` (IronHive.Agent 0.11.0) to it.
 
+- `UserMessageRequest.Options` (`TurnOptions`) in `IronHive.Host.Protocol`: a client can narrow or tune one turn — `tool_names` (subset of the agent's registered tools), `tool_mode` (`auto`/`none`/`require_any`/`require:<tool>`), `reasoning_effort`, `temperature`, `max_output_tokens`. The host maps it to the agent loop's per-turn `ChatOptions` override (`TurnOptionsMapper`), field by field: set fields replace the agent's configuration for that turn only, unset fields keep it, nothing persists to the next turn. A tool name that is not registered, or an unknown mode/effort, is answered with an `error` event rather than dropped. A request without `options` serializes exactly as before.
+- The CLI's streaming outputs (`--format jsonl` as `{"type":"addendum"}`, and the console paths after the model's text) render a turn observer's note, which IronHive.Agent 0.11.0 no longer delivers as a text delta.
+
 ### Changed
 - Re-pinned `IronHive.Agent` / `IronHive.DeepResearch` 0.10.5 -> 0.11.0.
 - A client that concatenated every `text_delta` into the assistant's answer no longer sees an observer's note in that answer; render `addendum` separately.
