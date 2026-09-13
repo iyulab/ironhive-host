@@ -411,7 +411,9 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
     typeInfoModifiers: [ApplyCustomPolymorphismOverrides]);
 ```
 
-`AgentHttpRunner` additionally exposes `WaitForHitlResponseAsync` / `ResolveHitl` for human-in-the-loop flows, and `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices).
+`AgentHttpRunner` additionally exposes `WaitForHitlResponseAsync` / `ResolveHitl` for human-in-the-loop flows, and `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices). No runner emits `hitl_request` yet: in server mode a tool call whose permission verdict is `Ask` is refused with a reason (see **Permissions**), and the refusal reaches the client as a `tool_end`.
+
+**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGatedFunctionInvoker`, installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console. The prompt needs a terminal — when stdin or stdout is redirected (`run --server`, or a piped one-shot) an `Ask` verdict is rejected with a reason instead, so a prompt never lands in the protocol stream. Rules live in `~/.ironhive/config.yaml` under `permissions` (`read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `default_action`); `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to `default_action` (`ask` by default — so an unknown tool is asked about, not run).
 
 **Protocol types** (`ServerRequest` → agent, `ServerEvent` → host):
 
@@ -423,7 +425,8 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `CancelRequest` | `cancel` | — |
 | `ShutdownRequest` | `shutdown` | — |
 | `ToolStartEvent` | `tool_start` | `Tool`, `Input?`, `CallId?` |
-| `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` |
+| `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` — one per tool call once its outcome is known, before `turn_end`; `CallId` matches the `tool_start`. A call the permission gate refused arrives with `Success: false` and the refusal as `Output` (`Permission denied: …` / `Approval rejected: …`) |
+| `ThinkingDeltaEvent` | `thinking_delta` | `Content` — extended-thinking text, its own stream, never folded into `text_delta` |
 | `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
 | `TextDeltaEvent` | `text_delta` | `Content` |
 | `AddendumEvent` | `addendum` | `Content` — a turn observer's note, at most once per turn, after the last `text_delta` and before `turn_end`; not the model's words, never in history |
