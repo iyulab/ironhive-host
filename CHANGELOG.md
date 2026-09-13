@@ -5,6 +5,45 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.22.0
+
+### Added
+- The permission rules now gate every tool call, and the console approval prompt fires for the
+  first time. `ApprovalGatedFunctionInvoker` (IronHive.Agent 0.12.0) sits on top of the resilient
+  invoker in the chat client chain: an `Allow` verdict runs the tool, `Deny` returns the reason to the
+  model, `Ask` (for example editing `*.json` or `.env*`, or any tool no rule names) shows the
+  Spectre.Console approval prompt and runs the tool only on approval. Until now
+  `ConsoleApprovalService` was registered and never called, so every `Ask` rule ran unasked.
+- `permissions.tools` in `config.yaml`: rules matched by tool name for tools with no dedicated
+  category (`WebSearch`, MCP-less plugins, ...). A merge that defines only this section is applied
+  like the others.
+
+- `tool_end` events on the server wire. The protocol declared `ToolEndEvent` from the start and
+  nothing emitted it: a client saw a tool start and never what it returned. The final chunk's
+  consolidated tool outcomes are now relayed as one `tool_end` per call — `success`, `output`, and
+  `call_id` matching the `tool_start` — so a client sees a permission-gate refusal
+  (`success: false`, `output: "Approval rejected: ..."`) instead of only that the tool started.
+
+### Fixed
+- The configured `lmsupply.generatorModel` was never read. The LMSupply chat provider was
+  registered twice — once on the user's config and once, "for `/model` selection", on a fresh
+  `LMSupplyConfig` — and the second registration won, so every local run loaded the class default
+  regardless of config or `--model`. Registered once, on the configured models (with `Enabled`
+  forced on when LMSupply is not the enabled fallback).
+- That class default was `gguf:default`, an alias LMSupply does not register: a fresh install
+  failed at its first local inference with "not a registered GGUF alias". The default is now
+  `gguf:auto`.
+- `--model` no longer loads the configured default model first. The provider initialized the
+  default before honouring an override, so a broken default failed an explicit model and a working
+  one cost a second model load.
+
+### Changed
+- `ConsoleApprovalService` rejects an approval request with a reason when stdin or stdout is
+  redirected — `run --server` speaks JSON Lines on those streams, so a prompt must never land in
+  them, and a piped one-shot run has nobody to answer. Such a call reaches the model as
+  `Approval rejected: ...`; allow the tool by rule if it should run unattended.
+- Re-pinned `IronHive.Agent`, `IronHive.DeepResearch` 0.11.1 -> 0.12.0.
+
 ## 0.21.2
 
 ### Changed

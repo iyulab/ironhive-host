@@ -61,6 +61,41 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_FinalChunkToolOutcomes_YieldToolEndEvents_BeforeTurnEnd()
+    {
+        // The wire had tool_end from the start and nothing emitted it: a client saw a tool start and
+        // never what it returned — in particular never that the permission gate refused it.
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", NameDelta = "WriteFile" } },
+            new AgentResponseChunk
+            {
+                Turn = new TurnRecord
+                {
+                    Content = "done",
+                    ToolCalls =
+                    [
+                        new ToolCallResult { CallId = "tc-1", ToolName = "WriteFile", Arguments = "{}", Result = "Approval rejected: no interactive console", Success = false },
+                        new ToolCallResult { CallId = "tc-2", ToolName = "ReadFile", Arguments = "{}", Result = "contents", Success = true },
+                        new ToolCallResult { CallId = "tc-3", ToolName = "Unknown", Arguments = "{}", Result = "", Success = null }
+                    ]
+                }
+            });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        events[0].Should().BeOfType<ToolStartEvent>().Which.CallId.Should().Be("tc-1");
+        var ends = events.OfType<ToolEndEvent>().ToList();
+        ends.Should().HaveCount(2, "an unknown outcome is not an end event");
+        ends[0].Should().BeEquivalentTo(new ToolEndEvent("WriteFile", false, "Approval rejected: no interactive console", "tc-1"));
+        ends[1].Should().BeEquivalentTo(new ToolEndEvent("ReadFile", true, "contents", "tc-2"));
+        events[^1].Should().BeOfType<TurnEndEvent>();
+        events.IndexOf(ends[1]).Should().BeLessThan(events.Count - 1);
+    }
+
+    [Fact]
     public async Task ToServerEvents_ToolCallNameDelta_YieldsToolStartEvent()
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk

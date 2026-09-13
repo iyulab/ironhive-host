@@ -46,13 +46,14 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
     /// <inheritdoc />
     public async Task<IChatClient> GetChatClientAsync(string? modelOverride = null, CancellationToken cancellationToken = default)
     {
-        // Lazy initialization - automatically initialize if not done
-        if (!_initialized)
+        // Only the configured default goes through initialization. A request that names its own
+        // model must not pay for (or fail on) loading a default it never asked for.
+        if (modelOverride is null && !_initialized)
         {
             await EnsureInitializedAsync(cancellationToken);
         }
 
-        var model = modelOverride ?? _defaultModel!;
+        var model = modelOverride ?? _defaultModel ?? _config.GeneratorModel;
 
         // Try to get from cache, or load dynamically
         if (!_clientCache.TryGetValue(model, out var cached))
@@ -233,7 +234,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 
     private static string GetDisplayName(string modelId)
     {
-        if (modelId == "auto" || modelId == "gguf:default")
+        if (modelId == "auto" || modelId == "gguf:auto")
         {
             return "Default Local Model (auto)";
         }

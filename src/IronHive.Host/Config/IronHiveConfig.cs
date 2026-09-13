@@ -189,9 +189,12 @@ public class LMSupplyConfig
     public string RerankerModel { get; set; } = "auto";
 
     /// <summary>
-    /// Generator model identifier ("auto", "gguf:default", or HuggingFace model ID).
+    /// Generator model identifier: a GGUF alias LMSupply registers (<c>"gguf:auto"</c> picks by
+    /// hardware; <c>"gguf:qwen3-default"</c>, <c>"gguf:phi-4-mini"</c>, ...), <c>"auto"</c>, or a
+    /// HuggingFace model ID. Default <c>"gguf:auto"</c> — the previous <c>"gguf:default"</c> is not an
+    /// alias LMSupply knows, so a fresh install failed at its first local inference.
     /// </summary>
-    public string GeneratorModel { get; set; } = "gguf:default";
+    public string GeneratorModel { get; set; } = "gguf:auto";
 
     /// <summary>
     /// Maximum context length for local models.

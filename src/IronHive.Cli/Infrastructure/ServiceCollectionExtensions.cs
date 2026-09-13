@@ -41,6 +41,23 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds IronHive CLI services to the service collection.
     /// </summary>
+    /// <summary>
+    /// The LMSupply config the chat provider is registered on: the user's own when LMSupply is the
+    /// enabled fallback, otherwise a copy with <c>Enabled</c> forced on so <c>/model</c> can still
+    /// select it — and in both cases carrying the configured model ids, never the class defaults.
+    /// </summary>
+    internal static CliConfig.LMSupplyConfig SelectableLMSupplyConfig(CliConfig.LMSupplyConfig configured) =>
+        configured.Enabled
+            ? configured
+            : new CliConfig.LMSupplyConfig
+            {
+                Enabled = true,
+                EmbedderModel = configured.EmbedderModel,
+                RerankerModel = configured.RerankerModel,
+                GeneratorModel = configured.GeneratorModel,
+                MaxContextLength = configured.MaxContextLength
+            };
+
     public static IServiceCollection AddIronHiveServices(this IServiceCollection services)
     {
         // Load configuration (config.yaml, 4-scope merge; migrate legacy settings.json once)
@@ -434,22 +451,24 @@ public static class ServiceCollectionExtensions
             providersDict["lmstudio"] = new IronhiveChatClientProvider(generator, "lmstudio", config.LMStudio.Model!, finder);
         }
 
-        // LMSupply providers (local fallback)
+        // LMSupply chat provider — registered exactly once, always, so /model can select it even
+        // when it is not the enabled fallback; when disabled in config it is registered on a copy
+        // with Enabled forced on. It always carries the configured model ids: a second registration
+        // on a fresh LMSupplyConfig used to shadow this one (last registration wins), so the
+        // generatorModel a user set was never read and every local run loaded the class default.
+        var lmSupplyConfig = SelectableLMSupplyConfig(config.LMSupply);
+        services.AddSingleton<LMSupplyChatClientProvider>(sp =>
+            new LMSupplyChatClientProvider(lmSupplyConfig, sp.GetService<ILogger<LMSupplyChatClientProvider>>()));
+
+        // LMSupply embedding/rerank providers (local fallback)
         if (config.LMSupply.Enabled)
         {
-            services.AddSingleton<LMSupplyChatClientProvider>(sp =>
-                new LMSupplyChatClientProvider(config.LMSupply));
-
             services.AddSingleton<LMSupplyEmbeddingProvider>(sp =>
                 new LMSupplyEmbeddingProvider(config.LMSupply));
 
             services.AddSingleton<LMSupplyRerankProvider>(sp =>
                 new LMSupplyRerankProvider(config.LMSupply));
         }
-
-        // LMSupply is always registered for /model command selection
-        services.AddSingleton<LMSupplyChatClientProvider>(sp =>
-            new LMSupplyChatClientProvider(new CliConfig.LMSupplyConfig { Enabled = true }));
 
         // Determine default provider (priority: GpuStack > OpenAI > Anthropic > GoogleAI > Xai > Ollama > LMStudio)
         IChatClientProvider? defaultProvider = null;
@@ -505,18 +524,27 @@ public static class ServiceCollectionExtensions
             //   FunctionInvokingChatClient (M.E.AI built-in tool-call orchestrator)
             //     → TokenBudgetChatClient (D-2: graceful exit when accumulated history nears context window)
             //       → inner LMSupply / OpenAI / Anthropic / etc.
-            // ResilientFunctionInvoker handles per-tool-call marshaller errors;
-            // TokenBudgetChatClient handles per-iteration history-size overflow.
+            // The FunctionInvoker is two layers: ApprovalGatedFunctionInvoker puts the permission
+            // rules and the human approval prompt in front of every call (Allow / Deny / Ask),
+            // and ResilientFunctionInvoker underneath turns per-tool-call marshaller errors into
+            // recovery directives. TokenBudgetChatClient handles per-iteration history-size overflow.
             // Iteration / consecutive-error caps come from ChatBehaviorConfig (D-4) so
             // consumers can tune per-model without forking. Rationales: ecosystem ISSUE
             // 2026-04-29 (throw), 2026-04-30 (overflow), 2026-05-01 (consumer-tunable caps).
+            var modeToolFilter = sp.GetRequiredService<IModeToolFilter>();
+            var approvalService = sp.GetService<IHumanApprovalService>();
+            var gateLogger = sp.GetService<ILogger<FunctionInvokingDecorator>>();
             IChatClient ClientDecorator(IChatClient inner) =>
                 new FunctionInvokingDecorator(new TokenBudgetChatClient(inner))
                 {
                     MaximumIterationsPerRequest = config.ChatBehavior.MaximumIterationsPerRequest,
                     MaximumConsecutiveErrorsPerRequest = config.ChatBehavior.MaximumConsecutiveErrorsPerRequest,
                     IncludeDetailedErrors = true,
-                    FunctionInvoker = ResilientFunctionInvoker.Create()
+                    FunctionInvoker = ApprovalGatedFunctionInvoker.Create(
+                        modeToolFilter,
+                        approvalService,
+                        inner: ResilientFunctionInvoker.Create(),
+                        logger: gateLogger)
                 };
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);

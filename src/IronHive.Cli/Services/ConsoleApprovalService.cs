@@ -7,9 +7,33 @@ namespace IronHive.Cli.Services;
 /// Console-based implementation of human approval service.
 /// Uses Spectre.Console for rich terminal UI.
 /// </summary>
+/// <remarks>
+/// Only a terminal can answer a prompt. When stdin or stdout is redirected — <c>run --server</c>
+/// speaks JSON Lines on exactly those streams, and a piped one-shot run has nobody at the keyboard —
+/// the request is rejected with a reason instead of being prompted, so a prompt never lands inside a
+/// protocol stream and an unanswerable question never blocks the process.
+/// </remarks>
 public class ConsoleApprovalService : IHumanApprovalService
 {
     private readonly HashSet<string> _autoApproved = [];
+    private readonly Func<bool> _hasInteractiveConsole;
+
+    /// <summary>
+    /// Creates the service, asking on the process console.
+    /// </summary>
+    public ConsoleApprovalService()
+        : this(static () => !Console.IsInputRedirected && !Console.IsOutputRedirected)
+    {
+    }
+
+    /// <summary>
+    /// Creates the service with an explicit "can I prompt here" test — for hosts that know their
+    /// surface better than the process streams do, and for tests.
+    /// </summary>
+    public ConsoleApprovalService(Func<bool> hasInteractiveConsole)
+    {
+        _hasInteractiveConsole = hasInteractiveConsole ?? throw new ArgumentNullException(nameof(hasInteractiveConsole));
+    }
 
     /// <inheritdoc />
     public Task<ApprovalResult> RequestApprovalAsync(ApprovalRequest request, CancellationToken cancellationToken = default)
@@ -19,6 +43,12 @@ public class ConsoleApprovalService : IHumanApprovalService
         if (_autoApproved.Contains(autoApproveKey))
         {
             return Task.FromResult(ApprovalResult.Approve());
+        }
+
+        if (!_hasInteractiveConsole())
+        {
+            return Task.FromResult(ApprovalResult.Reject(
+                $"'{request.ToolName}' requires approval but there is no interactive console to ask on"));
         }
 
         // Display the approval request

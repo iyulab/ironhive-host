@@ -384,7 +384,7 @@ public class ConfigurationManager
         // re-loaded from its own file post-merge (Task 3), so this is a best-effort fallback only.
         if (source.Permissions.Read.Count > 0 || source.Permissions.Edit.Count > 0 ||
             source.Permissions.Bash.Count > 0 || source.Permissions.ExternalDirectory.Count > 0 ||
-            source.Permissions.McpTools.Count > 0)
+            source.Permissions.McpTools.Count > 0 || source.Permissions.Tools.Count > 0)
         {
             target.Permissions = source.Permissions;
         }

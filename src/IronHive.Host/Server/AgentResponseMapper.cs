@@ -48,6 +48,21 @@ public static class AgentResponseMapper
                 yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta, CallId: chunk.ToolCallDelta.Id);
             }
 
+            // The final chunk carries the turn's consolidated tool outcomes. Relay each one whose
+            // outcome is known, so a client sees what a tool returned — including a permission
+            // gate's refusal (Success = false) — instead of only that it started. The event was in the
+            // protocol from the start and nothing emitted it.
+            if (chunk.Turn is not null)
+            {
+                foreach (var call in chunk.Turn.ToolCalls)
+                {
+                    if (call.Success is { } success)
+                    {
+                        yield return new ToolEndEvent(call.ToolName, success, call.Result, call.CallId);
+                    }
+                }
+            }
+
             if (chunk.Usage is not null)
             {
                 // Each round-trip's final chunk carries that round-trip's own usage — sum
