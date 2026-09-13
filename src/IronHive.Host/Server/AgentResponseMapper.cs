@@ -36,6 +36,14 @@ public static class AgentResponseMapper
                 yield return new TextDeltaEvent(chunk.TextDelta);
             }
 
+            // The loop streams extended-thinking content on its own field and the protocol has an
+            // event for it; the two were never connected, so a client with a thinking pane got
+            // nothing while the console path rendered it.
+            if (chunk.ThinkingDelta is not null)
+            {
+                yield return new ThinkingDeltaEvent(chunk.ThinkingDelta);
+            }
+
             // An observer's note rides on the final chunk as its own field; relay it as its own event
             // so the client can tell it from the model's text.
             if (chunk.Addendum is not null)

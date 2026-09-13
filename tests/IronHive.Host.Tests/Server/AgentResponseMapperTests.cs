@@ -61,6 +61,23 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_ThinkingDelta_YieldsThinkingDeltaEvent_NotATextDelta()
+    {
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ThinkingDelta = "let me see" },
+            new AgentResponseChunk { TextDelta = "answer" });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        events[0].Should().BeOfType<ThinkingDeltaEvent>().Which.Content.Should().Be("let me see");
+        events[1].Should().BeOfType<TextDeltaEvent>().Which.Content.Should().Be("answer");
+        events.OfType<TextDeltaEvent>().Should().ContainSingle("thinking is not the model's answer text");
+    }
+
+    [Fact]
     public async Task ToServerEvents_FinalChunkToolOutcomes_YieldToolEndEvents_BeforeTurnEnd()
     {
         // The wire had tool_end from the start and nothing emitted it: a client saw a tool start and

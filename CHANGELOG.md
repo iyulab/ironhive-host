@@ -24,6 +24,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   `call_id` matching the `tool_start` — so a client sees a permission-gate refusal
   (`success: false`, `output: "Approval rejected: ..."`) instead of only that the tool started.
 
+- `thinking_delta` events on the server wire: the loop streamed extended-thinking content on its own
+  chunk field and the protocol declared the event, but the mapper never connected them, so a client
+  with a thinking pane got nothing.
+- A test now pins every declared protocol event to a construction site in host source (and every
+  request to a consumer), with the still-unemitted ones listed by name and reason — so a declared
+  type nothing sends cannot stay silent again.
+
 ### Fixed
 - The configured `lmsupply.generatorModel` was never read. The LMSupply chat provider was
   registered twice — once on the user's config and once, "for `/model` selection", on a fresh
