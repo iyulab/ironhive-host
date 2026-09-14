@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.22.4
+
+### Changed
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.5 -> 0.14.6, `IronHive.Agent` 0.12.1 -> 0.12.3, `IronHive.DeepResearch` 0.12.1 -> 0.12.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.22.3
 
 ### Changed
