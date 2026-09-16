@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.22.6
+
+### Changed
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.3 -> 0.27.0, `IronHive.Core` 0.26.3 -> 0.27.0, `IronHive.Providers.Anthropic` 0.26.3 -> 0.27.0, `IronHive.Providers.GoogleAI` 0.26.3 -> 0.27.0, `IronHive.Providers.OpenAI` 0.26.3 -> 0.27.0, `IronHive.Providers.OpenAI.Compatible` 0.26.3 -> 0.27.0, `LMSupply.Embedder` 0.65.1 -> 0.66.0, `LMSupply.Generator` 0.65.1 -> 0.66.0, `LMSupply.Reranker` 0.65.1 -> 0.66.0, `TokenMeter` 0.7.4 -> 0.7.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.22.5
 
 ### Changed
