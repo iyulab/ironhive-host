@@ -146,7 +146,7 @@ public class GpuStackConfig
 /// </para>
 /// <para>
 /// <b>MaximumConsecutiveErrorsPerRequest</b> caps how many back-to-back marshaller
-/// errors are tolerated before the framework aborts. With <see cref="ResilientFunctionInvoker"/>
+/// errors are tolerated before the framework aborts. With <see cref="Tools.ResilientFunctionInvoker"/>
 /// installed this is rarely hit (errors are converted to actionable strings), but it
 /// remains a backstop.
 /// </para>
@@ -163,7 +163,7 @@ public class ChatBehaviorConfig
 
     /// <summary>
     /// Maximum consecutive marshaller errors before the framework gives up. Default: 3.
-    /// With <see cref="ResilientFunctionInvoker"/> in the decorator chain this is rarely hit.
+    /// With <see cref="Tools.ResilientFunctionInvoker"/> in the decorator chain this is rarely hit.
     /// </summary>
     public int MaximumConsecutiveErrorsPerRequest { get; set; } = 3;
 }

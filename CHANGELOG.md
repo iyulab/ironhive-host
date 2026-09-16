@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.22.9
+
+### Fixed
+- The packages now ship their XML documentation file (`IronHive.Host`, `IronHive.Host.Protocol`, `IronHive.Cli`). `GenerateDocumentationFile` was never set, so every `///` doc was written but never delivered to a consumer. Generating it surfaced two `cref`s in `ChatBehaviorConfig` that did not resolve (`ResilientFunctionInvoker` lives in `IronHive.Host.Tools`); fixed. No code changes.
+
 ## 0.22.8
 
 ### Changed
