@@ -53,7 +53,7 @@ public class HostAgentDedupeConventionTests
     {
         // Broader net than the exact-name list above: the whole IronHive.Host.Ironbees and
         // IronHive.Host.Agent.SubAgent namespaces were retired wholesale in favor of
-        // IronHive.Agent.Ironbees / IronHive.Agent.SubAgent.
+        // IronHive.Agent.Ironbees (the agent-side SubAgent set was later replaced by IronHive.Agent.Delegation).
         var offendingTypes = HostAssembly.GetTypes()
             .Where(t => t.Namespace is "IronHive.Host.Ironbees" or "IronHive.Host.Agent.SubAgent")
             .Select(t => t.FullName)
