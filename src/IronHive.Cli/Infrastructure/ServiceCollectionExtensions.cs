@@ -348,6 +348,14 @@ public static class ServiceCollectionExtensions
             : string.Concat(value.AsSpan(0, maxLength - 3), "...");
     }
 
+    /// <summary>
+    /// The provider config the CLI's Anthropic registration uses. No <c>BaseUrl</c>: the SDK's default is the API root
+    /// and it appends the versioned path itself — the value this used to set (<c>.../v1/</c>) doubled it, so every
+    /// Anthropic call from the CLI was a 404.
+    /// </summary>
+    internal static IronHive.Providers.Anthropic.AnthropicConfig CreateAnthropicConfig(CliConfig.AnthropicConfig configured) =>
+        new() { ApiKey = configured.ApiKey! };
+
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
         // ironhive 0.8.0 removed the keyed provider registry (HiveServiceBuilder/IHiveService.Providers).
@@ -391,12 +399,7 @@ public static class ServiceCollectionExtensions
         // 3. Anthropic
         if (config.Anthropic.IsConfigured)
         {
-            // No BaseUrl: the SDK's default is the API root and it appends the versioned path itself. The value
-            // this used to set (".../v1/") doubled it, so every Anthropic call from the CLI was a 404.
-            var anthropicConfig = new IronHive.Providers.Anthropic.AnthropicConfig
-            {
-                ApiKey = config.Anthropic.ApiKey!
-            };
+            var anthropicConfig = CreateAnthropicConfig(config.Anthropic);
             var generator = new AnthropicMessageGenerator(anthropicConfig);
             var finder = new AnthropicModelFinder(anthropicConfig);
             providersDict["anthropic"] = new IronhiveChatClientProvider(generator, "anthropic", config.Anthropic.Model!, finder);
