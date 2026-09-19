@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.22.14
+
+### Fixed
+- **A transient provider failure is retried once, and a usage limit registered as `IUsageLimiter` is enforced**,
+  on every agent loop the host builds. The thinking loop the CLI always uses had neither. The CLI now registers
+  a default `IErrorRecoveryService` (an embedder's own registration wins).
+
+### Changed
+- Re-pinned `IronHive.Agent` and `IronHive.DeepResearch` 0.12.12 -> 0.13.0.
+
 ## 0.22.13
 
 ### Changed

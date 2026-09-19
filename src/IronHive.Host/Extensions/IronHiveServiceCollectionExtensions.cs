@@ -1,7 +1,9 @@
 using System.ClientModel;
 using IronHive.Agent.Context;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Providers;
+using IronHive.Agent.Tracking;
 using IronHive.Host.Config;
 using IronHive.Host.Context;
 using IronHive.Host.Providers;
@@ -82,7 +84,8 @@ public static class IronHiveServiceCollectionExtensions
                 var agentOptions = sp.GetRequiredService<AgentOptions>();
                 // Wire context compaction so embedded long sessions compact instead of overflowing.
                 var contextManager = HostContextManagerFactory.Create(options.Compaction, options.DefaultModel);
-                return new AgentLoop(chatClient, agentOptions, contextManager: contextManager);
+                return new AgentLoop(chatClient, agentOptions, contextManager: contextManager,
+                    errorRecovery: sp.GetService<IErrorRecoveryService>(), usageLimiter: sp.GetService<IUsageLimiter>());
             });
         }
 

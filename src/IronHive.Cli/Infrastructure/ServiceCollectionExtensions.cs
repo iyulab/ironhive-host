@@ -3,6 +3,7 @@ using IndexThinking.Agents;
 using IndexThinking.Extensions;
 using IronHive.Abstractions;
 using IronHive.Abstractions.Messages;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Memory;
@@ -22,6 +23,7 @@ using IronHive.Providers.OpenAI;
 using IronHive.Providers.OpenAI.Compatible;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using WebLookup;
@@ -126,8 +128,14 @@ public static class ServiceCollectionExtensions
             var mcpPluginManager = sp.GetService<IMcpPluginManager>();
             var logger = sp.GetService<ILogger<AgentLoopFactory>>();
 
-            return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger, config.Compaction);
+            // A transient provider failure is retried once, and a usage limit an embedder registered is
+            // enforced -- the same turn safeguards AgentLoop applies (ThinkingAgentLoop had neither).
+            return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger, config.Compaction,
+                sp.GetService<IErrorRecoveryService>(), sp.GetService<IUsageLimiter>());
         });
+
+        // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.
+        services.TryAddSingleton<IErrorRecoveryService>(_ => new ErrorRecoveryService());
 
         // Register usage tracker for session-level token tracking
         services.AddSingleton<IUsageTracker, UsageTracker>();

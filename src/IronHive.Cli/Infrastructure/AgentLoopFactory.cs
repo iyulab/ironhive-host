@@ -1,9 +1,11 @@
 using IndexThinking.Agents;
 using IndexThinking.Client;
 using IronHive.Agent.Context;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Providers;
+using IronHive.Agent.Tracking;
 using IronHive.Host.Context;
 using IronHive.Host.Oops;
 using IronHive.Host.Tools;
@@ -25,6 +27,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly IMcpPluginManager? _mcpPluginManager;
     private readonly ILogger<AgentLoopFactory>? _logger;
     private readonly CompactionConfig? _compactionConfig;
+    private readonly IErrorRecoveryService? _errorRecovery;
+    private readonly IUsageLimiter? _usageLimiter;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -66,7 +70,9 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         DeepResearchTool? deepResearchTool = null,
         IMcpPluginManager? mcpPluginManager = null,
         ILogger<AgentLoopFactory>? logger = null,
-        CompactionConfig? compactionConfig = null)
+        CompactionConfig? compactionConfig = null,
+        IErrorRecoveryService? errorRecovery = null,
+        IUsageLimiter? usageLimiter = null)
     {
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
@@ -76,6 +82,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _mcpPluginManager = mcpPluginManager;
         _logger = logger;
         _compactionConfig = compactionConfig;
+        _errorRecovery = errorRecovery;
+        _usageLimiter = usageLimiter;
     }
 
     /// <inheritdoc />
@@ -117,7 +125,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
-            chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager);
+            chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
+            errorRecovery: _errorRecovery, usageLimiter: _usageLimiter);
         return new CreatedAgentLoop(loop, tools.AsReadOnly());
     }
 
