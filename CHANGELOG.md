@@ -11,6 +11,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **The `deep_research` tool honours the host's `SufficiencyThreshold` and `MinSourcesBeforeReport`**, and its streaming run retries
   a search that found nothing (IronHive.DeepResearch 0.14.0). The tool no longer sets `ResearchRequest.OutputFormat`, which was
   removed because reports are always Markdown.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.15.0 -> 0.16.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
 
 ### Fixed
 - **`DeepResearch.MaxIterations` in the host config limits research iterations.** It was passed to
