@@ -66,8 +66,6 @@ public sealed class DeepResearchTool : IAsyncDisposable
             var services = new ServiceCollection();
             services.AddDeepResearch(chatClient, opts =>
             {
-                opts.DefaultMaxIterations = _config.MaxIterations;
-
                 if (!string.IsNullOrEmpty(_tavilyApiKey))
                 {
                     opts.SearchApiKeys["tavily"] = _tavilyApiKey;
@@ -102,12 +100,7 @@ public sealed class DeepResearchTool : IAsyncDisposable
         {
             var researcher = await GetOrCreateResearcherAsync(cancellationToken);
 
-            var request = new ResearchRequest
-            {
-                Query = query,
-                Depth = ParseDepth(depth),
-                OutputFormat = OutputFormat.Markdown
-            };
+            var request = CreateRequest(query, depth, _config);
 
             ResearchResult? result = null;
             await foreach (var progress in researcher.ResearchStreamAsync(request, cancellationToken))
@@ -136,6 +129,18 @@ public sealed class DeepResearchTool : IAsyncDisposable
             return $"Error performing deep research: {ex.Message}";
         }
     }
+
+    /// <summary>
+    /// The research request for one tool call. The config's per-query iteration limit goes on the request — that is the
+    /// value the research loop reads (capped by depth). It used to go to <c>DeepResearchOptions.DefaultMaxIterations</c>,
+    /// which nothing read.
+    /// </summary>
+    internal static ResearchRequest CreateRequest(string query, string? depth, DeepResearchConfig config) => new()
+    {
+        Query = query,
+        Depth = ParseDepth(depth),
+        MaxIterations = config.MaxIterations
+    };
 
     private static ResearchDepth ParseDepth(string? depth)
     {

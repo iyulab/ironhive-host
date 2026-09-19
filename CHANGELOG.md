@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.23.1
+
+### Changed
+- **The `deep_research` tool honours the host's `SufficiencyThreshold` and `MinSourcesBeforeReport`**, and its streaming run retries
+  a search that found nothing (IronHive.DeepResearch 0.14.0). The tool no longer sets `ResearchRequest.OutputFormat`, which was
+  removed because reports are always Markdown.
+
+### Fixed
+- **`DeepResearch.MaxIterations` in the host config limits research iterations.** It was passed to
+  `DeepResearchOptions.DefaultMaxIterations`, which nothing read, so every query ran up to the request default of 5 whatever the
+  config said. It now sets the request's `MaxIterations`, which the depth still caps. The default (5) is unchanged.
+
+### Dependencies
+- `IronHive.Agent` 0.13.0 -> 0.14.0, `IronHive.DeepResearch` 0.13.0 -> 0.14.0.
+
 ## 0.23.0
 
 ### Fixed
