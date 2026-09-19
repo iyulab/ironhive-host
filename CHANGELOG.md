@@ -13,7 +13,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   a default `IErrorRecoveryService` (an embedder's own registration wins).
 
 ### Changed
-- Re-pinned `IronHive.Agent` and `IronHive.DeepResearch` 0.12.12 -> 0.13.0.
+- Re-pinned `IronHive.Agent` and `IronHive.DeepResearch` 0.12.12 -> 0.13.0, `Ironbees.Core` 0.14.12 -> 0.15.0.
 
 ## 0.22.13
 
