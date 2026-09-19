@@ -41,12 +41,12 @@
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
     <PackageVersion Include="IronHive.Agent" Version="0.13.0" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.29.1" />
-    <PackageVersion Include="IronHive.Core" Version="0.29.1" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.29.1" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.29.1" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.29.1" />
-    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.29.1" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.29.2" />
+    <PackageVersion Include="IronHive.Core" Version="0.29.2" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.29.2" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.29.2" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.29.2" />
+    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.29.2" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.3" />
     <!-- IronHive.DeepResearch (deep research agent) -->
