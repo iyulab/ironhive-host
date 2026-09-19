@@ -12,6 +12,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   a search that found nothing (IronHive.DeepResearch 0.14.0). The tool no longer sets `ResearchRequest.OutputFormat`, which was
   removed because reports are always Markdown.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.15.0 -> 0.16.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.30.0 -> 0.31.0, `IronHive.Core` 0.30.0 -> 0.31.0, `IronHive.Providers.Anthropic` 0.30.0 -> 0.31.0, `IronHive.Providers.GoogleAI` 0.30.0 -> 0.31.0, `IronHive.Providers.OpenAI` 0.30.0 -> 0.31.0, `IronHive.Providers.OpenAI.Compatible` 0.30.0 -> 0.31.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
 
 ### Fixed
 - **`DeepResearch.MaxIterations` in the host config limits research iterations.** It was passed to
