@@ -11,6 +11,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **A transient provider failure is retried once, and a usage limit registered as `IUsageLimiter` is enforced**,
   on every agent loop the host builds. The thinking loop the CLI always uses had neither. The CLI now registers
   a default `IErrorRecoveryService` (an embedder's own registration wins).
+- **Anthropic calls from the CLI no longer fail with 404.** The provider was configured with a base URL that already
+  ended in `/v1/`, and the SDK adds the versioned path itself, so every request went to `/v1/v1/messages`.
+
+### Added
+- **`advisor` config section** (`provider`, `model`, `maxCalls`). With a model set, every session's tools include an
+  `advisor` tool that sends the conversation so far to that model and returns its review; it is allowed by the default
+  permission rules (read-only) and shows up as an ordinary `tool_start`/`tool_end` on the server wire.
 
 ### Changed
 - Re-pinned `IronHive.Agent` and `IronHive.DeepResearch` 0.12.12 -> 0.13.0, `Ironbees.Core` 0.14.12 -> 0.15.0.

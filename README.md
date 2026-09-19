@@ -26,6 +26,7 @@ the full role boundary.
 - **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
 - **Context-window safe by default** — automatic history compaction (`ContextManager`) and a hard-backstop `TokenBudgetChatClient` prevent silent context overflows, including on small quantized models.
 - **Resilient tool-calling** — `ResilientFunctionInvoker` turns malformed tool-call arguments into model-actionable recovery hints instead of aborting the stream.
+- **Advisor** — set `advisor.model` and every session gets an `advisor` tool: the working model can send the conversation so far to a stronger model and read its review (before committing to an approach, when stuck, before declaring done). It appears on the wire as an ordinary `tool_start`/`tool_end`.
 - **Layered configuration** — global → project → environment → `.env`, with automatic migration from legacy `settings.json`.
 
 <details>
@@ -260,6 +261,7 @@ The loader accepts these top-level keys in `config.yaml`. Acronym provider secti
 | `webSearch` | camelCase |
 | `deepResearch` | camelCase |
 | `chatBehavior` | camelCase |
+| `advisor` | `provider`, `model`, `maxCalls` (per session, default 5) — off until `model` is set |
 
 ```yaml
 # ~/.ironhive/config.yaml
@@ -282,6 +284,12 @@ compaction:
   protectRecentTokens: 40000     # most-recent tokens always kept
   minimumPruneTokens: 20000      # only compact when at least this much is prunable
   targetRatio: 0.70              # compact down to ~70% of the context window
+
+# A stronger model the working model can consult through the `advisor` tool:
+advisor:
+  provider: anthropic
+  model: claude-opus-5
+  maxCalls: 5
 ```
 
 ## Core Library Integration

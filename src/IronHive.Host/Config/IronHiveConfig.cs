@@ -90,6 +90,28 @@ public class IronHiveConfig
     /// cli source. Phase D-4, ecosystem ISSUE 2026-04-30.
     /// </summary>
     public ChatBehaviorConfig ChatBehavior { get; set; } = new();
+
+    /// <summary>
+    /// Advisor configuration — a stronger model the working model can consult through the <c>advisor</c> tool.
+    /// Off until <see cref="AdvisorConfig.Model"/> is set.
+    /// </summary>
+    public AdvisorConfig Advisor { get; set; } = new();
+}
+
+/// <summary>
+/// The advisor: a stronger model the working model consults through a no-argument <c>advisor</c> tool, which sends
+/// it the conversation so far and returns its review. Set <see cref="Model"/> to turn it on.
+/// </summary>
+public class AdvisorConfig
+{
+    /// <summary>Provider of the advisor model (e.g. <c>anthropic</c>). Unset uses the default provider.</summary>
+    public string? Provider { get; set; }
+
+    /// <summary>The advisor model. The tool is offered only when this is set.</summary>
+    public string? Model { get; set; }
+
+    /// <summary>How many times one session may consult the advisor. Default 5.</summary>
+    public int MaxCalls { get; set; } = 5;
 }
 
 /// <summary>

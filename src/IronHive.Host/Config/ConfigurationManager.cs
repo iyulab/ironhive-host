@@ -469,6 +469,22 @@ public class ConfigurationManager
             target.DeepResearch.Model = source.DeepResearch.Model;
         }
 
+        // Advisor
+        if (!string.IsNullOrEmpty(source.Advisor.Provider))
+        {
+            target.Advisor.Provider = source.Advisor.Provider;
+        }
+
+        if (!string.IsNullOrEmpty(source.Advisor.Model))
+        {
+            target.Advisor.Model = source.Advisor.Model;
+        }
+
+        if (source.Advisor.MaxCalls > 0)
+        {
+            target.Advisor.MaxCalls = source.Advisor.MaxCalls;
+        }
+
         // ChatBehavior
         if (source.ChatBehavior.MaximumIterationsPerRequest > 0)
         {

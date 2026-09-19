@@ -1,11 +1,13 @@
 using IndexThinking.Agents;
 using IndexThinking.Client;
 using IronHive.Agent.Context;
+using IronHive.Agent.Delegation;
 using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Providers;
 using IronHive.Agent.Tracking;
+using IronHive.Host.Config;
 using IronHive.Host.Context;
 using IronHive.Host.Oops;
 using IronHive.Host.Tools;
@@ -29,6 +31,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly CompactionConfig? _compactionConfig;
     private readonly IErrorRecoveryService? _errorRecovery;
     private readonly IUsageLimiter? _usageLimiter;
+    private readonly AdvisorConfig? _advisor;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -72,7 +75,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         ILogger<AgentLoopFactory>? logger = null,
         CompactionConfig? compactionConfig = null,
         IErrorRecoveryService? errorRecovery = null,
-        IUsageLimiter? usageLimiter = null)
+        IUsageLimiter? usageLimiter = null,
+        AdvisorConfig? advisor = null)
     {
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
@@ -84,6 +88,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _compactionConfig = compactionConfig;
         _errorRecovery = errorRecovery;
         _usageLimiter = usageLimiter;
+        _advisor = advisor;
     }
 
     /// <inheritdoc />
@@ -109,6 +114,20 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
         // Load MCP plugins and add their tools
         await LoadMcpToolsAsync(tools, cancellationToken);
+
+        // The advisor: a stronger model the working model can consult. One tool per loop, so MaxCalls is per session.
+        if (!string.IsNullOrWhiteSpace(_advisor?.Model))
+        {
+            var advisorClient = _advisor.Provider is not null
+                ? await _clientFactory.CreateAsync(_advisor.Provider, _advisor.Model, cancellationToken)
+                : await _clientFactory.CreateAsync(_advisor.Model, cancellationToken);
+            tools.Add(AdvisorTool.Create(advisorClient, new AdvisorOptions
+            {
+                MaxCalls = _advisor.MaxCalls > 0 ? _advisor.MaxCalls : null,
+                ModelId = _advisor.Model,
+                UsageLimiter = _usageLimiter,
+            }));
+        }
 
         var agentOptions = new IronHive.Agent.Loop.AgentOptions
         {

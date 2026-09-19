@@ -131,7 +131,7 @@ public static class ServiceCollectionExtensions
             // A transient provider failure is retried once, and a usage limit an embedder registered is
             // enforced -- the same turn safeguards AgentLoop applies (ThinkingAgentLoop had neither).
             return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger, config.Compaction,
-                sp.GetService<IErrorRecoveryService>(), sp.GetService<IUsageLimiter>());
+                sp.GetService<IErrorRecoveryService>(), sp.GetService<IUsageLimiter>(), config.Advisor);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.
@@ -391,9 +391,10 @@ public static class ServiceCollectionExtensions
         // 3. Anthropic
         if (config.Anthropic.IsConfigured)
         {
+            // No BaseUrl: the SDK's default is the API root and it appends the versioned path itself. The value
+            // this used to set (".../v1/") doubled it, so every Anthropic call from the CLI was a 404.
             var anthropicConfig = new IronHive.Providers.Anthropic.AnthropicConfig
             {
-                BaseUrl = "https://api.anthropic.com/v1/",
                 ApiKey = config.Anthropic.ApiKey!
             };
             var generator = new AnthropicMessageGenerator(anthropicConfig);
