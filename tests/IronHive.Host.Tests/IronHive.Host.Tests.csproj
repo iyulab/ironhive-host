@@ -20,6 +20,7 @@
          dead reference), Xunit.SkippableFact dropped (unused after migrating McpServerE2ETests'
          [SkippableFact] uses to native xUnit v3 dynamic skip). xunit.runner.visualstudio kept
          for IDE Test Explorer discovery. -->
+    <PackageReference Include="Iyu.Conventions.Testing" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
