@@ -15,6 +15,8 @@ public class OptionsReachabilityRosterTests
     [
         Assembly.Load("IronHive.Host"),
         Assembly.Load("IronHive.Host.Protocol"),
+        // The CLI tool's assembly is named after the command. It ships, so its options count too.
+        Assembly.Load("ironhive"),
     ];
 
     /// <summary>Options accepted as unread today, each with the reason. Shrink this list; never grow it silently.</summary>
