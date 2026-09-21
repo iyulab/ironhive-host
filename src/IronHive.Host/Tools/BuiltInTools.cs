@@ -52,7 +52,9 @@ public static class BuiltInTools
     {
         var toolList = AgentBuiltInTools.GetAll(
             workingDirectory,
-            oopsService is null ? null : new OopsFileWriteInterceptor(oopsService));
+            oopsService is null
+                ? null
+                : new IronHive.Agent.Tools.FileToolOptions { WriteInterceptor = new OopsFileWriteInterceptor(oopsService) });
 
         if (webSearchTool is not null)
         {
