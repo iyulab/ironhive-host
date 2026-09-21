@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.24.0
+
+### Removed
+- **Breaking — `IronHive.Host.Tools.ToolProvider`.** It was a second copy of the agent's file, search
+  and shell tools that differed only in versioning its writes. The host now uses
+  `IronHive.Agent.Tools.ToolProvider` and attaches versioning through the new
+  `OopsFileWriteInterceptor`. Migration: construct `IronHive.Agent.Tools.ToolProvider(workingDirectory,
+  new OopsFileWriteInterceptor(oopsService))`, or keep calling `BuiltInTools.GetAll(...)`, whose
+  overloads, tool names, result messages and tool counts are unchanged.
+
+### Added
+- `OopsFileWriteInterceptor` — records each edit, starts versioning a file that keeps being edited, and
+  saves a snapshot after every write to a tracked file. `BuiltInTools.GetAll(workingDirectory, oopsService)`
+  wires it up.
+
+### Changed
+- Re-pinned `IronHive.Agent` / `IronHive.DeepResearch` 0.14.6 -> 0.15.0 (the write interceptor lives there).
+
 ## 0.23.7
 
 ### Changed
