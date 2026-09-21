@@ -27,6 +27,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned `IronHive.Agent` / `IronHive.DeepResearch` 0.14.6 -> 0.15.0 (the write interceptor lives there).
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.69.0 -> 0.70.0, `LMSupply.Generator` 0.69.0 -> 0.70.0, `LMSupply.Reranker` 0.69.0 -> 0.70.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
 
 ## 0.23.7
 
