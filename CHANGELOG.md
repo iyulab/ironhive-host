@@ -16,6 +16,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   overloads, tool names, result messages and tool counts are unchanged.
 
 ### Added
+- **Instruction contributors reach the host's loops.** An `ISystemInstructionContributor` registered in
+  the container adds its section after the system prompt — the host's default prompt stays, so adding
+  one paragraph no longer means copying and maintaining all of it. Wired on both paths: the embedded
+  `IAgentLoop` (`AddIronHive`) and the loops `AgentLoopFactory` builds. `HostContextManagerFactory.Create`
+  takes the contributors as an optional third argument.
 - `OopsFileWriteInterceptor` — records each edit, starts versioning a file that keeps being edited, and
   saves a snapshot after every write to a tracked file. `BuiltInTools.GetAll(workingDirectory, oopsService)`
   wires it up.

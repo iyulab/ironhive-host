@@ -77,6 +77,48 @@ public class HostCompactionWiringTests
     }
 
     [Fact]
+    public void AddIronHive_EmbedPath_PassesRegisteredInstructionContributorsToTheLoop()
+    {
+        // A constructor that accepts contributors proves nothing about the container handing them over.
+        var services = new ServiceCollection();
+        services.AddSingleton<IronHive.Agent.Context.ISystemInstructionContributor>(new HouseRules());
+        services.AddIronHive(options =>
+        {
+            options.UseChatClient(new MockChatClient());
+            options.SystemPrompt = "test";
+            options.DefaultModel = "gpt-4o";
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var loop = (AgentLoop)provider.GetRequiredService<IAgentLoop>();
+
+        loop.ContextManager!.InstructionContributors.Select(c => c.Name).Should().Equal("house-rules");
+    }
+
+    [Fact]
+    public void AddIronHive_EmbedPath_WithoutContributors_HasNone()
+    {
+        var services = new ServiceCollection();
+        services.AddIronHive(options =>
+        {
+            options.UseChatClient(new MockChatClient());
+            options.DefaultModel = "gpt-4o";
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var loop = (AgentLoop)provider.GetRequiredService<IAgentLoop>();
+
+        loop.ContextManager!.InstructionContributors.Should().BeEmpty();
+    }
+
+    private sealed class HouseRules : IronHive.Agent.Context.ISystemInstructionContributor
+    {
+        public string Name => "house-rules";
+
+        public string? GetInstructions() => "Never touch the archive folder.";
+    }
+
+    [Fact]
     public async Task AgentLoopFactory_CliPath_BuildsLoopWithNonNullContextManager()
     {
         // ThinkingAgentLoop exposes no public ContextManager getter; assert the private field via

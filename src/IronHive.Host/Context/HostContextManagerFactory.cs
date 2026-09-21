@@ -21,8 +21,15 @@ public static class HostContextManagerFactory
     /// <param name="modelName">
     /// Model id used to size the context window. When <c>null</c>/empty, the token counter default applies.
     /// </param>
+    /// <param name="instructionContributors">
+    /// Sections added after the system prompt on every turn (see <see cref="ISystemInstructionContributor"/>);
+    /// <c>null</c> for none.
+    /// </param>
     /// <returns>A configured <see cref="ContextManager"/> ready to inject into an agent loop.</returns>
-    public static ContextManager Create(CompactionConfig? compaction, string? modelName)
+    public static ContextManager Create(
+        CompactionConfig? compaction,
+        string? modelName,
+        IEnumerable<ISystemInstructionContributor>? instructionContributors = null)
     {
         var config = compaction ?? new CompactionConfig();
 
@@ -36,6 +43,6 @@ public static class HostContextManagerFactory
 
         var compactor = new TokenBasedHistoryCompactor(tokenCounter, config);
 
-        return new ContextManager(tokenCounter, trigger, compactor);
+        return new ContextManager(tokenCounter, trigger, compactor, instructionContributors: instructionContributors);
     }
 }

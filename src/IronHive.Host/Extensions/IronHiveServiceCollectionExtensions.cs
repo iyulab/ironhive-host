@@ -83,7 +83,10 @@ public static class IronHiveServiceCollectionExtensions
                 var chatClient = sp.GetRequiredService<IChatClient>();
                 var agentOptions = sp.GetRequiredService<AgentOptions>();
                 // Wire context compaction so embedded long sessions compact instead of overflowing.
-                var contextManager = HostContextManagerFactory.Create(options.Compaction, options.DefaultModel);
+                // Instruction contributors the embedder registered add their sections after the system prompt.
+                var contextManager = HostContextManagerFactory.Create(
+                    options.Compaction, options.DefaultModel,
+                    sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>());
                 return new AgentLoop(chatClient, agentOptions, contextManager: contextManager,
                     errorRecovery: sp.GetService<IErrorRecoveryService>(), usageLimiter: sp.GetService<IUsageLimiter>());
             });

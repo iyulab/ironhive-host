@@ -131,7 +131,8 @@ public static class ServiceCollectionExtensions
             // A transient provider failure is retried once, and a usage limit an embedder registered is
             // enforced -- the same turn safeguards AgentLoop applies (ThinkingAgentLoop had neither).
             return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger, config.Compaction,
-                sp.GetService<IErrorRecoveryService>(), sp.GetService<IUsageLimiter>(), config.Advisor);
+                sp.GetService<IErrorRecoveryService>(), sp.GetService<IUsageLimiter>(), config.Advisor,
+                sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>());
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.

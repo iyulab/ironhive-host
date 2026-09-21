@@ -76,8 +76,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         CompactionConfig? compactionConfig = null,
         IErrorRecoveryService? errorRecovery = null,
         IUsageLimiter? usageLimiter = null,
-        AdvisorConfig? advisor = null)
+        AdvisorConfig? advisor = null,
+        IEnumerable<IronHive.Agent.Context.ISystemInstructionContributor>? instructionContributors = null)
     {
+        _instructionContributors = instructionContributors?.ToArray() ?? [];
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
         _oopsService = oopsService;
@@ -90,6 +92,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _usageLimiter = usageLimiter;
         _advisor = advisor;
     }
+
+    private readonly IronHive.Agent.Context.ISystemInstructionContributor[] _instructionContributors;
 
     /// <inheritdoc />
     public Task<IAgentLoop> CreateAsync(CancellationToken cancellationToken = default)
@@ -140,7 +144,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // Wire context compaction from host config so long sessions compact history
         // instead of overflowing. Without this the loop's ContextManager stays null and
         // CompactionConfig is inert. Model-aware so the context window matches the active model.
-        var contextManager = HostContextManagerFactory.Create(_compactionConfig, options.Model);
+        var contextManager = HostContextManagerFactory.Create(_compactionConfig, options.Model, _instructionContributors);
 
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
