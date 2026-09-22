@@ -13,9 +13,9 @@ using IronHive.Host.Config;
 using IronHive.Host.Context;
 using IronHive.Host.Oops;
 using IronHive.Host.Tools;
-using FileToolOptions = IronHive.Agent.Tools.FileToolOptions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using FileToolOptions = IronHive.Agent.Tools.FileToolOptions;
 
 namespace IronHive.Cli.Infrastructure;
 
