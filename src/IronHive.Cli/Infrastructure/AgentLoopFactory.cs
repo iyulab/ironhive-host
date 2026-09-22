@@ -5,12 +5,15 @@ using IronHive.Agent.Delegation;
 using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
+using IronHive.Agent.Permissions;
 using IronHive.Agent.Providers;
+using IronHive.Agent.Skills;
 using IronHive.Agent.Tracking;
 using IronHive.Host.Config;
 using IronHive.Host.Context;
 using IronHive.Host.Oops;
 using IronHive.Host.Tools;
+using FileToolOptions = IronHive.Agent.Tools.FileToolOptions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -32,6 +35,9 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly IErrorRecoveryService? _errorRecovery;
     private readonly IUsageLimiter? _usageLimiter;
     private readonly AdvisorConfig? _advisor;
+    private readonly SkillsLoader? _skills;
+    private readonly FileToolOptions? _fileToolOptions;
+    private readonly PermissionConfig? _permissions;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -77,9 +83,15 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         IErrorRecoveryService? errorRecovery = null,
         IUsageLimiter? usageLimiter = null,
         AdvisorConfig? advisor = null,
-        IEnumerable<IronHive.Agent.Context.ISystemInstructionContributor>? instructionContributors = null)
+        IEnumerable<IronHive.Agent.Context.ISystemInstructionContributor>? instructionContributors = null,
+        SkillsLoader? skills = null,
+        FileToolOptions? fileToolOptions = null,
+        PermissionConfig? permissions = null)
     {
         _instructionContributors = instructionContributors?.ToArray() ?? [];
+        _skills = skills;
+        _fileToolOptions = fileToolOptions;
+        _permissions = permissions;
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
         _oopsService = oopsService;
@@ -113,8 +125,21 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             ? await _clientFactory.CreateAsync(options.Provider, options.Model, cancellationToken)
             : await _clientFactory.CreateAsync(options.Model, cancellationToken);
 
+        // One working directory for the loop: the tools resolve relative paths against it, and the permission
+        // rules judge the resolved path against theirs. If the two differ, a rule such as `Read: src/**` is
+        // matched against a path the tool never opens — so a mismatch is refused here, not discovered later.
+        var workingDirectory = options.WorkingDirectory ?? Directory.GetCurrentDirectory();
+        EnsurePermissionsJudgeTheToolsDirectory(workingDirectory);
+
         // Create agent options with built-in tools (with oops versioning and web search support)
-        var tools = BuiltInTools.GetAll(options.WorkingDirectory ?? Directory.GetCurrentDirectory(), _oopsService, _webSearchTool, _deepResearchTool);
+        var tools = BuiltInTools.GetAll(workingDirectory, _oopsService, _webSearchTool, _deepResearchTool, _fileToolOptions);
+
+        // Agent Skills: the metadata reaches the instructions through the loader's contributor (registered
+        // in the container); the bodies need this tool.
+        if (_skills is not null && _skills.Skills.Count > 0)
+        {
+            tools.Add(_skills.LoadTool);
+        }
 
         // Load MCP plugins and add their tools
         await LoadMcpToolsAsync(tools, cancellationToken);
@@ -151,6 +176,24 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
             errorRecovery: _errorRecovery, usageLimiter: _usageLimiter);
         return new CreatedAgentLoop(loop, tools.AsReadOnly());
+    }
+
+    private void EnsurePermissionsJudgeTheToolsDirectory(string toolsDirectory)
+    {
+        if (_permissions?.WorkingDirectory is not { Length: > 0 } permissionsDirectory)
+        {
+            return;
+        }
+
+        var tools = Path.TrimEndingDirectorySeparator(Path.GetFullPath(toolsDirectory));
+        var rules = Path.TrimEndingDirectorySeparator(Path.GetFullPath(permissionsDirectory));
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!string.Equals(tools, rules, comparison))
+        {
+            throw new InvalidOperationException(
+                $"The loop's tools work in '{tools}' but the permission rules judge paths against '{rules}'. " +
+                "Give both the same working directory (PermissionConfig.WorkingDirectory, or AgentLoopFactoryOptions.WorkingDirectory).");
+        }
     }
 
     /// <summary>

@@ -16,6 +16,22 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   overloads, tool names, result messages and tool counts are unchanged.
 
 ### Added
+- **Agent Skills in the host.** A `skills:` section in `config.yaml` (`roots`, `enabled`, `exclude`,
+  `maxMetadataCharacters`, `acceptUnknownFields`) registers `IronHive.Agent`'s skills loader: the skills'
+  name + description go into the system instructions of every loop the factory builds and a `load_skill`
+  tool returns a body on demand, confined to the skill's directory. Relative roots resolve against the
+  process working directory. An embedder registers the loader itself with `AddAgentSkills(config)`; the
+  factory picks it up from the container. Nothing changes while no root is configured.
+- **`FileToolOptions` reaches the built-in tools from the container.** Register one (`AllowedRoots`, and
+  optionally a write interceptor) and `AgentLoopFactory` passes it to `BuiltInTools.GetAll`; versioning
+  through the oops service stays attached unless the options bring their own interceptor. New overload
+  `BuiltInTools.GetAll(workingDirectory, oopsService, webSearchTool, deepResearchTool, fileToolOptions)`.
+- **The tools and the permission rules must share a working directory.** `AgentLoopFactory` now takes the
+  `PermissionConfig` and refuses to build a loop whose tools work in one directory while the rules judge
+  paths against another (`InvalidOperationException` naming both). Until now such a loop was built and a
+  rule like `read: src/**` was matched against a path the tool never opened. The CLI's two directories are
+  both the process working directory, so it is unaffected; an embedder that passed
+  `AgentLoopFactoryOptions.WorkingDirectory` without moving `PermissionConfig.WorkingDirectory` now hears about it.
 - **Instruction contributors reach the host's loops.** An `ISystemInstructionContributor` registered in
   the container adds its section after the system prompt — the host's default prompt stays, so adding
   one paragraph no longer means copying and maintaining all of it. Wired on both paths: the embedded

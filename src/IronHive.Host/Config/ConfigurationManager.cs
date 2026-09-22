@@ -495,6 +495,12 @@ public class ConfigurationManager
         {
             target.ChatBehavior.MaximumConsecutiveErrorsPerRequest = source.ChatBehavior.MaximumConsecutiveErrorsPerRequest;
         }
+
+        // Skills — a scope that names roots replaces the section; the lists are one decision, not a union.
+        if (source.Skills.Roots.Count > 0)
+        {
+            target.Skills = source.Skills;
+        }
     }
 
     /// <summary>

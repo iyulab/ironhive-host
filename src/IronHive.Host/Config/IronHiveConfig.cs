@@ -96,6 +96,12 @@ public class IronHiveConfig
     /// Off until <see cref="AdvisorConfig.Model"/> is set.
     /// </summary>
     public AdvisorConfig Advisor { get; set; } = new();
+
+    /// <summary>
+    /// Agent Skills (<c>SKILL.md</c> bundles) the host's loops may use. Off until <see cref="SkillsHostConfig.Roots"/>
+    /// names at least one directory.
+    /// </summary>
+    public SkillsHostConfig Skills { get; set; } = new();
 }
 
 /// <summary>
@@ -112,6 +118,45 @@ public class AdvisorConfig
 
     /// <summary>How many times one session may consult the advisor. Default 5.</summary>
     public int MaxCalls { get; set; } = 5;
+}
+
+/// <summary>
+/// Agent Skills for the host's loops — the <c>skills</c> section of <c>config.yaml</c>. Maps onto
+/// <see cref="IronHive.Agent.Skills.SkillsConfig"/>; the loop gets the skills' metadata in its system
+/// instructions and a <c>load_skill</c> tool for the bodies. Nothing is loaded while <see cref="Roots"/> is empty.
+/// </summary>
+public class SkillsHostConfig
+{
+    /// <summary>Directories whose subdirectories are skills, in precedence order (the first root wins a name collision).</summary>
+    public List<string> Roots { get; set; } = [];
+
+    /// <summary>Names to use, in the order the model sees them; unset means every valid skill.</summary>
+    public List<string>? Enabled { get; set; }
+
+    /// <summary>Names never used.</summary>
+    public List<string> Exclude { get; set; } = [];
+
+    /// <summary>The most characters the skills section of the system instructions may take. Default 12 000.</summary>
+    public int MaxMetadataCharacters { get; set; } = 12_000;
+
+    /// <summary>
+    /// Load a skill whose frontmatter has keys the specification does not define, reporting them as a warning,
+    /// instead of rejecting it. Off by default — the specification's validator rejects such skills — but bundles
+    /// written for another client often carry its keys, and this is how they are accepted.
+    /// </summary>
+    public bool AcceptUnknownFields { get; set; }
+
+    /// <summary>The agent-layer configuration this section describes. Relative roots resolve against <paramref name="baseDirectory"/>.</summary>
+    public IronHive.Agent.Skills.SkillsConfig ToSkillsConfig(string baseDirectory) => new()
+    {
+        Roots = Roots.Select(r => Path.GetFullPath(r, baseDirectory)).ToList(),
+        Enabled = Enabled,
+        Exclude = Exclude,
+        MaxMetadataCharacters = MaxMetadataCharacters,
+        UnknownFields = AcceptUnknownFields
+            ? IronHive.Agent.Skills.UnknownFieldPolicy.Accept
+            : IronHive.Agent.Skills.UnknownFieldPolicy.Reject
+    };
 }
 
 /// <summary>

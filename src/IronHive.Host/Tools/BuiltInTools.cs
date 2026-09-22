@@ -49,12 +49,31 @@ public static class BuiltInTools
         IOopsService? oopsService,
         WebSearchTool? webSearchTool,
         DeepResearchTool? deepResearchTool = null)
+        => GetAll(workingDirectory, oopsService, webSearchTool, deepResearchTool, fileToolOptions: null);
+
+    /// <summary>
+    /// The full set, with the host's decisions about the file tools. <paramref name="fileToolOptions"/>
+    /// carries <c>AllowedRoots</c> and, if set, a write interceptor; when it names none, versioning through
+    /// <paramref name="oopsService"/> is attached as before, so passing roots does not cost the snapshots.
+    /// </summary>
+    public static IList<AITool> GetAll(
+        string? workingDirectory,
+        IOopsService? oopsService,
+        WebSearchTool? webSearchTool,
+        DeepResearchTool? deepResearchTool,
+        IronHive.Agent.Tools.FileToolOptions? fileToolOptions)
     {
-        var toolList = AgentBuiltInTools.GetAll(
-            workingDirectory,
-            oopsService is null
-                ? null
-                : new IronHive.Agent.Tools.FileToolOptions { WriteInterceptor = new OopsFileWriteInterceptor(oopsService) });
+        var interceptor = fileToolOptions?.WriteInterceptor
+            ?? (oopsService is null ? null : new OopsFileWriteInterceptor(oopsService));
+        var effective = fileToolOptions is null && interceptor is null
+            ? null
+            : new IronHive.Agent.Tools.FileToolOptions
+            {
+                AllowedRoots = fileToolOptions?.AllowedRoots ?? [],
+                WriteInterceptor = interceptor
+            };
+
+        var toolList = AgentBuiltInTools.GetAll(workingDirectory, effective);
 
         if (webSearchTool is not null)
         {

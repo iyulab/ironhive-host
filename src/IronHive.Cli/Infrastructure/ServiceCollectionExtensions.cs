@@ -4,6 +4,7 @@ using IndexThinking.Extensions;
 using IronHive.Abstractions;
 using IronHive.Abstractions.Messages;
 using IronHive.Agent.ErrorRecovery;
+using IronHive.Agent.Extensions;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Memory;
@@ -115,6 +116,13 @@ public static class ServiceCollectionExtensions
         // Note: IAgentLoop is obtained via IAgentLoopFactory.CreateAsync() at runtime
         // This avoids synchronous blocking during DI resolution
 
+        // Agent Skills from config.yaml `skills:` — the loader and its instruction contributor. The loop factory
+        // adds the load_skill tool. Nothing is registered while no root is configured.
+        if (config.Skills.Roots.Count > 0)
+        {
+            services.AddAgentSkills(config.Skills.ToSkillsConfig(Directory.GetCurrentDirectory()));
+        }
+
         // Register the loop factory for runtime model/provider selection. The host-side interface
         // also hands back the registered tools (per-turn tool selection resolves names against them).
         services.AddSingleton<IAgentLoopFactory>(sp => sp.GetRequiredService<IHostAgentLoopFactory>());
@@ -132,7 +140,10 @@ public static class ServiceCollectionExtensions
             // enforced -- the same turn safeguards AgentLoop applies (ThinkingAgentLoop had neither).
             return new AgentLoopFactory(clientFactory, turnManager, oopsService, webSearchTool, deepResearchTool, mcpPluginManager, logger, config.Compaction,
                 sp.GetService<IErrorRecoveryService>(), sp.GetService<IUsageLimiter>(), config.Advisor,
-                sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>());
+                sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>(),
+                skills: sp.GetService<IronHive.Agent.Skills.SkillsLoader>(),
+                fileToolOptions: sp.GetService<IronHive.Agent.Tools.FileToolOptions>(),
+                permissions: config.Permissions);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.

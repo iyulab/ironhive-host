@@ -64,6 +64,34 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void Load_SkillsSection_ReachesTheConfig_AndAScopeThatNamesRootsReplacesIt()
+    {
+        using var tmp = new TempConfigDirs();
+        tmp.WriteGlobal("skills:\n  roots: [~/skills, global-skills]\n  maxMetadataCharacters: 4000\n");
+        tmp.WriteProject("skills:\n  roots: [.ironhive/skills]\n  enabled: [pdf-processing, code-review]\n  exclude: [legacy]\n  acceptUnknownFields: true\n");
+
+        var manager = new ConfigurationManager(projectRoot: tmp.ProjectRoot, globalConfigPath: tmp.GlobalConfigPath);
+        var config = manager.Load();
+
+        config.Skills.Roots.Should().Equal(".ironhive/skills");
+        config.Skills.Enabled.Should().Equal("pdf-processing", "code-review");
+        config.Skills.Exclude.Should().Equal("legacy");
+        config.Skills.AcceptUnknownFields.Should().BeTrue();
+        config.Skills.MaxMetadataCharacters.Should().Be(12_000, "the project scope named roots, so its section replaced the global one as a whole");
+    }
+
+    [Fact]
+    public void Load_NoSkillsSection_LeavesSkillsOff()
+    {
+        using var tmp = new TempConfigDirs();
+        tmp.WriteProject("gpuStack:\n  model: m\n");
+
+        var config = new ConfigurationManager(projectRoot: tmp.ProjectRoot, globalConfigPath: tmp.GlobalConfigPath).Load();
+
+        config.Skills.Roots.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Load_ProjectConfigOverridesGlobal_UnsetFieldsFallThrough()
     {
         using var tmp = new TempConfigDirs();
