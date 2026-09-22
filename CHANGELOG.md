@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.24.4
+
+### Changed
+- Re-pinned sibling package(s) `Ironbees.Core` 0.17.2 -> 0.17.3, `IronHive.Abstractions` 0.33.0 -> 0.33.1, `IronHive.Agent` 0.15.3 -> 0.15.4, `IronHive.Core` 0.33.0 -> 0.33.1, `IronHive.DeepResearch` 0.15.3 -> 0.15.4, `IronHive.Providers.Anthropic` 0.33.0 -> 0.33.1, `IronHive.Providers.GoogleAI` 0.33.0 -> 0.33.1, `IronHive.Providers.OpenAI` 0.33.0 -> 0.33.1, `IronHive.Providers.OpenAI.Compatible` 0.33.0 -> 0.33.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.24.3
 
 ### Changed
