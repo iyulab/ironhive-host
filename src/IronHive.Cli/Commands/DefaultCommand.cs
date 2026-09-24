@@ -374,6 +374,19 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                         arguments = chunk.ToolCallDelta.ArgumentsDelta
                     });
                 }
+
+                // A tool's outcome as it arrives; `id` pairs it with the tool_call record that started it.
+                if (chunk.ToolResult is { } toolResult)
+                {
+                    OutputJsonLine(new
+                    {
+                        type = "tool_result",
+                        id = toolResult.CallId,
+                        name = toolResult.ToolName,
+                        success = toolResult.Success,
+                        result = toolResult.Result
+                    });
+                }
             }
 
             OutputJsonLine(new { type = "done", sessionId });

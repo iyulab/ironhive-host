@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.25.0
+
+### Added
+- **`--output jsonl` writes a `tool_result` record when a tool finishes** (`id`, `name`, `success`, `result`; `id`
+  pairs it with the `tool_call` record). Before, a JSON Lines reader saw a tool start and never what it returned.
+
+### Changed
+- **The server relays each tool's `tool_end` event as the tool finishes**, not when the turn ends. An outcome that
+  never arrived on its own chunk (a chat client without function invocation, a permission refusal) is still relayed
+  from the final turn record, once.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.19.2 -> 0.19.3, `IronHive.Abstractions` 0.35.0 -> 0.36.0, `IronHive.Agent` 0.15.10 -> 0.16.1, `IronHive.Core` 0.35.0 -> 0.36.0, `IronHive.DeepResearch` 0.15.10 -> 0.16.1, `IronHive.Providers.Anthropic` 0.35.0 -> 0.36.0, `IronHive.Providers.GoogleAI` 0.35.0 -> 0.36.0, `IronHive.Providers.OpenAI` 0.35.0 -> 0.36.0, `IronHive.Providers.OpenAI.Compatible` 0.35.0 -> 0.36.0, `LMSupply.Embedder` 0.74.0 -> 0.75.0, `LMSupply.Generator` 0.74.0 -> 0.75.0, `LMSupply.Reranker` 0.74.0 -> 0.75.0, `MemoryIndexer` 0.19.3 -> 0.19.4, `MemoryIndexer.Sdk` 0.19.3 -> 0.19.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.24.9
 
 ### Changed

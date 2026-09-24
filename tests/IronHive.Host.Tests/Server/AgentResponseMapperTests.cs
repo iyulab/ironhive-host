@@ -113,6 +113,31 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_ToolResultChunk_YieldsToolEndEvent_WhenItArrives_AndNotAgainFromTheTurn()
+    {
+        // The agent reports each tool's outcome on its own chunk as the tool finishes; relaying only the final
+        // turn record made a client's step timeline wait for the whole turn.
+        var read = new ToolCallResult { CallId = "tc-1", ToolName = "ReadFile", Arguments = "{}", Result = "contents", Success = true };
+        var write = new ToolCallResult { CallId = "tc-2", ToolName = "WriteFile", Arguments = "{}", Result = "refused", Success = false };
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", NameDelta = "ReadFile" } },
+            new AgentResponseChunk { ToolResult = read },
+            new AgentResponseChunk { TextDelta = "reading done" },
+            new AgentResponseChunk { Turn = new TurnRecord { Content = "reading done", ToolCalls = [read, write] } });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        events[1].Should().BeEquivalentTo(new ToolEndEvent("ReadFile", true, "contents", "tc-1"), "the result is relayed before the text that follows it");
+        events[2].Should().BeOfType<TextDeltaEvent>();
+        var ends = events.OfType<ToolEndEvent>().ToList();
+        ends.Should().HaveCount(2, "the arrived outcome is not repeated from the turn record; the one that never arrived still is");
+        ends[1].Should().BeEquivalentTo(new ToolEndEvent("WriteFile", false, "refused", "tc-2"));
+    }
+
+    [Fact]
     public async Task ToServerEvents_ToolCallNameDelta_YieldsToolStartEvent()
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk

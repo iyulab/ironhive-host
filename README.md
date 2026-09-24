@@ -181,6 +181,7 @@ On cancellation (Ctrl+C) or an unhandled error, the object is replaced with an e
 | `thinking` | `content` | Only with `--show-thinking`, once per thinking delta |
 | `text` | `content` | Once per text delta |
 | `tool_call` | `id`, `name`, `arguments` | Once per tool-call delta (`arguments` is JSON-encoded) |
+| `tool_result` | `id`, `name`, `success`, `result` | When a tool finishes (`id` pairs it with its `tool_call`; `success` is `null` when the outcome is unknown). Only when the chat client invokes tools |
 | `done` | `sessionId` | Last line on success |
 | `error` | `error` | Instead of `done`, on cancellation or an unhandled exception |
 

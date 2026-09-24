@@ -23,6 +23,8 @@ public static class AgentResponseMapper
         long inputTokens = 0;
         long outputTokens = 0;
         var hasUsage = false;
+        // Outcomes already relayed as they arrived; the final turn record repeats them (built by the same rule).
+        var relayed = new List<ToolCallResult>();
 
         await foreach (var chunk in chunks.WithCancellation(ct))
         {
@@ -56,14 +58,25 @@ public static class AgentResponseMapper
                 yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta, CallId: chunk.ToolCallDelta.Id);
             }
 
-            // The final chunk carries the turn's consolidated tool outcomes. Relay each one whose
-            // outcome is known, so a client sees what a tool returned — including a permission
-            // gate's refusal (Success = false) — instead of only that it started. The event was in the
-            // protocol from the start and nothing emitted it.
+            // A tool's outcome, the moment it arrives — a client's step timeline shows each result as the tool
+            // finishes instead of all of them when the turn ends.
+            if (chunk.ToolResult is { Success: { } arrivedSuccess } arrived)
+            {
+                relayed.Add(arrived);
+                yield return new ToolEndEvent(arrived.ToolName, arrivedSuccess, arrived.Result, arrived.CallId);
+            }
+
+            // The final chunk carries the turn's consolidated tool outcomes. Relay each one whose outcome is known
+            // and that did not already arrive on its own chunk — including a permission gate's refusal
+            // (Success = false) — so a client sees what every tool returned, not only that it started.
             if (chunk.Turn is not null)
             {
                 foreach (var call in chunk.Turn.ToolCalls)
                 {
+                    if (relayed.Remove(call))
+                    {
+                        continue;
+                    }
                     if (call.Success is { } success)
                     {
                         yield return new ToolEndEvent(call.ToolName, success, call.Result, call.CallId);
