@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.19.3" />
+    <PackageVersion Include="Ironbees.Core" Version="0.19.4" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
@@ -39,18 +39,18 @@
     <PackageVersion Include="MemoryIndexer" Version="0.19.4" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.19.4" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.16.1" />
+    <PackageVersion Include="IronHive.Agent" Version="0.17.1" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.36.0" />
-    <PackageVersion Include="IronHive.Core" Version="0.36.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.36.0" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.36.0" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.36.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.36.0" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.37.0" />
+    <PackageVersion Include="IronHive.Core" Version="0.37.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.37.0" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.37.0" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.37.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.37.0" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.3" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.16.1" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.17.1" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.6.0" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.6.0" />
