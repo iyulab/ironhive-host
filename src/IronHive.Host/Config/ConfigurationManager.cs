@@ -20,6 +20,12 @@ public class ConfigurationManager
     private readonly ILogger<ConfigurationManager>? _logger;
     private IronHiveConfig? _cachedConfig;
 
+    /// <param name="projectRoot">
+    /// Directory whose <c>.ironhive/config.yaml</c>, <c>.ironhive/permissions.{yaml,yml,json}</c> and <c>.env</c>
+    /// form the project scope. Defaults to the process working directory.
+    /// </param>
+    /// <param name="globalConfigPath">Global config file. Defaults to <c>~/.ironhive/config.yaml</c>.</param>
+    /// <param name="logger">Optional logger.</param>
     public ConfigurationManager(
         string? projectRoot = null,
         string? globalConfigPath = null,
@@ -69,8 +75,9 @@ public class ConfigurationManager
         // 4. Apply environment variables (highest priority)
         ApplyEnvironmentVariables(config);
 
-        // 5. Load permission config from default locations
-        config.Permissions = PermissionConfigLoader.LoadFromDefaultLocations(Directory.GetCurrentDirectory());
+        // 5. Load permission config from the same project scope as config.yaml and .env:
+        //    a projectRoot keeps whatever sits in the process working directory out of the config.
+        config.Permissions = PermissionConfigLoader.LoadFromDefaultLocations(_projectRoot);
 
         // 6. Auto-enable LMSupply if no API provider is configured
         if (!HasAnyApiProvider(config))

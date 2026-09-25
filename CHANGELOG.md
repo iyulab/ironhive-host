@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.25.4
+
+### Fixed
+- **`ConfigurationManager(projectRoot:)` now reads `.ironhive/permissions.{yaml,yml,json}` from `projectRoot`**, like
+  `.ironhive/config.yaml` and `.env`. It used to read the permission file from the process working directory, so a
+  host that pinned `projectRoot` still picked up (or, since 0.25.2, failed to start on) a permission file wherever the
+  process happened to run. Without `projectRoot` the working directory is still the project scope. The loaded
+  `PermissionConfig.WorkingDirectory` is now `projectRoot`.
+
 ## 0.25.3
 
 ### Changed
