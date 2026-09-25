@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Description>IronHive Host - reusable AI agent host SDK (agent loop, tools, session, provider integrations) for CLI, server, and embedded surfaces</Description>
@@ -74,6 +74,9 @@
   <ItemGroup>
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent NuGet) -->
     <PackageReference Include="IronHive.Agent" />
+    <!-- IronHive.Agent 0.19.0 satellites: long-term memory (MemoryServiceExtensions) and the Ironbees integration (IronHive.Cli) -->
+    <PackageReference Include="IronHive.Agent.Memory" />
+    <PackageReference Include="IronHive.Agent.Ironbees" />
   </ItemGroup>
 
   <ItemGroup>

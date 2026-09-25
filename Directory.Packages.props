@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
@@ -40,6 +40,8 @@
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.19.5" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
     <PackageVersion Include="IronHive.Agent" Version="0.19.0" />
+    <PackageVersion Include="IronHive.Agent.Memory" Version="0.19.0" />
+    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.19.0" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.38.0" />
     <PackageVersion Include="IronHive.Core" Version="0.38.0" />
