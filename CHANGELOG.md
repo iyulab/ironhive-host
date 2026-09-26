@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.26.1
+
+### Fixed
+- **A service provider disposed with `Dispose()` no longer throws when DeepResearch is enabled.** `DeepResearchTool` (a singleton) implemented only `IAsyncDisposable`, and a container or scope disposed with `Dispose()` throws on such a service ("type only implements IAsyncDisposable"); it now implements `IDisposable` too.
+
 ## 0.26.0
 
 ### Added

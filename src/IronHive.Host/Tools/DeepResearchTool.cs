@@ -17,7 +17,7 @@ namespace IronHive.Host.Tools;
 /// Uses lazy initialization to avoid async DI resolution issues.
 /// Streams progress events via <see cref="OnProgress"/> during execution.
 /// </summary>
-public sealed class DeepResearchTool : IAsyncDisposable
+public sealed class DeepResearchTool : IAsyncDisposable, IDisposable
 {
     private readonly IChatClientFactory _clientFactory;
     private readonly DeepResearchConfig _config;
@@ -208,6 +208,12 @@ public sealed class DeepResearchTool : IAsyncDisposable
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Disposes synchronously, for a container or scope disposed with <c>Dispose()</c> (which throws on a service that is
+    /// only <see cref="IAsyncDisposable"/>). Blocks on <see cref="DisposeAsync"/>.
+    /// </summary>
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 
     public async ValueTask DisposeAsync()
     {
