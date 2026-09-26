@@ -15,6 +15,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned sibling package(s) `LMSupply.Embedder` 0.78.0 -> 0.79.0, `LMSupply.Generator` 0.78.0 -> 0.79.0, `LMSupply.Reranker` 0.78.0 -> 0.79.0.
+- Re-pinned sibling package(s) `MemoryIndexer` 0.19.7 -> 0.19.8, `MemoryIndexer.Sdk` 0.19.7 -> 0.19.8 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
 
 ## 0.25.4
 
