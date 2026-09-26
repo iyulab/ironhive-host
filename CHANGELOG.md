@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned sibling package(s) `Cronex.Net` 0.6.0 -> 0.6.1, `Cronex.Net.Hosting` 0.6.0 -> 0.6.1, `IronHive.Abstractions` 0.40.0 -> 0.41.0, `IronHive.Core` 0.40.0 -> 0.41.0, `IronHive.Providers.Anthropic` 0.40.0 -> 0.41.0, `IronHive.Providers.GoogleAI` 0.40.0 -> 0.41.0, `IronHive.Providers.OpenAI` 0.40.0 -> 0.41.0, `IronHive.Providers.OpenAI.Compatible` 0.40.0 -> 0.41.0, `LMSupply.Embedder` 0.79.0 -> 0.79.1, `LMSupply.Generator` 0.79.0 -> 0.79.1, `LMSupply.Reranker` 0.79.0 -> 0.79.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.20.3 -> 0.20.4, `MemoryIndexer` 0.19.8 -> 0.19.9, `MemoryIndexer.Sdk` 0.19.8 -> 0.19.9 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
 
 ### Fixed
 - **A service provider disposed with `Dispose()` no longer throws when DeepResearch is enabled.** `DeepResearchTool` (a singleton) implemented only `IAsyncDisposable`, and a container or scope disposed with `Dispose()` throws on such a service ("type only implements IAsyncDisposable"); it now implements `IDisposable` too.
