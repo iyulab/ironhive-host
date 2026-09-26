@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.25.4
 
+### Changed
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.39.0 -> 0.40.0, `IronHive.Core` 0.39.0 -> 0.40.0, `IronHive.Providers.Anthropic` 0.39.0 -> 0.40.0, `IronHive.Providers.GoogleAI` 0.39.0 -> 0.40.0, `IronHive.Providers.OpenAI` 0.39.0 -> 0.40.0, `IronHive.Providers.OpenAI.Compatible` 0.39.0 -> 0.40.0, `LMSupply.Embedder` 0.77.0 -> 0.78.0, `LMSupply.Generator` 0.77.0 -> 0.78.0, `LMSupply.Reranker` 0.77.0 -> 0.78.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+
 ### Fixed
 - **`ConfigurationManager(projectRoot:)` now reads `.ironhive/permissions.{yaml,yml,json}` from `projectRoot`**, like
   `.ironhive/config.yaml` and `.env`. It used to read the permission file from the process working directory, so a
