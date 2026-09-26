@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.26.2
+
+### Added
+- **Usage from the local LMSupply model reports prompt tokens served from the server's cache.** `LMSupplyChatClient` sets `UsageDetails.CachedInputTokenCount`, on both the response and the streamed final update. The value comes from llama-server's timings, which LMSupply 0.80.0 exposes. Those tokens are still counted in `InputTokenCount`; they were not evaluated. The value is null when the backend reports no timings.
+
+### Changed
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.79.1 -> 0.80.0, `LMSupply.Generator` 0.79.1 -> 0.80.0, `LMSupply.Reranker` 0.79.1 -> 0.80.0.
+
 ## 0.26.1
 
 ### Changed

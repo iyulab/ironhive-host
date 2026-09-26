@@ -11,6 +11,7 @@ using LmChatMessage = LMSupply.Generator.Models.ChatMessage;
 using LmChatStreamChunk = LMSupply.Generator.Models.ChatStreamChunk;
 using LmChatTokenUsage = LMSupply.Generator.Models.ChatTokenUsage;
 using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
+using LmGenerationTimings = LMSupply.Generator.Models.GenerationTimings;
 
 namespace IronHive.Host.Tests.Providers;
 
@@ -54,6 +55,41 @@ public class LMSupplyChatClientUsageTests
         response.FinishReason.Should().Be(ChatFinishReason.Stop);
         response.Usage.Should().NotBeNull();
         response.Usage!.OutputTokenCount.Should().Be(480);
+    }
+
+    // Prompt tokens the server reused from its prompt cache are counted in the input but were not evaluated;
+    // M.E.AI has a slot for them, and the server reports them in its timings (cache_n).
+    [Fact]
+    public async Task Cached_prompt_tokens_reach_CachedInputTokenCount_on_both_paths()
+    {
+        var timings = new LmGenerationTimings { CachedPromptTokens = 9, PromptTokensEvaluated = 3 };
+        var generator = Substitute.For<ITextGenerator>();
+        generator.ModelId.Returns("test:stub");
+        generator.GenerateChatWithToolsAsync(Arg.Any<IEnumerable<LmChatMessage>>(), Arg.Any<LmGenerationOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new LmChatCompletionResult { Content = "ok", FinishReason = "stop", Usage = Usage, Timings = timings }));
+        using var nonStreaming = new LMSupplyChatClient(generator);
+        using var streaming = new LMSupplyChatClient(StreamingGenerator(
+            new LmChatStreamChunk { Text = "ok" },
+            new LmChatStreamChunk { FinishReason = "stop", Usage = Usage, Timings = timings }));
+
+        var response = await nonStreaming.GetResponseAsync([new ChatMessage(ChatRole.User, "hi")], cancellationToken: TestContext.Current.CancellationToken);
+        var streamed = (await Collect(streaming)).ToChatResponse();
+
+        response.Usage!.CachedInputTokenCount.Should().Be(9);
+        streamed.Usage!.CachedInputTokenCount.Should().Be(9);
+        response.Usage.InputTokenCount.Should().Be(12, "the input count still includes the cached tokens");
+    }
+
+    [Fact]
+    public async Task Without_server_timings_the_cached_count_is_unknown_not_zero()
+    {
+        using var client = new LMSupplyChatClient(StreamingGenerator(
+            new LmChatStreamChunk { Text = "ok" },
+            new LmChatStreamChunk { FinishReason = "stop", Usage = Usage }));
+
+        var response = (await Collect(client)).ToChatResponse();
+
+        response.Usage!.CachedInputTokenCount.Should().BeNull();
     }
 
     [Fact]

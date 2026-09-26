@@ -344,7 +344,7 @@ public sealed class LMSupplyChatClient : IChatClient
         {
             FinishReason = finishReason,
             ModelId = _generator.ModelId,
-            Usage = result.Usage is { } usage ? ToUsageDetails(usage) : null
+            Usage = result.Usage is { } usage ? ToUsageDetails(usage, result.Timings) : null
         };
     }
 
@@ -405,7 +405,7 @@ public sealed class LMSupplyChatClient : IChatClient
                 // shown); UsageContent is how M.E.AI streams it, and ToChatResponse() folds it into Usage.
                 if (chunk.Usage is { } usage)
                 {
-                    contents.Add(new UsageContent(ToUsageDetails(usage)));
+                    contents.Add(new UsageContent(ToUsageDetails(usage, chunk.Timings)));
                 }
 
                 yield return new ChatResponseUpdate
@@ -671,12 +671,19 @@ public sealed class LMSupplyChatClient : IChatClient
         }
     }
 
-    private static UsageDetails ToUsageDetails(global::LMSupply.Generator.Models.ChatTokenUsage usage) => new()
-    {
-        InputTokenCount = usage.PromptTokens,
-        OutputTokenCount = usage.CompletionTokens,
-        TotalTokenCount = usage.TotalTokens
-    };
+    /// <summary>
+    /// The backend's counts as M.E.AI usage. Prompt tokens served from the server's prompt cache come from its timings
+    /// (<c>cache_n</c>): they are part of <see cref="UsageDetails.InputTokenCount"/> but were not evaluated.
+    /// </summary>
+    internal static UsageDetails ToUsageDetails(
+        global::LMSupply.Generator.Models.ChatTokenUsage usage,
+        global::LMSupply.Generator.Models.GenerationTimings? timings) => new()
+        {
+            InputTokenCount = usage.PromptTokens,
+            OutputTokenCount = usage.CompletionTokens,
+            TotalTokenCount = usage.TotalTokens,
+            CachedInputTokenCount = timings?.CachedPromptTokens
+        };
 
     private static ChatFinishReason? MapFinishReason(string? reason) => reason switch
     {
