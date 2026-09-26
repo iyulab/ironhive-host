@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.26.0
+
+### Added
+- **Streamed responses from a local LMSupply model report token usage.** The final update carries the backend's count (LMSupply 0.79.0, reasoning included) as a `UsageContent`, so `ToChatResponse()` has a `Usage`.
+
+### Fixed
+- **`LMSupplyChatClient.GetResponseAsync` dropped the backend's token usage and the model id.** The response now carries `Usage` (prompt, completion and total tokens) and `ModelId`; before, both were always null, so cost and budget tracking saw zero for local turns.
+
+### Changed
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.78.0 -> 0.79.0, `LMSupply.Generator` 0.78.0 -> 0.79.0, `LMSupply.Reranker` 0.78.0 -> 0.79.0.
+
 ## 0.25.4
 
 ### Changed

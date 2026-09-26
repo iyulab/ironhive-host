@@ -342,7 +342,9 @@ public sealed class LMSupplyChatClient : IChatClient
 
         return new ChatResponse(responseMessage)
         {
-            FinishReason = finishReason
+            FinishReason = finishReason,
+            ModelId = _generator.ModelId,
+            Usage = result.Usage is { } usage ? ToUsageDetails(usage) : null
         };
     }
 
@@ -393,24 +395,25 @@ public sealed class LMSupplyChatClient : IChatClient
             {
                 var finishReason = MapFinishReason(chunk.FinishReason);
 
-                // If tool calls were accumulated, emit them now
-                if (toolCallAccumulator is { Count: > 0 })
+                // Accumulated tool calls are emitted with the finish reason
+                var contents = toolCallAccumulator is { Count: > 0 }
+                    ? BuildToolCallContents(toolCallAccumulator)
+                    : [];
+                toolCallAccumulator = null;
+
+                // The backend's count rides on the final chunk (it includes reasoning the stream may not have
+                // shown); UsageContent is how M.E.AI streams it, and ToChatResponse() folds it into Usage.
+                if (chunk.Usage is { } usage)
                 {
-                    yield return new ChatResponseUpdate
-                    {
-                        Role = ChatRole.Assistant,
-                        Contents = BuildToolCallContents(toolCallAccumulator),
-                        FinishReason = finishReason
-                    };
-                    toolCallAccumulator = null;
+                    contents.Add(new UsageContent(ToUsageDetails(usage)));
                 }
-                else
+
+                yield return new ChatResponseUpdate
                 {
-                    yield return new ChatResponseUpdate
-                    {
-                        FinishReason = finishReason
-                    };
-                }
+                    Role = contents.Count > 0 ? ChatRole.Assistant : null,
+                    Contents = contents,
+                    FinishReason = finishReason
+                };
             }
         }
 
@@ -667,6 +670,13 @@ public sealed class LMSupplyChatClient : IChatClient
             return null;
         }
     }
+
+    private static UsageDetails ToUsageDetails(global::LMSupply.Generator.Models.ChatTokenUsage usage) => new()
+    {
+        InputTokenCount = usage.PromptTokens,
+        OutputTokenCount = usage.CompletionTokens,
+        TotalTokenCount = usage.TotalTokens
+    };
 
     private static ChatFinishReason? MapFinishReason(string? reason) => reason switch
     {
