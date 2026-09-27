@@ -83,6 +83,7 @@
     <!-- IronHive (LLM abstraction) -->
     <PackageReference Include="IronHive.Abstractions" />
     <PackageReference Include="IronHive.Core" />
+    <PackageReference Include="IronHive.Extensions.AI" />
     <PackageReference Include="IronHive.Providers.OpenAI" />
     <PackageReference Include="IronHive.Providers.Anthropic" />
     <PackageReference Include="IronHive.Providers.GoogleAI" />

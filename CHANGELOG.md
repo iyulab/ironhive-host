@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.27.0
+
+### Dependencies
+- IronHive 0.41.0 -> 0.42.0. `IronHive.Host` now also references `IronHive.Extensions.AI`, where IronHive 0.42.0 moved
+  `ChatClientAdapter` (namespace `IronHive.Extensions.AI`). A host that used `IronHive.Core.Microsoft` types through
+  this package's transitive `IronHive.Core` reference must switch that `using` — see IronHive 0.42.0's migration note.
+
 ## 0.26.4
 
 ### Changed

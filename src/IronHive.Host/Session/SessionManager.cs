@@ -491,7 +491,7 @@ public class SessionManager : ISessionManager
     // object (e.g. transcripts written from an already-structured input) or as a JSON string containing
     // pre-serialized arguments (AgentLoopSessionExtensions.SaveTurnAsync passes ToolCallResult.Arguments,
     // which is a JSON string, as the Input). Treat any other shape as "no args" rather than throwing —
-    // same convention as IronHive.Core.Microsoft.ChatClientAdapter.ParseToolArguments.
+    // same convention as IronHive.Extensions.AI.ChatClientAdapter.ParseToolArguments.
     private static Dictionary<string, object?>? ParseToolInput(object input)
     {
         if (input is not JsonElement element)
