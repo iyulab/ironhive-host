@@ -8,6 +8,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.29.1 — Unreleased
 
 ### Changed
+- Re-pinned sibling package(s) `MemoryIndexer` 0.19.17 -> 0.20.0, `MemoryIndexer.Sdk` 0.19.17 -> 0.20.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
 
 - **`compaction.toolSchemaCompression` is no longer read from the config file.** It never had an effect: the agent's
   `CompactionConfig` carried it and nothing applied it, and IronHive.Agent 0.24.0 removes it. A config file that still sets
