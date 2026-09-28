@@ -592,7 +592,9 @@ public sealed class LMSupplyChatClient : IChatClient
             var tools = new List<LmChatToolDefinition>();
             foreach (var tool in options.Tools)
             {
-                if (tool is AIFunction func)
+                // AIFunctionDeclaration, not AIFunction: a declaration-only tool (the host runs it) must reach the
+                // model too — invoking tools is not this client's job.
+                if (tool is AIFunctionDeclaration func)
                 {
                     var parameters = func.JsonSchema.ValueKind != JsonValueKind.Undefined
                         ? func.JsonSchema

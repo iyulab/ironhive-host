@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.27.9 — Unreleased
+
+### Fixed
+
+- **`LMSupplyChatClient` offers declaration-only tools to the model.** A tool created with
+  `AIFunctionFactory.CreateDeclaration` (the host runs it) was dropped from the tool list sent to the local model.
+  Every `AIFunctionDeclaration` in `ChatOptions.Tools` is now sent with its name, description and schema.
+
 ## 0.27.8
 
 ### Changed

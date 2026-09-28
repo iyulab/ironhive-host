@@ -46,6 +46,28 @@ public class LMSupplyChatClientSamplerForwardingTests
     }
 
     [Fact]
+    public async Task GetResponseAsync_OffersDeclarationOnlyToolsNextToFunctions()
+    {
+        // A host-executed tool is declared without an implementation; it must reach the model like any other tool.
+        using var schema = System.Text.Json.JsonDocument.Parse(
+            """{"type":"object","properties":{"tab":{"type":"string"}},"required":["tab"]}""");
+        var declaration = Microsoft.Extensions.AI.AIFunctionFactory.CreateDeclaration(
+            "read_page", "Reads one open tab's text.", schema.RootElement.Clone());
+        var function = Microsoft.Extensions.AI.AIFunctionFactory.Create((string tab) => "tabs", "list_tabs");
+        var generator = BuildStubGenerator(out var captured);
+        var client = new LMSupplyChatClient(generator);
+
+        await client.GetResponseAsync(
+            new[] { new ChatMessage(ChatRole.User, "Hi") },
+            new ChatOptions { Tools = [declaration, function] },
+            TestContext.Current.CancellationToken);
+
+        var tools = captured[0]!.Tools!;
+        Assert.Equal(["read_page", "list_tabs"], tools.Select(t => t.Name));
+        Assert.Equal("tab", tools[0].Parameters!.Value.GetProperty("required")[0].GetString());
+    }
+
+    [Fact]
     public async Task GetResponseAsync_ForwardsTopPAndTopK()
     {
         var generator = BuildStubGenerator(out var captured);
