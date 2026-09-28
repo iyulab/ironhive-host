@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.28.0 — Unreleased
+
+### Changed
+
+- **Behaviour change — the `compaction` settings for tool results now take effect in host-built loops, with their
+  documented defaults.** `HostContextManagerFactory` (used by the CLI and by `AddIronHive…` loop registration) built the
+  loop's `ContextManager` without a tool-result compactor or an observation masker, so `EnableToolResultCompaction`,
+  `MaxToolResultChars`, `EnableObservationMasking` and `ObservationMaskingProtectedTurns` were accepted and never applied.
+  Both are now built from the config. Their defaults are on: a tool result over 30,000 characters is cut to its head
+  and tail, and results longer than 200 characters older than the last 3 user turns are sent as placeholders. `History`
+  keeps them in full. To keep the old behaviour, set `compaction.enableToolResultCompaction: false` and
+  `compaction.enableObservationMasking: false`. The config merge also carries the new `ObservationMaskingProtectedRounds`
+  (IronHive.Agent 0.21.0). Masking inside one turn also needs `ToolRoundContextChatClient` inside function invocation,
+  which the CLI pipeline does not add yet.
+
 ## 0.27.10 — 2026-09-28
 
 ### Changed

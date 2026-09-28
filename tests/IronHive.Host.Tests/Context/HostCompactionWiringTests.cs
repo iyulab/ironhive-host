@@ -29,6 +29,57 @@ public class HostCompactionWiringTests
         manager.MaxContextTokens.Should().BeGreaterThan(8192);
     }
 
+    private static List<ChatMessage> OneTurnReading(int rounds)
+    {
+        var history = new List<ChatMessage> { new(ChatRole.User, "Read every section.") };
+        for (var r = 1; r <= rounds; r++)
+        {
+            history.Add(new ChatMessage(ChatRole.Assistant, [new FunctionCallContent($"c{r}", "read_section")]));
+            history.Add(new ChatMessage(ChatRole.Tool, [new FunctionResultContent($"c{r}", new string('x', 2_000))]));
+        }
+        return history;
+    }
+
+    private static string ResultOf(IReadOnlyList<ChatMessage> history, string callId)
+        => history.SelectMany(m => m.Contents).OfType<FunctionResultContent>().Single(r => r.CallId == callId).Result!.ToString()!;
+
+    [Fact]
+    public void HostContextManagerFactory_Create_AppliesObservationMaskingFromConfig()
+    {
+        // Before, the host built its ContextManager without a masker: EnableObservationMasking was accepted and inert.
+        var manager = HostContextManagerFactory.Create(
+            new HostCompactionConfig { EnableObservationMasking = true, ObservationMaskingProtectedRounds = 2, EnableToolResultCompaction = false },
+            "gpt-4o");
+
+        var reduced = manager.ReduceToolResults(OneTurnReading(4));
+
+        ResultOf(reduced, "c1").Should().StartWith("[Masked:");
+        ResultOf(reduced, "c4").Should().HaveLength(2_000);
+    }
+
+    [Fact]
+    public void HostContextManagerFactory_Create_AppliesToolResultCompactionFromConfig()
+    {
+        var manager = HostContextManagerFactory.Create(
+            new HostCompactionConfig { EnableToolResultCompaction = true, MaxToolResultChars = 500, EnableObservationMasking = false },
+            "gpt-4o");
+
+        var reduced = manager.ReduceToolResults(OneTurnReading(1));
+
+        ResultOf(reduced, "c1").Length.Should().BeLessThan(2_000);
+    }
+
+    [Fact]
+    public void HostContextManagerFactory_Create_LeavesResultsAloneWhenBothAreOff()
+    {
+        var manager = HostContextManagerFactory.Create(
+            new HostCompactionConfig { EnableToolResultCompaction = false, EnableObservationMasking = false },
+            "gpt-4o");
+        var history = OneTurnReading(4);
+
+        manager.ReduceToolResults(history).Should().BeSameAs(history);
+    }
+
     [Fact]
     public void HostContextManagerFactory_Create_NullConfig_UsesDefaults()
     {

@@ -43,6 +43,22 @@ public static class HostContextManagerFactory
 
         var compactor = new TokenBasedHistoryCompactor(tokenCounter, config);
 
-        return new ContextManager(tokenCounter, trigger, compactor, instructionContributors: instructionContributors);
+        // The cheap per-request reductions come from the same config: without them EnableToolResultCompaction and
+        // EnableObservationMasking (and their knobs) were accepted and never applied.
+        var toolResultCompactor = config.EnableToolResultCompaction
+            ? new ToolResultCompactor(config.MaxToolResultChars, config.ToolResultKeepHeadLines, config.ToolResultKeepTailLines)
+            : null;
+        var observationMasker = config.EnableObservationMasking
+            ? new ObservationMasker(
+                config.ObservationMaskingProtectedTurns,
+                config.ObservationMaskingMinResultLength,
+                config.ObservationMaskingProtectedRounds)
+            : null;
+
+        return new ContextManager(
+            tokenCounter, trigger, compactor,
+            toolResultCompactor: toolResultCompactor,
+            observationMasker: observationMasker,
+            instructionContributors: instructionContributors);
     }
 }

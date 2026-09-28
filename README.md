@@ -346,6 +346,7 @@ important tool outputs) instead of silently overflowing.
 - Model-aware — the context window is sized from the active model
 - Embedded consumers can set `options.Compaction` on `AddIronHive(...)`; manual loop builders can wire it
   via `HostContextManagerFactory.Create(compactionConfig, modelName)` and pass the result to `AgentLoop`/`ThinkingAgentLoop`
+- Tool results: `enableToolResultCompaction` (default on, results over `maxToolResultChars` = 30,000 keep head and tail) and `enableObservationMasking` (default on, results older than `observationMaskingProtectedTurns` = 3 user turns become placeholders; `observationMaskingProtectedRounds` also masks older tool rounds inside one turn). Only what is sent is reduced; history keeps full results
 - Complements (does not replace) `TokenBudgetChatClient`, which remains the hard backstop against per-request overflow
 
 ### TokenBudgetChatClient

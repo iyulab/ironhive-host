@@ -410,6 +410,7 @@ public class ConfigurationManager
         target.Compaction.EnableObservationMasking = source.Compaction.EnableObservationMasking;
         target.Compaction.ObservationMaskingProtectedTurns = source.Compaction.ObservationMaskingProtectedTurns;
         target.Compaction.ObservationMaskingMinResultLength = source.Compaction.ObservationMaskingMinResultLength;
+        target.Compaction.ObservationMaskingProtectedRounds = source.Compaction.ObservationMaskingProtectedRounds;
         target.Compaction.ToolSchemaCompression = source.Compaction.ToolSchemaCompression;
         target.Compaction.EnableToolResultCompaction = source.Compaction.EnableToolResultCompaction;
         target.Compaction.MaxToolResultChars = source.Compaction.MaxToolResultChars;
