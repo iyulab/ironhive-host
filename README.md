@@ -24,9 +24,9 @@ the full role boundary.
 - **Three surfaces, one core** — CLI (`ironhive`), embeddable SDK (`IronHive.Host`), and server runners (stdio or HTTP/SSE) all drive the same `IronHive.Agent` loop.
 - **MCP-native tooling** — plugs into MCP servers (memory, code execution, custom tools) instead of hardcoding a tool set.
 - **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
-- **Context-window safe by default** — automatic history compaction (`ContextManager`) and a hard-backstop `TokenBudgetChatClient` prevent silent context overflows, including on small quantized models.
-- **Resilient tool-calling** — `ResilientFunctionInvoker` turns malformed tool-call arguments into model-actionable recovery hints instead of aborting the stream.
-- **Advisor** — set `advisor.model` and every session gets an `advisor` tool: the working model can send the conversation so far to a stronger model and read its review (before committing to an approach, when stuck, before declaring done). It appears on the wire as an ordinary `tool_start`/`tool_end`.
+- **Context-window safe by default** — automatic history compaction (`ContextManager`, wired on every surface including `AddIronHive`) prevents silent context overflows, including on small quantized models. The CLI and `run --server` additionally install a hard-backstop `TokenBudgetChatClient`; library embedders wrap their own `IChatClient` with it (see [TokenBudgetChatClient](#tokenbudgetchatclient)).
+- **Resilient tool-calling** — `ResilientFunctionInvoker` turns malformed tool-call arguments into model-actionable recovery hints instead of aborting the stream. Installed by the CLI and `run --server` (behind the permission gate); `AddIronHive`/`AddIronHiveWithOpenAI` do not decorate the client, so embedders install it themselves (see [ResilientFunctionInvoker](#resilientfunctioninvoker)).
+- **Advisor** — set `advisor.model` and every CLI / `run --server` session gets an `advisor` tool (the library `AddIronHive` path has no advisor option): the working model can send the conversation so far to a stronger model and read its review (before committing to an approach, when stuck, before declaring done). It appears on the wire as an ordinary `tool_start`/`tool_end`.
 - **Layered configuration** — global → project → environment → `.env`, with automatic migration from legacy `settings.json`.
 
 <details>
@@ -219,6 +219,46 @@ ironhive sessions list
 ironhive sessions list --output json
 ```
 
+### CLI Reference
+
+| Command | Purpose |
+|---------|---------|
+| `ironhive` | Interactive mode (or one prompt with `-p`) |
+| `ironhive run [PROMPT]` | Run a single prompt and exit (`--server` for JSON Lines server mode) |
+| `ironhive set <key> <value>` | Set a configuration value, e.g. `ironhive set openai.apiKey <key>` |
+| `ironhive get [key]` | Get a configuration value (all values without a key) |
+| `ironhive unset <key>` | Remove a configuration value |
+| `ironhive config [show\|path]` | Show all configuration, or the config file path |
+| `ironhive models` | List available models from configured providers (`-p/--provider`, `--json`) |
+| `ironhive update` | Check for and install updates (`--check` only checks, `--force`) |
+| `ironhive doctor` | Diagnose configuration and connectivity (`--verbose`, `--fix`) |
+| `ironhive sessions [list\|delete <id>]` | List and manage sessions (`-n/--limit`, default 10; `-o/--output json`) |
+
+Options of the default command (`ironhive` / `ironhive -p`):
+
+| Flag | Purpose |
+|------|---------|
+| `-m, --model <MODEL>` | Model to use |
+| `--provider <PROVIDER>` | Provider to use |
+| `--show-tokens` | Show token usage statistics |
+| `--show-thinking` | Show the model's thinking/reasoning content |
+| `--no-stream` | Wait for the complete response instead of streaming |
+| `--plan` | Start in planning mode (read-only exploration) |
+| `--dry-run` | Show what would be done without executing |
+| `-c, --continue` / `-r, --resume <ID>` | Continue the most recent session / resume a specific one |
+| `--fork` | Fork the resumed session into a new session |
+| `-o, --output <FORMAT>` / `--plain` | `text`, `json`, `jsonl` / no ANSI formatting |
+
+`run` takes `-p/--prompt`, `-m/--model`, `--provider`, `--show-tokens`, `--show-thinking`, plus:
+
+| Flag | Purpose |
+|------|---------|
+| `--json` | Output the response as JSON |
+| `--server` | Server mode (JSON Lines on stdin/stdout — see [AgentServerRunner](#agentserverrunner--agenthttprunner)) |
+| `--session-id <ID>` | Session ID for server mode |
+| `--auto-commit` | Commit changes after a successful run |
+| `--commit-message <MESSAGE>` | Commit message for `--auto-commit` (default: generated from the prompt) |
+
 ### Model Configuration
 
 ```bash
@@ -237,7 +277,16 @@ Configuration is merged in order (later overrides earlier):
 
 1. **Global**: `~/.ironhive/config.yaml`
 2. **Project**: `.ironhive/config.yaml`
-3. **Environment**: `IRONHIVE_*`, `GPUSTACK_*`, `OPENAI_*`, `ANTHROPIC_*`, `GOOGLEAI_*` / `GOOGLE_API_KEY`, `XAI_*`, `AZURE_OPENAI_*`, `OLLAMA_*`, `LMSTUDIO_*`, `LMSUPPLY_ENABLED`, and other provider-specific vars
+3. **Environment**: exactly these variables are read (there is no `IRONHIVE_*` variable):
+   - `GPUSTACK_ENDPOINT`, `GPUSTACK_API_KEY`, `GPUSTACK_MODEL`, `GPUSTACK_EMBEDDING_MODEL`, `GPUSTACK_RERANK_MODEL`
+   - `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_ENDPOINT`
+   - `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
+   - `GOOGLEAI_API_KEY` (or `GOOGLE_API_KEY`), `GOOGLEAI_MODEL`
+   - `XAI_API_KEY`, `XAI_MODEL`, `XAI_ENDPOINT`
+   - `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT`
+   - `OLLAMA_ENDPOINT`, `OLLAMA_MODEL`, `OLLAMA_ENABLED`
+   - `LMSTUDIO_ENDPOINT`, `LMSTUDIO_MODEL`, `LMSTUDIO_ENABLED`
+   - `LMSUPPLY_ENABLED`
 4. **.env file**: Project root `.env`
 
 > On first run, a legacy `~/.ironhive/settings.json` (from earlier versions) is automatically migrated to `config.yaml`.
@@ -261,8 +310,9 @@ The loader accepts these top-level keys in `config.yaml`. Acronym provider secti
 | `compaction` | |
 | `webSearch` | camelCase |
 | `deepResearch` | camelCase |
-| `chatBehavior` | camelCase |
-| `advisor` | `provider`, `model`, `maxCalls` (per session, default 5) — off until `model` is set |
+| `chatBehavior` | camelCase — CLI / `run --server` loops only |
+| `advisor` | `provider`, `model`, `maxCalls` (per session, default 5) — off until `model` is set; CLI / `run --server` loops only |
+| `skills` | `roots`, `enabled`, `exclude`, `maxMetadataCharacters` (default 12,000), `acceptUnknownFields` — off until `roots` names a directory (see **Skills**) |
 
 ```yaml
 # ~/.ironhive/config.yaml
@@ -323,7 +373,7 @@ See `samples/console-chat` for a complete example.
 
 ### ChatBehaviorConfig
 
-Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration loop. Exposed in `IronHiveConfig.ChatBehavior` so you can tune per-model without forking the source.
+Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration loop. Exposed in `IronHiveConfig.ChatBehavior` so you can tune per-model without forking the source. It applies to the loops the CLI and `run --server` build; the `AddIronHive` DI path has no ChatBehavior option — embedders set these caps on their own `UseFunctionInvocation` client.
 
 | Property | Default | Notes |
 |----------|---------|-------|
@@ -349,11 +399,13 @@ important tool outputs) instead of silently overflowing.
 - Embedded consumers can set `options.Compaction` on `AddIronHive(...)`; manual loop builders can wire it
   via `HostContextManagerFactory.Create(compactionConfig, modelName)` and pass the result to `AgentLoop`/`ThinkingAgentLoop`
 - Tool results: `enableToolResultCompaction` (default on, results over `maxToolResultChars` = 30,000 keep head and tail) and `enableObservationMasking` (default on, results older than `observationMaskingProtectedTurns` = 3 user turns become placeholders; `observationMaskingProtectedRounds` also masks older tool rounds inside one turn). Only what is sent is reduced; history keeps full results
-- Complements (does not replace) `TokenBudgetChatClient`, which remains the hard backstop against per-request overflow
+- Complements (does not replace) `TokenBudgetChatClient`, which remains the hard backstop against per-request overflow — installed by the CLI and `run --server`; `AddIronHive` embedders add it by wrapping their client (below)
 
 ### TokenBudgetChatClient
 
 `IChatClient` decorator that short-circuits streaming calls when the accumulated message-history size would exceed a configurable fraction of the model's context window. Prevents context-overflow silent failures on small quantized models (e.g. 4K-window Gemma E4B).
+
+The CLI and `run --server` wrap every provider client in it (together with `ResilientFunctionInvoker` and the permission gate). `AddIronHive(...)` / `AddIronHiveWithOpenAI(...)` register the provider client as-is — to get the same backstop in an embedded host, wrap the client yourself (constructor below, then `UseFunctionInvocation` as shown under **ResilientFunctionInvoker**) and pass the result to `AddIronHive(chatClient)` / `options.UseChatClient(...)`.
 
 - Sits between `FunctionInvokingChatClient` and the underlying provider
 - Estimates tokens as `total-chars ÷ 4` (conservative upper bound)
@@ -425,9 +477,9 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 
 `AgentHttpRunner` additionally exposes `WaitForHitlResponseAsync` / `ResolveHitl` for human-in-the-loop flows, and `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices). No runner emits `hitl_request` yet: in server mode a tool call whose permission verdict is `Ask` is refused with a reason (see **Permissions**), and the refusal reaches the client as a `tool_end`.
 
-**Skills.** `skills:` in `config.yaml` (`roots: [~/.ironhive/skills, .ironhive/skills]`, optional `enabled`, `exclude`, `maxMetadataCharacters`, `acceptUnknownFields`) loads Agent Skills (`SKILL.md` bundles per the [specification](https://agentskills.io/specification)): every skill's name and description is in the system instructions, and the model calls `load_skill` for a body — only from inside the skill's directory. Skills the specification's validator rejects are not loaded (`acceptUnknownFields: true` admits bundles carrying another client's frontmatter keys). Embedders: `services.AddAgentSkills(new SkillsConfig { Roots = [...] })`; the factory adds the tool.
+**Skills.** `skills:` in `config.yaml` (`roots: [~/.ironhive/skills, .ironhive/skills]`, optional `enabled`, `exclude`, `maxMetadataCharacters`, `acceptUnknownFields`) loads Agent Skills (`SKILL.md` bundles per the [specification](https://agentskills.io/specification)): every skill's name and description is in the system instructions, and the model calls `load_skill` for a body — only from inside the skill's directory. Skills the specification's validator rejects are not loaded (`acceptUnknownFields: true` admits bundles carrying another client's frontmatter keys). The `load_skill` tool is added by the CLI / `run --server` loop factory. The library `AddIronHive(...)` path does not add it — its loop gets only `options.Tools`. `services.AddAgentSkills(new SkillsConfig { Roots = [...] })` registers the `SkillsLoader` and puts the skills' metadata in the instructions, but an embedder must put `SkillsLoader.LoadTool` in its loop's tools itself (e.g. build the loader with `SkillsLoader.Create(config)` and add `loader.LoadTool` to `options.Tools`).
 
-**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGatedFunctionInvoker`, installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console. The prompt needs a terminal — when stdin or stdout is redirected (`run --server`, or a piped one-shot) an `Ask` verdict is rejected with a reason instead, so a prompt never lands in the protocol stream. Rules live in `~/.ironhive/config.yaml` under `permissions` (`read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `default_action`); `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to `default_action` (`ask` by default — so an unknown tool is asked about, not run).
+**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGatedFunctionInvoker`, installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console. The prompt needs a terminal — when stdin or stdout is redirected (`run --server`, or a piped one-shot) an `Ask` verdict is rejected with a reason instead, so a prompt never lands in the protocol stream. Rules come from the project's `.ironhive/permissions.yaml` (or `.yml` / `.json`; keys `read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `read_only_tools`, `default_action`) when it exists; otherwise from the `permissions` section of `config.yaml` — global `~/.ironhive/config.yaml`, then the project's, camelCase keys like the rest of the file (`externalDirectory`, `mcpTools`, `readOnlyTools`, `defaultAction`); otherwise the built-in defaults (before 0.29.4 the `config.yaml` section was read and then discarded). `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to the default action (`ask` by default — so an unknown tool is asked about, not run).
 
 **Protocol types** (`ServerRequest` → agent, `ServerEvent` → host):
 
@@ -438,6 +490,7 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?` |
 | `CancelRequest` | `cancel` | — |
 | `ShutdownRequest` | `shutdown` | — |
+| `SessionStartedEvent` | `session_started` | `SessionId` — first line `run --server` writes, before any request is read (`--session-id` value, or a generated id) |
 | `ToolStartEvent` | `tool_start` | `Tool`, `Input?`, `CallId?` |
 | `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` — one per tool call once its outcome is known, before `turn_end`; `CallId` matches the `tool_start`. A call the permission gate refused arrives with `Success: false` and the refusal as `Output` (`Permission denied: …` / `Approval rejected: …`) |
 | `ThinkingDeltaEvent` | `thinking_delta` | `Content` — extended-thinking text, its own stream, never folded into `text_delta` |
@@ -446,6 +499,10 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `AddendumEvent` | `addendum` | `Content` — a turn observer's note, at most once per turn, after the last `text_delta` and before `turn_end`; not the model's words, never in history |
 | `TurnEndEvent` | `turn_end` | `InputTokens?`, `OutputTokens?`, `TotalTokens?` (summed across every model round-trip in the turn; null when the provider reported no usage) |
 | `ErrorEvent` | `error` | `Message` |
+
+`IronHive.Host.Protocol` also declares `agent_selected` (`AgentSelectedEvent`), `plan_created`, `plan_step_started`,
+`plan_step_completed`, `plan_completed` (`Plan*ServerEvent`) and `hitl_request` (`HitlRequestEvent`). No runner emits
+them today — they are reserved; a client may accept them but should not wait for them.
 
 **Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
 the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |

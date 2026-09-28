@@ -75,12 +75,21 @@ public class ConfigurationManager
         // 4. Apply environment variables (highest priority)
         ApplyEnvironmentVariables(config);
 
-        // 5. Load permission config from the same project scope as config.yaml and .env:
-        //    a projectRoot keeps whatever sits in the process working directory out of the config.
-        config.Permissions = PermissionConfigLoader.LoadFromDefaultLocations(_projectRoot);
+        // 5. Permission rules, from the same project scope as config.yaml and .env (a projectRoot keeps whatever sits in
+        //    the process working directory out of the config): the project's permission file when there is one;
+        //    otherwise the `permissions` section config.yaml gave (global, then project); otherwise the built-in default.
+        //    Before, the file lookup replaced the config.yaml rules even when there was no file, so they never applied.
+        if (PermissionConfigLoader.TryLoadFromDefaultLocations(_projectRoot, out var fromFile))
+        {
+            config.Permissions = fromFile;
+        }
+        else
+        {
+            config.Permissions.WorkingDirectory ??= _projectRoot;
+        }
 
-        // 6. Auto-enable LMSupply if no API provider is configured
-        if (!HasAnyApiProvider(config))
+        // 6. Auto-enable LMSupply if no API provider is configured — unless LMSUPPLY_ENABLED says otherwise.
+        if (!HasAnyApiProvider(config) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LMSUPPLY_ENABLED")))
         {
             config.LMSupply.Enabled = true;
         }
@@ -387,11 +396,12 @@ public class ConfigurationManager
 
         target.LMStudio.Enabled = source.LMStudio.Enabled;
 
-        // Permissions — replace wholesale when the source scope defines any rule. Permissions is
-        // re-loaded from its own file post-merge (Task 3), so this is a best-effort fallback only.
+        // Permissions — replace wholesale when the source scope defines any rule or a non-default action. These are the
+        // config.yaml rules; Load uses them when the project has no permission file of its own.
         if (source.Permissions.Read.Count > 0 || source.Permissions.Edit.Count > 0 ||
             source.Permissions.Bash.Count > 0 || source.Permissions.ExternalDirectory.Count > 0 ||
-            source.Permissions.McpTools.Count > 0 || source.Permissions.Tools.Count > 0)
+            source.Permissions.McpTools.Count > 0 || source.Permissions.Tools.Count > 0 ||
+            source.Permissions.ReadOnlyTools.Count > 0 || source.Permissions.DefaultAction != PermissionAction.Ask)
         {
             target.Permissions = source.Permissions;
         }

@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.29.4 — Unreleased
+
+### Fixed
+
+- **The `permissions` section of `config.yaml` applies.** It was merged and then replaced by the permission-file lookup even when
+  the project had no permission file, so its rules never took effect. Now: the project's `.ironhive/permissions.*` when it exists,
+  otherwise the `config.yaml` rules (global, then project), otherwise the built-in defaults. A section that sets only
+  `defaultAction` or `readOnlyTools` now counts too.
+- **`LMSUPPLY_ENABLED=false` keeps local inference off.** With no remote provider configured, the loader turned it back on.
+- **A skills root written `~/…` is under the home directory.** It resolved to a directory literally named `~` under the working
+  directory, so no global skills loaded.
+- **`doctor` reports local-only inference as a passing check**, as the README describes, instead of a warning.
+- **README:** the environment variables actually read, which surfaces install the token budget / resilient tool-calling /
+  permission gate (CLI and `run --server`), `load_skill` for embedders, the `skills` config key, a CLI reference, and the
+  `session_started` event.
+
+### Dependencies
+
+- IronHive.Agent 0.25.0.
+
 ## 0.29.3 — 2026-09-28
 
 ### Changed

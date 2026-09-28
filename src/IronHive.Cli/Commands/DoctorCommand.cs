@@ -135,8 +135,9 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         }
         else if (configuredCount == 1 && _config.LMSupply.Enabled && !HasAnyRemoteProvider())
         {
-            hasWarnings = true;
-            PrintCheck(true, "Using local inference only (lmsupply)", isWarning: true);
+            // Local-only is a supported configuration, not a problem to fix: reported as a passing check, with the
+            // remote-provider suggestion kept as a recommendation.
+            PrintCheck(true, "Using local inference only (lmsupply)");
             recommendations.Add("For better performance, configure a remote provider");
         }
 

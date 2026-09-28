@@ -146,10 +146,13 @@ public class SkillsHostConfig
     /// </summary>
     public bool AcceptUnknownFields { get; set; }
 
-    /// <summary>The agent-layer configuration this section describes. Relative roots resolve against <paramref name="baseDirectory"/>.</summary>
+    /// <summary>
+    /// The agent-layer configuration this section describes. A root starting with <c>~</c> is under the user's home
+    /// directory; other relative roots resolve against <paramref name="baseDirectory"/>.
+    /// </summary>
     public IronHive.Agent.Skills.SkillsConfig ToSkillsConfig(string baseDirectory) => new()
     {
-        Roots = Roots.Select(r => Path.GetFullPath(r, baseDirectory)).ToList(),
+        Roots = Roots.Select(r => Path.GetFullPath(ExpandHome(r), baseDirectory)).ToList(),
         Enabled = Enabled,
         Exclude = Exclude,
         MaxMetadataCharacters = MaxMetadataCharacters,
@@ -157,6 +160,21 @@ public class SkillsHostConfig
             ? IronHive.Agent.Skills.UnknownFieldPolicy.Accept
             : IronHive.Agent.Skills.UnknownFieldPolicy.Reject
     };
+
+    // «~» and «~/…» (either separator) name the home directory, as the README examples write them. Path.GetFullPath does
+    // not expand it: «~/.ironhive/skills» became a directory literally named «~» under the working directory.
+    internal static string ExpandHome(string path)
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (path == "~")
+        {
+            return home;
+        }
+
+        return path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith("~\\", StringComparison.Ordinal)
+            ? Path.Combine(home, path[2..])
+            : path;
+    }
 }
 
 /// <summary>
