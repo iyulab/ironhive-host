@@ -10,6 +10,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Changed
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.42.0 -> 0.43.0, `IronHive.Core` 0.42.0 -> 0.43.0, `IronHive.Extensions.AI` 0.42.0 -> 0.43.0, `IronHive.Providers.Anthropic` 0.42.0 -> 0.43.0, `IronHive.Providers.GoogleAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI.Compatible` 0.42.0 -> 0.43.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.21.0 -> 0.21.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.13 -> 0.20.0, `IronHive.Agent.Ironbees` 0.19.13 -> 0.20.0, `IronHive.Agent.Memory` 0.19.13 -> 0.20.0, `IronHive.DeepResearch` 0.19.13 -> 0.20.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
 
 ### Fixed
 
