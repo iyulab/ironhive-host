@@ -412,7 +412,6 @@ public class ConfigurationManager
         target.Compaction.ObservationMaskingMinResultLength = source.Compaction.ObservationMaskingMinResultLength;
         target.Compaction.ObservationMaskingProtectedRounds = source.Compaction.ObservationMaskingProtectedRounds;
         target.Compaction.GoalReminder = source.Compaction.GoalReminder;
-        target.Compaction.ToolSchemaCompression = source.Compaction.ToolSchemaCompression;
         target.Compaction.EnableToolResultCompaction = source.Compaction.EnableToolResultCompaction;
         target.Compaction.MaxToolResultChars = source.Compaction.MaxToolResultChars;
         target.Compaction.ToolResultKeepHeadLines = source.Compaction.ToolResultKeepHeadLines;

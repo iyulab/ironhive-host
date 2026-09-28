@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.29.1 — Unreleased
+
+### Changed
+
+- **`compaction.toolSchemaCompression` is no longer read from the config file.** It never had an effect: the agent's
+  `CompactionConfig` carried it and nothing applied it, and IronHive.Agent 0.24.0 removes it. A config file that still sets
+  it loads as before; the key is ignored.
+
 ## 0.29.0 — 2026-09-28
 
 ### Changed
