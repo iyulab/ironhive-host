@@ -57,6 +57,7 @@ public static class HostContextManagerFactory
 
         return new ContextManager(
             tokenCounter, trigger, compactor,
+            goalReminderOptions: config.GoalReminder,
             toolResultCompactor: toolResultCompactor,
             observationMasker: observationMasker,
             instructionContributors: instructionContributors);

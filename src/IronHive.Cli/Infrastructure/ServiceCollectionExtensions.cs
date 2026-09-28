@@ -3,6 +3,7 @@ using IndexThinking.Agents;
 using IndexThinking.Extensions;
 using IronHive.Abstractions;
 using IronHive.Abstractions.Messages;
+using IronHive.Agent.Context;
 using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Extensions;
 using IronHive.Agent.Loop;
@@ -41,6 +42,29 @@ namespace IronHive.Cli.Infrastructure;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// The CLI's chat client pipeline around a provider's client (outer → inner): function invocation (approval gate +
+    /// resilient invoker), an unbound <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own
+    /// <see cref="ContextManager"/>, then <see cref="TokenBudgetChatClient"/>. See the factory registration for the reasons.
+    /// </summary>
+    internal static IChatClient DecorateChatClient(
+        IChatClient inner,
+        ChatBehaviorConfig behavior,
+        IModeToolFilter modeToolFilter,
+        IHumanApprovalService? approvalService,
+        ILogger<FunctionInvokingDecorator>? gateLogger)
+        => new FunctionInvokingDecorator(new ToolRoundContextChatClient(new TokenBudgetChatClient(inner)))
+        {
+            MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest,
+            MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest,
+            IncludeDetailedErrors = true,
+            FunctionInvoker = ApprovalGatedFunctionInvoker.Create(
+                modeToolFilter,
+                approvalService,
+                inner: ResilientFunctionInvoker.Create(),
+                logger: gateLogger)
+        };
+
     /// <summary>
     /// Adds IronHive CLI services to the service collection.
     /// </summary>
@@ -546,8 +570,10 @@ public static class ServiceCollectionExtensions
 
             // Decorator chain (outer → inner):
             //   FunctionInvokingChatClient (M.E.AI built-in tool-call orchestrator)
-            //     → TokenBudgetChatClient (D-2: graceful exit when accumulated history nears context window)
-            //       → inner LMSupply / OpenAI / Anthropic / etc.
+            //     → ToolRoundContextChatClient (unbound here; the agent loop binds its own ContextManager, so each
+            //       tool round of a turn gets tool-result compaction and observation masking — not only the first call)
+            //       → TokenBudgetChatClient (D-2: graceful exit when accumulated history nears context window)
+            //         → inner LMSupply / OpenAI / Anthropic / etc.
             // The FunctionInvoker is two layers: ApprovalGatedFunctionInvoker puts the permission
             // rules and the human approval prompt in front of every call (Allow / Deny / Ask),
             // and ResilientFunctionInvoker underneath turns per-tool-call marshaller errors into
@@ -559,17 +585,7 @@ public static class ServiceCollectionExtensions
             var approvalService = sp.GetService<IHumanApprovalService>();
             var gateLogger = sp.GetService<ILogger<FunctionInvokingDecorator>>();
             IChatClient ClientDecorator(IChatClient inner) =>
-                new FunctionInvokingDecorator(new TokenBudgetChatClient(inner))
-                {
-                    MaximumIterationsPerRequest = config.ChatBehavior.MaximumIterationsPerRequest,
-                    MaximumConsecutiveErrorsPerRequest = config.ChatBehavior.MaximumConsecutiveErrorsPerRequest,
-                    IncludeDetailedErrors = true,
-                    FunctionInvoker = ApprovalGatedFunctionInvoker.Create(
-                        modeToolFilter,
-                        approvalService,
-                        inner: ResilientFunctionInvoker.Create(),
-                        logger: gateLogger)
-                };
+                DecorateChatClient(inner, config.ChatBehavior, modeToolFilter, approvalService, gateLogger);
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
         });

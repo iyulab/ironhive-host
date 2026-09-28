@@ -81,6 +81,39 @@ public class HostCompactionWiringTests
     }
 
     [Fact]
+    public void CliPipeline_PutsAnUnboundToolRoundContextInsideFunctionInvocation_AndTheLoopBindsIt()
+    {
+        // The CLI builds its chat clients before a loop's ContextManager exists; the loop binds its own manager to the
+        // ToolRoundContextChatClient inside function invocation, so every tool round of a turn is reduced.
+        var client = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.DecorateChatClient(
+            Substitute.For<IChatClient>(), new IronHive.Host.Config.ChatBehaviorConfig(),
+            Substitute.For<IronHive.Agent.Mode.IModeToolFilter>(), approvalService: null, gateLogger: null);
+        var roundContext = client.GetService<IronHive.Agent.Context.ToolRoundContextChatClient>();
+
+        client.Should().BeOfType<FunctionInvokingChatClient>();
+        roundContext.Should().NotBeNull();
+        roundContext!.ContextManager.Should().BeNull();
+
+        var manager = HostContextManagerFactory.Create(new HostCompactionConfig(), "gpt-4o");
+        _ = new AgentLoop(client, contextManager: manager);
+
+        roundContext.ContextManager.Should().BeSameAs(manager);
+    }
+
+    [Fact]
+    public async Task HostContextManagerFactory_Create_CarriesTheGoalReminderOptions()
+    {
+        var manager = HostContextManagerFactory.Create(
+            new HostCompactionConfig { GoalReminder = new IronHive.Agent.Context.GoalReminderOptions { Enabled = false } }, "gpt-4o");
+        var history = OneTurnReading(4);
+        manager.SetGoalFromHistory(history);
+
+        var prepared = await manager.PrepareHistoryAsync(history, TestContext.Current.CancellationToken);
+
+        prepared.Should().NotContain(m => m.Text != null && m.Text.StartsWith("[REMINDER]", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HostContextManagerFactory_Create_NullConfig_UsesDefaults()
     {
         var manager = HostContextManagerFactory.Create(null, modelName: null);

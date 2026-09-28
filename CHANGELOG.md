@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.28.2 — Unreleased
+
+### Added
+
+- **The CLI masks and compacts tool results on every tool round of a turn, not only before the first model call.** Its
+  chat client pipeline now carries IronHive.Agent's `ToolRoundContextChatClient` inside function invocation; the loop
+  binds its own `ContextManager` to it. With `compaction.observationMaskingProtectedRounds` set, a long single-message
+  task keeps only its recent rounds' results at full size.
+- `compaction.goalReminder` reaches host-built loops (`HostContextManagerFactory` and the config merge), for example to
+  turn the reminder off.
+
 ## 0.28.1 — 2026-09-28
 
 ### Changed
