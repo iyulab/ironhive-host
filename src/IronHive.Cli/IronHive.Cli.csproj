@@ -34,16 +34,10 @@
     <RepositoryUrl>https://github.com/iyulab/ironhive-host</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>cli;agent;ai;llm;openai;anthropic;automation</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="IronHive.Host.Tests" />
-  </ItemGroup>
-
-  <!-- Package files -->
-  <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

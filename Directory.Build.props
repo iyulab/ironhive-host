@@ -45,6 +45,15 @@
   </PropertyGroup>
 
   <!-- Local development packages (auto-detected, ignored in CI) -->
+  <!-- The repository README is each package's page on nuget.org (without it the page shows only the one-line
+       description). -->
+  <PropertyGroup Condition="$(MSBuildProjectDirectory.Contains('\src\')) OR $(MSBuildProjectDirectory.Contains('/src/'))">
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('\src\')) OR $(MSBuildProjectDirectory.Contains('/src/'))">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
   <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)../../local-packages')">
     <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(MSBuildThisFileDirectory)../../local-packages</RestoreAdditionalProjectSources>
   </PropertyGroup>
