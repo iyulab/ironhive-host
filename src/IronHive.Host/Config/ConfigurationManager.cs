@@ -424,6 +424,8 @@ public class ConfigurationManager
             target.Compaction.MaxContextTokens = source.Compaction.MaxContextTokens;
         }
 
+        target.Compaction.CompactOnOverflow = source.Compaction.CompactOnOverflow;
+
         // WebSearch
         target.WebSearch.Enabled = source.WebSearch.Enabled;
         if (source.WebSearch.DefaultMaxResults > 0)

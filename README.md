@@ -285,6 +285,8 @@ compaction:
   protectRecentTokens: 40000     # most-recent tokens always kept
   minimumPruneTokens: 20000      # only compact when at least this much is prunable
   targetRatio: 0.70              # compact down to ~70% of the context window
+  maxContextTokens: 65536        # the model's window, when the catalog does not know the model
+  compactOnOverflow: true        # window unknown: compact when the server reports an overflow, not against a guess
 
 # A stronger model the working model can consult through the `advisor` tool:
 advisor:

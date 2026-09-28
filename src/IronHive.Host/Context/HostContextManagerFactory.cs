@@ -14,8 +14,11 @@ namespace IronHive.Host.Context;
 /// </remarks>
 public static class HostContextManagerFactory
 {
+    // The token counter's own default model, used when the host has no model id to size the window from.
+    private const string DefaultModelName = "gpt-4o";
+
     /// <summary>
-    /// Creates a model-aware <see cref="ContextManager"/> wired with token-based compaction.
+    /// Creates a model-aware <see cref="ContextManager"/> from the host's compaction settings.
     /// </summary>
     /// <param name="compaction">Compaction settings. When <c>null</c>, agent defaults are used.</param>
     /// <param name="modelName">
@@ -33,33 +36,16 @@ public static class HostContextManagerFactory
     {
         var config = compaction ?? new CompactionConfig();
 
-        var tokenCounter = string.IsNullOrWhiteSpace(modelName)
-            ? new ContextTokenCounter()
-            : new ContextTokenCounter(modelName);
+        // The agent's own builder, so every setting reaches the manager: the window (MaxContextTokens), the trigger and
+        // compactor it selects (anchored / token-based / threshold, budgets clamped to the window), TargetRatio and
+        // CompactOnOverflow, and the per-request reductions. A hand-assembled copy of it here once dropped the first four.
+        var manager = ContextManager.ForModel(
+            string.IsNullOrWhiteSpace(modelName) ? DefaultModelName : modelName, config);
+        foreach (var contributor in instructionContributors ?? [])
+        {
+            manager.AddInstructionContributor(contributor);
+        }
 
-        var trigger = new TokenBasedCompactionTrigger(
-            config.ProtectRecentTokens,
-            config.MinimumPruneTokens);
-
-        var compactor = new TokenBasedHistoryCompactor(tokenCounter, config);
-
-        // The cheap per-request reductions come from the same config: without them EnableToolResultCompaction and
-        // EnableObservationMasking (and their knobs) were accepted and never applied.
-        var toolResultCompactor = config.EnableToolResultCompaction
-            ? new ToolResultCompactor(config.MaxToolResultChars, config.ToolResultKeepHeadLines, config.ToolResultKeepTailLines)
-            : null;
-        var observationMasker = config.EnableObservationMasking
-            ? new ObservationMasker(
-                config.ObservationMaskingProtectedTurns,
-                config.ObservationMaskingMinResultLength,
-                config.ObservationMaskingProtectedRounds)
-            : null;
-
-        return new ContextManager(
-            tokenCounter, trigger, compactor,
-            goalReminderOptions: config.GoalReminder,
-            toolResultCompactor: toolResultCompactor,
-            observationMasker: observationMasker,
-            instructionContributors: instructionContributors);
+        return manager;
     }
 }

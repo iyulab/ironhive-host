@@ -81,6 +81,45 @@ public class HostCompactionWiringTests
     }
 
     [Fact]
+    public void HostContextManagerFactory_Create_SizesTheWindowFromConfig()
+    {
+        // Before 0.29.0 the factory built its token counter from the model name alone: compaction.maxContextTokens was
+        // merged from the config file and never reached the manager, so an unknown local model ran on the 8192 guess.
+        var manager = HostContextManagerFactory.Create(new HostCompactionConfig { MaxContextTokens = 65_536 }, "some-local-model");
+
+        manager.MaxContextTokens.Should().Be(65_536);
+        manager.TokenCounter.IsContextWindowEstimated.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HostContextManagerFactory_Create_WithoutAWindow_ReportsTheGuessAsEstimated()
+    {
+        var manager = HostContextManagerFactory.Create(new HostCompactionConfig(), "some-local-model");
+
+        manager.TokenCounter.IsContextWindowEstimated.Should().BeTrue();
+    }
+
+    [Fact]
+    public void HostContextManagerFactory_Create_CarriesTargetRatioAndCompactOnOverflow()
+    {
+        var manager = HostContextManagerFactory.Create(
+            new HostCompactionConfig { TargetRatio = 0.5f, CompactOnOverflow = false }, "gpt-4o");
+
+        manager.TargetRatio.Should().Be(0.5f);
+        manager.CompactOnOverflow.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HostContextManagerFactory_Create_ClampsTheTriggerToASmallWindow()
+    {
+        // Unclamped, the 40k protect budget exceeds an 8k window and compaction can never fire.
+        var manager = HostContextManagerFactory.Create(new HostCompactionConfig { MaxContextTokens = 8_192 }, "some-local-model");
+        var history = Enumerable.Range(0, 20).Select(i => new ChatMessage(ChatRole.User, new string('w', 2_000))).ToList();
+
+        manager.ShouldCompact(history).Should().BeTrue();
+    }
+
+    [Fact]
     public void CliPipeline_PutsAnUnboundToolRoundContextInsideFunctionInvocation_AndTheLoopBindsIt()
     {
         // The CLI builds its chat clients before a loop's ContextManager exists; the loop binds its own manager to the

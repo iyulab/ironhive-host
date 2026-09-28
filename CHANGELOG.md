@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.29.0 — Unreleased
+
+### Fixed
+
+- **`compaction.maxContextTokens` sizes the context window.** The host built its context manager by hand from the model
+  name alone, so the setting was read from the config file and never used: a model the catalog does not know ran on an
+  8192-token guess. The host now builds the manager with the agent's own builder, so the rest of the section applies too:
+  `targetRatio`, `useAnchoredCompaction` / `useTokenBasedCompaction` / `thresholdPercentage`, and budgets clamped to the
+  window. Without that clamp, the 40k `protectRecentTokens` default kept compaction from ever firing on a small window.
+
+### Added
+
+- **`compaction.compactOnOverflow`** (default `true`, from IronHive.Agent 0.23.0). When the window is not known, the host's
+  loops compact when the server reports an overflow, and learn the window from it, instead of compacting against the guess.
+
 ## 0.28.2 — 2026-09-28
 
 ### Added
