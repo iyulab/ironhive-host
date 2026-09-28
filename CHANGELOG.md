@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.27.9 — Unreleased
 
+### Changed
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.42.0 -> 0.43.0, `IronHive.Core` 0.42.0 -> 0.43.0, `IronHive.Extensions.AI` 0.42.0 -> 0.43.0, `IronHive.Providers.Anthropic` 0.42.0 -> 0.43.0, `IronHive.Providers.GoogleAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI.Compatible` 0.42.0 -> 0.43.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+
 ### Fixed
 
 - **`LMSupplyChatClient` offers declaration-only tools to the model.** A tool created with
