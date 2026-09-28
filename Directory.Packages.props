@@ -53,7 +53,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.2.3" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.24.1" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.25.0" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.6.1" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.6.1" />
