@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned sibling package(s) `Ironbees.Core` 0.21.5 -> 0.21.6, `LMSupply.Embedder` 0.93.0 -> 0.93.1, `LMSupply.Generator` 0.93.0 -> 0.93.1, `LMSupply.Reranker` 0.93.0 -> 0.93.1, `MemoryIndexer` 0.20.0 -> 0.20.1, `MemoryIndexer.Sdk` 0.20.0 -> 0.20.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.4 -> 0.25.5, `IronHive.Agent.Ironbees` 0.25.4 -> 0.25.5, `IronHive.Agent.Memory` 0.25.4 -> 0.25.5, `IronHive.DeepResearch` 0.25.4 -> 0.25.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
 
 ## 0.29.12 — 2026-09-29
 
