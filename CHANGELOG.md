@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.29.13 — 2026-09-30
+
+### Changed
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.5 -> 0.21.6, `LMSupply.Embedder` 0.93.0 -> 0.93.1, `LMSupply.Generator` 0.93.0 -> 0.93.1, `LMSupply.Reranker` 0.93.0 -> 0.93.1, `MemoryIndexer` 0.20.0 -> 0.20.1, `MemoryIndexer.Sdk` 0.20.0 -> 0.20.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+
 ## 0.29.12 — 2026-09-29
 
 ### Changed
