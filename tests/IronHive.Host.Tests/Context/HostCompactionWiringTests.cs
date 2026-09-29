@@ -13,7 +13,7 @@ using HostCompactionConfig = IronHive.Agent.Context.CompactionConfig;
 namespace IronHive.Host.Tests.Context;
 
 /// <summary>
-/// Regression tests for the M1-4 compaction dead-config fix: host loop-construction paths must
+/// Regression tests for the compaction dead-config fix: host loop-construction paths must
 /// wire a <c>ContextManager</c> from <see cref="HostCompactionConfig"/> so long sessions actually
 /// compact. Before the fix, host loops were built with a null ContextManager and the config was inert.
 /// </summary>

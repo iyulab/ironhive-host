@@ -12,7 +12,7 @@ using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
 namespace IronHive.Host.Tests.Providers;
 
 /// <summary>
-/// Regression coverage for ISSUE-ironhive-cli-lmsupplychatclient-instructions-dropped-20260429-000000:
+/// Regression coverage for dropped instructions:
 /// <see cref="ChatOptions.Instructions"/> must be injected into the LMSupply prompt as a leading
 /// System message instead of being silently discarded.
 /// </summary>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <!-- xUnit v3 test projects are stand-alone executables (BD-20260829-xunit-v3-pilot).
+    <!-- xUnit v3 test projects are stand-alone executables.
          OutputType=Exe activates NETSDK1151's self-contained-reference validation against
          IronHive.Cli (SelfContained=true) below; this project isn't meant to be launched
          standalone from IronHive.Cli's output folder, so the check is opted out per the
@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- xUnit v3 pilot rollout: xunit replaced with xunit.v3, no Microsoft.NET.Test.Sdk (not
+    <!-- xUnit v3: xunit replaced with xunit.v3, no Microsoft.NET.Test.Sdk (not
          required under Microsoft.Testing.Platform), coverlet.collector replaced with its
          MTP-native successor coverlet.MTP (this CI's coverage collection is real usage, not a
          dead reference), Xunit.SkippableFact dropped (unused after migrating McpServerE2ETests'
@@ -26,7 +26,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <!-- MTP equivalent of the ecosystem's VSTest blame-hang convention (BD-20260828-07) -->
+    <!-- MTP equivalent of VSTest's blame-hang: dumps and fails a hung test instead of letting it run to the job timeout -->
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="coverlet.MTP" />
     <PackageReference Include="NSubstitute" />
@@ -34,12 +34,6 @@
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Providers\Fixtures\filer-issue219-call*-messages.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

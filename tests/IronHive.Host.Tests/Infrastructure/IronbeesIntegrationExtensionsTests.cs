@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace IronHive.Host.Tests.Infrastructure;
 
 /// <summary>
-/// D14-C: host's Ironbees wiring now consumes <c>IronHive.Agent.Ironbees</c> canonical types
+/// The host's Ironbees wiring now consumes <c>IronHive.Agent.Ironbees</c> canonical types
 /// (dedupe of the previously-forked host copy). This verifies the host-side DI surface
 /// (<see cref="IronbeesIntegrationExtensions.AddIronbeesOrchestration(IServiceCollection, Action{IronbeesOptions})"/>)
 /// actually wires conversation persistence end-to-end — the capability the old host copy of

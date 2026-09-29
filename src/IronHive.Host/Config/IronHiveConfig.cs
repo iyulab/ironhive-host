@@ -87,7 +87,7 @@ public class IronHiveConfig
     /// <c>FunctionInvokingChatClient</c> orchestrates tool-call iteration. Exposed so
     /// consumers can tune per-model behavior (small 4K-window models often want a
     /// lower iteration cap; 16K+ models can take a higher one) without forking the
-    /// cli source. Phase D-4, ecosystem ISSUE 2026-04-30.
+    /// host source.
     /// </summary>
     public ChatBehaviorConfig ChatBehavior { get; set; } = new();
 
@@ -218,7 +218,7 @@ public class GpuStackConfig
 
 /// <summary>
 /// Caps that govern <c>FunctionInvokingChatClient</c>'s tool-call orchestration loop.
-/// Phase D-4 — exposed so consumers can tune values per-model without forking.
+/// Exposed so the values can be tuned per model without forking.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -226,7 +226,7 @@ public class GpuStackConfig
 /// quantized models on tight 4K context windows. Lower it (e.g. 5) when a model
 /// struggles to self-correct empty-args calls within the default 10 iterations and
 /// the retry-storm is overflowing the context window before <c>TokenBudgetChatClient</c>
-/// (D-2) can rescue. Raise it (e.g. 15-20) on 16K+ models where the model legitimately
+/// can rescue. Raise it (e.g. 15-20) on 16K+ models where the model legitimately
 /// needs more rounds for multi-step task completion.
 /// </para>
 /// <para>

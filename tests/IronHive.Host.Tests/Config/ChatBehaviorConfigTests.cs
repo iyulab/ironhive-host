@@ -5,11 +5,10 @@ using IronHive.Host.Config;
 namespace IronHive.Host.Tests.Config;
 
 /// <summary>
-/// Unit tests for <see cref="ChatBehaviorConfig"/> — Phase D-4 (consumer-tunable
-/// FunctionInvokingChatClient caps, ecosystem ISSUE 2026-04-30 follow-up after Filer
-/// cycle-699). Filer §6.4 asked for the iteration cap to be a config knob so consumers
-/// can tune it per-model (small models with 4K windows want a lower cap; 16K+ models
-/// can take a higher one) without forking the cli source.
+/// Unit tests for <see cref="ChatBehaviorConfig"/> — the configurable
+/// FunctionInvokingChatClient caps. The iteration cap is a config knob so a host
+/// can tune it per model (small models with 4K windows want a lower cap; 16K+ models
+/// can take a higher one) without forking the source.
 /// </summary>
 public class ChatBehaviorConfigTests
 {

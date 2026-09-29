@@ -572,15 +572,16 @@ public static class ServiceCollectionExtensions
             //   FunctionInvokingChatClient (M.E.AI built-in tool-call orchestrator)
             //     → ToolRoundContextChatClient (unbound here; the agent loop binds its own ContextManager, so each
             //       tool round of a turn gets tool-result compaction and observation masking — not only the first call)
-            //       → TokenBudgetChatClient (D-2: graceful exit when accumulated history nears context window)
+            //       → TokenBudgetChatClient (graceful exit when accumulated history nears the context window)
             //         → inner LMSupply / OpenAI / Anthropic / etc.
             // The FunctionInvoker is two layers: ApprovalGatedFunctionInvoker puts the permission
             // rules and the human approval prompt in front of every call (Allow / Deny / Ask),
             // and ResilientFunctionInvoker underneath turns per-tool-call marshaller errors into
             // recovery directives. TokenBudgetChatClient handles per-iteration history-size overflow.
-            // Iteration / consecutive-error caps come from ChatBehaviorConfig (D-4) so
-            // consumers can tune per-model without forking. Rationales: ecosystem ISSUE
-            // 2026-04-29 (throw), 2026-04-30 (overflow), 2026-05-01 (consumer-tunable caps).
+            // Iteration / consecutive-error caps come from ChatBehaviorConfig so they can be
+            // tuned per model without forking: a malformed tool call must not throw out of the
+            // turn, a retry storm must not overflow a small context window, and the right caps
+            // differ between a 4K and a 16K+ model.
             var modeToolFilter = sp.GetRequiredService<IModeToolFilter>();
             var approvalService = sp.GetService<IHumanApprovalService>();
             var gateLogger = sp.GetService<ILogger<FunctionInvokingDecorator>>();

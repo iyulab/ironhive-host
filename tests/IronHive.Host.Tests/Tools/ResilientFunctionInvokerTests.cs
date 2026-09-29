@@ -6,16 +6,15 @@ using Microsoft.Extensions.AI;
 namespace IronHive.Host.Tests.Tools;
 
 /// <summary>
-/// Unit tests for <see cref="ResilientFunctionInvoker"/> — Phase D-3 (model-actionable
-/// directive rewrite, ecosystem ISSUE 2026-04-30 follow-up after Filer cycle-699).
+/// Unit tests for <see cref="ResilientFunctionInvoker"/> — the model-actionable
+/// recovery directive.
 ///
 /// <para>
-/// Filer's 2026-05-01 evidence (3 prompts × 0/3 non-empty body, search_knowledge never
-/// selected even with strengthened tool descriptions + system prompt) demonstrated that
-/// the original short directive ("Retry the call with ALL required parameters specified")
-/// is too .NET-jargon-flavoured for a small/quantized model to act on. D-3 rewrites the
-/// directive into procedural language that names a recovery procedure and explicitly
-/// forbids the empty-args retry pattern the model gets stuck in.
+/// A short directive ("Retry the call with ALL required parameters specified") is too
+/// .NET-jargon-flavoured for a small/quantized model to act on: such models keep retrying
+/// with empty arguments and never reach a non-empty answer, even with strengthened tool
+/// descriptions and system prompt. The directive is therefore procedural language that
+/// names a recovery procedure and explicitly forbids the empty-args retry pattern.
 /// </para>
 /// </summary>
 public class ResilientFunctionInvokerTests
@@ -89,10 +88,10 @@ public class ResilientFunctionInvokerTests
     [Fact]
     public async Task MissingRequiredParameter_DirectiveUsesProceduralRecoveryLanguage()
     {
-        // D-3 contract: directive must read as a procedure, not a stack-trace fragment.
-        // Each clause below is load-bearing for small-model self-correction (Filer
-        // cycle-699 demonstrated the prior short directive was insufficient on Gemma 4
-        // E4B at gguf:default — even with Filer-side tool description strengthening).
+        // Contract: directive must read as a procedure, not a stack-trace fragment.
+        // Each clause below is load-bearing for small-model self-correction (a short
+        // directive is insufficient on Gemma 4 E4B at gguf:default, even with
+        // strengthened tool descriptions).
         var directive = await InvokeAndGetDirectiveAsync(new MissingPathFunction());
 
         directive.Should().Contain("rejected",
@@ -116,7 +115,7 @@ public class ResilientFunctionInvokerTests
         var directive = await InvokeAndGetDirectiveAsync(new MissingPathFunction());
 
         directive.Should().NotContain("ALL required parameters specified",
-            because: "the .NET-jargon phrasing was the directive Filer cycle-699 demonstrated insufficient");
+            because: "the .NET-jargon phrasing does not drive self-correction on small models");
     }
 
     [Fact]

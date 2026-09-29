@@ -16,8 +16,7 @@ namespace IronHive.Host.Tools;
 /// the function's invoke path. Without a FunctionInvoker delegate, the exception is
 /// captured up to MaximumConsecutiveErrorsPerRequest (default 3) and then rethrown out
 /// of GetStreamingResponseAsync, aborting the entire chat stream — the user sees an
-/// empty response body. This is Filer's 2026-04-29 chat-rag failure mode (4 stack traces,
-/// deterministic).
+/// empty response body, deterministically, whenever a model keeps emitting empty arguments.
 /// </para>
 /// <para>
 /// <b>What this does:</b> Wraps every tool invocation in a try/catch that converts
@@ -27,13 +26,13 @@ namespace IronHive.Host.Tools;
 /// input. The model gets up to MaximumIterationsPerRequest rounds to self-correct.
 /// </para>
 /// <para>
-/// <b>Phase D-3 (2026-05-01):</b> The directive was rewritten from a single .NET-flavoured
-/// retry sentence into a numbered procedure that (1) names the missing parameter, (2) tells
-/// the model where to find its value, (3) explicitly forbids the empty-args retry pattern
-/// the model gets stuck in, and (4) offers two escape hatches (ask the user, pick a different
-/// tool). Filer cycle-699 (2026-05-01 §4.4) showed the prior phrasing did not move the
-/// needle on Gemma 4 E4B at gguf:default even with strengthened tool descriptions; the
-/// procedural rewrite shifts the cognitive burden from "interpret a stack-trace fragment"
+/// <b>Directive shape:</b> The directive is a numbered procedure rather than a single
+/// .NET-flavoured retry sentence: it (1) names the missing parameter, (2) tells the model
+/// where to find its value, (3) explicitly forbids the empty-args retry pattern the model
+/// gets stuck in, and (4) offers two escape hatches (ask the user, pick a different tool).
+/// A one-sentence retry hint does not change the behaviour of small quantized models such
+/// as Gemma 4 E4B at gguf:default, even with strengthened tool descriptions; the
+/// procedural form shifts the cognitive burden from "interpret a stack-trace fragment"
 /// to "follow a procedure," which small instruction-tuned models handle better.
 /// </para>
 /// <para>
@@ -58,7 +57,7 @@ public static class ResilientFunctionInvoker
             catch (ArgumentException ex) when (ex.ParamName == "arguments")
             {
                 // Marshaller validation failure. Extract the parameter name when present
-                // and synthesize a procedural recovery directive (D-3) the model can act on.
+                // and synthesize a procedural recovery directive the model can act on.
                 var toolName = context.Function.Name;
                 var paramName = TryExtractMissingParameterName(ex.Message);
                 return paramName is not null
@@ -74,7 +73,7 @@ public static class ResilientFunctionInvoker
     }
 
     /// <summary>
-    /// Procedural recovery directive (D-3) for the "required parameter missing" case.
+    /// Procedural recovery directive for the "required parameter missing" case.
     /// Numbered steps + an explicit "do NOT retry with empty arguments" clause +
     /// two named escape hatches. Optimized for small instruction-tuned models that
     /// respond better to procedures than to stack-trace fragments.
@@ -91,7 +90,7 @@ public static class ResilientFunctionInvoker
         $"Do NOT retry '{toolName}' with the same empty arguments — that will fail again the same way.";
 
     /// <summary>
-    /// Procedural recovery directive (D-3) for the "marshaller raised but no parameter
+    /// Procedural recovery directive for the "marshaller raised but no parameter
     /// name was parseable" fallback case. Same procedural shape, scoped to schema review
     /// since the missing key is unknown.
     /// </summary>

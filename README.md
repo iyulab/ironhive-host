@@ -7,8 +7,6 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 > Universal Agent Host — CLI · server · embedded
->
-> **역할·범위·기능 명세(미들웨어 정체성)는 [`CHARTER.md`](./CHARTER.md) 참조** — product-middleware §⑤ 에이전트 호스트.
 
 A foundation tool for AI-powered automation—not just coding, but any task that benefits from intelligent command execution. One agent core (plan → execute → tool-call), exposed as an installable CLI, an embeddable .NET SDK, or a long-running server (stdio/JSON-Lines or HTTP/SSE) — pick the surface that fits, without re-implementing the agent loop.
 
@@ -16,8 +14,9 @@ The agent loop, context/compaction, mode system, MCP plugins, and permission eng
 [`IronHive.Agent`](https://www.nuget.org/packages/IronHive.Agent) (from [`ironhive-agent`](https://github.com/iyulab/ironhive-agent)),
 which this package consumes as a `PackageReference`. `IronHive.Host` adds the hosting surface on top:
 CLI/server/embed entry points, the `IronHive.Host.Protocol` turn-stream contract, layered config,
-provider adapters, and session/execution-log/memory integration. See [`CHARTER.md`](./CHARTER.md) for
-the full role boundary.
+provider adapters, and session/execution-log/memory integration. The agent loop runs on
+any injected `IChatClient` (`UseChatClient` / `UseChatClientFactory`), and the server surfaces
+expose a generic turn-stream rather than an application-specific wire format.
 
 ## Features
 
@@ -567,8 +566,8 @@ ironhive-host/
 ## Contributing
 
 Issues and pull requests are welcome. This project is pre-1.0 (`0.x`) — breaking changes land
-freely for structural correctness; see [`CHARTER.md`](./CHARTER.md) for scope and design intent
-before proposing a feature. `dotnet build && dotnet test` (see [Development](#development)) should
+freely for structural correctness. The scope is the hosting surface described in the introduction
+above; please open an issue to discuss a feature before sending a PR. `dotnet build && dotnet test` (see [Development](#development)) should
 pass before opening a PR.
 
 ## Related Projects

@@ -6,7 +6,7 @@ using IronHive.Host.Config;
 namespace IronHive.Host.Tests.Architecture;
 
 /// <summary>
-/// D14 (ISSUE-ironhive-host-20260705-130001): host previously forked and diverged from
+/// The host once carried its own diverging copies of
 /// three <c>IronHive.Agent</c> clusters (SubAgent, Tools.SubAgentTool/TodoTool, Ironbees).
 /// Regression teeth so the fork does not silently grow back — host must consume the
 /// canonical agent types rather than re-defining them under its own namespace.
@@ -42,9 +42,9 @@ public class HostAgentDedupeConventionTests
         foreach (var banned in BannedFullNames)
         {
             hostTypeNames.Should().NotContain(banned,
-                $"{banned} was deduplicated onto IronHive.Agent's canonical type (D14) and must not reappear in IronHive.Host");
+                $"{banned} was deduplicated onto IronHive.Agent's canonical type and must not reappear in IronHive.Host");
             cliTypeNames.Should().NotContain(banned,
-                $"{banned} was deduplicated onto IronHive.Agent's canonical type (D14) and must not reappear in IronHive.Cli");
+                $"{banned} was deduplicated onto IronHive.Agent's canonical type and must not reappear in IronHive.Cli");
         }
     }
 
@@ -60,6 +60,6 @@ public class HostAgentDedupeConventionTests
             .ToList();
 
         offendingTypes.Should().BeEmpty(
-            "these namespaces were retired in D14 in favor of the IronHive.Agent canonical types");
+            "these namespaces were retired in favor of the IronHive.Agent canonical types");
     }
 }

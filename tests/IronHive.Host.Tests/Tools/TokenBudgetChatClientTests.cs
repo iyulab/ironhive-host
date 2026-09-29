@@ -11,8 +11,8 @@ using FRC = Microsoft.Extensions.AI.FunctionResultContent;
 namespace IronHive.Host.Tests.Tools;
 
 /// <summary>
-/// Unit tests for <see cref="TokenBudgetChatClient"/> — D-2 of ecosystem ISSUE
-/// 2026-04-30 (Gemma 4 self-correction recovery). Sits between the M.E.AI
+/// Unit tests for <see cref="TokenBudgetChatClient"/> (graceful exit before a
+/// self-correction retry storm overflows the context window). Sits between the M.E.AI
 /// invoking decorator and the LMSupply provider so each iteration's
 /// accumulated message history can be measured before another llama-server
 /// round trip; when the conservative estimate exceeds the threshold, emits

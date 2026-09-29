@@ -12,8 +12,7 @@ using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
 namespace IronHive.Host.Tests.Providers;
 
 /// <summary>
-/// Regression coverage for the Surface B sampler-probe path
-/// (ecosystem ISSUE 2026-05-01 silent-emit floor):
+/// Regression coverage for sampler forwarding:
 /// the standard M.E.AI <see cref="ChatOptions"/> sampler properties
 /// (Temperature/TopP/TopK/FrequencyPenalty/PresencePenalty/Seed/StopSequences)
 /// must be forwarded to <see cref="LmGenerationOptions"/> so consumers can
@@ -238,7 +237,7 @@ public class LMSupplyChatClientSamplerForwardingTests
     public async Task GetResponseAsync_ForwardsBothRepetitionPenaltyAndMinPJointly()
     {
         // Joint coverage: independent forwarding is exercised above, but the
-        // typical Surface B probe sets both keys in a single ChatOptions call.
+        // typical caller sets both keys in a single ChatOptions call.
         var generator = BuildStubGenerator(out var captured);
         var client = new LMSupplyChatClient(generator);
         var options = new ChatOptions

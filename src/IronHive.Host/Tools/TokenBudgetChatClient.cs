@@ -17,8 +17,8 @@ namespace IronHive.Host.Tools;
 /// synthesized by <see cref="ResilientFunctionInvoker"/>. The model retries
 /// 6–8 rounds, each adding ~500 tokens, until the prompt overflows the
 /// (e.g. 4K) context window. llama-server then returns "Input too large" and
-/// the consumer sees an empty <c>response.text</c> with no final-text turn —
-/// the worst possible UX for dogfooding (Filer 2026-04-30 §12 evidence).
+/// the caller sees an empty <c>response.text</c> with no final-text turn and
+/// no indication of why.
 /// </para>
 /// <para>
 /// <b>What this does:</b> Estimates total message tokens (chars ÷ 4 — a
@@ -33,9 +33,6 @@ namespace IronHive.Host.Tools;
 /// <b>Context window discovery:</b> If the inner exposes
 /// <see cref="IContextSizeProvider"/> via <c>GetService</c>, that value is
 /// used; otherwise the constructor's <c>defaultMaxContextTokens</c> applies.
-/// </para>
-/// <para>
-/// <b>Reference:</b> ecosystem ISSUE Option D-2, 2026-04-30.
 /// </para>
 /// </remarks>
 public sealed class TokenBudgetChatClient : IChatClient

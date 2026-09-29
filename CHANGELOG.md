@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.29.15 — Unreleased
+
+### Changed
+- **Documentation: comments and XML docs describe behaviour without internal references.** The
+  internal planning documents `CHARTER.md` and `docs/design/ironhive-integration-plan.md` were
+  removed from the repository; the README describes the host's scope.
+
 ## 0.29.14 — 2026-09-30
 
 ### Changed
@@ -839,7 +846,7 @@ release and spans a breaking version, so advancing it is a separate decision.
 
 ## 0.18.0
 
-Dependency realignment (umbrella DF-1): host had been pinned to `IronHive.* 0.8.2` while the core
+Dependency realignment: host had been pinned to `IronHive.* 0.8.2` while the core
 moved to 0.14.0 (six minors), with the rest of the iyulab set drifting alongside it. This lifts the
 whole set and drops the NU1903 suppression that the stale pins had made necessary.
 
@@ -869,7 +876,7 @@ whole set and drops the NU1903 suppression that the stale pins had made necessar
 
 ## 0.17.0
 
-D14: dedupe host's forked copies of three `IronHive.Agent` clusters (SubAgent, Tools, Ironbees) that had silently diverged since the 0.16.0 rename — host now consumes the canonical `IronHive.Agent` types directly.
+Dedupe host's forked copies of three `IronHive.Agent` clusters (SubAgent, Tools, Ironbees) that had silently diverged since the 0.16.0 rename — host now consumes the canonical `IronHive.Agent` types directly.
 
 ### Fixed
 - Ironbees multi-agent orchestration (`AddIronbeesOrchestration`) previously executed **zero tools** — host's forked `ChatClientFrameworkAdapter` had no tool-execution loop at all. It now uses `IronHive.Agent.Ironbees.ChatClientFrameworkAdapter`, which supports up to `MaxToolTurns` (default 20) tool-call iterations, permission checks, and dynamic tool/MCP provisioning via `IronbeesOptions.EnableToolExecution` + `WorkingDirectory`.

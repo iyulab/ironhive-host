@@ -7,8 +7,7 @@ namespace IronHive.Host.Tools;
 /// to the model's actual context window instead of a fixed default.
 /// </summary>
 /// <remarks>
-/// Introduced for ecosystem ISSUE Option D-2 (2026-04-30) — different LMSupply
-/// models have wildly different context windows (1024 for some Phi-3 GGUFs,
+/// Different LMSupply models have wildly different context windows (1024 for some Phi-3 GGUFs,
 /// 32K+ for newer models). Hard-coding 4096 in the decorator would either
 /// over-budget small models (no protection) or starve large ones.
 /// </remarks>

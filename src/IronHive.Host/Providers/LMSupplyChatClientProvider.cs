@@ -293,7 +293,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 /// including FunctionCallContent/FunctionResultContent for tool calling.
 /// </summary>
 /// <remarks>
-/// Public surface (since 0.10.2) so umbrella e2e harness and other dogfooding consumers
+/// Public (since 0.10.2) so callers such as test harnesses or hosts that already hold a model
 /// can construct an IChatClient directly over a pre-loaded <see cref="ITextGenerator"/>,
 /// instead of letting <see cref="LMSupplyChatClientProvider"/> load a second generator
 /// through <c>BuildGeneratorAsync</c>.
@@ -437,7 +437,7 @@ public sealed class LMSupplyChatClient : IChatClient
         }
         // Expose the model's context window so a wrapping TokenBudgetChatClient
         // can size its budget to the actual GGUF context length instead of a
-        // hard-coded default (Option D-2, ecosystem ISSUE 2026-04-30).
+        // hard-coded default.
         if (serviceType == typeof(IContextSizeProvider) && _generator is IGeneratorModel model && model.MaxContextLength > 0)
         {
             return new LMSupplyContextSizeProvider(model.MaxContextLength);
@@ -533,9 +533,9 @@ public sealed class LMSupplyChatClient : IChatClient
             genOptions.MaxTokens = options.MaxOutputTokens.Value;
         }
 
-        // Forward standard M.E.AI sampler properties so consumers can probe
-        // alternate decoding parameters from the chat-pipeline boundary
-        // (ecosystem ISSUE Surface B sampler-probe path, 2026-05-01).
+        // Forward standard M.E.AI sampler properties so callers can set
+        // alternate decoding parameters from the chat-pipeline boundary;
+        // without this, TopP/TopK/penalties set on ChatOptions are silently dropped.
         if (options.TopP.HasValue)
         {
             genOptions.TopP = options.TopP.Value;
