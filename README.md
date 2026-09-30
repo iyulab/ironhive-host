@@ -24,7 +24,7 @@ expose a generic turn-stream rather than an application-specific wire format.
 - **MCP-native tooling** — plugs into MCP servers (memory, code execution, custom tools) instead of hardcoding a tool set.
 - **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
 - **Context-window safe by default** — automatic history compaction (`ContextManager`, wired on every surface including `AddIronHive`) prevents silent context overflows, including on small quantized models. The CLI and `run --server` additionally install a hard-backstop `TokenBudgetChatClient`; library embedders wrap their own `IChatClient` with it (see [TokenBudgetChatClient](#tokenbudgetchatclient)).
-- **Resilient tool-calling** — `ResilientFunctionInvoker` turns malformed tool-call arguments into model-actionable recovery hints instead of aborting the stream. Installed by the CLI and `run --server` (behind the permission gate); `AddIronHive`/`AddIronHiveWithOpenAI` do not decorate the client, so embedders install it themselves (see [ResilientFunctionInvoker](#resilientfunctioninvoker)).
+- **Resilient tool-calling** — `ResilientArgumentsMiddleware` (a tool invocation pipeline step) and `ResilientFunctionInvoker` (the same behaviour as a plain `FunctionInvoker`) turn tool-call arguments that do not fit the tool into model-actionable recovery hints instead of aborting the stream. Installed by the CLI and `run --server` (after the loop guards and the permission gate); `AddIronHive`/`AddIronHiveWithOpenAI` do not decorate the client, so embedders install it themselves (see [ResilientFunctionInvoker](#resilientfunctioninvoker)).
 - **Advisor** — set `advisor.model` and every CLI / `run --server` session gets an `advisor` tool (the library `AddIronHive` path has no advisor option): the working model can send the conversation so far to a stronger model and read its review (before committing to an approach, when stuck, before declaring done). It appears on the wire as an ordinary `tool_start`/`tool_end`.
 - **Layered configuration** — global → project → environment → `.env`, with automatic migration from legacy `settings.json`.
 
@@ -377,7 +377,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 | Property | Default | Notes |
 |----------|---------|-------|
 | `MaximumIterationsPerRequest` | 10 | Lower (5–7) for small 4K-window models; raise (15–20) for large-context models |
-| `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back marshaller errors; rarely hit when `ResilientFunctionInvoker` is installed |
+| `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back tool errors; rarely hit in the CLI, where argument errors become recovery hints and the same error three times in a row ends the turn first |
 
 ```yaml
 # .ironhive/config.yaml
@@ -404,7 +404,7 @@ important tool outputs) instead of silently overflowing.
 
 `IChatClient` decorator that short-circuits streaming calls when the accumulated message-history size would exceed a configurable fraction of the model's context window. Prevents context-overflow silent failures on small quantized models (e.g. 4K-window Gemma E4B).
 
-The CLI and `run --server` wrap every provider client in it (together with `ResilientFunctionInvoker` and the permission gate). `AddIronHive(...)` / `AddIronHiveWithOpenAI(...)` register the provider client as-is — to get the same backstop in an embedded host, wrap the client yourself (constructor below, then `UseFunctionInvocation` as shown under **ResilientFunctionInvoker**) and pass the result to `AddIronHive(chatClient)` / `options.UseChatClient(...)`.
+The CLI and `run --server` wrap every provider client in it (under a tool invocation pipeline with the loop guards, the permission gate and `ResilientArgumentsMiddleware`). `AddIronHive(...)` / `AddIronHiveWithOpenAI(...)` register the provider client as-is — to get the same backstop in an embedded host, wrap the client yourself (constructor below, then function invocation as shown under **ResilientFunctionInvoker**) and pass the result to `AddIronHive(chatClient)` / `options.UseChatClient(...)`.
 
 - Sits between `FunctionInvokingChatClient` and the underlying provider
 - Estimates tokens as `total-chars ÷ 4` (conservative upper bound)
@@ -420,18 +420,37 @@ var client = new TokenBudgetChatClient(
 
 ### ResilientFunctionInvoker
 
-Factory for the M.E.AI `FunctionInvoker` delegate that converts marshaller-level `ArgumentException` (missing/malformed tool arguments) into model-actionable procedural error strings, enabling small quantized models to self-correct without aborting the stream.
+Converts the marshaller-level `ArgumentException` (missing/malformed tool arguments) and `JsonException` a tool invocation raises into model-actionable procedural error strings, enabling small quantized models to self-correct without aborting the stream. It comes in two forms with one implementation.
 
-Install via `UseFunctionInvocation`:
+With `IronHive.Agent`'s tool invocation pipeline, add `ResilientArgumentsMiddleware` as the last step, so it sits directly around the tool (this is what the CLI does):
 
 ```csharp
-chatClient.UseFunctionInvocation(configure: c =>
-{
-    c.FunctionInvoker = ResilientFunctionInvoker.Create();
-});
+var pipeline = new ToolInvocationPipeline(
+[
+    new ArgumentParseFailureMiddleware(),          // unparseable arguments: refused before the tool runs
+    new RepeatedCallGuardMiddleware(),
+    new RepeatedErrorGuardMiddleware(),
+    new ApprovalGateMiddleware(modeToolFilter, approvalService),
+    new ResilientArgumentsMiddleware(),            // parsed arguments that do not fit the tool: recovery directive
+]);
+var client = new TokenBudgetChatClient(innerClient)
+    .AsBuilder()
+    .UseToolInvocationPipeline(pipeline)
+    .Build();
 ```
 
-When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the invoker returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern.
+With DI, `services.AddToolInvocationMiddleware<ResilientArgumentsMiddleware>()` registered after the other steps does the same for `UseToolInvocationPipeline()`.
+
+With a plain `UseFunctionInvocation` client, set it as the `FunctionInvoker`:
+
+```csharp
+var client = innerClient
+    .AsBuilder()
+    .UseFunctionInvocation(configure: c => c.FunctionInvoker = ResilientFunctionInvoker.Create())
+    .Build();
+```
+
+When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the step returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern. It does not overlap with `ArgumentParseFailureMiddleware`: that step refuses a call whose arguments text could not be parsed at all, before the tool runs; this one answers arguments that were parsed but do not fit the tool's parameters, which only shows when the tool is invoked. Behind a `RepeatedCallGuardMiddleware`, a model that keeps sending the same empty arguments is refused after three directives.
 
 ### AgentServerRunner / AgentHttpRunner
 
@@ -478,7 +497,7 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 
 **Skills.** `skills:` in `config.yaml` (`roots: [~/.ironhive/skills, .ironhive/skills]`, optional `enabled`, `exclude`, `maxMetadataCharacters`, `acceptUnknownFields`) loads Agent Skills (`SKILL.md` bundles per the [specification](https://agentskills.io/specification)): every skill's name and description is in the system instructions, and the model calls `load_skill` for a body — only from inside the skill's directory. Skills the specification's validator rejects are not loaded (`acceptUnknownFields: true` admits bundles carrying another client's frontmatter keys). The `load_skill` tool is added by the CLI / `run --server` loop factory. The library `AddIronHive(...)` path does not add it — its loop gets only `options.Tools`. `services.AddAgentSkills(new SkillsConfig { Roots = [...] })` registers the `SkillsLoader` and puts the skills' metadata in the instructions, but an embedder must put `SkillsLoader.LoadTool` in its loop's tools itself (e.g. build the loader with `SkillsLoader.Create(config)` and add `loader.LoadTool` to `options.Tools`).
 
-**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGatedFunctionInvoker`, installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console. The prompt needs a terminal — when stdin or stdout is redirected (`run --server`, or a piped one-shot) an `Ask` verdict is rejected with a reason instead, so a prompt never lands in the protocol stream. Rules come from the project's `.ironhive/permissions.yaml` (or `.yml` / `.json`; keys `read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `read_only_tools`, `default_action`) when it exists; otherwise from the `permissions` section of `config.yaml` — global `~/.ironhive/config.yaml`, then the project's, camelCase keys like the rest of the file (`externalDirectory`, `mcpTools`, `readOnlyTools`, `defaultAction`); otherwise the built-in defaults (before 0.29.4 the `config.yaml` section was read and then discarded). `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to the default action (`ask` by default — so an unknown tool is asked about, not run).
+**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGateMiddleware`, a step of the tool invocation pipeline installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console. The prompt needs a terminal — when stdin or stdout is redirected (`run --server`, or a piped one-shot) an `Ask` verdict is rejected with a reason instead, so a prompt never lands in the protocol stream. Rules come from the project's `.ironhive/permissions.yaml` (or `.yml` / `.json`; keys `read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `read_only_tools`, `default_action`) when it exists; otherwise from the `permissions` section of `config.yaml` — global `~/.ironhive/config.yaml`, then the project's, camelCase keys like the rest of the file (`externalDirectory`, `mcpTools`, `readOnlyTools`, `defaultAction`); otherwise the built-in defaults (before 0.29.4 the `config.yaml` section was read and then discarded). `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to the default action (`ask` by default — so an unknown tool is asked about, not run).
 
 **Protocol types** (`ServerRequest` → agent, `ServerEvent` → host):
 
@@ -555,7 +574,7 @@ ironhive-host/
 │   │   ├── Providers/           # LMSupply, IronHive chat client providers
 │   │   ├── Server/              # AgentServerRunner, AgentHttpRunner (references Host.Protocol)
 │   │   ├── Session/             # Session management
-│   │   └── Tools/               # Built-in tools, ResilientFunctionInvoker, TokenBudgetChatClient
+│   │   └── Tools/               # Built-in tools, ResilientArgumentsMiddleware/ResilientFunctionInvoker, TokenBudgetChatClient
 │   └── IronHive.Cli/            # CLI application (tool command: ironhive)
 ├── samples/
 │   ├── console-chat/            # .NET Core integration

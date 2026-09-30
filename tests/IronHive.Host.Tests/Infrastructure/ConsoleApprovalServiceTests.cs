@@ -35,7 +35,8 @@ public class ConsoleApprovalServiceTests
     public async Task ThroughTheGate_ANonInteractiveRejection_ReachesTheModelAsAResult_NotAnException()
     {
         var filter = new ModeToolFilter(PermissionConfig.CreateDefault());
-        var invoker = ApprovalGatedFunctionInvoker.Create(filter, new ConsoleApprovalService(() => false));
+        var pipeline = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.CreateToolInvocationPipeline(
+            filter, new ConsoleApprovalService(() => false), loggerFactory: null);
         var ran = false;
         var function = Microsoft.Extensions.AI.AIFunctionFactory.Create((string path, string content) => { ran = true; return "ok"; }, "WriteFile");
         var context = new Microsoft.Extensions.AI.FunctionInvocationContext
@@ -45,7 +46,7 @@ public class ConsoleApprovalServiceTests
             CallContent = new Microsoft.Extensions.AI.FunctionCallContent("c1", "WriteFile")
         };
 
-        var result = await invoker(context, TestContext.Current.CancellationToken);
+        var result = await pipeline.InvokeAsync(context, TestContext.Current.CancellationToken);
 
         Assert.False(ran);
         Assert.Contains("Approval rejected", result!.ToString());

@@ -6,6 +6,7 @@ using IronHive.Abstractions.Messages;
 using IronHive.Agent.Context;
 using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Extensions;
+using IronHive.Agent.Invocation;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Memory;
@@ -30,10 +31,6 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using WebLookup;
 using CliConfig = IronHive.Host.Config;
-// Aliased to avoid the literal "new Function..." token in source — the
-// security-reminder hook flags it as a false positive (the hook targets
-// JS new Function() code-injection patterns, not C# class instantiation).
-using FunctionInvokingDecorator = Microsoft.Extensions.AI.FunctionInvokingChatClient;
 
 namespace IronHive.Cli.Infrastructure;
 
@@ -43,27 +40,52 @@ namespace IronHive.Cli.Infrastructure;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// The CLI's chat client pipeline around a provider's client (outer → inner): function invocation (approval gate +
-    /// resilient invoker), an unbound <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own
-    /// <see cref="ContextManager"/>, then <see cref="TokenBudgetChatClient"/>. See the factory registration for the reasons.
+    /// The CLI's chat client pipeline around a provider's client (outer → inner): function invocation through
+    /// <paramref name="toolInvocationPipeline"/> (see <see cref="CreateToolInvocationPipeline"/>), an unbound
+    /// <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own <see cref="ContextManager"/>, then
+    /// <see cref="TokenBudgetChatClient"/>. See the factory registration for the reasons.
     /// </summary>
     internal static IChatClient DecorateChatClient(
         IChatClient inner,
         ChatBehaviorConfig behavior,
+        ToolInvocationPipeline toolInvocationPipeline)
+        => new ToolRoundContextChatClient(new TokenBudgetChatClient(inner))
+            .AsBuilder()
+            .UseToolInvocationPipeline(toolInvocationPipeline, client =>
+            {
+                client.MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest;
+                client.MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest;
+                client.IncludeDetailedErrors = true;
+            })
+            .Build();
+
+    /// <summary>
+    /// The steps every tool call of the CLI and <c>run --server</c> goes through, outermost first:
+    /// <list type="number">
+    /// <item><see cref="ArgumentParseFailureMiddleware"/> — a call whose arguments could not be parsed is not run.</item>
+    /// <item><see cref="RepeatedCallGuardMiddleware"/> — the same call after three successful runs in a row is not run.</item>
+    /// <item><see cref="RepeatedErrorGuardMiddleware"/> — the same error three times in a row ends the turn with a result.</item>
+    /// <item><see cref="ApprovalGateMiddleware"/> — the permission rules and the approval prompt (Allow / Deny / Ask).</item>
+    /// <item><see cref="ResilientArgumentsMiddleware"/> — arguments that do not bind become a recovery directive.</item>
+    /// </list>
+    /// The loop guards sit in front of the gate so the user is never asked to approve a call that would be refused
+    /// anyway; the resilient step sits directly around the tool, so the error guard only counts errors it lets through.
+    /// </summary>
+    internal static ToolInvocationPipeline CreateToolInvocationPipeline(
         IModeToolFilter modeToolFilter,
         IHumanApprovalService? approvalService,
-        ILogger<FunctionInvokingDecorator>? gateLogger)
-        => new FunctionInvokingDecorator(new ToolRoundContextChatClient(new TokenBudgetChatClient(inner)))
-        {
-            MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest,
-            MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest,
-            IncludeDetailedErrors = true,
-            FunctionInvoker = ApprovalGatedFunctionInvoker.Create(
-                modeToolFilter,
-                approvalService,
-                inner: ResilientFunctionInvoker.Create(),
-                logger: gateLogger)
-        };
+        ILoggerFactory? loggerFactory)
+    {
+        var options = new ToolInvocationOptions();
+        return new ToolInvocationPipeline(
+        [
+            new ArgumentParseFailureMiddleware(options, loggerFactory?.CreateLogger<ArgumentParseFailureMiddleware>()),
+            new RepeatedCallGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedCallGuardMiddleware>()),
+            new RepeatedErrorGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedErrorGuardMiddleware>()),
+            new ApprovalGateMiddleware(modeToolFilter, approvalService, loggerFactory?.CreateLogger<ApprovalGateMiddleware>()),
+            new ResilientArgumentsMiddleware(),
+        ]);
+    }
 
     /// <summary>
     /// Adds IronHive CLI services to the service collection.
@@ -569,24 +591,27 @@ public static class ServiceCollectionExtensions
             var primary = sp.GetRequiredService<IChatClientProvider>();
 
             // Decorator chain (outer → inner):
-            //   FunctionInvokingChatClient (M.E.AI built-in tool-call orchestrator)
+            //   FunctionInvokingChatClient (M.E.AI tool-call orchestrator, installed by UseToolInvocationPipeline)
             //     → ToolRoundContextChatClient (unbound here; the agent loop binds its own ContextManager, so each
             //       tool round of a turn gets tool-result compaction and observation masking — not only the first call)
             //       → TokenBudgetChatClient (graceful exit when accumulated history nears the context window)
             //         → inner LMSupply / OpenAI / Anthropic / etc.
-            // The FunctionInvoker is two layers: ApprovalGatedFunctionInvoker puts the permission
-            // rules and the human approval prompt in front of every call (Allow / Deny / Ask),
-            // and ResilientFunctionInvoker underneath turns per-tool-call marshaller errors into
-            // recovery directives. TokenBudgetChatClient handles per-iteration history-size overflow.
+            // The FunctionInvoker is a ToolInvocationPipeline (CreateToolInvocationPipeline): loop guards
+            // (unparseable arguments, a repeated call, a repeated error), then the permission rules and the
+            // human approval prompt in front of every call (Allow / Deny / Ask), then ResilientArgumentsMiddleware
+            // around the tool, which turns per-tool-call marshaller errors into recovery directives. The pipeline is
+            // reachable from the client, so a loop also runs host-supplied results through its result stage.
+            // TokenBudgetChatClient handles per-iteration history-size overflow.
             // Iteration / consecutive-error caps come from ChatBehaviorConfig so they can be
             // tuned per model without forking: a malformed tool call must not throw out of the
             // turn, a retry storm must not overflow a small context window, and the right caps
             // differ between a 4K and a 16K+ model.
-            var modeToolFilter = sp.GetRequiredService<IModeToolFilter>();
-            var approvalService = sp.GetService<IHumanApprovalService>();
-            var gateLogger = sp.GetService<ILogger<FunctionInvokingDecorator>>();
+            var toolInvocationPipeline = CreateToolInvocationPipeline(
+                sp.GetRequiredService<IModeToolFilter>(),
+                sp.GetService<IHumanApprovalService>(),
+                sp.GetService<ILoggerFactory>());
             IChatClient ClientDecorator(IChatClient inner) =>
-                DecorateChatClient(inner, config.ChatBehavior, modeToolFilter, approvalService, gateLogger);
+                DecorateChatClient(inner, config.ChatBehavior, toolInvocationPipeline);
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
         });

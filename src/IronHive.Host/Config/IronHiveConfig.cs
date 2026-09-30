@@ -230,10 +230,12 @@ public class GpuStackConfig
 /// needs more rounds for multi-step task completion.
 /// </para>
 /// <para>
-/// <b>MaximumConsecutiveErrorsPerRequest</b> caps how many back-to-back marshaller
-/// errors are tolerated before the framework aborts. With <see cref="Tools.ResilientFunctionInvoker"/>
-/// installed this is rarely hit (errors are converted to actionable strings), but it
-/// remains a backstop.
+/// <b>MaximumConsecutiveErrorsPerRequest</b> caps how many back-to-back tool errors are
+/// tolerated before the framework aborts. With <see cref="Tools.ResilientArgumentsMiddleware"/>
+/// (or <see cref="Tools.ResilientFunctionInvoker"/>) installed this is rarely hit (argument errors
+/// are converted to actionable strings), but it remains a backstop. In the CLI, the tool invocation
+/// pipeline also ends the turn when the same tool fails with the same error three times in a row;
+/// raising this cap does not raise that limit.
 /// </para>
 /// </remarks>
 public class ChatBehaviorConfig
@@ -247,8 +249,9 @@ public class ChatBehaviorConfig
     public int MaximumIterationsPerRequest { get; set; } = 10;
 
     /// <summary>
-    /// Maximum consecutive marshaller errors before the framework gives up. Default: 3.
-    /// With <see cref="Tools.ResilientFunctionInvoker"/> in the decorator chain this is rarely hit.
+    /// Maximum consecutive tool errors before the framework gives up. Default: 3.
+    /// With <see cref="Tools.ResilientArgumentsMiddleware"/> in the tool invocation pipeline (or
+    /// <see cref="Tools.ResilientFunctionInvoker"/> as the invoker) this is rarely hit.
     /// </summary>
     public int MaximumConsecutiveErrorsPerRequest { get; set; } = 3;
 }

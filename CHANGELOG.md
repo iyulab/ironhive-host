@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.30.0 — Unreleased
+
+### Added
+- **`ResilientArgumentsMiddleware`: the resilient tool-calling behaviour as a tool invocation pipeline step.** Add it
+  last to a `ToolInvocationPipeline` (or register it with `AddToolInvocationMiddleware<ResilientArgumentsMiddleware>()`)
+  and a call whose arguments do not fit the tool's parameters returns the same recovery directive
+  `ResilientFunctionInvoker` returns. `ResilientFunctionInvoker.Create()` is unchanged for plain `UseFunctionInvocation`
+  clients; both forms share one implementation.
+
+### Changed
+- **The CLI's and `run --server`'s tool calls run through IronHive.Agent's tool invocation pipeline**, in this order:
+  the default loop guards, the permission gate (same rules and prompt as before), then the resilient-arguments step.
+  What changes for the user:
+  - a tool call whose arguments could not be parsed from the model's response is not run; the model reads the parse
+    error and can re-issue it, and the user is not asked to approve it;
+  - a fourth identical call in a row to the same tool (same arguments, the previous three succeeded) is not run; the
+    model is told it already has that result. This also stops a model that keeps retrying with the same empty
+    arguments;
+  - the same tool failing with the same error three times in a row ends the turn with a readable message, instead of
+    the model retrying until the turn aborts with an error.
+
+  `MaximumIterationsPerRequest`, `MaximumConsecutiveErrorsPerRequest` and detailed errors behave as before.
+
+### Dependencies
+- `IronHive.Agent`, `IronHive.Agent.Ironbees`, `IronHive.Agent.Memory`, `IronHive.DeepResearch` 0.26.0 -> 0.27.0.
+
 ## 0.29.15 — 2026-09-30
 
 ### Changed

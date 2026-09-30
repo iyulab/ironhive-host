@@ -157,6 +157,37 @@ public class ResilientFunctionInvokerTests
             .Where(ex => ex.ParamName == "somethingElse");
     }
 
+    [Fact]
+    public async Task MiddlewareForm_WhenTheRestOfThePipelineThrowsTheMarshallerError_ReturnsTheSameDirective()
+    {
+        var middleware = new ResilientArgumentsMiddleware();
+        var fn = new MissingPathFunction();
+
+        var result = await middleware.InvokeAsync(
+            ContextFor(fn),
+            (context, ct) => context.Function.InvokeAsync(context.Arguments, ct),
+            CancellationToken.None);
+
+        result.Should().Be(await InvokeAndGetDirectiveAsync(fn),
+            because: "the delegate and the middleware share one implementation");
+    }
+
+    [Fact]
+    public async Task MiddlewareForm_PassesAResultThrough_AndLetsUnrelatedExceptionsPropagate()
+    {
+        var middleware = new ResilientArgumentsMiddleware();
+        var context = ContextFor(new MissingPathFunction());
+
+        var passed = await middleware.InvokeAsync(context, (_, _) => new ValueTask<object?>("tool output"), CancellationToken.None);
+        passed.Should().Be("tool output");
+
+        Func<Task> action = async () => await middleware.InvokeAsync(
+            context,
+            (_, _) => throw new InvalidOperationException("tool bug"),
+            CancellationToken.None);
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
     private sealed class ThrowingFunction : AIFunction
     {
         private readonly string _name;
