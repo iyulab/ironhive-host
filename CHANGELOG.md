@@ -11,6 +11,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **Documentation: comments and XML docs describe behaviour without internal references.** The
   internal planning documents `CHARTER.md` and `docs/design/ironhive-integration-plan.md` were
   removed from the repository; the README describes the host's scope.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.45.1 -> 0.45.2, `IronHive.Core` 0.45.1 -> 0.45.2, `IronHive.Extensions.AI` 0.45.1 -> 0.45.2, `IronHive.Providers.Anthropic` 0.45.1 -> 0.45.2, `IronHive.Providers.GoogleAI` 0.45.1 -> 0.45.2, `IronHive.Providers.OpenAI` 0.45.1 -> 0.45.2, `IronHive.Providers.OpenAI.Compatible` 0.45.1 -> 0.45.2, `LMSupply.Embedder` 0.93.1 -> 0.94.0, `LMSupply.Generator` 0.93.1 -> 0.94.0, `LMSupply.Reranker` 0.93.1 -> 0.94.0, `WebLookup` 0.2.4 -> 0.3.0.
 
 ## 0.29.14 — 2026-09-30
 
