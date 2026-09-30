@@ -25,6 +25,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
     arguments;
   - the same tool failing with the same error three times in a row ends the turn with a readable message, instead of
     the model retrying until the turn aborts with an error.
+- Re-pinned sibling package(s) `Cronex.Net` 0.6.1 -> 0.6.2, `Cronex.Net.Hosting` 0.6.1 -> 0.6.2, `Ironbees.Core` 0.21.7 -> 0.21.8, `IronHive.Abstractions` 0.45.2 -> 0.45.3, `IronHive.Core` 0.45.2 -> 0.45.3, `IronHive.Extensions.AI` 0.45.2 -> 0.45.3, `IronHive.Providers.Anthropic` 0.45.2 -> 0.45.3, `IronHive.Providers.GoogleAI` 0.45.2 -> 0.45.3, `IronHive.Providers.OpenAI` 0.45.2 -> 0.45.3, `IronHive.Providers.OpenAI.Compatible` 0.45.2 -> 0.45.3, `LMSupply.Embedder` 0.94.0 -> 0.95.0, `LMSupply.Generator` 0.94.0 -> 0.95.0, `LMSupply.Reranker` 0.94.0 -> 0.95.0, `MemoryIndexer` 0.20.1 -> 0.20.2, `MemoryIndexer.Sdk` 0.20.1 -> 0.20.2.
 
   `MaximumIterationsPerRequest`, `MaximumConsecutiveErrorsPerRequest` and detailed errors behave as before.
 
