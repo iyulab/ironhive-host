@@ -18,54 +18,54 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.29.14 — 2026-09-30
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.25.5 -> 0.25.6, `IronHive.Agent.Ironbees` 0.25.5 -> 0.25.6, `IronHive.Agent.Memory` 0.25.5 -> 0.25.6, `IronHive.DeepResearch` 0.25.5 -> 0.25.6, `WebLookup` 0.2.3 -> 0.2.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.5 -> 0.25.6, `IronHive.Agent.Ironbees` 0.25.5 -> 0.25.6, `IronHive.Agent.Memory` 0.25.5 -> 0.25.6, `IronHive.DeepResearch` 0.25.5 -> 0.25.6, `WebLookup` 0.2.3 -> 0.2.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.13 — 2026-09-30
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.21.5 -> 0.21.6, `LMSupply.Embedder` 0.93.0 -> 0.93.1, `LMSupply.Generator` 0.93.0 -> 0.93.1, `LMSupply.Reranker` 0.93.0 -> 0.93.1, `MemoryIndexer` 0.20.0 -> 0.20.1, `MemoryIndexer.Sdk` 0.20.0 -> 0.20.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.25.4 -> 0.25.5, `IronHive.Agent.Ironbees` 0.25.4 -> 0.25.5, `IronHive.Agent.Memory` 0.25.4 -> 0.25.5, `IronHive.DeepResearch` 0.25.4 -> 0.25.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.5 -> 0.21.6, `LMSupply.Embedder` 0.93.0 -> 0.93.1, `LMSupply.Generator` 0.93.0 -> 0.93.1, `LMSupply.Reranker` 0.93.0 -> 0.93.1, `MemoryIndexer` 0.20.0 -> 0.20.1, `MemoryIndexer.Sdk` 0.20.0 -> 0.20.1 — re-consumption of already-consumed iyulab packages. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.4 -> 0.25.5, `IronHive.Agent.Ironbees` 0.25.4 -> 0.25.5, `IronHive.Agent.Memory` 0.25.4 -> 0.25.5, `IronHive.DeepResearch` 0.25.4 -> 0.25.5 — re-consumption of already-consumed iyulab packages.
 
 ## 0.29.12 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.25.3 -> 0.25.4, `IronHive.Agent.Ironbees` 0.25.3 -> 0.25.4, `IronHive.Agent.Memory` 0.25.3 -> 0.25.4, `IronHive.DeepResearch` 0.25.3 -> 0.25.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.3 -> 0.25.4, `IronHive.Agent.Ironbees` 0.25.3 -> 0.25.4, `IronHive.Agent.Memory` 0.25.3 -> 0.25.4, `IronHive.DeepResearch` 0.25.3 -> 0.25.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.11 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.92.1 -> 0.93.0, `LMSupply.Generator` 0.92.1 -> 0.93.0, `LMSupply.Reranker` 0.92.1 -> 0.93.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.92.1 -> 0.93.0, `LMSupply.Generator` 0.92.1 -> 0.93.0, `LMSupply.Reranker` 0.92.1 -> 0.93.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.10 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.25.2 -> 0.25.3, `IronHive.Agent.Ironbees` 0.25.2 -> 0.25.3, `IronHive.Agent.Memory` 0.25.2 -> 0.25.3, `IronHive.DeepResearch` 0.25.2 -> 0.25.3, `LMSupply.Embedder` 0.92.0 -> 0.92.1, `LMSupply.Generator` 0.92.0 -> 0.92.1, `LMSupply.Reranker` 0.92.0 -> 0.92.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.2 -> 0.25.3, `IronHive.Agent.Ironbees` 0.25.2 -> 0.25.3, `IronHive.Agent.Memory` 0.25.2 -> 0.25.3, `IronHive.DeepResearch` 0.25.2 -> 0.25.3, `LMSupply.Embedder` 0.92.0 -> 0.92.1, `LMSupply.Generator` 0.92.0 -> 0.92.1, `LMSupply.Reranker` 0.92.0 -> 0.92.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.9 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.21.4 -> 0.21.5, `IronHive.Abstractions` 0.45.0 -> 0.45.1, `IronHive.Core` 0.45.0 -> 0.45.1, `IronHive.Extensions.AI` 0.45.0 -> 0.45.1, `IronHive.Providers.Anthropic` 0.45.0 -> 0.45.1, `IronHive.Providers.GoogleAI` 0.45.0 -> 0.45.1, `IronHive.Providers.OpenAI` 0.45.0 -> 0.45.1, `IronHive.Providers.OpenAI.Compatible` 0.45.0 -> 0.45.1, `LMSupply.Embedder` 0.91.0 -> 0.92.0, `LMSupply.Generator` 0.91.0 -> 0.92.0, `LMSupply.Reranker` 0.91.0 -> 0.92.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.25.1 -> 0.25.2, `IronHive.Agent.Ironbees` 0.25.1 -> 0.25.2, `IronHive.Agent.Memory` 0.25.1 -> 0.25.2, `IronHive.DeepResearch` 0.25.1 -> 0.25.2 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.4 -> 0.21.5, `IronHive.Abstractions` 0.45.0 -> 0.45.1, `IronHive.Core` 0.45.0 -> 0.45.1, `IronHive.Extensions.AI` 0.45.0 -> 0.45.1, `IronHive.Providers.Anthropic` 0.45.0 -> 0.45.1, `IronHive.Providers.GoogleAI` 0.45.0 -> 0.45.1, `IronHive.Providers.OpenAI` 0.45.0 -> 0.45.1, `IronHive.Providers.OpenAI.Compatible` 0.45.0 -> 0.45.1, `LMSupply.Embedder` 0.91.0 -> 0.92.0, `LMSupply.Generator` 0.91.0 -> 0.92.0, `LMSupply.Reranker` 0.91.0 -> 0.92.0 — re-consumption of already-consumed iyulab packages. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.1 -> 0.25.2, `IronHive.Agent.Ironbees` 0.25.1 -> 0.25.2, `IronHive.Agent.Memory` 0.25.1 -> 0.25.2, `IronHive.DeepResearch` 0.25.1 -> 0.25.2 — re-consumption of already-consumed iyulab packages.
 
 ## 0.29.8 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.25.0 -> 0.25.1, `IronHive.Agent.Ironbees` 0.25.0 -> 0.25.1, `IronHive.Agent.Memory` 0.25.0 -> 0.25.1, `IronHive.DeepResearch` 0.25.0 -> 0.25.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.25.0 -> 0.25.1, `IronHive.Agent.Ironbees` 0.25.0 -> 0.25.1, `IronHive.Agent.Memory` 0.25.0 -> 0.25.1, `IronHive.DeepResearch` 0.25.0 -> 0.25.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.7 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.90.0 -> 0.91.0, `LMSupply.Generator` 0.90.0 -> 0.91.0, `LMSupply.Reranker` 0.90.0 -> 0.91.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.90.0 -> 0.91.0, `LMSupply.Generator` 0.90.0 -> 0.91.0, `LMSupply.Reranker` 0.90.0 -> 0.91.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.6 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.89.0 -> 0.90.0, `LMSupply.Generator` 0.89.0 -> 0.90.0, `LMSupply.Reranker` 0.89.0 -> 0.90.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.89.0 -> 0.90.0, `LMSupply.Generator` 0.89.0 -> 0.90.0, `LMSupply.Reranker` 0.89.0 -> 0.90.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.5 — 2026-09-29
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.DeepResearch` 0.24.1 -> 0.25.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.DeepResearch` 0.24.1 -> 0.25.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.4 — 2026-09-29
 
@@ -90,9 +90,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.29.3 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.44.0 -> 0.45.0, `IronHive.Core` 0.44.0 -> 0.45.0, `IronHive.Extensions.AI` 0.44.0 -> 0.45.0, `IronHive.Providers.Anthropic` 0.44.0 -> 0.45.0, `IronHive.Providers.GoogleAI` 0.44.0 -> 0.45.0, `IronHive.Providers.OpenAI` 0.44.0 -> 0.45.0, `IronHive.Providers.OpenAI.Compatible` 0.44.0 -> 0.45.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.21.3 -> 0.21.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.24.0 -> 0.24.1, `IronHive.Agent.Ironbees` 0.24.0 -> 0.24.1, `IronHive.Agent.Memory` 0.24.0 -> 0.24.1, `IronHive.DeepResearch` 0.24.0 -> 0.24.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.44.0 -> 0.45.0, `IronHive.Core` 0.44.0 -> 0.45.0, `IronHive.Extensions.AI` 0.44.0 -> 0.45.0, `IronHive.Providers.Anthropic` 0.44.0 -> 0.45.0, `IronHive.Providers.GoogleAI` 0.44.0 -> 0.45.0, `IronHive.Providers.OpenAI` 0.44.0 -> 0.45.0, `IronHive.Providers.OpenAI.Compatible` 0.44.0 -> 0.45.0 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.3 -> 0.21.4 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.24.0 -> 0.24.1, `IronHive.Agent.Ironbees` 0.24.0 -> 0.24.1, `IronHive.Agent.Memory` 0.24.0 -> 0.24.1, `IronHive.DeepResearch` 0.24.0 -> 0.24.1 — re-consumption of already-consumed iyulab packages.
 
 ### Fixed
 - **The packages carry the README**, so their nuget.org page shows it.
@@ -100,13 +100,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.29.2 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.88.0 -> 0.89.0, `LMSupply.Generator` 0.88.0 -> 0.89.0, `LMSupply.Reranker` 0.88.0 -> 0.89.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.88.0 -> 0.89.0, `LMSupply.Generator` 0.88.0 -> 0.89.0, `LMSupply.Reranker` 0.88.0 -> 0.89.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.29.1 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `MemoryIndexer` 0.19.17 -> 0.20.0, `MemoryIndexer.Sdk` 0.19.17 -> 0.20.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.23.0 -> 0.24.0, `IronHive.Agent.Ironbees` 0.23.0 -> 0.24.0, `IronHive.Agent.Memory` 0.23.0 -> 0.24.0, `IronHive.DeepResearch` 0.23.0 -> 0.24.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `MemoryIndexer` 0.19.17 -> 0.20.0, `MemoryIndexer.Sdk` 0.19.17 -> 0.20.0 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.23.0 -> 0.24.0, `IronHive.Agent.Ironbees` 0.23.0 -> 0.24.0, `IronHive.Agent.Memory` 0.23.0 -> 0.24.0, `IronHive.DeepResearch` 0.23.0 -> 0.24.0 — re-consumption of already-consumed iyulab packages.
 
 - **`compaction.toolSchemaCompression` is no longer read from the config file.** It never had an effect: the agent's
   `CompactionConfig` carried it and nothing applied it, and IronHive.Agent 0.24.0 removes it. A config file that still sets
@@ -115,8 +115,8 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.29.0 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.43.1 -> 0.44.0, `IronHive.Core` 0.43.1 -> 0.44.0, `IronHive.Extensions.AI` 0.43.1 -> 0.44.0, `IronHive.Providers.Anthropic` 0.43.1 -> 0.44.0, `IronHive.Providers.GoogleAI` 0.43.1 -> 0.44.0, `IronHive.Providers.OpenAI` 0.43.1 -> 0.44.0, `IronHive.Providers.OpenAI.Compatible` 0.43.1 -> 0.44.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.21.2 -> 0.21.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.43.1 -> 0.44.0, `IronHive.Core` 0.43.1 -> 0.44.0, `IronHive.Extensions.AI` 0.43.1 -> 0.44.0, `IronHive.Providers.Anthropic` 0.43.1 -> 0.44.0, `IronHive.Providers.GoogleAI` 0.43.1 -> 0.44.0, `IronHive.Providers.OpenAI` 0.43.1 -> 0.44.0, `IronHive.Providers.OpenAI.Compatible` 0.43.1 -> 0.44.0 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.2 -> 0.21.3 — re-consumption of already-consumed iyulab packages.
 
 ### Fixed
 
@@ -145,7 +145,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.28.1 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.21.1 -> 0.21.2, `IronHive.Abstractions` 0.43.0 -> 0.43.1, `IronHive.Agent` 0.21.0 -> 0.22.0, `IronHive.Agent.Ironbees` 0.21.0 -> 0.22.0, `IronHive.Agent.Memory` 0.21.0 -> 0.22.0, `IronHive.Core` 0.43.0 -> 0.43.1, `IronHive.DeepResearch` 0.21.0 -> 0.22.0, `IronHive.Extensions.AI` 0.43.0 -> 0.43.1, `IronHive.Providers.Anthropic` 0.43.0 -> 0.43.1, `IronHive.Providers.GoogleAI` 0.43.0 -> 0.43.1, `IronHive.Providers.OpenAI` 0.43.0 -> 0.43.1, `IronHive.Providers.OpenAI.Compatible` 0.43.0 -> 0.43.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.1 -> 0.21.2, `IronHive.Abstractions` 0.43.0 -> 0.43.1, `IronHive.Agent` 0.21.0 -> 0.22.0, `IronHive.Agent.Ironbees` 0.21.0 -> 0.22.0, `IronHive.Agent.Memory` 0.21.0 -> 0.22.0, `IronHive.Core` 0.43.0 -> 0.43.1, `IronHive.DeepResearch` 0.21.0 -> 0.22.0, `IronHive.Extensions.AI` 0.43.0 -> 0.43.1, `IronHive.Providers.Anthropic` 0.43.0 -> 0.43.1, `IronHive.Providers.GoogleAI` 0.43.0 -> 0.43.1, `IronHive.Providers.OpenAI` 0.43.0 -> 0.43.1, `IronHive.Providers.OpenAI.Compatible` 0.43.0 -> 0.43.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.28.0 — 2026-09-28
 
@@ -165,14 +165,14 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.27.10 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.20.0 -> 0.21.0, `IronHive.Agent.Ironbees` 0.20.0 -> 0.21.0, `IronHive.Agent.Memory` 0.20.0 -> 0.21.0, `IronHive.DeepResearch` 0.20.0 -> 0.21.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.20.0 -> 0.21.0, `IronHive.Agent.Ironbees` 0.20.0 -> 0.21.0, `IronHive.Agent.Memory` 0.20.0 -> 0.21.0, `IronHive.DeepResearch` 0.20.0 -> 0.21.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.9 — 2026-09-28
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.42.0 -> 0.43.0, `IronHive.Core` 0.42.0 -> 0.43.0, `IronHive.Extensions.AI` 0.42.0 -> 0.43.0, `IronHive.Providers.Anthropic` 0.42.0 -> 0.43.0, `IronHive.Providers.GoogleAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI.Compatible` 0.42.0 -> 0.43.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.21.0 -> 0.21.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.13 -> 0.20.0, `IronHive.Agent.Ironbees` 0.19.13 -> 0.20.0, `IronHive.Agent.Memory` 0.19.13 -> 0.20.0, `IronHive.DeepResearch` 0.19.13 -> 0.20.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.42.0 -> 0.43.0, `IronHive.Core` 0.42.0 -> 0.43.0, `IronHive.Extensions.AI` 0.42.0 -> 0.43.0, `IronHive.Providers.Anthropic` 0.42.0 -> 0.43.0, `IronHive.Providers.GoogleAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI` 0.42.0 -> 0.43.0, `IronHive.Providers.OpenAI.Compatible` 0.42.0 -> 0.43.0 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.0 -> 0.21.1 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.13 -> 0.20.0, `IronHive.Agent.Ironbees` 0.19.13 -> 0.20.0, `IronHive.Agent.Memory` 0.19.13 -> 0.20.0, `IronHive.DeepResearch` 0.19.13 -> 0.20.0 — re-consumption of already-consumed iyulab packages.
 
 ### Fixed
 
@@ -183,42 +183,42 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.27.8
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.12 -> 0.19.13, `IronHive.Agent.Ironbees` 0.19.12 -> 0.19.13, `IronHive.Agent.Memory` 0.19.12 -> 0.19.13, `IronHive.DeepResearch` 0.19.12 -> 0.19.13, `LMSupply.Embedder` 0.87.0 -> 0.88.0, `LMSupply.Generator` 0.87.0 -> 0.88.0, `LMSupply.Reranker` 0.87.0 -> 0.88.0, `MemoryIndexer` 0.19.16 -> 0.19.17, `MemoryIndexer.Sdk` 0.19.16 -> 0.19.17 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.12 -> 0.19.13, `IronHive.Agent.Ironbees` 0.19.12 -> 0.19.13, `IronHive.Agent.Memory` 0.19.12 -> 0.19.13, `IronHive.DeepResearch` 0.19.12 -> 0.19.13, `LMSupply.Embedder` 0.87.0 -> 0.88.0, `LMSupply.Generator` 0.87.0 -> 0.88.0, `LMSupply.Reranker` 0.87.0 -> 0.88.0, `MemoryIndexer` 0.19.16 -> 0.19.17, `MemoryIndexer.Sdk` 0.19.16 -> 0.19.17 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.7
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.11 -> 0.19.12, `IronHive.Agent.Ironbees` 0.19.11 -> 0.19.12, `IronHive.Agent.Memory` 0.19.11 -> 0.19.12, `IronHive.DeepResearch` 0.19.11 -> 0.19.12, `MemoryIndexer` 0.19.15 -> 0.19.16, `MemoryIndexer.Sdk` 0.19.15 -> 0.19.16 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.11 -> 0.19.12, `IronHive.Agent.Ironbees` 0.19.11 -> 0.19.12, `IronHive.Agent.Memory` 0.19.11 -> 0.19.12, `IronHive.DeepResearch` 0.19.11 -> 0.19.12, `MemoryIndexer` 0.19.15 -> 0.19.16, `MemoryIndexer.Sdk` 0.19.15 -> 0.19.16 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.6
 
 ### Changed
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.86.0 -> 0.87.0, `LMSupply.Generator` 0.86.0 -> 0.87.0, `LMSupply.Reranker` 0.86.0 -> 0.87.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.86.0 -> 0.87.0, `LMSupply.Generator` 0.86.0 -> 0.87.0, `LMSupply.Reranker` 0.86.0 -> 0.87.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.5
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.10 -> 0.19.11, `IronHive.Agent.Ironbees` 0.19.10 -> 0.19.11, `IronHive.Agent.Memory` 0.19.10 -> 0.19.11, `IronHive.DeepResearch` 0.19.10 -> 0.19.11, `LMSupply.Embedder` 0.85.0 -> 0.86.0, `LMSupply.Generator` 0.85.0 -> 0.86.0, `LMSupply.Reranker` 0.85.0 -> 0.86.0, `MemoryIndexer` 0.19.14 -> 0.19.15, `MemoryIndexer.Sdk` 0.19.14 -> 0.19.15 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.10 -> 0.19.11, `IronHive.Agent.Ironbees` 0.19.10 -> 0.19.11, `IronHive.Agent.Memory` 0.19.10 -> 0.19.11, `IronHive.DeepResearch` 0.19.10 -> 0.19.11, `LMSupply.Embedder` 0.85.0 -> 0.86.0, `LMSupply.Generator` 0.85.0 -> 0.86.0, `LMSupply.Reranker` 0.85.0 -> 0.86.0, `MemoryIndexer` 0.19.14 -> 0.19.15, `MemoryIndexer.Sdk` 0.19.14 -> 0.19.15 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.4
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.9 -> 0.19.10, `IronHive.Agent.Ironbees` 0.19.9 -> 0.19.10, `IronHive.Agent.Memory` 0.19.9 -> 0.19.10, `IronHive.DeepResearch` 0.19.9 -> 0.19.10, `LMSupply.Embedder` 0.84.0 -> 0.85.0, `LMSupply.Generator` 0.84.0 -> 0.85.0, `LMSupply.Reranker` 0.84.0 -> 0.85.0, `MemoryIndexer` 0.19.13 -> 0.19.14, `MemoryIndexer.Sdk` 0.19.13 -> 0.19.14 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.9 -> 0.19.10, `IronHive.Agent.Ironbees` 0.19.9 -> 0.19.10, `IronHive.Agent.Memory` 0.19.9 -> 0.19.10, `IronHive.DeepResearch` 0.19.9 -> 0.19.10, `LMSupply.Embedder` 0.84.0 -> 0.85.0, `LMSupply.Generator` 0.84.0 -> 0.85.0, `LMSupply.Reranker` 0.84.0 -> 0.85.0, `MemoryIndexer` 0.19.13 -> 0.19.14, `MemoryIndexer.Sdk` 0.19.13 -> 0.19.14 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.3
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.8 -> 0.19.9, `IronHive.Agent.Ironbees` 0.19.8 -> 0.19.9, `IronHive.Agent.Memory` 0.19.8 -> 0.19.9, `IronHive.DeepResearch` 0.19.8 -> 0.19.9, `LMSupply.Embedder` 0.83.0 -> 0.84.0, `LMSupply.Generator` 0.83.0 -> 0.84.0, `LMSupply.Reranker` 0.83.0 -> 0.84.0, `MemoryIndexer` 0.19.12 -> 0.19.13, `MemoryIndexer.Sdk` 0.19.12 -> 0.19.13 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.8 -> 0.19.9, `IronHive.Agent.Ironbees` 0.19.8 -> 0.19.9, `IronHive.Agent.Memory` 0.19.8 -> 0.19.9, `IronHive.DeepResearch` 0.19.8 -> 0.19.9, `LMSupply.Embedder` 0.83.0 -> 0.84.0, `LMSupply.Generator` 0.83.0 -> 0.84.0, `LMSupply.Reranker` 0.83.0 -> 0.84.0, `MemoryIndexer` 0.19.12 -> 0.19.13, `MemoryIndexer.Sdk` 0.19.12 -> 0.19.13 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.2
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.7 -> 0.19.8, `IronHive.Agent.Ironbees` 0.19.7 -> 0.19.8, `IronHive.Agent.Memory` 0.19.7 -> 0.19.8, `IronHive.DeepResearch` 0.19.7 -> 0.19.8, `LMSupply.Embedder` 0.81.1 -> 0.83.0, `LMSupply.Generator` 0.81.1 -> 0.83.0, `LMSupply.Reranker` 0.81.1 -> 0.83.0, `MemoryIndexer` 0.19.11 -> 0.19.12, `MemoryIndexer.Sdk` 0.19.11 -> 0.19.12 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.7 -> 0.19.8, `IronHive.Agent.Ironbees` 0.19.7 -> 0.19.8, `IronHive.Agent.Memory` 0.19.7 -> 0.19.8, `IronHive.DeepResearch` 0.19.7 -> 0.19.8, `LMSupply.Embedder` 0.81.1 -> 0.83.0, `LMSupply.Generator` 0.81.1 -> 0.83.0, `LMSupply.Reranker` 0.81.1 -> 0.83.0, `MemoryIndexer` 0.19.11 -> 0.19.12, `MemoryIndexer.Sdk` 0.19.11 -> 0.19.12 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.1
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.20.4 -> 0.21.0, `IronHive.Agent` 0.19.6 -> 0.19.7, `IronHive.Agent.Ironbees` 0.19.6 -> 0.19.7, `IronHive.Agent.Memory` 0.19.6 -> 0.19.7, `IronHive.DeepResearch` 0.19.6 -> 0.19.7 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.20.4 -> 0.21.0, `IronHive.Agent` 0.19.6 -> 0.19.7, `IronHive.Agent.Ironbees` 0.19.6 -> 0.19.7, `IronHive.Agent.Memory` 0.19.6 -> 0.19.7, `IronHive.DeepResearch` 0.19.6 -> 0.19.7 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.27.0
 
@@ -230,12 +230,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.26.4
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.5 -> 0.19.6, `IronHive.Agent.Ironbees` 0.19.5 -> 0.19.6, `IronHive.Agent.Memory` 0.19.5 -> 0.19.6, `IronHive.DeepResearch` 0.19.5 -> 0.19.6, `LMSupply.Embedder` 0.80.0 -> 0.81.1, `LMSupply.Generator` 0.80.0 -> 0.81.1, `LMSupply.Reranker` 0.80.0 -> 0.81.1, `MemoryIndexer` 0.19.10 -> 0.19.11, `MemoryIndexer.Sdk` 0.19.10 -> 0.19.11 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.5 -> 0.19.6, `IronHive.Agent.Ironbees` 0.19.5 -> 0.19.6, `IronHive.Agent.Memory` 0.19.5 -> 0.19.6, `IronHive.DeepResearch` 0.19.5 -> 0.19.6, `LMSupply.Embedder` 0.80.0 -> 0.81.1, `LMSupply.Generator` 0.80.0 -> 0.81.1, `LMSupply.Reranker` 0.80.0 -> 0.81.1, `MemoryIndexer` 0.19.10 -> 0.19.11, `MemoryIndexer.Sdk` 0.19.10 -> 0.19.11 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.26.3
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.4 -> 0.19.5, `IronHive.Agent.Ironbees` 0.19.4 -> 0.19.5, `IronHive.Agent.Memory` 0.19.4 -> 0.19.5, `IronHive.DeepResearch` 0.19.4 -> 0.19.5, `MemoryIndexer` 0.19.9 -> 0.19.10, `MemoryIndexer.Sdk` 0.19.9 -> 0.19.10 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.4 -> 0.19.5, `IronHive.Agent.Ironbees` 0.19.4 -> 0.19.5, `IronHive.Agent.Memory` 0.19.4 -> 0.19.5, `IronHive.DeepResearch` 0.19.4 -> 0.19.5, `MemoryIndexer` 0.19.9 -> 0.19.10, `MemoryIndexer.Sdk` 0.19.9 -> 0.19.10 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.26.2
 
@@ -248,9 +248,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.26.1
 
 ### Changed
-- Re-pinned sibling package(s) `Cronex.Net` 0.6.0 -> 0.6.1, `Cronex.Net.Hosting` 0.6.0 -> 0.6.1, `IronHive.Abstractions` 0.40.0 -> 0.41.0, `IronHive.Core` 0.40.0 -> 0.41.0, `IronHive.Providers.Anthropic` 0.40.0 -> 0.41.0, `IronHive.Providers.GoogleAI` 0.40.0 -> 0.41.0, `IronHive.Providers.OpenAI` 0.40.0 -> 0.41.0, `IronHive.Providers.OpenAI.Compatible` 0.40.0 -> 0.41.0, `LMSupply.Embedder` 0.79.0 -> 0.79.1, `LMSupply.Generator` 0.79.0 -> 0.79.1, `LMSupply.Reranker` 0.79.0 -> 0.79.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.20.3 -> 0.20.4, `MemoryIndexer` 0.19.8 -> 0.19.9, `MemoryIndexer.Sdk` 0.19.8 -> 0.19.9 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.3 -> 0.19.4, `IronHive.Agent.Ironbees` 0.19.3 -> 0.19.4, `IronHive.Agent.Memory` 0.19.3 -> 0.19.4, `IronHive.DeepResearch` 0.19.3 -> 0.19.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `Cronex.Net` 0.6.0 -> 0.6.1, `Cronex.Net.Hosting` 0.6.0 -> 0.6.1, `IronHive.Abstractions` 0.40.0 -> 0.41.0, `IronHive.Core` 0.40.0 -> 0.41.0, `IronHive.Providers.Anthropic` 0.40.0 -> 0.41.0, `IronHive.Providers.GoogleAI` 0.40.0 -> 0.41.0, `IronHive.Providers.OpenAI` 0.40.0 -> 0.41.0, `IronHive.Providers.OpenAI.Compatible` 0.40.0 -> 0.41.0, `LMSupply.Embedder` 0.79.0 -> 0.79.1, `LMSupply.Generator` 0.79.0 -> 0.79.1, `LMSupply.Reranker` 0.79.0 -> 0.79.1 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.20.3 -> 0.20.4, `MemoryIndexer` 0.19.8 -> 0.19.9, `MemoryIndexer.Sdk` 0.19.8 -> 0.19.9 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.3 -> 0.19.4, `IronHive.Agent.Ironbees` 0.19.3 -> 0.19.4, `IronHive.Agent.Memory` 0.19.3 -> 0.19.4, `IronHive.DeepResearch` 0.19.3 -> 0.19.4 — re-consumption of already-consumed iyulab packages.
 
 ### Fixed
 - **A service provider disposed with `Dispose()` no longer throws when DeepResearch is enabled.** `DeepResearchTool` (a singleton) implemented only `IAsyncDisposable`, and a container or scope disposed with `Dispose()` throws on such a service ("type only implements IAsyncDisposable"); it now implements `IDisposable` too.
@@ -265,15 +265,15 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned sibling package(s) `LMSupply.Embedder` 0.78.0 -> 0.79.0, `LMSupply.Generator` 0.78.0 -> 0.79.0, `LMSupply.Reranker` 0.78.0 -> 0.79.0.
-- Re-pinned sibling package(s) `MemoryIndexer` 0.19.7 -> 0.19.8, `MemoryIndexer.Sdk` 0.19.7 -> 0.19.8 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.2 -> 0.19.3, `IronHive.Agent.Ironbees` 0.19.2 -> 0.19.3, `IronHive.Agent.Memory` 0.19.2 -> 0.19.3, `IronHive.DeepResearch` 0.19.2 -> 0.19.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `MemoryIndexer` 0.19.7 -> 0.19.8, `MemoryIndexer.Sdk` 0.19.7 -> 0.19.8 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.2 -> 0.19.3, `IronHive.Agent.Ironbees` 0.19.2 -> 0.19.3, `IronHive.Agent.Memory` 0.19.2 -> 0.19.3, `IronHive.DeepResearch` 0.19.2 -> 0.19.3 — re-consumption of already-consumed iyulab packages.
 
 ## 0.25.4
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.39.0 -> 0.40.0, `IronHive.Core` 0.39.0 -> 0.40.0, `IronHive.Providers.Anthropic` 0.39.0 -> 0.40.0, `IronHive.Providers.GoogleAI` 0.39.0 -> 0.40.0, `IronHive.Providers.OpenAI` 0.39.0 -> 0.40.0, `IronHive.Providers.OpenAI.Compatible` 0.39.0 -> 0.40.0, `LMSupply.Embedder` 0.77.0 -> 0.78.0, `LMSupply.Generator` 0.77.0 -> 0.78.0, `LMSupply.Reranker` 0.77.0 -> 0.78.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.20.2 -> 0.20.3, `MemoryIndexer` 0.19.6 -> 0.19.7, `MemoryIndexer.Sdk` 0.19.6 -> 0.19.7 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
-- Re-pinned sibling package(s) `IronHive.Agent` 0.19.1 -> 0.19.2, `IronHive.Agent.Ironbees` 0.19.1 -> 0.19.2, `IronHive.Agent.Memory` 0.19.1 -> 0.19.2, `IronHive.DeepResearch` 0.19.1 -> 0.19.2 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.39.0 -> 0.40.0, `IronHive.Core` 0.39.0 -> 0.40.0, `IronHive.Providers.Anthropic` 0.39.0 -> 0.40.0, `IronHive.Providers.GoogleAI` 0.39.0 -> 0.40.0, `IronHive.Providers.OpenAI` 0.39.0 -> 0.40.0, `IronHive.Providers.OpenAI.Compatible` 0.39.0 -> 0.40.0, `LMSupply.Embedder` 0.77.0 -> 0.78.0, `LMSupply.Generator` 0.77.0 -> 0.78.0, `LMSupply.Reranker` 0.77.0 -> 0.78.0 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.20.2 -> 0.20.3, `MemoryIndexer` 0.19.6 -> 0.19.7, `MemoryIndexer.Sdk` 0.19.6 -> 0.19.7 — re-consumption of already-consumed iyulab packages.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.19.1 -> 0.19.2, `IronHive.Agent.Ironbees` 0.19.1 -> 0.19.2, `IronHive.Agent.Memory` 0.19.1 -> 0.19.2, `IronHive.DeepResearch` 0.19.1 -> 0.19.2 — re-consumption of already-consumed iyulab packages.
 
 ### Fixed
 - **`ConfigurationManager(projectRoot:)` now reads `.ironhive/permissions.{yaml,yml,json}` from `projectRoot`**, like
@@ -285,7 +285,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.25.3
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.20.1 -> 0.20.2, `IronHive.Abstractions` 0.38.0 -> 0.39.0, `IronHive.Agent` 0.19.0 -> 0.19.1, `IronHive.Agent.Ironbees` 0.19.0 -> 0.19.1, `IronHive.Agent.Memory` 0.19.0 -> 0.19.1, `IronHive.Core` 0.38.0 -> 0.39.0, `IronHive.DeepResearch` 0.19.0 -> 0.19.1, `IronHive.Providers.Anthropic` 0.38.0 -> 0.39.0, `IronHive.Providers.GoogleAI` 0.38.0 -> 0.39.0, `IronHive.Providers.OpenAI` 0.38.0 -> 0.39.0, `IronHive.Providers.OpenAI.Compatible` 0.38.0 -> 0.39.0, `LMSupply.Embedder` 0.76.0 -> 0.77.0, `LMSupply.Generator` 0.76.0 -> 0.77.0, `LMSupply.Reranker` 0.76.0 -> 0.77.0, `MemoryIndexer` 0.19.5 -> 0.19.6, `MemoryIndexer.Sdk` 0.19.5 -> 0.19.6 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.20.1 -> 0.20.2, `IronHive.Abstractions` 0.38.0 -> 0.39.0, `IronHive.Agent` 0.19.0 -> 0.19.1, `IronHive.Agent.Ironbees` 0.19.0 -> 0.19.1, `IronHive.Agent.Memory` 0.19.0 -> 0.19.1, `IronHive.Core` 0.38.0 -> 0.39.0, `IronHive.DeepResearch` 0.19.0 -> 0.19.1, `IronHive.Providers.Anthropic` 0.38.0 -> 0.39.0, `IronHive.Providers.GoogleAI` 0.38.0 -> 0.39.0, `IronHive.Providers.OpenAI` 0.38.0 -> 0.39.0, `IronHive.Providers.OpenAI.Compatible` 0.38.0 -> 0.39.0, `LMSupply.Embedder` 0.76.0 -> 0.77.0, `LMSupply.Generator` 0.76.0 -> 0.77.0, `LMSupply.Reranker` 0.76.0 -> 0.77.0, `MemoryIndexer` 0.19.5 -> 0.19.6, `MemoryIndexer.Sdk` 0.19.5 -> 0.19.6 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.25.2
 
@@ -294,12 +294,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   `.ironhive/permissions.{yaml,yml,json}` that is malformed, misspells a section or key, or has an action other than
   `allow`/`deny`/`ask` used to fall back silently to the default rules, which allow more than a restrictive file would.
 - References the new `IronHive.Agent.Memory` and `IronHive.Agent.Ironbees` packages (IronHive.Agent 0.19.0 split them out).
-- Re-pinned sibling package(s) `Ironbees.Core` 0.19.4 -> 0.20.1, `IronHive.Abstractions` 0.37.0 -> 0.38.0, `IronHive.Agent` 0.17.1 -> 0.19.0, `IronHive.Core` 0.37.0 -> 0.38.0, `IronHive.DeepResearch` 0.17.1 -> 0.19.0, `IronHive.Providers.Anthropic` 0.37.0 -> 0.38.0, `IronHive.Providers.GoogleAI` 0.37.0 -> 0.38.0, `IronHive.Providers.OpenAI` 0.37.0 -> 0.38.0, `IronHive.Providers.OpenAI.Compatible` 0.37.0 -> 0.38.0, `LMSupply.Embedder` 0.75.0 -> 0.76.0, `LMSupply.Generator` 0.75.0 -> 0.76.0, `LMSupply.Reranker` 0.75.0 -> 0.76.0, `MemoryIndexer` 0.19.4 -> 0.19.5, `MemoryIndexer.Sdk` 0.19.4 -> 0.19.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.19.4 -> 0.20.1, `IronHive.Abstractions` 0.37.0 -> 0.38.0, `IronHive.Agent` 0.17.1 -> 0.19.0, `IronHive.Core` 0.37.0 -> 0.38.0, `IronHive.DeepResearch` 0.17.1 -> 0.19.0, `IronHive.Providers.Anthropic` 0.37.0 -> 0.38.0, `IronHive.Providers.GoogleAI` 0.37.0 -> 0.38.0, `IronHive.Providers.OpenAI` 0.37.0 -> 0.38.0, `IronHive.Providers.OpenAI.Compatible` 0.37.0 -> 0.38.0, `LMSupply.Embedder` 0.75.0 -> 0.76.0, `LMSupply.Generator` 0.75.0 -> 0.76.0, `LMSupply.Reranker` 0.75.0 -> 0.76.0, `MemoryIndexer` 0.19.4 -> 0.19.5, `MemoryIndexer.Sdk` 0.19.4 -> 0.19.5 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.25.1
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.19.3 -> 0.19.4, `IronHive.Abstractions` 0.36.0 -> 0.37.0, `IronHive.Agent` 0.16.1 -> 0.17.1, `IronHive.Core` 0.36.0 -> 0.37.0, `IronHive.DeepResearch` 0.16.1 -> 0.17.1, `IronHive.Providers.Anthropic` 0.36.0 -> 0.37.0, `IronHive.Providers.GoogleAI` 0.36.0 -> 0.37.0, `IronHive.Providers.OpenAI` 0.36.0 -> 0.37.0, `IronHive.Providers.OpenAI.Compatible` 0.36.0 -> 0.37.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.19.3 -> 0.19.4, `IronHive.Abstractions` 0.36.0 -> 0.37.0, `IronHive.Agent` 0.16.1 -> 0.17.1, `IronHive.Core` 0.36.0 -> 0.37.0, `IronHive.DeepResearch` 0.16.1 -> 0.17.1, `IronHive.Providers.Anthropic` 0.36.0 -> 0.37.0, `IronHive.Providers.GoogleAI` 0.36.0 -> 0.37.0, `IronHive.Providers.OpenAI` 0.36.0 -> 0.37.0, `IronHive.Providers.OpenAI.Compatible` 0.36.0 -> 0.37.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.25.0
 
@@ -311,52 +311,52 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **The server relays each tool's `tool_end` event as the tool finishes**, not when the turn ends. An outcome that
   never arrived on its own chunk (a chat client without function invocation, a permission refusal) is still relayed
   from the final turn record, once.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.19.2 -> 0.19.3, `IronHive.Abstractions` 0.35.0 -> 0.36.0, `IronHive.Agent` 0.15.10 -> 0.16.1, `IronHive.Core` 0.35.0 -> 0.36.0, `IronHive.DeepResearch` 0.15.10 -> 0.16.1, `IronHive.Providers.Anthropic` 0.35.0 -> 0.36.0, `IronHive.Providers.GoogleAI` 0.35.0 -> 0.36.0, `IronHive.Providers.OpenAI` 0.35.0 -> 0.36.0, `IronHive.Providers.OpenAI.Compatible` 0.35.0 -> 0.36.0, `LMSupply.Embedder` 0.74.0 -> 0.75.0, `LMSupply.Generator` 0.74.0 -> 0.75.0, `LMSupply.Reranker` 0.74.0 -> 0.75.0, `MemoryIndexer` 0.19.3 -> 0.19.4, `MemoryIndexer.Sdk` 0.19.3 -> 0.19.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.19.2 -> 0.19.3, `IronHive.Abstractions` 0.35.0 -> 0.36.0, `IronHive.Agent` 0.15.10 -> 0.16.1, `IronHive.Core` 0.35.0 -> 0.36.0, `IronHive.DeepResearch` 0.15.10 -> 0.16.1, `IronHive.Providers.Anthropic` 0.35.0 -> 0.36.0, `IronHive.Providers.GoogleAI` 0.35.0 -> 0.36.0, `IronHive.Providers.OpenAI` 0.35.0 -> 0.36.0, `IronHive.Providers.OpenAI.Compatible` 0.35.0 -> 0.36.0, `LMSupply.Embedder` 0.74.0 -> 0.75.0, `LMSupply.Generator` 0.74.0 -> 0.75.0, `LMSupply.Reranker` 0.74.0 -> 0.75.0, `MemoryIndexer` 0.19.3 -> 0.19.4, `MemoryIndexer.Sdk` 0.19.3 -> 0.19.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.9
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.19.1 -> 0.19.2, `IronHive.Abstractions` 0.34.0 -> 0.35.0, `IronHive.Agent` 0.15.9 -> 0.15.10, `IronHive.Core` 0.34.0 -> 0.35.0, `IronHive.DeepResearch` 0.15.9 -> 0.15.10, `IronHive.Providers.Anthropic` 0.34.0 -> 0.35.0, `IronHive.Providers.GoogleAI` 0.34.0 -> 0.35.0, `IronHive.Providers.OpenAI` 0.34.0 -> 0.35.0, `IronHive.Providers.OpenAI.Compatible` 0.34.0 -> 0.35.0, `LMSupply.Embedder` 0.73.0 -> 0.74.0, `LMSupply.Generator` 0.73.0 -> 0.74.0, `LMSupply.Reranker` 0.73.0 -> 0.74.0, `MemoryIndexer` 0.19.2 -> 0.19.3, `MemoryIndexer.Sdk` 0.19.2 -> 0.19.3, `TokenMeter` 0.7.7 -> 0.7.8 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.19.1 -> 0.19.2, `IronHive.Abstractions` 0.34.0 -> 0.35.0, `IronHive.Agent` 0.15.9 -> 0.15.10, `IronHive.Core` 0.34.0 -> 0.35.0, `IronHive.DeepResearch` 0.15.9 -> 0.15.10, `IronHive.Providers.Anthropic` 0.34.0 -> 0.35.0, `IronHive.Providers.GoogleAI` 0.34.0 -> 0.35.0, `IronHive.Providers.OpenAI` 0.34.0 -> 0.35.0, `IronHive.Providers.OpenAI.Compatible` 0.34.0 -> 0.35.0, `LMSupply.Embedder` 0.73.0 -> 0.74.0, `LMSupply.Generator` 0.73.0 -> 0.74.0, `LMSupply.Reranker` 0.73.0 -> 0.74.0, `MemoryIndexer` 0.19.2 -> 0.19.3, `MemoryIndexer.Sdk` 0.19.2 -> 0.19.3, `TokenMeter` 0.7.7 -> 0.7.8 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.8
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.19.0 -> 0.19.1, `IronHive.Agent` 0.15.8 -> 0.15.9, `IronHive.DeepResearch` 0.15.8 -> 0.15.9, `TokenMeter` 0.7.6 -> 0.7.7 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.19.0 -> 0.19.1, `IronHive.Agent` 0.15.8 -> 0.15.9, `IronHive.DeepResearch` 0.15.8 -> 0.15.9, `TokenMeter` 0.7.6 -> 0.7.7 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.7
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.18.0 -> 0.19.0, `IronHive.Abstractions` 0.33.1 -> 0.34.0, `IronHive.Agent` 0.15.7 -> 0.15.8, `IronHive.Core` 0.33.1 -> 0.34.0, `IronHive.DeepResearch` 0.15.7 -> 0.15.8, `IronHive.Providers.Anthropic` 0.33.1 -> 0.34.0, `IronHive.Providers.GoogleAI` 0.33.1 -> 0.34.0, `IronHive.Providers.OpenAI` 0.33.1 -> 0.34.0, `IronHive.Providers.OpenAI.Compatible` 0.33.1 -> 0.34.0, `LMSupply.Embedder` 0.72.1 -> 0.73.0, `LMSupply.Generator` 0.72.1 -> 0.73.0, `LMSupply.Reranker` 0.72.1 -> 0.73.0, `MemoryIndexer` 0.19.0 -> 0.19.2, `MemoryIndexer.Sdk` 0.19.0 -> 0.19.2, `TokenMeter` 0.7.5 -> 0.7.6 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.18.0 -> 0.19.0, `IronHive.Abstractions` 0.33.1 -> 0.34.0, `IronHive.Agent` 0.15.7 -> 0.15.8, `IronHive.Core` 0.33.1 -> 0.34.0, `IronHive.DeepResearch` 0.15.7 -> 0.15.8, `IronHive.Providers.Anthropic` 0.33.1 -> 0.34.0, `IronHive.Providers.GoogleAI` 0.33.1 -> 0.34.0, `IronHive.Providers.OpenAI` 0.33.1 -> 0.34.0, `IronHive.Providers.OpenAI.Compatible` 0.33.1 -> 0.34.0, `LMSupply.Embedder` 0.72.1 -> 0.73.0, `LMSupply.Generator` 0.72.1 -> 0.73.0, `LMSupply.Reranker` 0.72.1 -> 0.73.0, `MemoryIndexer` 0.19.0 -> 0.19.2, `MemoryIndexer.Sdk` 0.19.0 -> 0.19.2, `TokenMeter` 0.7.5 -> 0.7.6 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.6
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.17.3 -> 0.18.0, `IronHive.Agent` 0.15.6 -> 0.15.7, `IronHive.DeepResearch` 0.15.6 -> 0.15.7, `MemoryIndexer` 0.18.5 -> 0.19.0, `MemoryIndexer.Sdk` 0.18.5 -> 0.19.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.17.3 -> 0.18.0, `IronHive.Agent` 0.15.6 -> 0.15.7, `IronHive.DeepResearch` 0.15.6 -> 0.15.7, `MemoryIndexer` 0.18.5 -> 0.19.0, `MemoryIndexer.Sdk` 0.18.5 -> 0.19.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.5
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.15.4 -> 0.15.6, `IronHive.DeepResearch` 0.15.4 -> 0.15.6, `LMSupply.Embedder` 0.72.0 -> 0.72.1, `LMSupply.Generator` 0.72.0 -> 0.72.1, `LMSupply.Reranker` 0.72.0 -> 0.72.1, `MemoryIndexer` 0.18.4 -> 0.18.5, `MemoryIndexer.Sdk` 0.18.4 -> 0.18.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.15.4 -> 0.15.6, `IronHive.DeepResearch` 0.15.4 -> 0.15.6, `LMSupply.Embedder` 0.72.0 -> 0.72.1, `LMSupply.Generator` 0.72.0 -> 0.72.1, `LMSupply.Reranker` 0.72.0 -> 0.72.1, `MemoryIndexer` 0.18.4 -> 0.18.5, `MemoryIndexer.Sdk` 0.18.4 -> 0.18.5 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.4
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.17.2 -> 0.17.3, `IronHive.Abstractions` 0.33.0 -> 0.33.1, `IronHive.Agent` 0.15.3 -> 0.15.4, `IronHive.Core` 0.33.0 -> 0.33.1, `IronHive.DeepResearch` 0.15.3 -> 0.15.4, `IronHive.Providers.Anthropic` 0.33.0 -> 0.33.1, `IronHive.Providers.GoogleAI` 0.33.0 -> 0.33.1, `IronHive.Providers.OpenAI` 0.33.0 -> 0.33.1, `IronHive.Providers.OpenAI.Compatible` 0.33.0 -> 0.33.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.17.2 -> 0.17.3, `IronHive.Abstractions` 0.33.0 -> 0.33.1, `IronHive.Agent` 0.15.3 -> 0.15.4, `IronHive.Core` 0.33.0 -> 0.33.1, `IronHive.DeepResearch` 0.15.3 -> 0.15.4, `IronHive.Providers.Anthropic` 0.33.0 -> 0.33.1, `IronHive.Providers.GoogleAI` 0.33.0 -> 0.33.1, `IronHive.Providers.OpenAI` 0.33.0 -> 0.33.1, `IronHive.Providers.OpenAI.Compatible` 0.33.0 -> 0.33.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.3
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.15.2 -> 0.15.3, `IronHive.DeepResearch` 0.15.2 -> 0.15.3, `LMSupply.Embedder` 0.71.0 -> 0.72.0, `LMSupply.Generator` 0.71.0 -> 0.72.0, `LMSupply.Reranker` 0.71.0 -> 0.72.0, `MemoryIndexer` 0.18.3 -> 0.18.4, `MemoryIndexer.Sdk` 0.18.3 -> 0.18.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.15.2 -> 0.15.3, `IronHive.DeepResearch` 0.15.2 -> 0.15.3, `LMSupply.Embedder` 0.71.0 -> 0.72.0, `LMSupply.Generator` 0.71.0 -> 0.72.0, `LMSupply.Reranker` 0.71.0 -> 0.72.0, `MemoryIndexer` 0.18.3 -> 0.18.4, `MemoryIndexer.Sdk` 0.18.3 -> 0.18.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.2
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.15.1 -> 0.15.2, `IronHive.DeepResearch` 0.15.1 -> 0.15.2 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.15.1 -> 0.15.2, `IronHive.DeepResearch` 0.15.1 -> 0.15.2 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.1
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.15.0 -> 0.15.1, `IronHive.DeepResearch` 0.15.0 -> 0.15.1, `LMSupply.Embedder` 0.70.0 -> 0.71.0, `LMSupply.Generator` 0.70.0 -> 0.71.0, `LMSupply.Reranker` 0.70.0 -> 0.71.0, `MemoryIndexer` 0.18.2 -> 0.18.3, `MemoryIndexer.Sdk` 0.18.2 -> 0.18.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.15.0 -> 0.15.1, `IronHive.DeepResearch` 0.15.0 -> 0.15.1, `LMSupply.Embedder` 0.70.0 -> 0.71.0, `LMSupply.Generator` 0.70.0 -> 0.71.0, `LMSupply.Reranker` 0.70.0 -> 0.71.0, `MemoryIndexer` 0.18.2 -> 0.18.3, `MemoryIndexer.Sdk` 0.18.2 -> 0.18.3 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.24.0
 
@@ -396,38 +396,38 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned `IronHive.Agent` / `IronHive.DeepResearch` 0.14.6 -> 0.15.0 (the write interceptor lives there).
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.69.0 -> 0.70.0, `LMSupply.Generator` 0.69.0 -> 0.70.0, `LMSupply.Reranker` 0.69.0 -> 0.70.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
-- Re-pinned sibling package(s) `MemoryIndexer` 0.18.1 -> 0.18.2, `MemoryIndexer.Sdk` 0.18.1 -> 0.18.2 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.69.0 -> 0.70.0, `LMSupply.Generator` 0.69.0 -> 0.70.0, `LMSupply.Reranker` 0.69.0 -> 0.70.0 — re-consumption of already-consumed iyulab packages. No source changes.
+- Re-pinned sibling package(s) `MemoryIndexer` 0.18.1 -> 0.18.2, `MemoryIndexer.Sdk` 0.18.1 -> 0.18.2 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.7
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.14.5 -> 0.14.6, `IronHive.DeepResearch` 0.14.5 -> 0.14.6, `LMSupply.Embedder` 0.68.3 -> 0.69.0, `LMSupply.Generator` 0.68.3 -> 0.69.0, `LMSupply.Reranker` 0.68.3 -> 0.69.0, `MemoryIndexer` 0.18.0 -> 0.18.1, `MemoryIndexer.Sdk` 0.18.0 -> 0.18.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.14.5 -> 0.14.6, `IronHive.DeepResearch` 0.14.5 -> 0.14.6, `LMSupply.Embedder` 0.68.3 -> 0.69.0, `LMSupply.Generator` 0.68.3 -> 0.69.0, `LMSupply.Reranker` 0.68.3 -> 0.69.0, `MemoryIndexer` 0.18.0 -> 0.18.1, `MemoryIndexer.Sdk` 0.18.0 -> 0.18.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.6
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.14.4 -> 0.14.5, `IronHive.DeepResearch` 0.14.4 -> 0.14.5, `MemoryIndexer` 0.17.16 -> 0.18.0, `MemoryIndexer.Sdk` 0.17.16 -> 0.18.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.14.4 -> 0.14.5, `IronHive.DeepResearch` 0.14.4 -> 0.14.5, `MemoryIndexer` 0.17.16 -> 0.18.0, `MemoryIndexer.Sdk` 0.17.16 -> 0.18.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.5
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.14.3 -> 0.14.4, `IronHive.DeepResearch` 0.14.3 -> 0.14.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.14.3 -> 0.14.4, `IronHive.DeepResearch` 0.14.3 -> 0.14.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.4
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.14.2 -> 0.14.3, `IronHive.DeepResearch` 0.14.2 -> 0.14.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.14.2 -> 0.14.3, `IronHive.DeepResearch` 0.14.2 -> 0.14.3 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.3
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.17.1 -> 0.17.2, `IronHive.Abstractions` 0.32.0 -> 0.33.0, `IronHive.Agent` 0.14.1 -> 0.14.2, `IronHive.Core` 0.32.0 -> 0.33.0, `IronHive.DeepResearch` 0.14.1 -> 0.14.2, `IronHive.Providers.Anthropic` 0.32.0 -> 0.33.0, `IronHive.Providers.GoogleAI` 0.32.0 -> 0.33.0, `IronHive.Providers.OpenAI` 0.32.0 -> 0.33.0, `IronHive.Providers.OpenAI.Compatible` 0.32.0 -> 0.33.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.17.1 -> 0.17.2, `IronHive.Abstractions` 0.32.0 -> 0.33.0, `IronHive.Agent` 0.14.1 -> 0.14.2, `IronHive.Core` 0.32.0 -> 0.33.0, `IronHive.DeepResearch` 0.14.1 -> 0.14.2, `IronHive.Providers.Anthropic` 0.32.0 -> 0.33.0, `IronHive.Providers.GoogleAI` 0.32.0 -> 0.33.0, `IronHive.Providers.OpenAI` 0.32.0 -> 0.33.0, `IronHive.Providers.OpenAI.Compatible` 0.32.0 -> 0.33.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.2
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.16.0 -> 0.17.1, `IronHive.Abstractions` 0.31.0 -> 0.32.0, `IronHive.Agent` 0.14.0 -> 0.14.1, `IronHive.Core` 0.31.0 -> 0.32.0, `IronHive.DeepResearch` 0.14.0 -> 0.14.1, `IronHive.Providers.Anthropic` 0.31.0 -> 0.32.0, `IronHive.Providers.GoogleAI` 0.31.0 -> 0.32.0, `IronHive.Providers.OpenAI` 0.31.0 -> 0.32.0, `IronHive.Providers.OpenAI.Compatible` 0.31.0 -> 0.32.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.16.0 -> 0.17.1, `IronHive.Abstractions` 0.31.0 -> 0.32.0, `IronHive.Agent` 0.14.0 -> 0.14.1, `IronHive.Core` 0.31.0 -> 0.32.0, `IronHive.DeepResearch` 0.14.0 -> 0.14.1, `IronHive.Providers.Anthropic` 0.31.0 -> 0.32.0, `IronHive.Providers.GoogleAI` 0.31.0 -> 0.32.0, `IronHive.Providers.OpenAI` 0.31.0 -> 0.32.0, `IronHive.Providers.OpenAI.Compatible` 0.31.0 -> 0.32.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.23.1
 
@@ -435,8 +435,8 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **The `deep_research` tool honours the host's `SufficiencyThreshold` and `MinSourcesBeforeReport`**, and its streaming run retries
   a search that found nothing (IronHive.DeepResearch 0.14.0). The tool no longer sets `ResearchRequest.OutputFormat`, which was
   removed because reports are always Markdown.
-- Re-pinned sibling package(s) `Ironbees.Core` 0.15.0 -> 0.16.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.30.0 -> 0.31.0, `IronHive.Core` 0.30.0 -> 0.31.0, `IronHive.Providers.Anthropic` 0.30.0 -> 0.31.0, `IronHive.Providers.GoogleAI` 0.30.0 -> 0.31.0, `IronHive.Providers.OpenAI` 0.30.0 -> 0.31.0, `IronHive.Providers.OpenAI.Compatible` 0.30.0 -> 0.31.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.15.0 -> 0.16.0 — re-consumption of already-consumed iyulab packages. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.30.0 -> 0.31.0, `IronHive.Core` 0.30.0 -> 0.31.0, `IronHive.Providers.Anthropic` 0.30.0 -> 0.31.0, `IronHive.Providers.GoogleAI` 0.30.0 -> 0.31.0, `IronHive.Providers.OpenAI` 0.30.0 -> 0.31.0, `IronHive.Providers.OpenAI.Compatible` 0.30.0 -> 0.31.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ### Fixed
 - **`DeepResearch.MaxIterations` in the host config limits research iterations.** It was passed to
@@ -462,28 +462,28 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned `IronHive.Agent` and `IronHive.DeepResearch` 0.12.12 -> 0.13.0, `Ironbees.Core` 0.14.12 -> 0.15.0.
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.29.1 -> 0.29.2, `IronHive.Core` 0.29.1 -> 0.29.2, `IronHive.Providers.Anthropic` 0.29.1 -> 0.29.2, `IronHive.Providers.GoogleAI` 0.29.1 -> 0.29.2, `IronHive.Providers.OpenAI` 0.29.1 -> 0.29.2, `IronHive.Providers.OpenAI.Compatible` 0.29.1 -> 0.29.2 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.29.2 -> 0.30.0, `IronHive.Core` 0.29.2 -> 0.30.0, `IronHive.Providers.Anthropic` 0.29.2 -> 0.30.0, `IronHive.Providers.GoogleAI` 0.29.2 -> 0.30.0, `IronHive.Providers.OpenAI` 0.29.2 -> 0.30.0, `IronHive.Providers.OpenAI.Compatible` 0.29.2 -> 0.30.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.29.1 -> 0.29.2, `IronHive.Core` 0.29.1 -> 0.29.2, `IronHive.Providers.Anthropic` 0.29.1 -> 0.29.2, `IronHive.Providers.GoogleAI` 0.29.1 -> 0.29.2, `IronHive.Providers.OpenAI` 0.29.1 -> 0.29.2, `IronHive.Providers.OpenAI.Compatible` 0.29.1 -> 0.29.2 — re-consumption of already-consumed iyulab packages. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.29.2 -> 0.30.0, `IronHive.Core` 0.29.2 -> 0.30.0, `IronHive.Providers.Anthropic` 0.29.2 -> 0.30.0, `IronHive.Providers.GoogleAI` 0.29.2 -> 0.30.0, `IronHive.Providers.OpenAI` 0.29.2 -> 0.30.0, `IronHive.Providers.OpenAI.Compatible` 0.29.2 -> 0.30.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.13
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.12.11 -> 0.12.12, `IronHive.DeepResearch` 0.12.11 -> 0.12.12, `LMSupply.Embedder` 0.68.2 -> 0.68.3, `LMSupply.Generator` 0.68.2 -> 0.68.3, `LMSupply.Reranker` 0.68.2 -> 0.68.3, `MemoryIndexer` 0.17.15 -> 0.17.16, `MemoryIndexer.Sdk` 0.17.15 -> 0.17.16 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.12.11 -> 0.12.12, `IronHive.DeepResearch` 0.12.11 -> 0.12.12, `LMSupply.Embedder` 0.68.2 -> 0.68.3, `LMSupply.Generator` 0.68.2 -> 0.68.3, `LMSupply.Reranker` 0.68.2 -> 0.68.3, `MemoryIndexer` 0.17.15 -> 0.17.16, `MemoryIndexer.Sdk` 0.17.15 -> 0.17.16 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.12
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.10 -> 0.14.12, `IronHive.Abstractions` 0.28.4 -> 0.29.1, `IronHive.Agent` 0.12.9 -> 0.12.11, `IronHive.Core` 0.28.4 -> 0.29.1, `IronHive.DeepResearch` 0.12.9 -> 0.12.11, `IronHive.Providers.Anthropic` 0.28.4 -> 0.29.1, `IronHive.Providers.GoogleAI` 0.28.4 -> 0.29.1, `IronHive.Providers.OpenAI` 0.28.4 -> 0.29.1, `IronHive.Providers.OpenAI.Compatible` 0.28.4 -> 0.29.1, `LMSupply.Embedder` 0.68.0 -> 0.68.2, `LMSupply.Generator` 0.68.0 -> 0.68.2, `LMSupply.Reranker` 0.68.0 -> 0.68.2, `MemoryIndexer` 0.17.13 -> 0.17.15, `MemoryIndexer.Sdk` 0.17.13 -> 0.17.15 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.10 -> 0.14.12, `IronHive.Abstractions` 0.28.4 -> 0.29.1, `IronHive.Agent` 0.12.9 -> 0.12.11, `IronHive.Core` 0.28.4 -> 0.29.1, `IronHive.DeepResearch` 0.12.9 -> 0.12.11, `IronHive.Providers.Anthropic` 0.28.4 -> 0.29.1, `IronHive.Providers.GoogleAI` 0.28.4 -> 0.29.1, `IronHive.Providers.OpenAI` 0.28.4 -> 0.29.1, `IronHive.Providers.OpenAI.Compatible` 0.28.4 -> 0.29.1, `LMSupply.Embedder` 0.68.0 -> 0.68.2, `LMSupply.Generator` 0.68.0 -> 0.68.2, `LMSupply.Reranker` 0.68.0 -> 0.68.2, `MemoryIndexer` 0.17.13 -> 0.17.15, `MemoryIndexer.Sdk` 0.17.13 -> 0.17.15 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.11
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.9 -> 0.14.10, `IronHive.Abstractions` 0.28.2 -> 0.28.4, `IronHive.Agent` 0.12.8 -> 0.12.9, `IronHive.Core` 0.28.2 -> 0.28.4, `IronHive.DeepResearch` 0.12.8 -> 0.12.9, `IronHive.Providers.Anthropic` 0.28.2 -> 0.28.4, `IronHive.Providers.GoogleAI` 0.28.2 -> 0.28.4, `IronHive.Providers.OpenAI` 0.28.2 -> 0.28.4, `IronHive.Providers.OpenAI.Compatible` 0.28.2 -> 0.28.4, `LMSupply.Embedder` 0.67.0 -> 0.68.0, `LMSupply.Generator` 0.67.0 -> 0.68.0, `LMSupply.Reranker` 0.67.0 -> 0.68.0, `MemoryIndexer` 0.17.12 -> 0.17.13, `MemoryIndexer.Sdk` 0.17.12 -> 0.17.13 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.9 -> 0.14.10, `IronHive.Abstractions` 0.28.2 -> 0.28.4, `IronHive.Agent` 0.12.8 -> 0.12.9, `IronHive.Core` 0.28.2 -> 0.28.4, `IronHive.DeepResearch` 0.12.8 -> 0.12.9, `IronHive.Providers.Anthropic` 0.28.2 -> 0.28.4, `IronHive.Providers.GoogleAI` 0.28.2 -> 0.28.4, `IronHive.Providers.OpenAI` 0.28.2 -> 0.28.4, `IronHive.Providers.OpenAI.Compatible` 0.28.2 -> 0.28.4, `LMSupply.Embedder` 0.67.0 -> 0.68.0, `LMSupply.Generator` 0.67.0 -> 0.68.0, `LMSupply.Reranker` 0.67.0 -> 0.68.0, `MemoryIndexer` 0.17.12 -> 0.17.13, `MemoryIndexer.Sdk` 0.17.12 -> 0.17.13 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.10
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.8 -> 0.14.9, `IronHive.Abstractions` 0.28.0 -> 0.28.2, `IronHive.Agent` 0.12.6 -> 0.12.8, `IronHive.Core` 0.28.0 -> 0.28.2, `IronHive.DeepResearch` 0.12.6 -> 0.12.8, `IronHive.Providers.Anthropic` 0.28.0 -> 0.28.2, `IronHive.Providers.GoogleAI` 0.28.0 -> 0.28.2, `IronHive.Providers.OpenAI` 0.28.0 -> 0.28.2, `IronHive.Providers.OpenAI.Compatible` 0.28.0 -> 0.28.2, `LMSupply.Embedder` 0.66.1 -> 0.67.0, `LMSupply.Generator` 0.66.1 -> 0.67.0, `LMSupply.Reranker` 0.66.1 -> 0.67.0, `MemoryIndexer` 0.17.11 -> 0.17.12, `MemoryIndexer.Sdk` 0.17.11 -> 0.17.12, `WebLookup` 0.2.2 -> 0.2.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.8 -> 0.14.9, `IronHive.Abstractions` 0.28.0 -> 0.28.2, `IronHive.Agent` 0.12.6 -> 0.12.8, `IronHive.Core` 0.28.0 -> 0.28.2, `IronHive.DeepResearch` 0.12.6 -> 0.12.8, `IronHive.Providers.Anthropic` 0.28.0 -> 0.28.2, `IronHive.Providers.GoogleAI` 0.28.0 -> 0.28.2, `IronHive.Providers.OpenAI` 0.28.0 -> 0.28.2, `IronHive.Providers.OpenAI.Compatible` 0.28.0 -> 0.28.2, `LMSupply.Embedder` 0.66.1 -> 0.67.0, `LMSupply.Generator` 0.66.1 -> 0.67.0, `LMSupply.Reranker` 0.66.1 -> 0.67.0, `MemoryIndexer` 0.17.11 -> 0.17.12, `MemoryIndexer.Sdk` 0.17.11 -> 0.17.12, `WebLookup` 0.2.2 -> 0.2.3 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.9
 
@@ -493,43 +493,43 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.22.8
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.27.0 -> 0.28.0, `IronHive.Agent` 0.12.5 -> 0.12.6, `IronHive.Core` 0.27.0 -> 0.28.0, `IronHive.DeepResearch` 0.12.5 -> 0.12.6, `IronHive.Providers.Anthropic` 0.27.0 -> 0.28.0, `IronHive.Providers.GoogleAI` 0.27.0 -> 0.28.0, `IronHive.Providers.OpenAI` 0.27.0 -> 0.28.0, `IronHive.Providers.OpenAI.Compatible` 0.27.0 -> 0.28.0, `MemoryIndexer` 0.17.10 -> 0.17.11, `MemoryIndexer.Sdk` 0.17.10 -> 0.17.11, `WebLookup` 0.2.1 -> 0.2.2 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.27.0 -> 0.28.0, `IronHive.Agent` 0.12.5 -> 0.12.6, `IronHive.Core` 0.27.0 -> 0.28.0, `IronHive.DeepResearch` 0.12.5 -> 0.12.6, `IronHive.Providers.Anthropic` 0.27.0 -> 0.28.0, `IronHive.Providers.GoogleAI` 0.27.0 -> 0.28.0, `IronHive.Providers.OpenAI` 0.27.0 -> 0.28.0, `IronHive.Providers.OpenAI.Compatible` 0.27.0 -> 0.28.0, `MemoryIndexer` 0.17.10 -> 0.17.11, `MemoryIndexer.Sdk` 0.17.10 -> 0.17.11, `WebLookup` 0.2.1 -> 0.2.2 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.7
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.6 -> 0.14.8, `IronHive.Agent` 0.12.4 -> 0.12.5, `IronHive.DeepResearch` 0.12.4 -> 0.12.5, `LMSupply.Embedder` 0.66.0 -> 0.66.1, `LMSupply.Generator` 0.66.0 -> 0.66.1, `LMSupply.Reranker` 0.66.0 -> 0.66.1, `MemoryIndexer` 0.17.9 -> 0.17.10, `MemoryIndexer.Sdk` 0.17.9 -> 0.17.10 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.6 -> 0.14.8, `IronHive.Agent` 0.12.4 -> 0.12.5, `IronHive.DeepResearch` 0.12.4 -> 0.12.5, `LMSupply.Embedder` 0.66.0 -> 0.66.1, `LMSupply.Generator` 0.66.0 -> 0.66.1, `LMSupply.Reranker` 0.66.0 -> 0.66.1, `MemoryIndexer` 0.17.9 -> 0.17.10, `MemoryIndexer.Sdk` 0.17.9 -> 0.17.10 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.6
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.3 -> 0.27.0, `IronHive.Core` 0.26.3 -> 0.27.0, `IronHive.Providers.Anthropic` 0.26.3 -> 0.27.0, `IronHive.Providers.GoogleAI` 0.26.3 -> 0.27.0, `IronHive.Providers.OpenAI` 0.26.3 -> 0.27.0, `IronHive.Providers.OpenAI.Compatible` 0.26.3 -> 0.27.0, `LMSupply.Embedder` 0.65.1 -> 0.66.0, `LMSupply.Generator` 0.65.1 -> 0.66.0, `LMSupply.Reranker` 0.65.1 -> 0.66.0, `TokenMeter` 0.7.4 -> 0.7.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.3 -> 0.27.0, `IronHive.Core` 0.26.3 -> 0.27.0, `IronHive.Providers.Anthropic` 0.26.3 -> 0.27.0, `IronHive.Providers.GoogleAI` 0.26.3 -> 0.27.0, `IronHive.Providers.OpenAI` 0.26.3 -> 0.27.0, `IronHive.Providers.OpenAI.Compatible` 0.26.3 -> 0.27.0, `LMSupply.Embedder` 0.65.1 -> 0.66.0, `LMSupply.Generator` 0.65.1 -> 0.66.0, `LMSupply.Reranker` 0.65.1 -> 0.66.0, `TokenMeter` 0.7.4 -> 0.7.5 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.5
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.12.3 -> 0.12.4, `IronHive.DeepResearch` 0.12.3 -> 0.12.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.12.3 -> 0.12.4, `IronHive.DeepResearch` 0.12.3 -> 0.12.4 — re-consumption of already-consumed iyulab packages. No source changes.
 - Raised `Microsoft.Extensions.*` package references to 10.0.12 (latest servicing release). The re-pinned sibling releases declare `Microsoft.Extensions.*` floors above the previous references.
 
 ## 0.22.4
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.5 -> 0.14.6, `IronHive.Agent` 0.12.1 -> 0.12.3, `IronHive.DeepResearch` 0.12.1 -> 0.12.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.5 -> 0.14.6, `IronHive.Agent` 0.12.1 -> 0.12.3, `IronHive.DeepResearch` 0.12.1 -> 0.12.3 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.3
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.2 -> 0.26.3, `IronHive.Core` 0.26.2 -> 0.26.3, `IronHive.Providers.Anthropic` 0.26.2 -> 0.26.3, `IronHive.Providers.GoogleAI` 0.26.2 -> 0.26.3, `IronHive.Providers.OpenAI` 0.26.2 -> 0.26.3, `IronHive.Providers.OpenAI.Compatible` 0.26.2 -> 0.26.3 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.2 -> 0.26.3, `IronHive.Core` 0.26.2 -> 0.26.3, `IronHive.Providers.Anthropic` 0.26.2 -> 0.26.3, `IronHive.Providers.GoogleAI` 0.26.2 -> 0.26.3, `IronHive.Providers.OpenAI` 0.26.2 -> 0.26.3, `IronHive.Providers.OpenAI.Compatible` 0.26.2 -> 0.26.3 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.2
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.12.0 -> 0.12.1, `IronHive.DeepResearch` 0.12.0 -> 0.12.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.12.0 -> 0.12.1, `IronHive.DeepResearch` 0.12.0 -> 0.12.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.1
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.4 -> 0.14.5, `MemoryIndexer` 0.17.8 -> 0.17.9, `MemoryIndexer.Sdk` 0.17.8 -> 0.17.9 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.4 -> 0.14.5, `MemoryIndexer` 0.17.8 -> 0.17.9, `MemoryIndexer.Sdk` 0.17.8 -> 0.17.9 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.22.0
 
@@ -580,12 +580,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.21.2
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.1 -> 0.26.2, `IronHive.Agent` 0.11.0 -> 0.11.1, `IronHive.Core` 0.26.1 -> 0.26.2, `IronHive.DeepResearch` 0.11.0 -> 0.11.1, `IronHive.Providers.Anthropic` 0.26.1 -> 0.26.2, `IronHive.Providers.GoogleAI` 0.26.1 -> 0.26.2, `IronHive.Providers.OpenAI` 0.26.1 -> 0.26.2, `IronHive.Providers.OpenAI.Compatible` 0.26.1 -> 0.26.2, `LMSupply.Embedder` 0.65.0 -> 0.65.1, `LMSupply.Generator` 0.65.0 -> 0.65.1, `LMSupply.Reranker` 0.65.0 -> 0.65.1 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.26.1 -> 0.26.2, `IronHive.Agent` 0.11.0 -> 0.11.1, `IronHive.Core` 0.26.1 -> 0.26.2, `IronHive.DeepResearch` 0.11.0 -> 0.11.1, `IronHive.Providers.Anthropic` 0.26.1 -> 0.26.2, `IronHive.Providers.GoogleAI` 0.26.1 -> 0.26.2, `IronHive.Providers.OpenAI` 0.26.1 -> 0.26.2, `IronHive.Providers.OpenAI.Compatible` 0.26.1 -> 0.26.2, `LMSupply.Embedder` 0.65.0 -> 0.65.1, `LMSupply.Generator` 0.65.0 -> 0.65.1, `LMSupply.Reranker` 0.65.0 -> 0.65.1 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.21.1
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.3 -> 0.14.4, `MemoryIndexer` 0.17.7 -> 0.17.8, `MemoryIndexer.Sdk` 0.17.7 -> 0.17.8 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.3 -> 0.14.4, `MemoryIndexer` 0.17.7 -> 0.17.8, `MemoryIndexer.Sdk` 0.17.7 -> 0.17.8 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.21.0
 
@@ -602,32 +602,32 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.20.15
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.2 -> 0.14.3, `IronHive.Abstractions` 0.26.0 -> 0.26.1, `IronHive.Agent` 0.10.4 -> 0.10.5, `IronHive.Core` 0.26.0 -> 0.26.1, `IronHive.DeepResearch` 0.10.4 -> 0.10.5, `IronHive.Providers.Anthropic` 0.26.0 -> 0.26.1, `IronHive.Providers.GoogleAI` 0.26.0 -> 0.26.1, `IronHive.Providers.OpenAI` 0.26.0 -> 0.26.1, `IronHive.Providers.OpenAI.Compatible` 0.26.0 -> 0.26.1, `LMSupply.Embedder` 0.64.0 -> 0.65.0, `LMSupply.Generator` 0.64.0 -> 0.65.0, `LMSupply.Reranker` 0.64.0 -> 0.65.0, `MemoryIndexer` 0.17.6 -> 0.17.7, `MemoryIndexer.Sdk` 0.17.6 -> 0.17.7 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.2 -> 0.14.3, `IronHive.Abstractions` 0.26.0 -> 0.26.1, `IronHive.Agent` 0.10.4 -> 0.10.5, `IronHive.Core` 0.26.0 -> 0.26.1, `IronHive.DeepResearch` 0.10.4 -> 0.10.5, `IronHive.Providers.Anthropic` 0.26.0 -> 0.26.1, `IronHive.Providers.GoogleAI` 0.26.0 -> 0.26.1, `IronHive.Providers.OpenAI` 0.26.0 -> 0.26.1, `IronHive.Providers.OpenAI.Compatible` 0.26.0 -> 0.26.1, `LMSupply.Embedder` 0.64.0 -> 0.65.0, `LMSupply.Generator` 0.64.0 -> 0.65.0, `LMSupply.Reranker` 0.64.0 -> 0.65.0, `MemoryIndexer` 0.17.6 -> 0.17.7, `MemoryIndexer.Sdk` 0.17.6 -> 0.17.7 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.14
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.14.1 -> 0.14.2, `IronHive.Abstractions` 0.25.0 -> 0.26.0, `IronHive.Agent` 0.10.3 -> 0.10.4, `IronHive.Core` 0.25.0 -> 0.26.0, `IronHive.DeepResearch` 0.10.3 -> 0.10.4, `IronHive.Providers.Anthropic` 0.25.0 -> 0.26.0, `IronHive.Providers.GoogleAI` 0.25.0 -> 0.26.0, `IronHive.Providers.OpenAI` 0.25.0 -> 0.26.0, `IronHive.Providers.OpenAI.Compatible` 0.25.0 -> 0.26.0, `LMSupply.Embedder` 0.63.0 -> 0.64.0, `LMSupply.Generator` 0.63.0 -> 0.64.0, `LMSupply.Reranker` 0.63.0 -> 0.64.0, `MemoryIndexer` 0.17.5 -> 0.17.6, `MemoryIndexer.Sdk` 0.17.5 -> 0.17.6 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.14.1 -> 0.14.2, `IronHive.Abstractions` 0.25.0 -> 0.26.0, `IronHive.Agent` 0.10.3 -> 0.10.4, `IronHive.Core` 0.25.0 -> 0.26.0, `IronHive.DeepResearch` 0.10.3 -> 0.10.4, `IronHive.Providers.Anthropic` 0.25.0 -> 0.26.0, `IronHive.Providers.GoogleAI` 0.25.0 -> 0.26.0, `IronHive.Providers.OpenAI` 0.25.0 -> 0.26.0, `IronHive.Providers.OpenAI.Compatible` 0.25.0 -> 0.26.0, `LMSupply.Embedder` 0.63.0 -> 0.64.0, `LMSupply.Generator` 0.63.0 -> 0.64.0, `LMSupply.Reranker` 0.63.0 -> 0.64.0, `MemoryIndexer` 0.17.5 -> 0.17.6, `MemoryIndexer.Sdk` 0.17.5 -> 0.17.6 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.13
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.13.6 -> 0.14.1, `IronHive.Abstractions` 0.24.1 -> 0.25.0, `IronHive.Agent` 0.10.1 -> 0.10.3, `IronHive.Core` 0.24.1 -> 0.25.0, `IronHive.DeepResearch` 0.10.1 -> 0.10.3, `IronHive.Providers.Anthropic` 0.24.1 -> 0.25.0, `IronHive.Providers.GoogleAI` 0.24.1 -> 0.25.0, `IronHive.Providers.OpenAI` 0.24.1 -> 0.25.0, `IronHive.Providers.OpenAI.Compatible` 0.24.1 -> 0.25.0, `LMSupply.Embedder` 0.62.0 -> 0.63.0, `LMSupply.Generator` 0.62.0 -> 0.63.0, `LMSupply.Reranker` 0.62.0 -> 0.63.0, `MemoryIndexer` 0.17.4 -> 0.17.5, `MemoryIndexer.Sdk` 0.17.4 -> 0.17.5 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.13.6 -> 0.14.1, `IronHive.Abstractions` 0.24.1 -> 0.25.0, `IronHive.Agent` 0.10.1 -> 0.10.3, `IronHive.Core` 0.24.1 -> 0.25.0, `IronHive.DeepResearch` 0.10.1 -> 0.10.3, `IronHive.Providers.Anthropic` 0.24.1 -> 0.25.0, `IronHive.Providers.GoogleAI` 0.24.1 -> 0.25.0, `IronHive.Providers.OpenAI` 0.24.1 -> 0.25.0, `IronHive.Providers.OpenAI.Compatible` 0.24.1 -> 0.25.0, `LMSupply.Embedder` 0.62.0 -> 0.63.0, `LMSupply.Generator` 0.62.0 -> 0.63.0, `LMSupply.Reranker` 0.62.0 -> 0.63.0, `MemoryIndexer` 0.17.4 -> 0.17.5, `MemoryIndexer.Sdk` 0.17.4 -> 0.17.5 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.12
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.13.5 -> 0.13.6, `IronHive.Agent` 0.10.0 -> 0.10.1, `IronHive.DeepResearch` 0.10.0 -> 0.10.1, `LMSupply.Embedder` 0.61.0 -> 0.62.0, `LMSupply.Generator` 0.61.0 -> 0.62.0, `LMSupply.Reranker` 0.61.0 -> 0.62.0, `MemoryIndexer` 0.17.3 -> 0.17.4, `MemoryIndexer.Sdk` 0.17.3 -> 0.17.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.13.5 -> 0.13.6, `IronHive.Agent` 0.10.0 -> 0.10.1, `IronHive.DeepResearch` 0.10.0 -> 0.10.1, `LMSupply.Embedder` 0.61.0 -> 0.62.0, `LMSupply.Generator` 0.61.0 -> 0.62.0, `LMSupply.Reranker` 0.61.0 -> 0.62.0, `MemoryIndexer` 0.17.3 -> 0.17.4, `MemoryIndexer.Sdk` 0.17.3 -> 0.17.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.11
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.24.0 -> 0.24.1, `IronHive.Agent` 0.9.10 -> 0.10.0, `IronHive.Core` 0.24.0 -> 0.24.1, `IronHive.DeepResearch` 0.9.10 -> 0.10.0, `IronHive.Providers.Anthropic` 0.24.0 -> 0.24.1, `IronHive.Providers.GoogleAI` 0.24.0 -> 0.24.1, `IronHive.Providers.OpenAI` 0.24.0 -> 0.24.1, `IronHive.Providers.OpenAI.Compatible` 0.24.0 -> 0.24.1, `LMSupply.Embedder` 0.60.0 -> 0.61.0, `LMSupply.Generator` 0.60.0 -> 0.61.0, `LMSupply.Reranker` 0.60.0 -> 0.61.0, `MemoryIndexer` 0.17.2 -> 0.17.3, `MemoryIndexer.Sdk` 0.17.2 -> 0.17.3, `TokenMeter` 0.7.3 -> 0.7.4 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.24.0 -> 0.24.1, `IronHive.Agent` 0.9.10 -> 0.10.0, `IronHive.Core` 0.24.0 -> 0.24.1, `IronHive.DeepResearch` 0.9.10 -> 0.10.0, `IronHive.Providers.Anthropic` 0.24.0 -> 0.24.1, `IronHive.Providers.GoogleAI` 0.24.0 -> 0.24.1, `IronHive.Providers.OpenAI` 0.24.0 -> 0.24.1, `IronHive.Providers.OpenAI.Compatible` 0.24.0 -> 0.24.1, `LMSupply.Embedder` 0.60.0 -> 0.61.0, `LMSupply.Generator` 0.60.0 -> 0.61.0, `LMSupply.Reranker` 0.60.0 -> 0.61.0, `MemoryIndexer` 0.17.2 -> 0.17.3, `MemoryIndexer.Sdk` 0.17.2 -> 0.17.3, `TokenMeter` 0.7.3 -> 0.7.4 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.10
 
 ### Changed
-- Re-pinned sibling package(s) `Ironbees.Core` 0.13.4 -> 0.13.5, `IronHive.Agent` 0.9.9 -> 0.9.10, `IronHive.DeepResearch` 0.9.9 -> 0.9.10, `LMSupply.Embedder` 0.59.1 -> 0.60.0, `LMSupply.Generator` 0.59.1 -> 0.60.0, `LMSupply.Reranker` 0.59.1 -> 0.60.0 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.13.4 -> 0.13.5, `IronHive.Agent` 0.9.9 -> 0.9.10, `IronHive.DeepResearch` 0.9.9 -> 0.9.10, `LMSupply.Embedder` 0.59.1 -> 0.60.0, `LMSupply.Generator` 0.59.1 -> 0.60.0, `LMSupply.Reranker` 0.59.1 -> 0.60.0 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.9
 
@@ -638,17 +638,17 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.20.8
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Abstractions` 0.22.1 -> 0.22.2, `IronHive.Agent` 0.9.7 -> 0.9.8, `IronHive.Core` 0.22.1 -> 0.22.2, `IronHive.DeepResearch` 0.9.7 -> 0.9.8, `IronHive.Providers.Anthropic` 0.22.1 -> 0.22.2, `IronHive.Providers.GoogleAI` 0.22.1 -> 0.22.2, `IronHive.Providers.OpenAI` 0.22.1 -> 0.22.2, `IronHive.Providers.OpenAI.Compatible` 0.22.1 -> 0.22.2, `LMSupply.Embedder` 0.57.0 -> 0.58.0, `LMSupply.Generator` 0.57.0 -> 0.58.0, `LMSupply.Reranker` 0.57.0 -> 0.58.0, `MemoryIndexer` 0.16.12 -> 0.16.13, `MemoryIndexer.Sdk` 0.16.12 -> 0.16.13 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.22.1 -> 0.22.2, `IronHive.Agent` 0.9.7 -> 0.9.8, `IronHive.Core` 0.22.1 -> 0.22.2, `IronHive.DeepResearch` 0.9.7 -> 0.9.8, `IronHive.Providers.Anthropic` 0.22.1 -> 0.22.2, `IronHive.Providers.GoogleAI` 0.22.1 -> 0.22.2, `IronHive.Providers.OpenAI` 0.22.1 -> 0.22.2, `IronHive.Providers.OpenAI.Compatible` 0.22.1 -> 0.22.2, `LMSupply.Embedder` 0.57.0 -> 0.58.0, `LMSupply.Generator` 0.57.0 -> 0.58.0, `LMSupply.Reranker` 0.57.0 -> 0.58.0, `MemoryIndexer` 0.16.12 -> 0.16.13, `MemoryIndexer.Sdk` 0.16.12 -> 0.16.13 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.7
 
 ### Changed
-- Re-pinned sibling package(s) `IronHive.Agent` 0.9.6 -> 0.9.7, `IronHive.DeepResearch` 0.9.6 -> 0.9.7, `LMSupply.Embedder` 0.55.4 -> 0.57.0, `LMSupply.Generator` 0.55.4 -> 0.57.0, `LMSupply.Reranker` 0.55.4 -> 0.57.0, `MemoryIndexer` 0.16.11 -> 0.16.12, `MemoryIndexer.Sdk` 0.16.11 -> 0.16.12 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.9.6 -> 0.9.7, `IronHive.DeepResearch` 0.9.6 -> 0.9.7, `LMSupply.Embedder` 0.55.4 -> 0.57.0, `LMSupply.Generator` 0.55.4 -> 0.57.0, `LMSupply.Reranker` 0.55.4 -> 0.57.0, `MemoryIndexer` 0.16.11 -> 0.16.12, `MemoryIndexer.Sdk` 0.16.11 -> 0.16.12 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.6
 
 ### Changed
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.55.0 -> 0.55.4, `LMSupply.Generator` 0.55.0 -> 0.55.4, `LMSupply.Reranker` 0.55.0 -> 0.55.4, `MemoryIndexer` 0.16.8 -> 0.16.11, `MemoryIndexer.Sdk` 0.16.8 -> 0.16.11 — re-consumption of already-consumed iyulab packages via `check-pin-drift.ps1 -Fix`. No source changes.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.55.0 -> 0.55.4, `LMSupply.Generator` 0.55.0 -> 0.55.4, `LMSupply.Reranker` 0.55.0 -> 0.55.4, `MemoryIndexer` 0.16.8 -> 0.16.11, `MemoryIndexer.Sdk` 0.16.8 -> 0.16.11 — re-consumption of already-consumed iyulab packages. No source changes.
 
 ## 0.20.5
 
@@ -682,16 +682,15 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned `LMSupply.Embedder`/`.Reranker`/`.Generator` from `0.42.10` to `0.54.0` — patch
-  re-consumption of already-consumed sibling packages (`check-pin-drift.ps1 -Strict` flagged
-  this as threshold-exceeding drift, minor gap 12; cold-GPU-kernel-hang protection propagated
-  to all ONNX-backed lm-supply modules). No source changes.
+  re-consumption of already-consumed sibling packages (a minor gap of 12; cold-GPU-kernel-hang
+  protection propagated to all ONNX-backed lm-supply modules). No source changes.
 
 ## 0.20.1
 
 ### Changed
 - Re-pinned `IronHive.Agent`/`.DeepResearch` from `0.9.5` to `0.9.6` — patch re-consumption of
-  an already-consumed sibling package (`check-pin-drift.ps1` flagged this as drift, within
-  threshold, right after `ironhive-agent` 0.9.6 was published). No source changes.
+  an already-consumed sibling package, right after `ironhive-agent` 0.9.6 was published. No
+  source changes.
 
 ## 0.20.0
 
