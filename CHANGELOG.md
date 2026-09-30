@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.29.15 — Unreleased
+## 0.29.15 — 2026-09-30
 
 ### Changed
 - **Documentation: comments and XML docs describe behaviour without internal references.** The
