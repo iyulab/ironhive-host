@@ -89,6 +89,22 @@ public class CliToolInvocationPipelineTests
         result.Result.Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.InvalidArguments);
     }
 
+    [Fact]
+    public async Task DecoratedClient_AModelRetryingTheSameEmptyArguments_GetsThreeDirectives_ThenARepeatedCallRefusal()
+    {
+        var tool = new MissingPathFunction();
+        var inner = new ScriptedChatClient(new FunctionCallContent("c", "read_file", new Dictionary<string, object?>()), times: 5);
+        var client = Decorate(inner, FilterWith(PermissionAction.Allow));
+
+        await client.GetResponseAsync("go", new ChatOptions { Tools = [tool] }, TestContext.Current.CancellationToken);
+
+        tool.Invocations.Should().Be(3, "the fourth identical call is not run");
+        inner.ToolResults.Should().HaveCount(5);
+        inner.ToolResults.Take(3).Should().AllSatisfy(r => r.Result.Should().BeOfType<string>().Which.Should().Contain("required parameter 'path'"));
+        inner.ToolResults.Skip(3).Should().AllSatisfy(r =>
+            r.Result.Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.RepeatedCall));
+    }
+
     private static IChatClient Decorate(IChatClient inner, IModeToolFilter filter) =>
         CliServices.DecorateChatClient(
             inner, new ChatBehaviorConfig(), CliServices.CreateToolInvocationPipeline(filter, approvalService: null, loggerFactory: null));
@@ -106,30 +122,39 @@ public class CliToolInvocationPipelineTests
     /// <summary>Throws what M.E.AI's marshaller throws when a required parameter is missing.</summary>
     private sealed class MissingPathFunction : AIFunction
     {
+        public int Invocations { get; private set; }
+
         public override string Name => "read_file";
 
-        protected override ValueTask<object?> InvokeCoreAsync(AIFunctionArguments arguments, CancellationToken cancellationToken) =>
+        protected override ValueTask<object?> InvokeCoreAsync(AIFunctionArguments arguments, CancellationToken cancellationToken)
+        {
+            Invocations++;
             throw new ArgumentException(MarshallerMissingPathMessage, paramName: MarshallerParamName);
+        }
     }
 
-    /// <summary>Answers the first request with one tool call and every later one with text; records tool results.</summary>
-    private sealed class ScriptedChatClient(FunctionCallContent call) : IChatClient
+    /// <summary>
+    /// Answers the first <paramref name="times"/> requests with the same tool call (a fresh call id each time) and every
+    /// later one with text; <see cref="ToolResults"/> holds the tool results of the last request, in order.
+    /// </summary>
+    private sealed class ScriptedChatClient(FunctionCallContent call, int times = 1) : IChatClient
     {
-        private bool _called;
+        private int _calls;
 
         public List<FunctionResultContent> ToolResults { get; } = [];
 
         public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
-            var history = messages.ToList();
-            ToolResults.AddRange(history.SelectMany(m => m.Contents).OfType<FunctionResultContent>());
-            if (_called)
+            ToolResults.Clear();
+            ToolResults.AddRange(messages.SelectMany(m => m.Contents).OfType<FunctionResultContent>());
+            if (_calls >= times)
             {
                 return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "done")));
             }
 
-            _called = true;
-            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [call])));
+            _calls++;
+            var next = new FunctionCallContent($"{call.CallId}{_calls}", call.Name, call.Arguments) { Exception = call.Exception };
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [next])));
         }
 
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
