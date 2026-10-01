@@ -21,6 +21,7 @@ expose a generic turn-stream rather than an application-specific wire format.
 ## Features
 
 - **Three surfaces, one core** — CLI (`ironhive`), embeddable SDK (`IronHive.Host`), and server runners (stdio or HTTP/SSE) all drive the same `IronHive.Agent` loop.
+- **Approvals on every surface** — one tool-call policy (`IToolCallPolicy`) judges each call; an `Ask` is answered on the terminal, or — in `run --server` and by any host that passes a `HitlBridge` to its runner — by the client over the wire (`hitl_request` → `hitl_response`). See [Human approval over the wire](#human-approval-over-the-wire).
 - **MCP-native tooling** — plugs into MCP servers (memory, code execution, custom tools) instead of hardcoding a tool set.
 - **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
 - **Context-window safe by default** — automatic history compaction (`ContextManager`, wired on every surface including `AddIronHive`) prevents silent context overflows, including on small quantized models. The CLI and `run --server` additionally install a hard-backstop `TokenBudgetChatClient`; library embedders wrap their own `IChatClient` with it (see [TokenBudgetChatClient](#tokenbudgetchatclient)).
@@ -470,11 +471,11 @@ async IAsyncEnumerable<ServerEvent> ProcessMessage(
 }
 
 // stdin/stdout JSON Lines (used by `ironhive run --server`)
-var runner = new AgentServerRunner(ProcessMessage, logger);
+var runner = new AgentServerRunner(ProcessMessage, logger, hitlBridge: hitlBridge);
 await runner.RunAsync(ct);
 
 // HTTP/SSE (host spawns the agent and communicates via REST)
-var httpRunner = new AgentHttpRunner("http://localhost:5100", sessionId, ProcessMessage, logger);
+var httpRunner = new AgentHttpRunner("http://localhost:5100", sessionId, ProcessMessage, logger, hitlBridge: hitlBridge);
 await httpRunner.RunAsync(ct);
 ```
 
@@ -493,11 +494,32 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
     typeInfoModifiers: [ApplyCustomPolymorphismOverrides]);
 ```
 
-`AgentHttpRunner` additionally exposes `WaitForHitlResponseAsync` / `ResolveHitl` for human-in-the-loop flows, and `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices). No runner emits `hitl_request` yet: in server mode a tool call whose permission verdict is `Ask` is refused with a reason (see **Permissions**), and the refusal reaches the client as a `tool_end`.
+`AgentHttpRunner` additionally exposes `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices).
+
+#### Human approval over the wire
+
+`HitlBridge` is an `IHumanApprovalService` (the approver `IronHive.Agent`'s approval gate asks on an `Ask` verdict) whose
+human is the client. Give the same instance to the gate and to the runner:
+
+```csharp
+var hitlBridge = new HitlBridge();                    // timeout: 5 minutes by default
+var pipeline = new ToolInvocationPipeline([new ApprovalGateMiddleware(policy, hitlBridge)]);
+// ... build the loop's chat client with UseToolInvocationPipeline(pipeline) ...
+var runner = new AgentServerRunner(ProcessMessage, logger, hitlBridge: hitlBridge);
+```
+
+While the runner runs, each asked call is sent as a `hitl_request` (between the call's `tool_start` and `tool_end`; its
+`call_id` matches the `tool_start`) and the call waits. The client answers with a `hitl_response` carrying the request's
+`id`: `approved: true` runs the call (with `modified_arguments` when the person edited them), `approved: false` returns
+`reason` to the model as the tool's result. Several requests can wait at once; an answer without an `id` is accepted only
+while exactly one waits. No answer within the timeout, a cancelled turn, a runner that stops, or no runner at all —
+each is a rejection, never a pass. Session rules of your own (trust lists, "already denied this session") fit as an
+`IHumanApprovalService` that decorates the bridge. `ironhive run --server` does this for you; in an interactive CLI
+session the terminal answers.
 
 **Skills.** `skills:` in `config.yaml` (`roots: [~/.ironhive/skills, .ironhive/skills]`, optional `enabled`, `exclude`, `maxMetadataCharacters`, `acceptUnknownFields`) loads Agent Skills (`SKILL.md` bundles per the [specification](https://agentskills.io/specification)): every skill's name and description is in the system instructions, and the model calls `load_skill` for a body — only from inside the skill's directory. Skills the specification's validator rejects are not loaded (`acceptUnknownFields: true` admits bundles carrying another client's frontmatter keys). The `load_skill` tool is added by the CLI / `run --server` loop factory. The library `AddIronHive(...)` path does not add it — its loop gets only `options.Tools`. `services.AddAgentSkills(new SkillsConfig { Roots = [...] })` registers the `SkillsLoader` and puts the skills' metadata in the instructions, but an embedder must put `SkillsLoader.LoadTool` in its loop's tools itself (e.g. build the loader with `SkillsLoader.Create(config)` and add `loader.LoadTool` to `options.Tools`).
 
-**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGateMiddleware`, a step of the tool invocation pipeline installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console. The prompt needs a terminal — when stdin or stdout is redirected (`run --server`, or a piped one-shot) an `Ask` verdict is rejected with a reason instead, so a prompt never lands in the protocol stream. Rules come from the project's `.ironhive/permissions.yaml` (or `.yml` / `.json`; keys `read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `read_only_tools`, `default_action`) when it exists; otherwise from the `permissions` section of `config.yaml` — global `~/.ironhive/config.yaml`, then the project's, camelCase keys like the rest of the file (`externalDirectory`, `mcpTools`, `readOnlyTools`, `defaultAction`); otherwise the built-in defaults (before 0.29.4 the `config.yaml` section was read and then discarded). `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to the default action (`ask` by default — so an unknown tool is asked about, not run).
+**Permissions.** Every tool call runs through the permission rules (`IronHive.Agent`'s `ApprovalGateMiddleware`, a step of the tool invocation pipeline installed on the chat client): `Allow` runs the tool, `Deny` returns the reason to the model, `Ask` prompts on the console — or, in `run --server`, is sent to the client as a `hitl_request` (see [Human approval over the wire](#human-approval-over-the-wire)). Planning mode is enforced at the same gate: while the session is planning, only read-only tools run. A console prompt needs a terminal — a piped one-shot (stdin or stdout redirected, no server client) rejects an `Ask` verdict with a reason instead, so a prompt never lands in an output stream. Rules come from the project's `.ironhive/permissions.yaml` (or `.yml` / `.json`; keys `read`, `edit`, `bash`, `external_directory`, `mcp_tools`, `tools`, `read_only_tools`, `default_action`) when it exists; otherwise from the `permissions` section of `config.yaml` — global `~/.ironhive/config.yaml`, then the project's, camelCase keys like the rest of the file (`externalDirectory`, `mcpTools`, `readOnlyTools`, `defaultAction`); otherwise the built-in defaults (before 0.29.4 the `config.yaml` section was read and then discarded). `tools` matches by tool name any tool with no dedicated category, and an unmatched tool falls to the default action (`ask` by default — so an unknown tool is asked about, not run).
 
 **Protocol types** (`ServerRequest` → agent, `ServerEvent` → host):
 
@@ -505,11 +527,12 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 |------|---------------|-----------|
 | `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens` — see below) |
 | `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` |
-| `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?` |
+| `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?`, `Id?` (the request being answered), `ModifiedArguments?`, `AlwaysApprove?` |
 | `CancelRequest` | `cancel` | — |
 | `ShutdownRequest` | `shutdown` | — |
 | `SessionStartedEvent` | `session_started` | `SessionId` — first line `run --server` writes, before any request is read (`--session-id` value, or a generated id) |
 | `ToolStartEvent` | `tool_start` | `Tool`, `Input?`, `CallId?` |
+| `HitlRequestEvent` | `hitl_request` | `Id`, `Action`, `Target`, `Description`, `ToolName?`, `Arguments?`, `CallId?` (matches the `tool_start`), `Level?` — a call waiting for approval; answer with `hitl_response` |
 | `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` — one per tool call once its outcome is known, before `turn_end`; `CallId` matches the `tool_start`. A call the permission gate refused arrives with `Success: false` and the refusal as `Output` (`Permission denied: …` / `Approval rejected: …`) |
 | `ThinkingDeltaEvent` | `thinking_delta` | `Content` — extended-thinking text, its own stream, never folded into `text_delta` |
 | `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
@@ -519,8 +542,8 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 | `ErrorEvent` | `error` | `Message` |
 
 `IronHive.Host.Protocol` also declares `agent_selected` (`AgentSelectedEvent`), `plan_created`, `plan_step_started`,
-`plan_step_completed`, `plan_completed` (`Plan*ServerEvent`) and `hitl_request` (`HitlRequestEvent`). No runner emits
-them today — they are reserved; a client may accept them but should not wait for them.
+`plan_step_completed` and `plan_completed` (`Plan*ServerEvent`). No runner emits them today — they are reserved; a client
+may accept them but should not wait for them.
 
 **Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
 the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |

@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.31.0 — Unreleased
+
+### Added
+- **`run --server` asks the client before an asked tool call runs.** An `Ask` verdict is sent as a `hitl_request` and the
+  call waits for the matching `hitl_response` (before, it was always rejected because there was no terminal). The
+  approver is `HitlBridge` (`IronHive.Host.Server`), an `IHumanApprovalService` that `AgentServerRunner` and
+  `AgentHttpRunner` drive when given one (`hitlBridge:`): several requests can wait at once, each answered by its `id`;
+  no answer within the timeout (5 minutes by default), a cancelled turn, a stopped runner or no runner at all is a
+  rejection. The interactive CLI keeps asking on the terminal.
+- **Protocol (additive):** `hitl_request` carries `tool_name`, `arguments`, `call_id` (matches the `tool_start`) and
+  `level`; `hitl_response` carries `id`, `modified_arguments` and `always_approve`. A response without `id` still answers
+  the only waiting request.
+
+### Changed
+- **Breaking: `AgentHttpRunner.WaitForHitlResponseAsync` and `ResolveHitl` are removed.** The runner routes every
+  `hitl_response` to the `HitlBridge` it was given. Migration: pass `hitlBridge:` to the runner and give the same bridge
+  to the approval gate as its approver, instead of wiring a wait/resolve pair yourself.
+- **Planning mode is enforced in the CLI and `run --server`:** while planning, only read-only tools run
+  (`IronHive.Agent` 0.29.0's gate).
+- `IronHive.Agent` 0.28.0 → 0.29.0 (the tool-call policy; see its changelog).
+
 ## 0.30.3 — 2026-10-01
 
 ### Changed

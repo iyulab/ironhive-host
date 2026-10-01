@@ -26,7 +26,7 @@ public class CliToolInvocationPipelineTests
     public void Pipeline_RunsTheLoopGuardsBeforeTheGate_AndTheResilientStepLast()
     {
         var pipeline = CliServices.CreateToolInvocationPipeline(
-            Substitute.For<IModeToolFilter>(), approvalService: null, loggerFactory: null);
+            Substitute.For<IToolCallPolicy>(), approvalService: null, loggerFactory: null);
 
         pipeline.InvocationMiddleware.Select(m => m.GetType()).Should().Equal(
             typeof(ArgumentParseFailureMiddleware),
@@ -63,7 +63,7 @@ public class CliToolInvocationPipelineTests
 
         await client.GetResponseAsync("go", new ChatOptions { Tools = [new MissingPathFunction()] }, TestContext.Current.CancellationToken);
 
-        filter.Received(1).AssessRisk("read_file", Arg.Any<IDictionary<string, object?>?>());
+        filter.Received(1).Evaluate("read_file", Arg.Any<IDictionary<string, object?>?>());
         var result = inner.ToolResults.Should().ContainSingle().Subject;
         result.Exception.Should().BeNull("the marshaller error is answered with a directive, not reported as a failure");
         result.Result.Should().BeOfType<string>().Which.Should().Contain("required parameter 'path'");
@@ -105,14 +105,14 @@ public class CliToolInvocationPipelineTests
             r.Result.Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.RepeatedCall));
     }
 
-    private static IChatClient Decorate(IChatClient inner, IModeToolFilter filter) =>
+    private static IChatClient Decorate(IChatClient inner, IToolCallPolicy filter) =>
         CliServices.DecorateChatClient(
             inner, new ChatBehaviorConfig(), CliServices.CreateToolInvocationPipeline(filter, approvalService: null, loggerFactory: null));
 
-    private static IModeToolFilter FilterWith(PermissionAction verdict)
+    private static IToolCallPolicy FilterWith(PermissionAction verdict)
     {
-        var filter = Substitute.For<IModeToolFilter>();
-        filter.AssessRisk(Arg.Any<string>(), Arg.Any<IDictionary<string, object?>?>())
+        var filter = Substitute.For<IToolCallPolicy>();
+        filter.Evaluate(Arg.Any<string>(), Arg.Any<IDictionary<string, object?>?>())
             .Returns(verdict == PermissionAction.Allow
                 ? RiskAssessment.Safe
                 : RiskAssessment.Risky(RiskLevel.High, "not in this test", verdict: verdict));

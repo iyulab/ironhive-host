@@ -34,7 +34,7 @@ public class ConsoleApprovalServiceTests
     [Fact]
     public async Task ThroughTheGate_ANonInteractiveRejection_ReachesTheModelAsAResult_NotAnException()
     {
-        var filter = new ModeToolFilter(PermissionConfig.CreateDefault());
+        var filter = new ToolCallPolicy(PermissionConfig.CreateDefault());
         var pipeline = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.CreateToolInvocationPipeline(
             filter, new ConsoleApprovalService(() => false), loggerFactory: null);
         var ran = false;

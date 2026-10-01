@@ -28,6 +28,7 @@ public partial class AgentServerRunner
     private readonly Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
     private readonly ILogger<AgentServerRunner> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly HitlBridge? _hitl;
 
     private string? _workingPath;
 
@@ -52,15 +53,20 @@ public partial class AgentServerRunner
     /// When provided, a new <see cref="JsonSerializerOptions"/> is created from <paramref name="jsonOptions"/>
     /// with the modifiers applied — the original options object is not mutated.
     /// </param>
+    /// <param name="hitlBridge">The approver the agent's gate asks: while the runner runs, its approval requests are written
+    /// as <see cref="HitlRequestEvent"/> lines and each <see cref="HitlResponseRequest"/> read from the input answers one.
+    /// Without it, a <c>hitl_response</c> line is ignored.</param>
     public AgentServerRunner(
         Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
         ILogger<AgentServerRunner> logger,
         JsonSerializerOptions? jsonOptions = null,
-        Action<JsonTypeInfo>[]? typeInfoModifiers = null)
+        Action<JsonTypeInfo>[]? typeInfoModifiers = null,
+        HitlBridge? hitlBridge = null)
     {
         _processMessage = processMessage;
         _logger = logger;
         _jsonOptions = ApplyModifiers(jsonOptions ?? DefaultJsonOpts, typeInfoModifiers);
+        _hitl = hitlBridge;
     }
 
     internal static JsonSerializerOptions ApplyModifiers(
@@ -109,6 +115,10 @@ public partial class AgentServerRunner
         CancellationTokenSource? messageCts = null;
         Task? handleTask = null;
 
+        // The turn writes its events while an approval request is published from inside a tool call: one line at a time.
+        using var writeLock = new SemaphoreSlim(1, 1);
+        using var hitlAttachment = _hitl?.Attach((evt, token) => WriteSerializedAsync(output, writeLock, evt, token));
+
         try
         {
             await foreach (var request in channel.Reader.ReadAllAsync(ct))
@@ -131,6 +141,12 @@ public partial class AgentServerRunner
                     continue;
                 }
 
+                if (request is HitlResponseRequest hitl)
+                {
+                    _hitl?.Resolve(hitl);
+                    continue;
+                }
+
                 if (request is UserMessageRequest msg)
                 {
                     // Ensure the previous message has fully completed (TurnEndEvent written)
@@ -143,7 +159,7 @@ public partial class AgentServerRunner
                     messageCts?.Dispose();
                     messageCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                     handleTask = HandleMessageAsync(
-                        msg with { Content = BuildContextualContent(msg.Content) }, output, messageCts.Token);
+                        msg with { Content = BuildContextualContent(msg.Content) }, output, writeLock, messageCts.Token);
 
                     // Fire-and-forget: keep draining the channel so CancelRequest
                     // can be processed while handleTask runs concurrently.
@@ -184,7 +200,7 @@ public partial class AgentServerRunner
     }
 
     private async Task HandleMessageAsync(
-        UserMessageRequest msg, TextWriter output, CancellationToken ct)
+        UserMessageRequest msg, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)
     {
         var turnEndSent = false;
         try
@@ -196,7 +212,7 @@ public partial class AgentServerRunner
                     turnEndSent = true;
                 }
 
-                await WriteEventAsync(output, evt, _jsonOptions);
+                await WriteSerializedAsync(output, writeLock, evt, CancellationToken.None);
             }
         }
         catch (OperationCanceledException)
@@ -206,7 +222,7 @@ public partial class AgentServerRunner
         catch (Exception ex)
         {
             LogAgentProcessingError(ex);
-            await WriteEventAsync(output, new ErrorEvent(ex.Message), _jsonOptions);
+            await WriteSerializedAsync(output, writeLock, new ErrorEvent(ex.Message), CancellationToken.None);
         }
         finally
         {
@@ -216,8 +232,21 @@ public partial class AgentServerRunner
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await WriteEventAsync(output, new TurnEndEvent(), _jsonOptions);
+                await WriteSerializedAsync(output, writeLock, new TurnEndEvent(), CancellationToken.None);
             }
+        }
+    }
+
+    private async Task WriteSerializedAsync(TextWriter output, SemaphoreSlim writeLock, ServerEvent evt, CancellationToken ct)
+    {
+        await writeLock.WaitAsync(ct);
+        try
+        {
+            await WriteEventAsync(output, evt, _jsonOptions);
+        }
+        finally
+        {
+            writeLock.Release();
         }
     }
 

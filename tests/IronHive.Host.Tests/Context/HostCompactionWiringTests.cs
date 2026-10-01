@@ -125,7 +125,7 @@ public class HostCompactionWiringTests
         // The CLI builds its chat clients before a loop's ContextManager exists; the loop binds its own manager to the
         // ToolRoundContextChatClient inside function invocation, so every tool round of a turn is reduced.
         var pipeline = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.CreateToolInvocationPipeline(
-            Substitute.For<IronHive.Agent.Mode.IModeToolFilter>(), approvalService: null, loggerFactory: null);
+            Substitute.For<IronHive.Agent.Mode.IToolCallPolicy>(), approvalService: null, loggerFactory: null);
         var client = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.DecorateChatClient(
             Substitute.For<IChatClient>(), new IronHive.Host.Config.ChatBehaviorConfig(), pipeline);
         var roundContext = client.GetService<IronHive.Agent.Context.ToolRoundContextChatClient>();

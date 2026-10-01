@@ -17,6 +17,7 @@ using IronHive.DeepResearch.Models.Research;
 using IronHive.Host.Config;
 using IronHive.Host.Oops;
 using IronHive.Host.Providers;
+using IronHive.Host.Server;
 using IronHive.Host.Session;
 using IronHive.Host.Tools;
 using IronHive.Host.Update;
@@ -65,16 +66,18 @@ public static class ServiceCollectionExtensions
     /// <item><see cref="ArgumentParseFailureMiddleware"/> — a call whose arguments could not be parsed is not run.</item>
     /// <item><see cref="RepeatedCallGuardMiddleware"/> — the same call after three successful runs in a row is not run.</item>
     /// <item><see cref="RepeatedErrorGuardMiddleware"/> — the same error three times in a row ends the turn with a result.</item>
-    /// <item><see cref="ApprovalGateMiddleware"/> — the permission rules and the approval prompt (Allow / Deny / Ask).</item>
+    /// <item><see cref="ApprovalGateMiddleware"/> — Planning mode, then the permission rules and the approval prompt (Allow / Deny / Ask).</item>
     /// <item><see cref="ResilientArgumentsMiddleware"/> — arguments that do not bind become a recovery directive.</item>
     /// </list>
     /// The loop guards sit in front of the gate so the user is never asked to approve a call that would be refused
     /// anyway; the resilient step sits directly around the tool, so the error guard only counts errors it lets through.
     /// </summary>
     internal static ToolInvocationPipeline CreateToolInvocationPipeline(
-        IModeToolFilter modeToolFilter,
+        IToolCallPolicy policy,
         IHumanApprovalService? approvalService,
-        ILoggerFactory? loggerFactory)
+        ILoggerFactory? loggerFactory,
+        IModeManager? modeManager = null,
+        IModeToolFilter? modeToolFilter = null)
     {
         var options = new ToolInvocationOptions();
         return new ToolInvocationPipeline(
@@ -82,7 +85,7 @@ public static class ServiceCollectionExtensions
             new ArgumentParseFailureMiddleware(options, loggerFactory?.CreateLogger<ArgumentParseFailureMiddleware>()),
             new RepeatedCallGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedCallGuardMiddleware>()),
             new RepeatedErrorGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedErrorGuardMiddleware>()),
-            new ApprovalGateMiddleware(modeToolFilter, approvalService, loggerFactory?.CreateLogger<ApprovalGateMiddleware>()),
+            new ApprovalGateMiddleware(policy, approvalService, loggerFactory?.CreateLogger<ApprovalGateMiddleware>(), modeManager, modeToolFilter),
             new ResilientArgumentsMiddleware(),
         ]);
     }
@@ -205,7 +208,12 @@ public static class ServiceCollectionExtensions
             var ironHiveConfig = sp.GetRequiredService<IronHiveConfig>();
             return new ModeToolFilter(ironHiveConfig.Permissions);
         });
-        services.AddSingleton<IHumanApprovalService, Services.ConsoleApprovalService>();
+        services.AddSingleton<IToolCallPolicy>(sp =>
+            new ToolCallPolicy(sp.GetRequiredService<IronHiveConfig>().Permissions));
+        // The terminal answers approvals, except while `run --server` has a client attached to the bridge.
+        services.AddSingleton<HitlBridge>(_ => new HitlBridge());
+        services.AddSingleton<Services.ConsoleApprovalService>();
+        services.AddSingleton<IHumanApprovalService, Services.HostApprovalService>();
         services.AddSingleton<IReplanningService, ReplanningService>();
 
         // Register update service for self-update functionality
@@ -607,9 +615,11 @@ public static class ServiceCollectionExtensions
             // turn, a retry storm must not overflow a small context window, and the right caps
             // differ between a 4K and a 16K+ model.
             var toolInvocationPipeline = CreateToolInvocationPipeline(
-                sp.GetRequiredService<IModeToolFilter>(),
+                sp.GetRequiredService<IToolCallPolicy>(),
                 sp.GetService<IHumanApprovalService>(),
-                sp.GetService<ILoggerFactory>());
+                sp.GetService<ILoggerFactory>(),
+                sp.GetService<IModeManager>(),
+                sp.GetRequiredService<IModeToolFilter>());
             IChatClient ClientDecorator(IChatClient inner) =>
                 DecorateChatClient(inner, config.ChatBehavior, toolInvocationPipeline);
 

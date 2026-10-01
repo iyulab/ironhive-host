@@ -8,8 +8,8 @@ namespace IronHive.Host.Tests.Architecture;
 /// <summary>
 /// A protocol type is a promise to the client: an event the host says it can send, a request it says
 /// it can act on. <c>ToolEndEvent</c> was declared from the start and emitted by nothing, so clients saw
-/// tools start and never what they returned; <c>HitlRequestEvent</c> and its response request have
-/// existed as long and no runner has ever sent the request. These facts pin every declared type to a
+/// tools start and never what they returned; <c>HitlRequestEvent</c> and its response request
+/// existed as long before any runner sent the request. These facts pin every declared type to a
 /// site in host source that constructs (events) or consumes (requests) it, and name the ones that
 /// are still unconnected so adding a type without a site — or silently leaving one dead — fails here.
 /// </summary>
@@ -21,7 +21,6 @@ public class ProtocolTypesHaveASiteTests
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> KnownUnemittedEvents = new Dictionary<string, string>
     {
-        ["HitlRequestEvent"] = "server-mode approval bridge to IHumanApprovalService is an open design item; until then Ask is refused with a reason",
         ["AgentSelectedEvent"] = "orchestration routing event with no producer in the host runners",
         ["PlanCreatedServerEvent"] = "planning events have no producer on the server path",
         ["PlanStepStartedServerEvent"] = "planning events have no producer on the server path",

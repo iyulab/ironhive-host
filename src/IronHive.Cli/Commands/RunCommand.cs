@@ -22,11 +22,13 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     private readonly IHostAgentLoopFactory _factory;
     private readonly IMcpPluginManager? _pluginManager;
+    private readonly HitlBridge? _hitlBridge;
 
-    public RunCommand(IHostAgentLoopFactory factory, IMcpPluginManager? pluginManager = null)
+    public RunCommand(IHostAgentLoopFactory factory, IMcpPluginManager? pluginManager = null, HitlBridge? hitlBridge = null)
     {
         _factory = factory;
         _pluginManager = pluginManager;
+        _hitlBridge = hitlBridge;
     }
 
     public class Settings : CommandSettings
@@ -239,7 +241,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             }
 
             var logger = NullLogger<AgentServerRunner>.Instance;
-            var runner = new AgentServerRunner(ProcessMessage, logger);
+            var runner = new AgentServerRunner(ProcessMessage, logger, hitlBridge: _hitlBridge);
             await runner.RunAsync(ct);
 
             return 0;

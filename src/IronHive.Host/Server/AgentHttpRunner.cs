@@ -49,7 +49,7 @@ public sealed partial class AgentHttpRunner : IDisposable
 
     private CancellationTokenSource? _turnCts;
     private string? _workingPath;
-    private TaskCompletionSource<HitlResponseRequest>? _pendingHitl;
+    private readonly HitlBridge? _hitl;
 
     /// <summary>
     /// Optional callback invoked when a context update is received.
@@ -71,19 +71,24 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// Optional modifiers applied to <see cref="DefaultJsonTypeInfoResolver"/> to extend or override
     /// polymorphic type registrations. Applied in order; each modifier is appended to the resolver chain.
     /// </param>
+    /// <param name="hitlBridge">The approver the agent's gate asks: while the runner runs, its approval requests are posted
+    /// as <see cref="HitlRequestEvent"/>s and each <see cref="HitlResponseRequest"/> from the inbox answers one. Without
+    /// it, a <c>hitl_response</c> is ignored.</param>
     public AgentHttpRunner(
         string hostUrl,
         string sessionId,
         Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
         ILogger<AgentHttpRunner> logger,
         JsonSerializerOptions? jsonOptions = null,
-        Action<JsonTypeInfo>[]? typeInfoModifiers = null)
+        Action<JsonTypeInfo>[]? typeInfoModifiers = null,
+        HitlBridge? hitlBridge = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hostUrl);
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
         ArgumentNullException.ThrowIfNull(processMessage);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _hitl = hitlBridge;
         _processMessage = processMessage;
         _sessionId = sessionId;
         _logger = logger;
@@ -97,30 +102,12 @@ public sealed partial class AgentHttpRunner : IDisposable
     }
 
     /// <summary>
-    /// Resolves a pending HITL request. Called externally when the host relays the user's response.
-    /// </summary>
-    public void ResolveHitl(HitlResponseRequest response)
-    {
-        _pendingHitl?.TrySetResult(response);
-    }
-
-    /// <summary>
-    /// Waits for a HITL response from the host. Called from within the agent pipeline.
-    /// </summary>
-    public Task<HitlResponseRequest> WaitForHitlResponseAsync(CancellationToken ct)
-    {
-        _pendingHitl = new TaskCompletionSource<HitlResponseRequest>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        ct.Register(() => _pendingHitl.TrySetCanceled(ct));
-        return _pendingHitl.Task;
-    }
-
-    /// <summary>
     /// Runs the agent loop: signals readiness, subscribes to the SSE inbox, and processes commands
     /// until shutdown or cancellation.
     /// </summary>
     public async Task RunAsync(CancellationToken ct = default)
     {
+        using var hitlAttachment = _hitl?.Attach(PostEventAsync);
         await PostReadyAsync(ct);
         await ProcessInboxAsync(ct);
     }
@@ -187,7 +174,7 @@ public sealed partial class AgentHttpRunner : IDisposable
 
                 if (serverRequest is HitlResponseRequest hitl)
                 {
-                    _pendingHitl?.TrySetResult(hitl);
+                    _hitl?.Resolve(hitl);
                     continue;
                 }
 

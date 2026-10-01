@@ -46,7 +46,22 @@ public record TurnOptions(
     float? Temperature = null,
     int? MaxOutputTokens = null);
 
-public record HitlResponseRequest(bool Approved, string? Reason = null) : ServerRequest;
+/// <summary>
+/// A client's answer to a <see cref="HitlRequestEvent"/>.
+/// </summary>
+/// <param name="Approved">Run the call.</param>
+/// <param name="Reason">Why it was declined; the model reads it.</param>
+/// <param name="Id">The <see cref="HitlRequestEvent.Id"/> being answered. Without it the answer resolves the request only
+/// when exactly one is waiting.</param>
+/// <param name="ModifiedArguments">Arguments to run the call with instead of the model's, when the person edited them.</param>
+/// <param name="AlwaysApprove">The person asked to approve this kind of call from now on (the approver decides what that
+/// covers).</param>
+public record HitlResponseRequest(
+    bool Approved,
+    string? Reason = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Id = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Dictionary<string, JsonElement>? ModifiedArguments = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool AlwaysApprove = false) : ServerRequest;
 
 public record ShutdownRequest() : ServerRequest;
 
@@ -106,7 +121,27 @@ public record ToolStartEvent(string Tool, JsonElement? Input = null, string? Cal
 /// </summary>
 public record ToolEndEvent(string Tool, bool Success, string? Output = null, string? CallId = null) : ServerEvent;
 
-public record HitlRequestEvent(string Id, string Action, string Target, string Description) : ServerEvent;
+/// <summary>
+/// A tool call that needs a person's approval before it runs. The call waits; answer with a
+/// <see cref="HitlResponseRequest"/> carrying this <see cref="Id"/>. Several requests can wait at once.
+/// </summary>
+/// <param name="Id">Identifies this request; echo it in the answer.</param>
+/// <param name="Action">What the call would do (the verdict's reason, or the tool name).</param>
+/// <param name="Target">The call's primary argument (a path, command, url or query), or empty.</param>
+/// <param name="Description">The question to show the person.</param>
+/// <param name="ToolName">The tool being called.</param>
+/// <param name="Arguments">The call's arguments.</param>
+/// <param name="CallId">The call's id — the same as the <see cref="ToolStartEvent.CallId"/> of the call it is about.</param>
+/// <param name="Level">Risk level: <c>low</c>, <c>medium</c>, <c>high</c> or <c>critical</c>.</param>
+public record HitlRequestEvent(
+    string Id,
+    string Action,
+    string Target,
+    string Description,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ToolName = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] JsonElement? Arguments = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Level = null) : ServerEvent;
 
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;
 
