@@ -43,6 +43,21 @@ public sealed class ConfigurationManagerFallbackTests : IDisposable
     }
 
     [Fact]
+    public void ConfigYamlPermissions_ThatOnlyTurnOffAskBeforeDelete_AreNotDropped()
+    {
+        _dirs.WriteGlobal("""
+            permissions:
+              askBeforeDelete: false
+            """);
+
+        var config = new ConfigurationManager(_dirs.ProjectRoot, _dirs.GlobalConfigPath).Load();
+
+        config.Permissions.AskBeforeDelete.Should().BeFalse();
+        new ConfigurationManager(_dirs.ProjectRoot, _dirs.GlobalConfigPath + ".none").Load()
+            .Permissions.AskBeforeDelete.Should().BeTrue("the default asks before a delete");
+    }
+
+    [Fact]
     public void AProjectPermissionFile_TakesPrecedenceOverConfigYaml()
     {
         _dirs.WriteGlobal(ConfigPermissions);

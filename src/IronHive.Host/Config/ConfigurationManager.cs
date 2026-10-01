@@ -401,7 +401,8 @@ public class ConfigurationManager
         if (source.Permissions.Read.Count > 0 || source.Permissions.Edit.Count > 0 ||
             source.Permissions.Bash.Count > 0 || source.Permissions.ExternalDirectory.Count > 0 ||
             source.Permissions.McpTools.Count > 0 || source.Permissions.Tools.Count > 0 ||
-            source.Permissions.ReadOnlyTools.Count > 0 || source.Permissions.DefaultAction != PermissionAction.Ask)
+            source.Permissions.ReadOnlyTools.Count > 0 || source.Permissions.DefaultAction != PermissionAction.Ask ||
+            !source.Permissions.AskBeforeDelete)
         {
             target.Permissions = source.Permissions;
         }
