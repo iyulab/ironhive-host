@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.21.8" />
+    <PackageVersion Include="Ironbees.Core" Version="0.21.9" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
@@ -42,17 +42,17 @@
     <PackageVersion Include="IronHive.Agent.Memory" Version="0.29.0" />
     <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.29.0" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.45.3" />
-    <PackageVersion Include="IronHive.Core" Version="0.45.3" />
-    <PackageVersion Include="IronHive.Extensions.AI" Version="0.45.3" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.45.3" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.45.3" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.45.3" />
-    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.45.3" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.45.4" />
+    <PackageVersion Include="IronHive.Core" Version="0.45.4" />
+    <PackageVersion Include="IronHive.Extensions.AI" Version="0.45.4" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.45.4" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.45.4" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.45.4" />
+    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.45.4" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.3.0" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.28.0" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.29.0" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.6.2" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.6.2" />

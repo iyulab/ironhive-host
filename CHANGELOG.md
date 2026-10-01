@@ -25,6 +25,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **Planning mode is enforced in the CLI and `run --server`:** while planning, only read-only tools run
   (`IronHive.Agent` 0.29.0's gate).
 - `IronHive.Agent` 0.28.0 → 0.29.0 (the tool-call policy; see its changelog).
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.8 -> 0.21.9, `IronHive.Abstractions` 0.45.3 -> 0.45.4, `IronHive.Core` 0.45.3 -> 0.45.4, `IronHive.DeepResearch` 0.28.0 -> 0.29.0, `IronHive.Extensions.AI` 0.45.3 -> 0.45.4, `IronHive.Providers.Anthropic` 0.45.3 -> 0.45.4, `IronHive.Providers.GoogleAI` 0.45.3 -> 0.45.4, `IronHive.Providers.OpenAI` 0.45.3 -> 0.45.4, `IronHive.Providers.OpenAI.Compatible` 0.45.3 -> 0.45.4.
 
 ## 0.30.3 — 2026-10-01
 
