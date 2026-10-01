@@ -506,6 +506,17 @@ public class ConfigurationManager
             target.Advisor.MaxCalls = source.Advisor.MaxCalls;
         }
 
+        // AgentsMd
+        if (source.AgentsMd.Enabled is { } agentsMdEnabled)
+        {
+            target.AgentsMd.Enabled = agentsMdEnabled;
+        }
+
+        if (source.AgentsMd.MaxCharacters > 0)
+        {
+            target.AgentsMd.MaxCharacters = source.AgentsMd.MaxCharacters;
+        }
+
         // Budget — a scope that sets a limit replaces the section (its threshold and stop flag go with its limits).
         if (source.Budget.MaxSessionTokens > 0 || source.Budget.MaxSessionCost > 0)
         {

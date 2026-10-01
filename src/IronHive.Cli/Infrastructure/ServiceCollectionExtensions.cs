@@ -194,7 +194,8 @@ public static class ServiceCollectionExtensions
                 skills: sp.GetService<IronHive.Agent.Skills.SkillsLoader>(),
                 fileToolOptions: sp.GetService<IronHive.Agent.Tools.FileToolOptions>(),
                 permissions: config.Permissions,
-                budget: config.Budget);
+                budget: config.Budget,
+                agentsMd: config.AgentsMd);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.

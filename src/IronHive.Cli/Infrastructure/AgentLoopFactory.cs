@@ -39,6 +39,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly FileToolOptions? _fileToolOptions;
     private readonly PermissionConfig? _permissions;
     private readonly UsageLimitsConfig? _budget;
+    private readonly AgentsMdHostConfig? _agentsMd;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -88,9 +89,11 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         SkillsLoader? skills = null,
         FileToolOptions? fileToolOptions = null,
         PermissionConfig? permissions = null,
-        UsageLimitsConfig? budget = null)
+        UsageLimitsConfig? budget = null,
+        AgentsMdHostConfig? agentsMd = null)
     {
         _budget = budget;
+        _agentsMd = agentsMd;
         _instructionContributors = instructionContributors?.ToArray() ?? [];
         _skills = skills;
         _fileToolOptions = fileToolOptions;
@@ -179,13 +182,31 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // Wire context compaction from host config so long sessions compact history
         // instead of overflowing. Without this the loop's ContextManager stays null and
         // CompactionConfig is inert. Model-aware so the context window matches the active model.
-        var contextManager = HostContextManagerFactory.Create(_compactionConfig, options.Model, _instructionContributors);
+        var contextManager = HostContextManagerFactory.Create(
+            _compactionConfig, options.Model, InstructionContributorsFor(workingDirectory));
 
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
             errorRecovery: _errorRecovery, usageLimiter: usageLimiter);
         return new CreatedAgentLoop(loop, tools.AsReadOnly());
+    }
+
+    /// <summary>
+    /// The registered contributors, plus — unless <c>agentsMd.enabled</c> is <c>false</c> — the AGENTS.md files of this
+    /// loop's working directory (each server session has its own).
+    /// </summary>
+    private IronHive.Agent.Context.ISystemInstructionContributor[] InstructionContributorsFor(string workingDirectory)
+    {
+        if (_agentsMd?.Enabled == false)
+        {
+            return _instructionContributors;
+        }
+
+        var agentsMdOptions = _agentsMd is { MaxCharacters: > 0 } configured
+            ? new IronHive.Agent.Context.AgentsMdOptions { MaxCharacters = configured.MaxCharacters }
+            : null;
+        return [.. _instructionContributors, new IronHive.Agent.Context.AgentsMdInstructions(workingDirectory, agentsMdOptions)];
     }
 
     /// <summary>A limiter for one session from the configured budget, or <c>null</c> when it sets no limit.</summary>

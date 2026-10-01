@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.34.0 — Unreleased
+
+### Added
+- **AGENTS.md is read.** CLI and `run --server` loops add the AGENTS.md files that apply to their working directory —
+  from the repository root down, root first so the nearest file wins — to the system instructions, re-read every turn.
+  On by default; `agentsMd: { enabled: false }` turns it off, `maxCharacters` bounds it. Each server session reads its
+  own working directory. Nothing above the repository root is read.
+
+### Dependencies
+- `IronHive.Agent` 0.33.0 -> 0.34.0 (`AgentsMdInstructions`).
+
 ## 0.33.0 — 2026-10-01
 
 ### Added

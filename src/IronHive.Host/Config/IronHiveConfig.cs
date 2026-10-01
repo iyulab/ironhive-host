@@ -82,6 +82,13 @@ public class IronHiveConfig
     public UsageLimitsConfig Budget { get; set; } = new();
 
     /// <summary>
+    /// AGENTS.md loading for CLI / <c>run --server</c> loops: the files from the repository root down to the session's
+    /// working directory join the system instructions, nearest last. On unless <see cref="AgentsMdHostConfig.Enabled"/>
+    /// is <c>false</c>.
+    /// </summary>
+    public AgentsMdHostConfig AgentsMd { get; set; } = new();
+
+    /// <summary>
     /// WebLookup web search configuration.
     /// </summary>
     public WebSearchConfig WebSearch { get; set; } = new();
@@ -564,4 +571,17 @@ public class DeepResearchConfig
     /// If not set, uses the provider's default model.
     /// </summary>
     public string? Model { get; set; }
+}
+
+/// <summary>
+/// The <c>agentsMd</c> section: whether CLI / server loops read the AGENTS.md files that apply to their working directory
+/// (<c>IronHive.Agent.Context.AgentsMdInstructions</c>) and how much of them.
+/// </summary>
+public sealed class AgentsMdHostConfig
+{
+    /// <summary><c>false</c> turns AGENTS.md loading off; unset (the default) or <c>true</c> keeps it on.</summary>
+    public bool? Enabled { get; set; }
+
+    /// <summary>The most characters of AGENTS.md text to add (0 = the library default, 32,000).</summary>
+    public int MaxCharacters { get; set; }
 }
