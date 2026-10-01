@@ -538,7 +538,7 @@ session the terminal answers.
 | `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
 | `TextDeltaEvent` | `text_delta` | `Content` |
 | `AddendumEvent` | `addendum` | `Content` — a turn observer's note, at most once per turn, after the last `text_delta` and before `turn_end`; not the model's words, never in history |
-| `TurnEndEvent` | `turn_end` | `InputTokens?`, `OutputTokens?`, `TotalTokens?` (summed across every model round-trip in the turn; null when the provider reported no usage) |
+| `TurnEndEvent` | `turn_end` | `InputTokens?`, `OutputTokens?`, `TotalTokens?` (summed across every model round-trip in the turn; null when the provider reported no usage), `CachedInputTokens?`, `StopReason?` (`completed` · `output_limit` · `content_filter` · `tool_terminated` · `awaiting_host_tools` · `step_limit`; null when the turn failed or was cancelled), `DurationMs?` |
 | `ErrorEvent` | `error` | `Message` |
 
 `IronHive.Host.Protocol` also declares `agent_selected` (`AgentSelectedEvent`), `plan_created`, `plan_step_started`,

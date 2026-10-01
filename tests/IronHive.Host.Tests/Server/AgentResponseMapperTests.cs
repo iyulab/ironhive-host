@@ -25,6 +25,39 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_TurnEnd_CarriesStopReasonCachedTokensAndDuration()
+    {
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { TextDelta = "partial" },
+            new AgentResponseChunk
+            {
+                Usage = new TokenUsage { InputTokens = 100, OutputTokens = 20, CachedInputTokens = 60 },
+                Turn = new TurnRecord { Content = "partial", StopReason = TurnStopReason.OutputLimit },
+            });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var end = events[^1].Should().BeOfType<TurnEndEvent>().Subject;
+        end.InputTokens.Should().Be(100);
+        end.CachedInputTokens.Should().Be(60);
+        end.StopReason.Should().Be("output_limit");
+        end.DurationMs.Should().NotBeNull().And.BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public void Every_stop_reason_has_a_wire_name()
+    {
+        // A new TurnStopReason member must get a protocol spelling here, not throw on a client's turn.
+        foreach (var reason in Enum.GetValues<TurnStopReason>())
+        {
+            AgentResponseMapper.WireName(reason).Should().MatchRegex("^[a-z_]+$");
+        }
+    }
+
+    [Fact]
     public async Task ToServerEvents_AddendumOnTheFinalChunk_YieldsItsOwnEventBeforeTurnEnd()
     {
         // The observer's note must not leave the host as one more text_delta: a client that

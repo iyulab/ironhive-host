@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.32.0 — Unreleased
+
+### Added
+- **`turn_end` says why the turn ended and how long it took**: `TurnEndEvent.StopReason` (`completed`, `output_limit`,
+  `content_filter`, `tool_terminated`, `awaiting_host_tools`, `step_limit` — null when the turn failed or was
+  cancelled), `DurationMs`, and `CachedInputTokens` (prompt-cache reads, when the provider reported them). Additive:
+  existing fields and clients are unchanged.
+
+### Changed
+- Re-pinned `IronHive.Agent` / `.Agent.Ironbees` / `.Agent.Memory` / `IronHive.DeepResearch` 0.31.0 -> 0.32.0 (turn stop
+  reasons, `MaxTurnDuration`).
+
 ## 0.31.3 — 2026-10-01
 
 ### Changed

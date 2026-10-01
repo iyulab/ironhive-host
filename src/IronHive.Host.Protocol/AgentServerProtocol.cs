@@ -159,6 +159,24 @@ public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) 
     public long? TotalTokens => InputTokens is null && OutputTokens is null
         ? null
         : (InputTokens ?? 0) + (OutputTokens ?? 0);
+
+    /// <summary>
+    /// How many of <see cref="InputTokens"/> the provider read from its prompt cache; null when it reported none.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? CachedInputTokens { get; init; }
+
+    /// <summary>
+    /// Why the turn ended, when it ended without an error: <c>completed</c>, <c>output_limit</c>, <c>content_filter</c>,
+    /// <c>tool_terminated</c>, <c>awaiting_host_tools</c> or <c>step_limit</c>. Null when the turn failed or was cancelled
+    /// (an <see cref="ErrorEvent"/> says why), or the turn produced no record.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StopReason { get; init; }
+
+    /// <summary>Wall-clock time of the turn in milliseconds, from its first event to this one; null when unknown.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? DurationMs { get; init; }
 }
 
 public record ErrorEvent(string Message) : ServerEvent;

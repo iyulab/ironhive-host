@@ -22,7 +22,10 @@ public static class AgentResponseMapper
     {
         long inputTokens = 0;
         long outputTokens = 0;
+        long cachedInputTokens = 0;
         var hasUsage = false;
+        TurnStopReason? stopReason = null;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         // Outcomes already relayed as they arrived; the final turn record repeats them (built by the same rule).
         var relayed = new List<ToolCallResult>();
 
@@ -90,12 +93,34 @@ public static class AgentResponseMapper
                 // across every round-trip in the turn (tool-calling turns make several).
                 inputTokens += chunk.Usage.InputTokens;
                 outputTokens += chunk.Usage.OutputTokens;
+                cachedInputTokens += chunk.Usage.CachedInputTokens;
                 hasUsage = true;
+            }
+
+            if (chunk.Turn is not null)
+            {
+                stopReason = chunk.Turn.StopReason;
             }
         }
 
-        yield return hasUsage
-            ? new TurnEndEvent(inputTokens, outputTokens)
-            : new TurnEndEvent();
+        var end = hasUsage ? new TurnEndEvent(inputTokens, outputTokens) : new TurnEndEvent();
+        yield return end with
+        {
+            CachedInputTokens = hasUsage && cachedInputTokens > 0 ? cachedInputTokens : null,
+            StopReason = stopReason is { } reason ? WireName(reason) : null,
+            DurationMs = clock.ElapsedMilliseconds,
+        };
     }
+
+    /// <summary>The protocol spelling of a stop reason (snake_case, stable across renames of the enum).</summary>
+    internal static string WireName(TurnStopReason reason) => reason switch
+    {
+        TurnStopReason.Completed => "completed",
+        TurnStopReason.OutputLimit => "output_limit",
+        TurnStopReason.ContentFilter => "content_filter",
+        TurnStopReason.ToolTerminated => "tool_terminated",
+        TurnStopReason.AwaitingHostTools => "awaiting_host_tools",
+        TurnStopReason.StepLimit => "step_limit",
+        _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "A stop reason without a wire name."),
+    };
 }
