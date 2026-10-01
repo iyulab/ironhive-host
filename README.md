@@ -314,6 +314,7 @@ The loader accepts these top-level keys in `config.yaml`. Acronym provider secti
 | `advisor` | `provider`, `model`, `maxCalls` (per session, default 5) — off until `model` is set; CLI / `run --server` loops only |
 | `budget` | `maxSessionTokens`, `maxSessionCost` (USD, TokenMeter catalog prices), `warningThreshold` (default 0.8), `stopOnLimit` (default true) — per session (one CLI session, one `run --server` session), checked before every model call including each tool round; 0 = no limit (default); a call past it ends the turn with `UsageLimitExceededException` |
 | `agentsMd` | `enabled` (default on), `maxCharacters` (default 32,000) — the [AGENTS.md](https://agents.md) files from the repository root (the directory with `.git`) down to the session's working directory join the system instructions, root first so the nearest wins; nothing above the repository is read; CLI / `run --server` loops only |
+| `toolRetrieval` | `enabled` (default off), `maxTools` (default 10), `minRelevanceScore` (default 0.3), `minScoredSlots`, `alwaysInclude` — when on, each request sends the model only the tools most relevant to the user's request (aliases and companion tools a tool declares count) instead of every built-in and MCP tool; CLI / `run --server` loops only |
 | `skills` | `roots`, `enabled`, `exclude`, `maxMetadataCharacters` (default 12,000), `acceptUnknownFields` — off until `roots` names a directory (see **Skills**) |
 
 ```yaml

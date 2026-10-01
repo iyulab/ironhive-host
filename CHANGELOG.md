@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.35.0 — Unreleased
+
+### Added
+- **`toolRetrieval:` — send the model only the tools a request needs.** With `enabled: true`, CLI / `run --server` loops
+  connect the agent's `KeywordToolRetriever`: each request carries the tools most relevant to the user's request (up to
+  `maxTools`, plus `alwaysInclude`), instead of every built-in and MCP tool. Also `minRelevanceScore` and
+  `minScoredSlots`. Off by default — turning it on changes which tools the model sees.
+
 ## 0.34.2 — 2026-10-02
 
 ### Changed

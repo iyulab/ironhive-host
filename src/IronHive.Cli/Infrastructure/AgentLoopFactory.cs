@@ -40,6 +40,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly PermissionConfig? _permissions;
     private readonly UsageLimitsConfig? _budget;
     private readonly AgentsMdHostConfig? _agentsMd;
+    private readonly ToolRetrievalHostConfig? _toolRetrieval;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -90,10 +91,12 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         FileToolOptions? fileToolOptions = null,
         PermissionConfig? permissions = null,
         UsageLimitsConfig? budget = null,
-        AgentsMdHostConfig? agentsMd = null)
+        AgentsMdHostConfig? agentsMd = null,
+        ToolRetrievalHostConfig? toolRetrieval = null)
     {
         _budget = budget;
         _agentsMd = agentsMd;
+        _toolRetrieval = toolRetrieval;
         _instructionContributors = instructionContributors?.ToArray() ?? [];
         _skills = skills;
         _fileToolOptions = fileToolOptions;
@@ -176,7 +179,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
             Tools = tools,
             // Prices the usage the budget counts (TokenMeter catalog); an unknown model is counted in tokens only.
-            ModelId = modelId
+            ModelId = modelId,
+            ToolRetrievalOptions = ToolRetrievalOptionsFrom(_toolRetrieval),
         };
 
         // Wire context compaction from host config so long sessions compact history
@@ -188,8 +192,27 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
+            toolRetriever: _toolRetrieval?.Enabled == true ? new IronHive.Agent.Context.KeywordToolRetriever() : null,
             errorRecovery: _errorRecovery, usageLimiter: usageLimiter);
         return new CreatedAgentLoop(loop, tools.AsReadOnly());
+    }
+
+    /// <summary>The library options for the configured section, or <c>null</c> when tool retrieval is off.</summary>
+    internal static IronHive.Agent.Context.ToolRetrievalOptions? ToolRetrievalOptionsFrom(ToolRetrievalHostConfig? config)
+    {
+        if (config?.Enabled != true)
+        {
+            return null;
+        }
+
+        var defaults = new IronHive.Agent.Context.ToolRetrievalOptions();
+        return defaults with
+        {
+            MaxTools = config.MaxTools > 0 ? config.MaxTools : defaults.MaxTools,
+            MinRelevanceScore = config.MinRelevanceScore ?? defaults.MinRelevanceScore,
+            MinScoredSlots = config.MinScoredSlots,
+            AlwaysInclude = config.AlwaysInclude.Count > 0 ? [.. config.AlwaysInclude] : null,
+        };
     }
 
     /// <summary>

@@ -506,6 +506,32 @@ public class ConfigurationManager
             target.Advisor.MaxCalls = source.Advisor.MaxCalls;
         }
 
+        // ToolRetrieval — field by field, like AgentsMd: a scope sets what it states.
+        if (source.ToolRetrieval.Enabled is { } toolRetrievalEnabled)
+        {
+            target.ToolRetrieval.Enabled = toolRetrievalEnabled;
+        }
+
+        if (source.ToolRetrieval.MaxTools > 0)
+        {
+            target.ToolRetrieval.MaxTools = source.ToolRetrieval.MaxTools;
+        }
+
+        if (source.ToolRetrieval.MinRelevanceScore is { } minRelevanceScore)
+        {
+            target.ToolRetrieval.MinRelevanceScore = minRelevanceScore;
+        }
+
+        if (source.ToolRetrieval.MinScoredSlots > 0)
+        {
+            target.ToolRetrieval.MinScoredSlots = source.ToolRetrieval.MinScoredSlots;
+        }
+
+        if (source.ToolRetrieval.AlwaysInclude.Count > 0)
+        {
+            target.ToolRetrieval.AlwaysInclude = [.. source.ToolRetrieval.AlwaysInclude];
+        }
+
         // AgentsMd
         if (source.AgentsMd.Enabled is { } agentsMdEnabled)
         {

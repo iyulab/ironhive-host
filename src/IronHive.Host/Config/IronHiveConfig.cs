@@ -89,6 +89,13 @@ public class IronHiveConfig
     public AgentsMdHostConfig AgentsMd { get; set; } = new();
 
     /// <summary>
+    /// Tool retrieval for CLI / <c>run --server</c> loops: when on, each request sends the model only the tools most
+    /// relevant to the user's request (<c>IronHive.Agent.Context.KeywordToolRetriever</c>) instead of every registered
+    /// tool. Off unless <see cref="ToolRetrievalHostConfig.Enabled"/> is <c>true</c>.
+    /// </summary>
+    public ToolRetrievalHostConfig ToolRetrieval { get; set; } = new();
+
+    /// <summary>
     /// WebLookup web search configuration.
     /// </summary>
     public WebSearchConfig WebSearch { get; set; } = new();
@@ -571,6 +578,28 @@ public class DeepResearchConfig
     /// If not set, uses the provider's default model.
     /// </summary>
     public string? Model { get; set; }
+}
+
+/// <summary>
+/// The <c>toolRetrieval</c> section: whether CLI / server loops send the model a selection of the registered tools, and how
+/// that selection is made. The fields map onto <c>IronHive.Agent.Context.ToolRetrievalOptions</c>.
+/// </summary>
+public sealed class ToolRetrievalHostConfig
+{
+    /// <summary><c>true</c> turns tool retrieval on; unset (the default) or <c>false</c> sends every tool.</summary>
+    public bool? Enabled { get; set; }
+
+    /// <summary>The most tools a request carries, pinned tools aside (0 = the library default, 10).</summary>
+    public int MaxTools { get; set; }
+
+    /// <summary>The least relevance (0–1) a scored tool needs (unset = the library default, 0.3).</summary>
+    public float? MinRelevanceScore { get; set; }
+
+    /// <summary>Scored slots kept even when <see cref="AlwaysInclude"/> fills <see cref="MaxTools"/> (0 = none guaranteed).</summary>
+    public int MinScoredSlots { get; set; }
+
+    /// <summary>Tool names sent with every request whatever their score.</summary>
+    public List<string> AlwaysInclude { get; set; } = [];
 }
 
 /// <summary>
