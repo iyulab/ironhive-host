@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.31.1 — 2026-10-01
+
+### Changed
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.97.0 -> 0.98.0, `LMSupply.Generator` 0.97.0 -> 0.98.0, `LMSupply.Reranker` 0.97.0 -> 0.98.0. No source changes.
+
 ## 0.31.0 — 2026-10-01
 
 ### Added
