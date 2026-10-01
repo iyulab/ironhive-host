@@ -1,5 +1,6 @@
 using IronHive.Agent.Context;
 using IronHive.Agent.Permissions;
+using IronHive.Agent.Tracking;
 using YamlDotNet.Serialization;
 
 namespace IronHive.Host.Config;
@@ -71,6 +72,14 @@ public class IronHiveConfig
     /// the host previously duplicated a subset of these fields).
     /// </summary>
     public CompactionConfig Compaction { get; set; } = new();
+
+    /// <summary>
+    /// Usage budget per agent session (one agent loop — a CLI session, or one server session): <c>maxSessionTokens</c>,
+    /// <c>maxSessionCost</c> (USD, priced from the TokenMeter catalog), <c>warningThreshold</c>, <c>stopOnLimit</c>. Uses the
+    /// agent's <see cref="UsageLimitsConfig"/> directly. Checked before every model call, each tool round included; a call
+    /// past the limit ends the turn with <c>UsageLimitExceededException</c>. Zero (the default) means no limit.
+    /// </summary>
+    public UsageLimitsConfig Budget { get; set; } = new();
 
     /// <summary>
     /// WebLookup web search configuration.

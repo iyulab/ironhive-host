@@ -43,14 +43,15 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// The CLI's chat client pipeline around a provider's client (outer → inner): function invocation through
     /// <paramref name="toolInvocationPipeline"/> (see <see cref="CreateToolInvocationPipeline"/>), an unbound
-    /// <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own <see cref="ContextManager"/>, then
+    /// <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own <see cref="ContextManager"/>, an unbound
+    /// <see cref="UsageLimitChatClient"/> the loop binds to its own usage limiter (when a budget is set), then
     /// <see cref="TokenBudgetChatClient"/>. See the factory registration for the reasons.
     /// </summary>
     internal static IChatClient DecorateChatClient(
         IChatClient inner,
         ChatBehaviorConfig behavior,
         ToolInvocationPipeline toolInvocationPipeline)
-        => new ToolRoundContextChatClient(new TokenBudgetChatClient(inner))
+        => new ToolRoundContextChatClient(new UsageLimitChatClient(new TokenBudgetChatClient(inner)))
             .AsBuilder()
             .UseToolInvocationPipeline(toolInvocationPipeline, client =>
             {
@@ -192,7 +193,8 @@ public static class ServiceCollectionExtensions
                 sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>(),
                 skills: sp.GetService<IronHive.Agent.Skills.SkillsLoader>(),
                 fileToolOptions: sp.GetService<IronHive.Agent.Tools.FileToolOptions>(),
-                permissions: config.Permissions);
+                permissions: config.Permissions,
+                budget: config.Budget);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.
@@ -602,6 +604,8 @@ public static class ServiceCollectionExtensions
             //   FunctionInvokingChatClient (M.E.AI tool-call orchestrator, installed by UseToolInvocationPipeline)
             //     → ToolRoundContextChatClient (unbound here; the agent loop binds its own ContextManager, so each
             //       tool round of a turn gets tool-result compaction and observation masking — not only the first call)
+            //       → UsageLimitChatClient (unbound here; a loop with a budget binds its own limiter, so the budget is
+            //         checked before every model call of a turn, not only before the turn)
             //       → TokenBudgetChatClient (graceful exit when accumulated history nears the context window)
             //         → inner LMSupply / OpenAI / Anthropic / etc.
             // The FunctionInvoker is a ToolInvocationPipeline (CreateToolInvocationPipeline): loop guards

@@ -506,6 +506,12 @@ public class ConfigurationManager
             target.Advisor.MaxCalls = source.Advisor.MaxCalls;
         }
 
+        // Budget — a scope that sets a limit replaces the section (its threshold and stop flag go with its limits).
+        if (source.Budget.MaxSessionTokens > 0 || source.Budget.MaxSessionCost > 0)
+        {
+            target.Budget = source.Budget;
+        }
+
         // ChatBehavior
         if (source.ChatBehavior.MaximumIterationsPerRequest > 0)
         {

@@ -312,6 +312,7 @@ The loader accepts these top-level keys in `config.yaml`. Acronym provider secti
 | `deepResearch` | camelCase |
 | `chatBehavior` | camelCase — CLI / `run --server` loops only |
 | `advisor` | `provider`, `model`, `maxCalls` (per session, default 5) — off until `model` is set; CLI / `run --server` loops only |
+| `budget` | `maxSessionTokens`, `maxSessionCost` (USD, TokenMeter catalog prices), `warningThreshold` (default 0.8), `stopOnLimit` (default true) — per session (one CLI session, one `run --server` session), checked before every model call including each tool round; 0 = no limit (default); a call past it ends the turn with `UsageLimitExceededException` |
 | `skills` | `roots`, `enabled`, `exclude`, `maxMetadataCharacters` (default 12,000), `acceptUnknownFields` — off until `roots` names a directory (see **Skills**) |
 
 ```yaml
@@ -343,6 +344,11 @@ advisor:
   provider: anthropic
   model: claude-opus-5
   maxCalls: 5
+
+# A usage budget per session (tokens and/or USD):
+budget:
+  maxSessionTokens: 500000
+  maxSessionCost: 2.00
 ```
 
 ## Core Library Integration

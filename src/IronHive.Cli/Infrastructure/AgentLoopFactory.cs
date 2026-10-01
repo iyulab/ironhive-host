@@ -38,6 +38,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly SkillsLoader? _skills;
     private readonly FileToolOptions? _fileToolOptions;
     private readonly PermissionConfig? _permissions;
+    private readonly UsageLimitsConfig? _budget;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -86,8 +87,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         IEnumerable<IronHive.Agent.Context.ISystemInstructionContributor>? instructionContributors = null,
         SkillsLoader? skills = null,
         FileToolOptions? fileToolOptions = null,
-        PermissionConfig? permissions = null)
+        PermissionConfig? permissions = null,
+        UsageLimitsConfig? budget = null)
     {
+        _budget = budget;
         _instructionContributors = instructionContributors?.ToArray() ?? [];
         _skills = skills;
         _fileToolOptions = fileToolOptions;
@@ -144,6 +147,11 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // Load MCP plugins and add their tools
         await LoadMcpToolsAsync(tools, cancellationToken);
 
+        // The usage budget is per session: a limiter an embedder registered is used as is; otherwise each loop gets its
+        // own from the configured budget, so two server sessions do not spend one budget.
+        var usageLimiter = _usageLimiter ?? CreateBudgetLimiter(_budget);
+        var modelId = options.Model ?? chatClient.GetService<ChatClientMetadata>()?.DefaultModelId;
+
         // The advisor: a stronger model the working model can consult. One tool per loop, so MaxCalls is per session.
         if (!string.IsNullOrWhiteSpace(_advisor?.Model))
         {
@@ -154,7 +162,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             {
                 MaxCalls = _advisor.MaxCalls > 0 ? _advisor.MaxCalls : null,
                 ModelId = _advisor.Model,
-                UsageLimiter = _usageLimiter,
+                UsageLimiter = usageLimiter,
             }));
         }
 
@@ -163,7 +171,9 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,
             Temperature = options.Temperature ?? DefaultTemperature,
             MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
-            Tools = tools
+            Tools = tools,
+            // Prices the usage the budget counts (TokenMeter catalog); an unknown model is counted in tokens only.
+            ModelId = modelId
         };
 
         // Wire context compaction from host config so long sessions compact history
@@ -174,9 +184,13 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
-            errorRecovery: _errorRecovery, usageLimiter: _usageLimiter);
+            errorRecovery: _errorRecovery, usageLimiter: usageLimiter);
         return new CreatedAgentLoop(loop, tools.AsReadOnly());
     }
+
+    /// <summary>A limiter for one session from the configured budget, or <c>null</c> when it sets no limit.</summary>
+    internal static IUsageLimiter? CreateBudgetLimiter(UsageLimitsConfig? budget) =>
+        budget is { } b && (b.MaxSessionTokens > 0 || b.MaxSessionCost > 0) ? new UsageLimiter(b) : null;
 
     private void EnsurePermissionsJudgeTheToolsDirectory(string toolsDirectory)
     {

@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.33.0 — Unreleased
+
+### Added
+- **A usage budget per session**: the `budget` section of `config.yaml` (`maxSessionTokens`, `maxSessionCost` in USD priced
+  from the TokenMeter catalog, `warningThreshold`, `stopOnLimit`). Each loop the host builds — one CLI session, one
+  `run --server` session — gets its own limit, checked before every model call including each tool round; the call past
+  it ends the turn with `UsageLimitExceededException`. Before, the host registered no limiter at all, so a limit could not
+  be set. Loops now also carry the model id, so usage is priced.
+
+### Dependencies
+- `IronHive.Agent` 0.32.0 -> 0.33.0 (`UsageLimitChatClient`).
+
 ## 0.32.0 — 2026-10-01
 
 ### Added
