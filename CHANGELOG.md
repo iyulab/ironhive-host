@@ -12,6 +12,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   conversation already sent stay selected and go first in later requests, with newly selected tools after them, while
   the whole set fits the limit (over it the selection starts over). A prefix-cached server (llama-server, vLLM) then
   re-reads from the first new tool instead of the whole prompt on every message. Off by default.
+- **`DeleteFile` and `MoveFile` in the built-in tool set** (from `IronHive.Agent` 0.36.0). An agent renaming a file no
+  longer empties the old one with `WriteFile`. The default permissions ask before either (a move is judged as deleting
+  its source and writing its destination); Planning mode leaves both out.
 
 ### Changed
 - **Selected tools are sent ordinal by name** (from `IronHive.Agent` 0.36.0), so the same set always serialises the same

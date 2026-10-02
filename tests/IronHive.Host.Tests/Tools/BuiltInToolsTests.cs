@@ -36,7 +36,7 @@ public class BuiltInToolsTests : IDisposable
         var tools = BuiltInTools.GetAll(_testDir);
 
         // Assert
-        Assert.Equal(7, tools.Count); // ReadFile, WriteFile, ListDirectory, GlobFiles, GrepFiles, ExecuteCommand, ManageTodo
+        Assert.Equal(9, tools.Count); // ReadFile, WriteFile, DeleteFile, MoveFile, ListDirectory, GlobFiles, GrepFiles, ExecuteCommand, ManageTodo
     }
 
     [Fact]
@@ -50,8 +50,8 @@ public class BuiltInToolsTests : IDisposable
         // Act
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool);
 
-        // Assert — 7 base tools + WebSearch + ExploreSite
-        Assert.Equal(9, tools.Count);
+        // Assert — 9 base tools + WebSearch + ExploreSite
+        Assert.Equal(11, tools.Count);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class BuiltInToolsTests : IDisposable
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: null);
 
         // Assert
-        Assert.Equal(7, tools.Count);
+        Assert.Equal(9, tools.Count);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class BuiltInToolsTests : IDisposable
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool, deepResearchTool: deepResearchTool);
 
         // Assert — 7 base + WebSearch + ExploreSite + DeepResearch
-        Assert.Equal(10, tools.Count);
+        Assert.Equal(12, tools.Count);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class BuiltInToolsTests : IDisposable
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: null, deepResearchTool: deepResearchTool);
 
         // Assert — 7 base + DeepResearch
-        Assert.Equal(8, tools.Count);
+        Assert.Equal(10, tools.Count);
     }
 
     [Fact]

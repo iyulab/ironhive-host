@@ -17,7 +17,7 @@ public class AgentLoopFactoryTests
     #region BuiltInTools + WebSearch Integration
 
     [Fact]
-    public void BuiltInTools_WithWebSearch_ReturnsNineTools()
+    public void BuiltInTools_WithWebSearch_ReturnsElevenTools()
     {
         // Arrange
         using var searchClient = new WebLookup.WebSearchClient();
@@ -28,19 +28,19 @@ public class AgentLoopFactoryTests
         var tools = BuiltInTools.GetAll(
             Path.GetTempPath(), oopsService: null, webSearchTool: webSearchTool);
 
-        // Assert — 7 built-in + 2 web search
-        Assert.Equal(9, tools.Count);
+        // Assert — 9 built-in + 2 web search
+        Assert.Equal(11, tools.Count);
     }
 
     [Fact]
-    public void BuiltInTools_WithoutWebSearch_ReturnsSevenTools()
+    public void BuiltInTools_WithoutWebSearch_ReturnsNineTools()
     {
         // Act
         var tools = BuiltInTools.GetAll(
             Path.GetTempPath(), oopsService: null, webSearchTool: null);
 
-        // Assert — 7 built-in
-        Assert.Equal(7, tools.Count);
+        // Assert — 9 built-in
+        Assert.Equal(9, tools.Count);
     }
 
     #endregion
@@ -106,7 +106,7 @@ public class AgentLoopFactoryTests
     {
         // Arrange — simulate what AgentLoopFactory does
         var builtInTools = BuiltInTools.GetAll(Path.GetTempPath(), oopsService: null, webSearchTool: null);
-        Assert.Equal(7, builtInTools.Count);
+        Assert.Equal(9, builtInTools.Count);
 
         var mcpManager = Substitute.For<IMcpPluginManager>();
         mcpManager.ConnectedPlugins.Returns(new List<string> { "system-harness" }.AsReadOnly());
@@ -125,8 +125,8 @@ public class AgentLoopFactoryTests
             builtInTools.Add(tool);
         }
 
-        // Assert — 7 built-in + 3 MCP
-        Assert.Equal(10, builtInTools.Count);
+        // Assert — 9 built-in + 3 MCP
+        Assert.Equal(12, builtInTools.Count);
     }
 
     #endregion
