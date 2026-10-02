@@ -10,6 +10,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Changed
 - Re-pinned sibling package(s) `LMSupply.Embedder` 0.98.1 -> 0.98.2, `LMSupply.Generator` 0.98.1 -> 0.98.2, `LMSupply.Reranker` 0.98.1 -> 0.98.2. No source changes.
 - Re-pinned sibling package(s) `MemoryIndexer` 0.20.2 -> 0.20.3, `MemoryIndexer.Sdk` 0.20.2 -> 0.20.3.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.36.1 -> 0.36.2, `IronHive.Agent.Ironbees` 0.36.1 -> 0.36.2, `IronHive.Agent.Memory` 0.36.1 -> 0.36.2, `IronHive.DeepResearch` 0.36.1 -> 0.36.2.
 
 ## 0.36.1 — 2026-10-02
 
