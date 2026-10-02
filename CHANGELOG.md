@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.37.0 — Unreleased
 
+### Changed
+- Re-pinned sibling package(s) `IronHive.Agent` 0.37.0 -> 0.38.0, `IronHive.Agent.Ironbees` 0.37.0 -> 0.38.0, `IronHive.Agent.Memory` 0.37.0 -> 0.38.0, `IronHive.DeepResearch` 0.37.0 -> 0.38.0.
+
 ### Added
 - **`delegation:` — Ironbees named agents as tools.** Each agent listed under `delegation.agents` (an
   `agents/<name>/agent.yaml` + `system-prompt.md` under `delegation.agentsDirectory`, default `agents` in the working
