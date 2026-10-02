@@ -39,7 +39,7 @@ public sealed class WebSearchTool
     {
         if (string.IsNullOrWhiteSpace(query))
         {
-            return "Error: Search query is required.";
+            throw new ArgumentException("Search query is required.", nameof(query));
         }
 
         try
@@ -78,7 +78,7 @@ public sealed class WebSearchTool
         }
         catch (Exception ex)
         {
-            return $"Error searching the web: {ex.Message}";
+            throw new InvalidOperationException($"Web search failed: {ex.Message}", ex);
         }
     }
 
@@ -93,13 +93,13 @@ public sealed class WebSearchTool
     {
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            return "Error: Base URL is required.";
+            throw new ArgumentException("Base URL is required.", nameof(baseUrl));
         }
 
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            return $"Error: Invalid URL: {baseUrl}";
+            throw new ArgumentException($"Invalid URL: {baseUrl}", nameof(baseUrl));
         }
 
         try
@@ -164,7 +164,7 @@ public sealed class WebSearchTool
         }
         catch (Exception ex)
         {
-            return $"Error exploring site: {ex.Message}";
+            throw new InvalidOperationException($"Exploring {baseUrl} failed: {ex.Message}", ex);
         }
     }
 

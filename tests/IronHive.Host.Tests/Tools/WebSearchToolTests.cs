@@ -65,17 +65,17 @@ public class WebSearchToolTests : IDisposable
     }
 
     [Fact]
-    public async Task WebSearch_WithEmptyQuery_ReturnsError()
+    public async Task WebSearch_WithEmptyQuery_Throws()
     {
-        var result = await _tool.WebSearch("", cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Error: Search query is required.", result);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _tool.WebSearch("", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Search query is required.", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task WebSearch_WithWhitespaceQuery_ReturnsError()
+    public async Task WebSearch_WithWhitespaceQuery_Throws()
     {
-        var result = await _tool.WebSearch("   ", cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Error: Search query is required.", result);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _tool.WebSearch("   ", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Search query is required.", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -158,17 +158,17 @@ public class WebSearchToolTests : IDisposable
     // ================================================================
 
     [Fact]
-    public async Task ExploreSite_WithEmptyUrl_ReturnsError()
+    public async Task ExploreSite_WithEmptyUrl_Throws()
     {
-        var result = await _tool.ExploreSite("", cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Error: Base URL is required.", result);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _tool.ExploreSite("", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Base URL is required.", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ExploreSite_WithInvalidUrl_ReturnsError()
+    public async Task ExploreSite_WithInvalidUrl_Throws()
     {
-        var result = await _tool.ExploreSite("not-a-url", cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Error: Invalid URL: not-a-url", result);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _tool.ExploreSite("not-a-url", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Invalid URL: not-a-url", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -335,17 +335,17 @@ public class WebSearchToolTests : IDisposable
     }
 
     [Fact]
-    public async Task WebSearch_WithNullQuery_ReturnsError()
+    public async Task WebSearch_WithNullQuery_Throws()
     {
-        var result = await _tool.WebSearch(null!, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Error: Search query is required.", result);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _tool.WebSearch(null!, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Search query is required.", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ExploreSite_WithRelativeUrl_ReturnsError()
+    public async Task ExploreSite_WithRelativeUrl_Throws()
     {
-        var result = await _tool.ExploreSite("/relative/path", cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Error: Invalid URL: /relative/path", result);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _tool.ExploreSite("/relative/path", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Invalid URL: /relative/path", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

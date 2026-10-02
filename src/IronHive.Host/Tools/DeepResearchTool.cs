@@ -93,7 +93,7 @@ public sealed class DeepResearchTool : IAsyncDisposable, IDisposable
     {
         if (string.IsNullOrWhiteSpace(query))
         {
-            return "Error: Research query is required.";
+            throw new ArgumentException("Research query is required.", nameof(query));
         }
 
         try
@@ -113,12 +113,9 @@ public sealed class DeepResearchTool : IAsyncDisposable, IDisposable
                 }
             }
 
-            if (result is null)
-            {
-                return "Error: Research completed without producing a result.";
-            }
-
-            return FormatResult(result);
+            return result is null
+                ? throw new InvalidOperationException("Research completed without producing a result.")
+                : FormatResult(result);
         }
         catch (OperationCanceledException)
         {
@@ -126,7 +123,7 @@ public sealed class DeepResearchTool : IAsyncDisposable, IDisposable
         }
         catch (Exception ex)
         {
-            return $"Error performing deep research: {ex.Message}";
+            throw new InvalidOperationException($"Deep research failed: {ex.Message}", ex);
         }
     }
 
