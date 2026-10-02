@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.39.0 — Unreleased
+
+### Changed
+- **`compaction.observationMaskingProtectedRounds` is replaced by `observationMaskingProtectedTokens`** (IronHive.Agent 0.42.0): masking inside one turn now keeps the recent tool results that fit a token budget instead of the last N rounds, so short results (a write answering "ok") no longer push out the reads before them, and a masked result names the call that produced it so the model can call it again. **Breaking** — **Migration:** replace `observationMaskingProtectedRounds: N` with `observationMaskingProtectedTokens:` set to the room you want for recent results (for example a quarter of the model's window, or 8000).
+- README: a delegated agent's `agent.yaml` needs a `model:` section; leaving `deployment` out runs it on the session's model.
+- Re-pinned sibling package(s) `IronHive.Agent`, `IronHive.Agent.Ironbees`, `IronHive.Agent.Memory`, `IronHive.DeepResearch` 0.41.0 -> 0.42.0.
+
 ## 0.38.3 — 2026-10-03
 
 ### Changed

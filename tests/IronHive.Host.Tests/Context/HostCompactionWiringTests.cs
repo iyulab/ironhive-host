@@ -48,7 +48,7 @@ public class HostCompactionWiringTests
     {
         // Before, the host built its ContextManager without a masker: EnableObservationMasking was accepted and inert.
         var manager = HostContextManagerFactory.Create(
-            new HostCompactionConfig { EnableObservationMasking = true, ObservationMaskingProtectedRounds = 2, EnableToolResultCompaction = false },
+            new HostCompactionConfig { EnableObservationMasking = true, ObservationMaskingProtectedTokens = 1, EnableToolResultCompaction = false },
             "gpt-4o");
 
         var reduced = manager.ReduceToolResults(OneTurnReading(4));
