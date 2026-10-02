@@ -125,6 +125,55 @@ public class IronHiveConfig
     /// names at least one directory.
     /// </summary>
     public SkillsHostConfig Skills { get; set; } = new();
+
+    /// <summary>
+    /// Ironbees named agents the working model may delegate to, one tool per agent. Off until
+    /// <see cref="DelegationHostConfig.Agents"/> lists at least one agent.
+    /// </summary>
+    public DelegationHostConfig Delegation { get; set; } = new();
+}
+
+/// <summary>
+/// Delegation — the <c>delegation</c> section of <c>config.yaml</c>. Each listed agent (an Ironbees agent directory,
+/// <c>agents/&lt;name&gt;/agent.yaml</c>) becomes a tool the working model can hand a task to. A delegated run calls its
+/// tools through the session's own approval path (permission rules, planning mode, the human approval prompt) and
+/// spends the session's budget.
+/// </summary>
+public class DelegationHostConfig
+{
+    /// <summary>
+    /// Where the agent directories are. A relative path is taken from the session's working directory. Default
+    /// <c>agents</c>.
+    /// </summary>
+    public string? AgentsDirectory { get; set; }
+
+    /// <summary>The agents to offer. Empty (the default) turns delegation off.</summary>
+    public List<DelegatedAgentHostConfig> Agents { get; set; } = [];
+
+    /// <summary>How deep delegations may nest. 0 uses the library default (2).</summary>
+    public int MaxDepth { get; set; }
+
+    /// <summary>How many delegated runs may be in flight at once across all agents. 0 uses the library default (3).</summary>
+    public int MaxConcurrent { get; set; }
+}
+
+/// <summary>One agent offered for delegation.</summary>
+public class DelegatedAgentHostConfig
+{
+    /// <summary>The agent's name — its directory under <see cref="DelegationHostConfig.AgentsDirectory"/>.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Provider of the model (e.g. <c>gpustack</c>). Unset uses the default provider.</summary>
+    public string? Provider { get; set; }
+
+    /// <summary>The model the agent runs on. Unset uses the model in its <c>agent.yaml</c>, else the session's model.</summary>
+    public string? Model { get; set; }
+
+    /// <summary>What the tool tells the working model about the agent. Unset uses the agent's own description.</summary>
+    public string? Description { get; set; }
+
+    /// <summary>How many tool turns one delegated run may take. Unset uses the agent runtime's default.</summary>
+    public int? MaxToolTurns { get; set; }
 }
 
 /// <summary>

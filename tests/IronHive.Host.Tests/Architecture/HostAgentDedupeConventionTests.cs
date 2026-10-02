@@ -14,7 +14,7 @@ namespace IronHive.Host.Tests.Architecture;
 public class HostAgentDedupeConventionTests
 {
     private static readonly Assembly HostAssembly = typeof(IronHiveConfig).Assembly;
-    private static readonly Assembly CliAssembly = typeof(IronbeesIntegrationExtensions).Assembly;
+    private static readonly Assembly CliAssembly = typeof(AgentLoopFactory).Assembly;
 
     private static readonly string[] BannedFullNames =
     [

@@ -41,6 +41,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly UsageLimitsConfig? _budget;
     private readonly AgentsMdHostConfig? _agentsMd;
     private readonly ToolRetrievalHostConfig? _toolRetrieval;
+    private readonly DelegationHostConfig? _delegation;
+    private readonly IChatClientFactory? _delegationClients;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -92,8 +94,12 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         PermissionConfig? permissions = null,
         UsageLimitsConfig? budget = null,
         AgentsMdHostConfig? agentsMd = null,
-        ToolRetrievalHostConfig? toolRetrieval = null)
+        ToolRetrievalHostConfig? toolRetrieval = null,
+        DelegationHostConfig? delegation = null,
+        IChatClientFactory? delegationClients = null)
     {
+        _delegation = delegation;
+        _delegationClients = delegationClients;
         _budget = budget;
         _agentsMd = agentsMd;
         _toolRetrieval = toolRetrieval;
@@ -170,6 +176,21 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
                 ModelId = _advisor.Model,
                 UsageLimiter = usageLimiter,
             }));
+        }
+
+        // Delegation: one tool per configured Ironbees agent. A delegated run calls its tools through this session's
+        // pipeline and spends this session's budget; its clients are plain provider clients (see DelegationWiring).
+        if (_delegation is { Agents.Count: > 0 })
+        {
+            var delegationClients = _delegationClients ?? throw new InvalidOperationException(
+                "Delegation is configured, but the factory was given no plain chat client factory for delegated agents.");
+            var sessionTools = tools;
+            foreach (var delegationTool in await Delegation.DelegationWiring.CreateToolsAsync(
+                _delegation, workingDirectory, chatClient, delegationClients, () => sessionTools, modelId, usageLimiter,
+                cancellationToken))
+            {
+                tools.Add(delegationTool);
+            }
         }
 
         var agentOptions = new IronHive.Agent.Loop.AgentOptions

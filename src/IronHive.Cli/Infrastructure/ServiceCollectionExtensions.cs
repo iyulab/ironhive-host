@@ -13,6 +13,7 @@ using IronHive.Agent.Memory;
 using IronHive.Agent.Mode;
 using IronHive.Agent.Providers;
 using IronHive.Agent.Tracking;
+using IronHive.Cli.Infrastructure.Delegation;
 using IronHive.DeepResearch.Models.Research;
 using IronHive.Host.Config;
 using IronHive.Host.Oops;
@@ -196,7 +197,9 @@ public static class ServiceCollectionExtensions
                 permissions: config.Permissions,
                 budget: config.Budget,
                 agentsMd: config.AgentsMd,
-                toolRetrieval: config.ToolRetrieval);
+                toolRetrieval: config.ToolRetrieval,
+                delegation: config.Delegation,
+                delegationClients: config.Delegation.Agents.Count > 0 ? sp.GetRequiredService<DelegationClients>().Factory : null);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.
@@ -630,6 +633,17 @@ public static class ServiceCollectionExtensions
                 DecorateChatClient(inner, config.ChatBehavior, toolInvocationPipeline);
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
+        });
+
+        // Plain provider clients for delegated agents: no tool pipeline (the agent runtime runs their tools through the
+        // session's pipeline itself) and no usage limiter (the delegation tools charge the session budget per run).
+        services.AddSingleton(sp =>
+        {
+            var lmSupply = sp.GetRequiredService<LMSupplyChatClientProvider>();
+            providersDict["lmsupply"] = lmSupply;
+            providersDict["local"] = lmSupply;
+            return new DelegationClients(new ChatClientFactory(
+                providersDict, sp.GetRequiredService<IChatClientProvider>(), static inner => inner));
         });
 
         // Embedding provider (simplified - uses first available)

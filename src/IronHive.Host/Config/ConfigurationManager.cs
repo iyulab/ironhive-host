@@ -570,6 +570,28 @@ public class ConfigurationManager
         {
             target.Skills = source.Skills;
         }
+
+        // Delegation — the agent list is one decision (like Skills): a scope that lists agents replaces it. The
+        // directory and the limits are set field by field.
+        if (source.Delegation.Agents.Count > 0)
+        {
+            target.Delegation.Agents = [.. source.Delegation.Agents];
+        }
+
+        if (!string.IsNullOrWhiteSpace(source.Delegation.AgentsDirectory))
+        {
+            target.Delegation.AgentsDirectory = source.Delegation.AgentsDirectory;
+        }
+
+        if (source.Delegation.MaxDepth > 0)
+        {
+            target.Delegation.MaxDepth = source.Delegation.MaxDepth;
+        }
+
+        if (source.Delegation.MaxConcurrent > 0)
+        {
+            target.Delegation.MaxConcurrent = source.Delegation.MaxConcurrent;
+        }
     }
 
     /// <summary>

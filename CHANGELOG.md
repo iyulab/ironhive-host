@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.37.0 — Unreleased
+
+### Added
+- **`delegation:` — Ironbees named agents as tools.** Each agent listed under `delegation.agents` (an
+  `agents/<name>/agent.yaml` + `system-prompt.md` under `delegation.agentsDirectory`, default `agents` in the working
+  directory) becomes a tool the working model can hand a sub-task to (`IronHive.Agent.Ironbees` `DelegationTools`).
+  A delegated run calls its tools through the **session's own** tool pipeline — the same permission rules, planning mode
+  and approval prompt, once per call — and its usage is charged to the session budget. `provider` / `model` choose the
+  agent's model (unset: the model in its `agent.yaml`, else the session's); `maxDepth` / `maxConcurrent` bound nesting
+  and fan-out. An agent that is not in the directory fails when the session starts, naming the path.
+
+### Removed
+- **Breaking: `IronbeesIntegrationExtensions.AddIronbeesOrchestration`.** It built a second service provider inside a
+  factory, ran delegated tools through the container's pipeline instead of the session's (so a host's approval prompt
+  was not asked), and blocked on asynchronous plugin loading. Use `delegation:` in `config.yaml`; an embedder that wants
+  Ironbees in its own container calls `IronHive.Agent.Ironbees`'s `AddIronbees` directly.
+
 ## 0.36.3 — 2026-10-02
 
 ### Changed
