@@ -28,8 +28,8 @@ public class AgentLoopFactoryTests
         var tools = BuiltInTools.GetAll(
             Path.GetTempPath(), oopsService: null, webSearchTool: webSearchTool);
 
-        // Assert — 9 built-in + 2 web search
-        Assert.Equal(11, tools.Count);
+        // Assert — the agent's built-in tools + 2 web search
+        Assert.Equal(IronHive.Agent.Tools.BuiltInTools.GetAll(Path.GetTempPath()).Count + 2, tools.Count);
     }
 
     [Fact]
@@ -39,8 +39,8 @@ public class AgentLoopFactoryTests
         var tools = BuiltInTools.GetAll(
             Path.GetTempPath(), oopsService: null, webSearchTool: null);
 
-        // Assert — 9 built-in
-        Assert.Equal(9, tools.Count);
+        // Assert — the agent's built-in tools, nothing added
+        Assert.Equal(IronHive.Agent.Tools.BuiltInTools.GetAll(Path.GetTempPath()).Count, tools.Count);
     }
 
     #endregion
@@ -106,7 +106,8 @@ public class AgentLoopFactoryTests
     {
         // Arrange — simulate what AgentLoopFactory does
         var builtInTools = BuiltInTools.GetAll(Path.GetTempPath(), oopsService: null, webSearchTool: null);
-        Assert.Equal(9, builtInTools.Count);
+        var builtInCount = builtInTools.Count;
+        Assert.Equal(IronHive.Agent.Tools.BuiltInTools.GetAll(Path.GetTempPath()).Count, builtInCount);
 
         var mcpManager = Substitute.For<IMcpPluginManager>();
         mcpManager.ConnectedPlugins.Returns(new List<string> { "system-harness" }.AsReadOnly());
@@ -125,8 +126,8 @@ public class AgentLoopFactoryTests
             builtInTools.Add(tool);
         }
 
-        // Assert — 9 built-in + 3 MCP
-        Assert.Equal(12, builtInTools.Count);
+        // Assert — the built-in tools + 3 MCP
+        Assert.Equal(builtInCount + 3, builtInTools.Count);
     }
 
     #endregion

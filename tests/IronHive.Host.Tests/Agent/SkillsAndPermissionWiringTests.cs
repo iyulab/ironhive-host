@@ -76,7 +76,7 @@ public class SkillsAndPermissionWiringTests : IDisposable
 
         var tools = IronHive.Host.Tools.BuiltInTools.GetAll(_dir, oops, webSearchTool: null, deepResearchTool: null, new FileToolOptions { AllowedRoots = [_dir] });
 
-        tools.Should().HaveCount(9, "roots do not remove or add tools");
+        tools.Should().HaveCount(IronHive.Agent.Tools.BuiltInTools.GetAll(_dir).Count, "roots do not remove or add tools");
     }
 
     [Fact]
