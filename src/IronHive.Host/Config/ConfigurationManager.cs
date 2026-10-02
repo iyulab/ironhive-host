@@ -537,6 +537,11 @@ public class ConfigurationManager
             target.ToolRetrieval.StickyToolLimit = source.ToolRetrieval.StickyToolLimit;
         }
 
+        if (source.ToolRetrieval.StickyChangeScore is { } stickyChangeScore)
+        {
+            target.ToolRetrieval.StickyChangeScore = stickyChangeScore;
+        }
+
         // AgentsMd
         if (source.AgentsMd.Enabled is { } agentsMdEnabled)
         {

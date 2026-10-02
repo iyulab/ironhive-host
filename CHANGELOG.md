@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.38.0 — Unreleased
+
+### Added
+- **`toolRetrieval.stickyChangeScore`** — with `stickyToolLimit` on, the score a scored tool the held set lacks must
+  reach before it may change the set (unset = the IronHive.Agent 0.39.0 default, 0.7). A generic follow-up no longer
+  changes the set — and re-reads the whole prompt on a hybrid-memory local model — for its best but weak match.
+
+### Changed
+- Re-pinned sibling package(s) `IronHive.Agent` · `IronHive.Agent.Ironbees` · `IronHive.Agent.Memory` · `IronHive.DeepResearch` 0.38.0 -> 0.39.0.
+
 ## 0.37.0 — 2026-10-02
 
 ### Changed

@@ -657,6 +657,13 @@ public sealed class ToolRetrievalHostConfig
     /// its own.
     /// </summary>
     public int StickyToolLimit { get; set; }
+
+    /// <summary>
+    /// With <see cref="StickyToolLimit"/> on, the score (0–1) a scored tool the carried set lacks must reach before it may
+    /// change the set; below it the set is held and the tool is withheld (unset = the library default, 0.7). Pins, exact
+    /// names and aliases change the set whatever this is.
+    /// </summary>
+    public float? StickyChangeScore { get; set; }
 }
 
 /// <summary>

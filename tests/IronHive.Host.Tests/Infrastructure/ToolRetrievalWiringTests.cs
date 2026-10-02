@@ -37,6 +37,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
               minScoredSlots: 2
               alwaysInclude: [read_file]
               stickyToolLimit: 24
+              stickyChangeScore: 0.8
             """;
         Directory.CreateDirectory(Path.Combine(_root, ".ironhive"));
         File.WriteAllText(Path.Combine(_root, ".ironhive", "config.yaml"), yaml);
@@ -49,6 +50,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
         config.ToolRetrieval.MinScoredSlots.Should().Be(2);
         config.ToolRetrieval.AlwaysInclude.Should().Equal("read_file");
         config.ToolRetrieval.StickyToolLimit.Should().Be(24);
+        config.ToolRetrieval.StickyChangeScore.Should().Be(0.8f);
         ConfigurationManager.FindUnknownTopLevelKeys(yaml).Should().BeEmpty();
     }
 
@@ -108,6 +110,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
             MinScoredSlots = 2,
             AlwaysInclude = ["shell"],
             StickyToolLimit = 24,
+            StickyChangeScore = 0.9f,
         })!;
 
         options.MaxTools.Should().Be(7);
@@ -115,6 +118,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
         options.MinScoredSlots.Should().Be(2);
         options.AlwaysInclude.Should().Equal("shell");
         options.StickyToolLimit.Should().Be(24);
+        options.StickyChangeScore.Should().Be(0.9f);
 
         var defaults = AgentLoopFactory.ToolRetrievalOptionsFrom(new ToolRetrievalHostConfig { Enabled = true })!;
         defaults.Should().Be(new IronHive.Agent.Context.ToolRetrievalOptions());
