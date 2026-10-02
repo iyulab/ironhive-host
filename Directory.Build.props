@@ -51,6 +51,8 @@
   </PropertyGroup>
   <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('\src\')) OR $(MSBuildProjectDirectory.Contains('/src/'))">
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <!-- The MIT expression names the license; the text carries the copyright line a consumer's notices need. -->
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)LICENSE')" />
   </ItemGroup>
 
   <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)../../local-packages')">
