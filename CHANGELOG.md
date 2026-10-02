@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.36.3 — Unreleased
+
+### Changed
+- **`toolRetrieval.stickyToolLimit` now holds the tool set instead of growing it** (IronHive.Agent 0.37.0): a later
+  request sends the same tools unchanged unless it needs one they lack, so the prompt cache survives; the README and
+  the option's documentation say so.
+
 ## 0.36.2 — 2026-10-02
 
 ### Changed

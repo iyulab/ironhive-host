@@ -602,8 +602,9 @@ public sealed class ToolRetrievalHostConfig
     public List<string> AlwaysInclude { get; set; } = [];
 
     /// <summary>
-    /// When above 0, tools a conversation already sent stay selected and go first, while the whole set fits this many
-    /// (over it the selection starts over). For a prefix-cached local server; 0 (the default) selects every request on
+    /// When above 0, the tools a conversation already sent are sent again unchanged while they serve the request; the
+    /// set changes only for a pin, an exact name or alias, or the request's best-scored tool, and starts over when it
+    /// would exceed this many. Keeps a prefix-cached server's prompt cache; 0 (the default) selects every request on
     /// its own.
     /// </summary>
     public int StickyToolLimit { get; set; }
