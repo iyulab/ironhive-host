@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using IronHive.Agent.Context;
 using Microsoft.Extensions.AI;
 
 namespace IronHive.Host.Tools;
@@ -21,8 +22,9 @@ namespace IronHive.Host.Tools;
 /// no indication of why.
 /// </para>
 /// <para>
-/// <b>What this does:</b> Estimates total message tokens (chars ÷ 4 — a
-/// conservative upper bound for English; rough but stable). When the estimate
+/// <b>What this does:</b> Estimates total message tokens with the agent's
+/// <see cref="ContextTokenCounter"/> (per script: about four characters per token
+/// for Latin text, one to one and a half for Korean, Japanese and Chinese). When the estimate
 /// exceeds <c>maxContextTokens × threshold</c>, emits a single
 /// <see cref="ChatResponseUpdate"/> carrying a graceful explanation and
 /// <see cref="ChatFinishReason.Length"/>, then yields no further updates and
@@ -127,49 +129,8 @@ public sealed class TokenBudgetChatClient : IChatClient
         return _defaultMaxContextTokens;
     }
 
-    /// <summary>
-    /// Conservative upper-bound token estimate using char-count ÷ 4. Works
-    /// across model tokenizers within a factor of ~2; combined with the 0.8
-    /// threshold this leaves enough headroom for inflight tokens. Counts text,
-    /// tool-call argument JSON, and tool-result content — all sources of the
-    /// retry-storm prompt growth.
-    /// </summary>
-    private static long EstimateTokens(IEnumerable<ChatMessage> messages)
-    {
-        long charCount = 0;
-        foreach (var message in messages)
-        {
-            charCount += message.Text?.Length ?? 0;
+    // Counts text, tool-call arguments and tool results — all sources of the retry-storm prompt growth.
+    private static readonly ContextTokenCounter Estimator = new();
 
-            if (message.Contents is null)
-            {
-                continue;
-            }
-            foreach (var content in message.Contents)
-            {
-                charCount += content switch
-                {
-                    TextContent text => text.Text?.Length ?? 0,
-                    FunctionResultContent result => result.Result?.ToString()?.Length ?? 0,
-                    FunctionCallContent call => EstimateFunctionCall(call),
-                    _ => 0
-                };
-            }
-        }
-        return charCount / 4;
-    }
-
-    private static int EstimateFunctionCall(FunctionCallContent call)
-    {
-        var len = call.Name?.Length ?? 0;
-        if (call.Arguments is null)
-        {
-            return len;
-        }
-        foreach (var (key, value) in call.Arguments)
-        {
-            len += key.Length + (value?.ToString()?.Length ?? 0) + 4; // separators/quotes
-        }
-        return len;
-    }
+    private static long EstimateTokens(IEnumerable<ChatMessage> messages) => Estimator.CountTokens(messages);
 }

@@ -50,7 +50,7 @@ public class TokenBudgetChatClientTests
         var inner = new RecordingStubChatClient([
             new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("should-not-appear")] }
         ]);
-        // 4096-token budget × 0.8 = 3276.8 tokens. char-÷-4 estimator: need > 13107 chars to trip.
+        // 4096-token budget × 0.8 = 3276.8 tokens. Latin text is ~4 chars per token: need > 13107 chars to trip.
         var huge = new string('x', 20000);
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 4096, threshold: 0.8);
 
@@ -72,10 +72,28 @@ public class TokenBudgetChatClientTests
     }
 
     [Fact]
+    public async Task KoreanText_IsMeasuredAtItsOwnDensity_NotAtFourCharactersPerToken()
+    {
+        // 1024 × 0.8 = 819 tokens. 1,600 Hangul characters read as 400 tokens under a four-characters-per-token rule and
+        // slipped past the guard; at Korean density (~1.5 characters per token) they are over it.
+        var inner = new RecordingStubChatClient([
+            new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("should-not-appear")] }
+        ]);
+        var korean = new string('가', 1_600);
+        var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 1024, threshold: 0.8);
+
+        await foreach (var _ in client.GetStreamingResponseAsync(MessageOf(korean), cancellationToken: TestContext.Current.CancellationToken))
+        {
+        }
+
+        inner.CallCount.Should().Be(0, because: "Korean text must be counted at its own token density");
+    }
+
+    [Fact]
     public async Task ContextSizeProvider_OverridesDefault_AndIsRespected()
     {
         // Inner exposes IContextSizeProvider with 1024 tokens. 1024 × 0.8 = 819 token estimate.
-        // char-÷-4 estimator: need > 3276 chars.
+        // Latin text is ~4 chars per token: need > 3276 chars.
         var inner = new RecordingStubChatClient(
             [new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("inner")] }],
             contextSize: 1024);

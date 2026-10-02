@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - **`compaction.observationMaskingProtectedRounds` is replaced by `observationMaskingProtectedTokens`** (IronHive.Agent 0.42.0): masking inside one turn now keeps the recent tool results that fit a token budget instead of the last N rounds, so short results (a write answering "ok") no longer push out the reads before them, and a masked result names the call that produced it so the model can call it again. **Breaking** — **Migration:** replace `observationMaskingProtectedRounds: N` with `observationMaskingProtectedTokens:` set to the room you want for recent results (for example a quarter of the model's window, or 8000).
+- **The CLI's context-window guard measures Korean, Japanese and Chinese text at its own density.** `TokenBudgetChatClient` estimated four characters per token for every script and counted a message's text twice; it now uses the agent's `ContextTokenCounter`, so a CJK history that would overflow the window is stopped before the request instead of slipping past the guard.
 - README: a delegated agent's `agent.yaml` needs a `model:` section; leaving `deployment` out runs it on the session's model.
 - Re-pinned sibling package(s) `IronHive.Agent`, `IronHive.Agent.Ironbees`, `IronHive.Agent.Memory`, `IronHive.DeepResearch` 0.41.0 -> 0.42.0.
 
