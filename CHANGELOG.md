@@ -13,6 +13,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   the option's documentation say so.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.46.0 -> 0.46.1, `IronHive.Core` 0.46.0 -> 0.46.1, `IronHive.Extensions.AI` 0.46.0 -> 0.46.1, `IronHive.Providers.Anthropic` 0.46.0 -> 0.46.1, `IronHive.Providers.GoogleAI` 0.46.0 -> 0.46.1, `IronHive.Providers.OpenAI` 0.46.0 -> 0.46.1, `IronHive.Providers.OpenAI.Compatible` 0.46.0 -> 0.46.1.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.21.10 -> 0.21.11.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.36.2 -> 0.37.0, `IronHive.Agent.Ironbees` 0.36.2 -> 0.37.0, `IronHive.Agent.Memory` 0.36.2 -> 0.37.0, `IronHive.DeepResearch` 0.36.2 -> 0.37.0.
 
 ## 0.36.2 — 2026-10-02
 
