@@ -600,6 +600,13 @@ public sealed class ToolRetrievalHostConfig
 
     /// <summary>Tool names sent with every request whatever their score.</summary>
     public List<string> AlwaysInclude { get; set; } = [];
+
+    /// <summary>
+    /// When above 0, tools a conversation already sent stay selected and go first, while the whole set fits this many
+    /// (over it the selection starts over). For a prefix-cached local server; 0 (the default) selects every request on
+    /// its own.
+    /// </summary>
+    public int StickyToolLimit { get; set; }
 }
 
 /// <summary>

@@ -212,6 +212,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             MinRelevanceScore = config.MinRelevanceScore ?? defaults.MinRelevanceScore,
             MinScoredSlots = config.MinScoredSlots,
             AlwaysInclude = config.AlwaysInclude.Count > 0 ? [.. config.AlwaysInclude] : null,
+            StickyToolLimit = config.StickyToolLimit,
         };
     }
 

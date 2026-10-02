@@ -532,6 +532,11 @@ public class ConfigurationManager
             target.ToolRetrieval.AlwaysInclude = [.. source.ToolRetrieval.AlwaysInclude];
         }
 
+        if (source.ToolRetrieval.StickyToolLimit > 0)
+        {
+            target.ToolRetrieval.StickyToolLimit = source.ToolRetrieval.StickyToolLimit;
+        }
+
         // AgentsMd
         if (source.AgentsMd.Enabled is { } agentsMdEnabled)
         {

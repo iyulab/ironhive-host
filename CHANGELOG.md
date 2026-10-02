@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.36.0 — Unreleased
+
+### Added
+- **`toolRetrieval.stickyToolLimit` — keep a local server's prompt cache across messages.** When above 0, tools a
+  conversation already sent stay selected and go first in later requests, with newly selected tools after them, while
+  the whole set fits the limit (over it the selection starts over). A prefix-cached server (llama-server, vLLM) then
+  re-reads from the first new tool instead of the whole prompt on every message. Off by default.
+
+### Changed
+- **Selected tools are sent ordinal by name** (from `IronHive.Agent` 0.36.0), so the same set always serialises the same
+  way. Re-pinned `IronHive.Agent`, `IronHive.Agent.Ironbees`, `IronHive.Agent.Memory`, `IronHive.DeepResearch` 0.35.1 -> 0.36.0.
+
 ## 0.35.1 — 2026-10-02
 
 ### Changed
