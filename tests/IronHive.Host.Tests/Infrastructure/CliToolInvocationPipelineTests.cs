@@ -90,19 +90,22 @@ public class CliToolInvocationPipelineTests
     }
 
     [Fact]
-    public async Task DecoratedClient_AModelRetryingTheSameEmptyArguments_GetsThreeDirectives_ThenARepeatedCallRefusal()
+    public async Task DecoratedClient_AModelRetryingTheSameEmptyArguments_GetsThreeDirectives_ThenARefusal_AndTheSecondRefusalEndsTheRequest()
     {
         var tool = new MissingPathFunction();
         var inner = new ScriptedChatClient(new FunctionCallContent("c", "read_file", new Dictionary<string, object?>()), times: 5);
         var client = Decorate(inner, FilterWith(PermissionAction.Allow));
 
-        await client.GetResponseAsync("go", new ChatOptions { Tools = [tool] }, TestContext.Current.CancellationToken);
+        var response = await client.GetResponseAsync("go", new ChatOptions { Tools = [tool] }, TestContext.Current.CancellationToken);
 
         tool.Invocations.Should().Be(3, "the fourth identical call is not run");
-        inner.ToolResults.Should().HaveCount(5);
+        // The model last saw three directives and one refusal; re-issuing the call after that refusal ended the request
+        // (MaxRefusedRepeats, IronHive.Agent 0.41) instead of asking the model again.
+        inner.ToolResults.Should().HaveCount(4);
         inner.ToolResults.Take(3).Should().AllSatisfy(r => r.Result.Should().BeOfType<string>().Which.Should().Contain("required parameter 'path'"));
-        inner.ToolResults.Skip(3).Should().AllSatisfy(r =>
-            r.Result.Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.RepeatedCall));
+        inner.ToolResults[3].Result.Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.RepeatedCall);
+        response.Messages[^1].Contents.OfType<FunctionResultContent>().Single().Result
+            .Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.RepeatedCall);
     }
 
     private static IChatClient Decorate(IChatClient inner, IToolCallPolicy filter) =>
