@@ -29,18 +29,22 @@ public class BuiltInToolsTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    // The host offers the agent's built-in tools as they are and adds only its own optional ones; the base count is the
+    // agent's, so a tool the agent adds (EditFile in 0.38.0) does not need a second edit here.
+    private int AgentToolCount => IronHive.Agent.Tools.BuiltInTools.GetAll(_testDir).Count;
+
     [Fact]
-    public void GetAll_ReturnsAllTools()
+    public void GetAll_ReturnsTheAgentsTools()
     {
         // Act
         var tools = BuiltInTools.GetAll(_testDir);
 
         // Assert
-        Assert.Equal(9, tools.Count); // ReadFile, WriteFile, DeleteFile, MoveFile, ListDirectory, GlobFiles, GrepFiles, ExecuteCommand, ManageTodo
+        Assert.Equal(IronHive.Agent.Tools.BuiltInTools.GetAll(_testDir).Select(t => t.Name), tools.Select(t => t.Name));
     }
 
     [Fact]
-    public void GetAll_WithWebSearchTool_ReturnsNineTools()
+    public void GetAll_WithWebSearchTool_AddsWebSearchAndExploreSite()
     {
         // Arrange
         using var searchClient = new WebLookup.WebSearchClient();
@@ -50,22 +54,22 @@ public class BuiltInToolsTests : IDisposable
         // Act
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool);
 
-        // Assert — 9 base tools + WebSearch + ExploreSite
-        Assert.Equal(11, tools.Count);
+        // Assert — the agent's tools + WebSearch + ExploreSite
+        Assert.Equal(AgentToolCount + 2, tools.Count);
     }
 
     [Fact]
-    public void GetAll_WithNullWebSearchTool_ReturnsSevenTools()
+    public void GetAll_WithNullWebSearchTool_AddsNothing()
     {
         // Act
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: null);
 
         // Assert
-        Assert.Equal(9, tools.Count);
+        Assert.Equal(AgentToolCount, tools.Count);
     }
 
     [Fact]
-    public void GetAll_WithDeepResearchTool_ReturnsTenTools()
+    public void GetAll_WithDeepResearchTool_AddsThree()
     {
         // Arrange
         using var searchClient = new WebLookup.WebSearchClient();
@@ -77,12 +81,12 @@ public class BuiltInToolsTests : IDisposable
         // Act
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: webSearchTool, deepResearchTool: deepResearchTool);
 
-        // Assert — 7 base + WebSearch + ExploreSite + DeepResearch
-        Assert.Equal(12, tools.Count);
+        // Assert — the agent's tools + WebSearch + ExploreSite + DeepResearch
+        Assert.Equal(AgentToolCount + 3, tools.Count);
     }
 
     [Fact]
-    public void GetAll_WithDeepResearchOnly_ReturnsEightTools()
+    public void GetAll_WithDeepResearchOnly_AddsOne()
     {
         // Arrange
         var mockFactory = Substitute.For<IChatClientFactory>();
@@ -91,8 +95,8 @@ public class BuiltInToolsTests : IDisposable
         // Act
         var tools = BuiltInTools.GetAll(_testDir, oopsService: null, webSearchTool: null, deepResearchTool: deepResearchTool);
 
-        // Assert — 7 base + DeepResearch
-        Assert.Equal(10, tools.Count);
+        // Assert — the agent's tools + DeepResearch
+        Assert.Equal(AgentToolCount + 1, tools.Count);
     }
 
     [Fact]
