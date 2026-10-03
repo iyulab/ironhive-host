@@ -31,16 +31,16 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Embedder" Version="0.99.0" />
-    <PackageVersion Include="LMSupply.Reranker" Version="0.99.0" />
-    <PackageVersion Include="LMSupply.Generator" Version="0.99.0" />
+    <PackageVersion Include="LMSupply.Embedder" Version="0.100.0" />
+    <PackageVersion Include="LMSupply.Reranker" Version="0.100.0" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.100.0" />
     <!-- MemoryIndexer (conversation memory, session management) -->
     <PackageVersion Include="MemoryIndexer" Version="0.21.0" />
     <PackageVersion Include="MemoryIndexer.Sdk" Version="0.21.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.42.2" />
-    <PackageVersion Include="IronHive.Agent.Memory" Version="0.42.2" />
-    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.42.2" />
+    <PackageVersion Include="IronHive.Agent" Version="0.42.3" />
+    <PackageVersion Include="IronHive.Agent.Memory" Version="0.42.3" />
+    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.42.3" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.48.0" />
     <PackageVersion Include="IronHive.Core" Version="0.48.0" />
@@ -52,7 +52,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.3.0" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.42.2" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.42.3" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.6.2" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.6.2" />
