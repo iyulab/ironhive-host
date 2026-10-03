@@ -58,7 +58,6 @@ public static class ServiceCollectionExtensions
             {
                 client.MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest;
                 client.MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest;
-                client.IncludeDetailedErrors = true;
             })
             .Build();
 
