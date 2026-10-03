@@ -1,3 +1,4 @@
+using IronHive.Agent.Extensions;
 using IronHive.Agent.Loop;
 using IronHive.Host.Extensions;
 using IronHive.Host.Session;
@@ -186,5 +187,70 @@ public class IronHiveServiceCollectionExtensionsTests
         // Assert
         Assert.Equal("Hello! How can I help you?", response.Content);
         Assert.Equal(3, agentLoop.History.Count); // System + User + Assistant
+    }
+
+    // Skills registered with AddAgentSkills put their names in the instructions; without load_skill the model is told
+    // about skills it cannot read. The CLI loop factory adds the tool; the library path did not.
+    [Fact]
+    public void AddIronHive_WithSkillsRegistered_AddsLoadSkillToTheTools()
+    {
+        using var skills = new SkillDirectory(withSkill: true);
+        var services = new ServiceCollection();
+        services.AddAgentSkills(new IronHive.Agent.Skills.SkillsConfig { Roots = [skills.Root] });
+        services.AddIronHive(o => { o.UseChatClient(new MockChatClient()); o.Tools = [AIFunctionFactory.Create(() => "x", "Echo")]; });
+
+        var tools = services.BuildServiceProvider().GetRequiredService<AgentOptions>().Tools!;
+
+        Assert.Equal(["Echo", IronHive.Agent.Skills.SkillsLoader.LoadToolName], tools.Select(t => t.Name));
+    }
+
+    [Fact]
+    public void AddIronHive_WithoutSkills_LeavesTheToolsAsGiven()
+    {
+        using var empty = new SkillDirectory(withSkill: false);
+        var echo = AIFunctionFactory.Create(() => "x", "Echo");
+
+        var none = new ServiceCollection();
+        none.AddIronHive(o => { o.UseChatClient(new MockChatClient()); o.Tools = [echo]; });
+        var noSkillsFound = new ServiceCollection();
+        noSkillsFound.AddAgentSkills(new IronHive.Agent.Skills.SkillsConfig { Roots = [empty.Root] });
+        noSkillsFound.AddIronHive(o => { o.UseChatClient(new MockChatClient()); o.Tools = [echo]; });
+
+        Assert.Equal(["Echo"], none.BuildServiceProvider().GetRequiredService<AgentOptions>().Tools!.Select(t => t.Name));
+        Assert.Equal(["Echo"], noSkillsFound.BuildServiceProvider().GetRequiredService<AgentOptions>().Tools!.Select(t => t.Name));
+    }
+
+    [Fact]
+    public void AddIronHive_WhenTheToolsAlreadyCarryLoadSkill_DoesNotAddASecond()
+    {
+        // The README told embedders to add the loader's tool themselves; their setup keeps working.
+        using var skills = new SkillDirectory(withSkill: true);
+        var loader = IronHive.Agent.Skills.SkillsLoader.Create(new IronHive.Agent.Skills.SkillsConfig { Roots = [skills.Root] });
+        var services = new ServiceCollection();
+        services.AddAgentSkills(new IronHive.Agent.Skills.SkillsConfig { Roots = [skills.Root] });
+        services.AddIronHive(o => { o.UseChatClient(new MockChatClient()); o.Tools = [loader.LoadTool]; });
+
+        var tools = services.BuildServiceProvider().GetRequiredService<AgentOptions>().Tools!;
+
+        Assert.Single(tools, t => t.Name == IronHive.Agent.Skills.SkillsLoader.LoadToolName);
+    }
+
+    private sealed class SkillDirectory : IDisposable
+    {
+        public SkillDirectory(bool withSkill)
+        {
+            Root = Path.Combine(Path.GetTempPath(), $"host-skills-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(Root);
+            if (withSkill)
+            {
+                var d = Path.Combine(Root, "pdf-processing");
+                Directory.CreateDirectory(d);
+                File.WriteAllText(Path.Combine(d, "SKILL.md"), "---\nname: pdf-processing\ndescription: Extract PDF text.\n---\nbody");
+            }
+        }
+
+        public string Root { get; }
+
+        public void Dispose() => Directory.Delete(Root, recursive: true);
     }
 }

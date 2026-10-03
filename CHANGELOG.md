@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.39.1 — Unreleased
+
+### Fixed
+- **An embedder that registers skills gets the tool to read them.** With `services.AddAgentSkills(...)` and `AddIronHive(...)`, the skills' names and descriptions reached the instructions but the loop had no `load_skill` tool, so the model was told about skills it could not open (the CLI loop factory added the tool; the library path did not). `AddIronHive` now adds `SkillsLoader.LoadTool` to `options.Tools` when skills are registered and at least one was found, and leaves the list alone when it already carries `load_skill`.
+
 ## 0.39.0 — 2026-10-03
 
 ### Changed

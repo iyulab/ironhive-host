@@ -69,7 +69,7 @@ public static class IronHiveServiceCollectionExtensions
             ModelId = options.DefaultModel,
             MaxTokens = options.MaxTokens,
             Temperature = options.Temperature,
-            Tools = options.Tools
+            Tools = WithSkillTool(options.Tools, sp.GetService<IronHive.Agent.Skills.SkillsLoader>())
         });
 
         // Register IAgentLoop only if IChatClient is directly configured
@@ -93,6 +93,26 @@ public static class IronHiveServiceCollectionExtensions
         }
 
         return services;
+    }
+
+    /// <summary>
+    /// The loop's tools: <paramref name="tools"/>, plus the skill loader's <c>load_skill</c> when skills are registered
+    /// (<c>AddAgentSkills</c>), at least one was found, and the list does not carry one already. Skills registered without it put their names in
+    /// the instructions with no way for the model to read a body — the same pair the CLI loop factory adds.
+    /// </summary>
+    private static IList<AITool>? WithSkillTool(IList<AITool>? tools, IronHive.Agent.Skills.SkillsLoader? skills)
+    {
+        if (skills is null || skills.Skills.Count == 0)
+        {
+            return tools;
+        }
+
+        if (tools is not null && tools.Any(t => t.Name == IronHive.Agent.Skills.SkillsLoader.LoadToolName))
+        {
+            return tools;
+        }
+
+        return [.. tools ?? [], skills.LoadTool];
     }
 
     /// <summary>
