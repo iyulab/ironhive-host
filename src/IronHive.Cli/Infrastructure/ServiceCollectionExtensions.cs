@@ -66,6 +66,7 @@ public static class ServiceCollectionExtensions
     /// <list type="number">
     /// <item><see cref="ArgumentParseFailureMiddleware"/> — a call whose arguments could not be parsed is not run.</item>
     /// <item><see cref="RepeatedCallGuardMiddleware"/> — the same call after three successful runs in a row is not run.</item>
+    /// <item><see cref="RepeatedResultGuardMiddleware"/> — the same result on a third separate visit ends the turn with the cause.</item>
     /// <item><see cref="RepeatedErrorGuardMiddleware"/> — the same error three times in a row ends the turn with a result.</item>
     /// <item><see cref="ApprovalGateMiddleware"/> — Planning mode, then the permission rules and the approval prompt (Allow / Deny / Ask).</item>
     /// <item><see cref="ResilientArgumentsMiddleware"/> — arguments that do not bind become a recovery directive.</item>
@@ -85,6 +86,7 @@ public static class ServiceCollectionExtensions
         [
             new ArgumentParseFailureMiddleware(options, loggerFactory?.CreateLogger<ArgumentParseFailureMiddleware>()),
             new RepeatedCallGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedCallGuardMiddleware>()),
+            new RepeatedResultGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedResultGuardMiddleware>()),
             new RepeatedErrorGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedErrorGuardMiddleware>()),
             new ApprovalGateMiddleware(policy, approvalService, loggerFactory?.CreateLogger<ApprovalGateMiddleware>(), modeManager, modeToolFilter),
             new ResilientArgumentsMiddleware(),

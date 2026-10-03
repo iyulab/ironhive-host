@@ -31,6 +31,7 @@ public class CliToolInvocationPipelineTests
         pipeline.InvocationMiddleware.Select(m => m.GetType()).Should().Equal(
             typeof(ArgumentParseFailureMiddleware),
             typeof(RepeatedCallGuardMiddleware),
+            typeof(RepeatedResultGuardMiddleware),
             typeof(RepeatedErrorGuardMiddleware),
             typeof(ApprovalGateMiddleware),
             typeof(ResilientArgumentsMiddleware));
