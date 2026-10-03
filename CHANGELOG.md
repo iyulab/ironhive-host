@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned sibling package(s) `LMSupply.Embedder` 0.102.0 -> 0.103.0, `LMSupply.Generator` 0.102.0 -> 0.103.0, `LMSupply.Reranker` 0.102.0 -> 0.103.0.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.21.13 -> 0.21.14, `MemoryIndexer` 0.21.0 -> 0.22.0, `MemoryIndexer.Sdk` 0.21.0 -> 0.22.0.
 
 ### Added
 - **`lmstudio.carryToolImages` and `gpuStack.carryToolImages`** (default off): an image a tool returns reaches a vision
