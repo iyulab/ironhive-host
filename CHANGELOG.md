@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.40.0 — Unreleased
 
+### Changed
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.102.0 -> 0.103.0, `LMSupply.Generator` 0.102.0 -> 0.103.0, `LMSupply.Reranker` 0.102.0 -> 0.103.0.
+
 ### Added
 - **`lmstudio.carryToolImages` and `gpuStack.carryToolImages`** (default off): an image a tool returns reaches a vision
   model behind a Chat Completions endpoint (IronHive 0.49.0 `CarryImageToolResultsAsUserMessage`). A Chat Completions
