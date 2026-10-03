@@ -496,7 +496,7 @@ public sealed class LMSupplyChatClient : IChatClient
                 {
                     yield return LmChatMessage.ToolResult(
                         fr.CallId ?? "",
-                        fr.Result?.ToString() ?? "");
+                        IronHive.Agent.Context.ToolResultText.Of(fr.Result));
                 }
                 continue;
             }

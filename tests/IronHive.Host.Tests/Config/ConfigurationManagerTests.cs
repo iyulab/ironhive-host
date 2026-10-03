@@ -350,6 +350,23 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void CarryToolImages_SetGlobally_SurvivesAProjectScopeThatDoesNotMentionIt_AndAProjectCanTurnItOff()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("lmstudio.carryToolImages", "true");
+        mgr.SetValue("gpuStack.carryToolImages", "true");
+        tmp.WriteProject("lmstudio:\n  model: vlm\n");
+
+        var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        loaded.LMStudio.CarryToolImages.Should().BeTrue("a project file that only names a model must not reset it");
+        loaded.GpuStack.CarryToolImages.Should().BeTrue();
+
+        tmp.WriteProject("lmstudio:\n  carryToolImages: false\n");
+        new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load().LMStudio.CarryToolImages.Should().BeFalse();
+    }
+
+    [Fact]
     public void GetValue_NonStringLeaf_ReturnsStringNotThrow_AndTypedLoadReadsIt()
     {
         using var tmp = new TempConfigDirs();

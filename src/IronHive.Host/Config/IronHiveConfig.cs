@@ -280,6 +280,13 @@ public class GpuStackConfig
     public string? RerankModel { get; set; }
 
     /// <summary>
+    /// Whether an image a tool returns (an MCP tool drawing a chart, a screenshot) is sent to the model in a user message
+    /// after the tool results. This endpoint speaks Chat Completions, whose tool messages hold text only; without this the
+    /// image is replaced by a note. Turn it on for a vision model. Unset = off.
+    /// </summary>
+    public bool? CarryToolImages { get; set; }
+
+    /// <summary>
     /// Gets whether GpuStack is configured.
     /// </summary>
     public bool IsConfigured =>
@@ -546,6 +553,13 @@ public class LMStudioConfig
     /// Whether LMStudio provider is enabled.
     /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Whether an image a tool returns (an MCP tool drawing a chart, a screenshot) is sent to the model in a user message
+    /// after the tool results. This endpoint speaks Chat Completions, whose tool messages hold text only; without this the
+    /// image is replaced by a note. Turn it on for a vision model. Unset = off.
+    /// </summary>
+    public bool? CarryToolImages { get; set; }
 
     /// <summary>
     /// Gets whether LMStudio is configured and enabled.

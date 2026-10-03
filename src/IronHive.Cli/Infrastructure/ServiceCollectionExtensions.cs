@@ -430,6 +430,22 @@ public static class ServiceCollectionExtensions
     internal static IronHive.Providers.Anthropic.AnthropicConfig CreateAnthropicConfig(CliConfig.AnthropicConfig configured) =>
         new() { ApiKey = configured.ApiKey! };
 
+    /// <summary>The provider config the CLI's GPUStack registration uses.</summary>
+    internal static IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackConfig CreateGpuStackConfig(CliConfig.GpuStackConfig configured) => new()
+    {
+        BaseUrl = StripApiPath(configured.Endpoint!),
+        ApiKey = configured.ApiKey!,
+        CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+    };
+
+    /// <summary>The provider config the CLI's LM Studio (or any local OpenAI-compatible server) registration uses.</summary>
+    internal static OpenAICompatibleConfig CreateLMStudioConfig(CliConfig.LMStudioConfig configured) => new()
+    {
+        BaseUrl = configured.Endpoint.TrimEnd('/'),
+        ApiKey = "lm-studio",
+        CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+    };
+
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
         // ironhive 0.8.0 removed the keyed provider registry (HiveServiceBuilder/IHiveService.Providers).
@@ -445,11 +461,7 @@ public static class ServiceCollectionExtensions
         // OpenAI-shaped view it derives (upstream's own AddGpuStackProviders wiring).
         if (config.GpuStack.IsConfigured)
         {
-            var gpuStackConfig = new IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackConfig
-            {
-                BaseUrl = StripApiPath(config.GpuStack.Endpoint!),
-                ApiKey = config.GpuStack.ApiKey!
-            };
+            var gpuStackConfig = CreateGpuStackConfig(config.GpuStack);
             // IronHive 0.23.0 folded GpuStackMessageGenerator into OpenAICompatibleMessageGenerator; 0.24.0 made
             // the config converter public (it carries the /v1-openai/ path, resolvers and connect timeout).
             var generator = new OpenAICompatibleMessageGenerator(gpuStackConfig.ToOpenAICompatible());
@@ -527,11 +539,7 @@ public static class ServiceCollectionExtensions
         // 7. LMStudio (OpenAI-compatible local inference; Chat Completions surface)
         if (config.LMStudio.IsConfigured)
         {
-            var lmStudioConfig = new OpenAICompatibleConfig
-            {
-                BaseUrl = config.LMStudio.Endpoint.TrimEnd('/'),
-                ApiKey = "lm-studio"
-            };
+            var lmStudioConfig = CreateLMStudioConfig(config.LMStudio);
             var generator = new OpenAICompatibleMessageGenerator(lmStudioConfig);
             var finder = new OpenAIModelFinder(lmStudioConfig.ToOpenAI());
             providersDict["lmstudio"] = new IronhiveChatClientProvider(generator, "lmstudio", config.LMStudio.Model!, finder);

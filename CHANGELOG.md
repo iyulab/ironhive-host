@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.40.0 — Unreleased
+
+### Added
+- **`lmstudio.carryToolImages` and `gpuStack.carryToolImages`** (default off): an image a tool returns reaches a vision
+  model behind a Chat Completions endpoint (IronHive 0.49.0 `CarryImageToolResultsAsUserMessage`). A Chat Completions
+  tool message holds text only, so the image was replaced by a note; with the key on, the tool message names it and a
+  user message after the tool results carries it. `ironhive set lmstudio.carryToolImages true`.
+
+### Fixed
+- **A tool result that is content (an MCP tool returning an image) reaches the local LMSupply model as its text with
+  the image named**, not as the type name of a list.
+
+### Dependencies
+- IronHive 0.49.0, IronHive.Agent 0.43.0 (content tool results are counted, masked and recorded as text with the
+  image named; `McpToolResult.Images`).
+
 ## 0.39.7 — 2026-10-04
 
 ### Changed

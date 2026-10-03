@@ -297,14 +297,14 @@ The loader accepts these top-level keys in `config.yaml`. Acronym provider secti
 
 | Key | Notes |
 |-----|-------|
-| `gpuStack` | camelCase |
+| `gpuStack` | camelCase; `carryToolImages` (default off) — see `lmstudio` |
 | `openai` | lowercase (acronym) |
 | `anthropic` | |
 | `googleai` | lowercase (acronym) |
 | `azureopenai` | lowercase (acronym) |
 | `xai` | |
 | `ollama` | |
-| `lmstudio` | lowercase (acronym) |
+| `lmstudio` | lowercase (acronym); `carryToolImages` (default off) — an image a tool returns (an MCP tool drawing a chart) is sent to the model in a user message after the tool results. These endpoints speak Chat Completions, whose tool messages hold text only, so without it the image is replaced by a note; turn it on for a vision model (llama-server with `--mmproj`, LM Studio, vLLM) |
 | `lmsupply` | lowercase (acronym) |
 | `permissions` | |
 | `compaction` | |

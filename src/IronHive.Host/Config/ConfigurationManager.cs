@@ -252,6 +252,11 @@ public class ConfigurationManager
     private static void MergeConfig(IronHiveConfig target, IronHiveConfig source)
     {
         // GpuStack
+        if (source.GpuStack.CarryToolImages is { } gpuStackCarry)
+        {
+            target.GpuStack.CarryToolImages = gpuStackCarry;
+        }
+
         if (!string.IsNullOrEmpty(source.GpuStack.Endpoint))
         {
             target.GpuStack.Endpoint = source.GpuStack.Endpoint;
@@ -395,6 +400,11 @@ public class ConfigurationManager
         }
 
         target.LMStudio.Enabled = source.LMStudio.Enabled;
+
+        if (source.LMStudio.CarryToolImages is { } lmStudioCarry)
+        {
+            target.LMStudio.CarryToolImages = lmStudioCarry;
+        }
 
         // Permissions — replace wholesale when the source scope defines any rule or a non-default action. These are the
         // config.yaml rules; Load uses them when the project has no permission file of its own.

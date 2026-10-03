@@ -88,9 +88,9 @@ public class SetCommand : Command<SetCommand.Settings>
             ["googleai"] = ["apiKey", "model"],
             ["xai"] = ["apiKey", "model", "endpoint"],
             ["azureopenai"] = ["endpoint", "apiKey", "deploymentName"],
-            ["gpuStack"] = ["endpoint", "apiKey", "model", "embeddingModel", "rerankModel"],
+            ["gpuStack"] = ["endpoint", "apiKey", "model", "embeddingModel", "rerankModel", "carryToolImages"],
             ["ollama"] = ["enabled", "endpoint", "model"],
-            ["lmstudio"] = ["enabled", "endpoint", "model"],
+            ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages"],
             ["lmsupply"] = ["enabled", "embedderModel", "rerankerModel", "generatorModel", "maxContextLength"]
         };
 
