@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.39.0 — Unreleased
+## 0.39.0 — 2026-10-03
 
 ### Changed
 - **A CLI or server turn ends when the model keeps re-reading content it already has** (IronHive.Agent 0.42.0 `RepeatedResultGuardMiddleware`, in the CLI's tool pipeline): the same tool returning the same result on a third separate visit ends the turn on a `RepeatedResult` refusal that names the cause — usually a working set larger than `compaction.observationMaskingProtectedTokens` — instead of re-reading in rotation until the step limit or answering from memory.
