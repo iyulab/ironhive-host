@@ -14,6 +14,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **A built-in tool that fails now ends a request that keeps failing the same way** (IronHive.Agent 0.42.0): the agent's file, shell and todo tools, and the host's `WebSearch`, `ExploreSite` and `DeepResearch`, throw on failure instead of returning "Error…" text, so the repeated-error guard sees the failure. The model still reads why: the agent's `UseToolInvocationPipeline` now sends a failing tool's message by default, so the CLI no longer sets `IncludeDetailedErrors` itself. **Breaking** for code that calls `WebSearchTool`/`DeepResearchTool` directly and reads an "Error…" result — catch the exception instead.
 - README: a delegated agent's `agent.yaml` needs a `model:` section; leaving `deployment` out runs it on the session's model.
 - Re-pinned sibling package(s) `IronHive.Agent`, `IronHive.Agent.Ironbees`, `IronHive.Agent.Memory`, `IronHive.DeepResearch` 0.41.0 -> 0.42.0.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.47.0 -> 0.48.0, `IronHive.Core` 0.47.0 -> 0.48.0, `IronHive.Extensions.AI` 0.47.0 -> 0.48.0, `IronHive.Providers.Anthropic` 0.47.0 -> 0.48.0, `IronHive.Providers.GoogleAI` 0.47.0 -> 0.48.0, `IronHive.Providers.OpenAI` 0.47.0 -> 0.48.0, `IronHive.Providers.OpenAI.Compatible` 0.47.0 -> 0.48.0.
 
 ## 0.38.3 — 2026-10-03
 
