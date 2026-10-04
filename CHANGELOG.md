@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.44.2 — Unreleased
 
+### Changed
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.50.0 -> 0.51.0, `IronHive.Core` 0.50.0 -> 0.51.0, `IronHive.Extensions.AI` 0.50.0 -> 0.51.0, `IronHive.Providers.Anthropic` 0.50.0 -> 0.51.0, `IronHive.Providers.GoogleAI` 0.50.0 -> 0.51.0, `IronHive.Providers.OpenAI` 0.50.0 -> 0.51.0, `IronHive.Providers.OpenAI.Compatible` 0.50.0 -> 0.51.0, `LMSupply.Embedder` 0.105.0 -> 0.105.1, `LMSupply.Generator` 0.105.0 -> 0.105.1, `LMSupply.Reranker` 0.105.0 -> 0.105.1, `TokenMeter` 0.7.8 -> 0.7.9.
+
 ### Dependencies
 - Microsoft.Extensions.AI 10.10.0, Microsoft.Extensions.AI.Abstractions 10.10.1, Microsoft.Extensions.AI.OpenAI 10.10.1, OpenAI 2.14.0.
 
