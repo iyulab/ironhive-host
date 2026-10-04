@@ -13,7 +13,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Removed
 - **Breaking: the `azureopenai` config section and the `AZURE_OPENAI_*` variables.** No Azure provider was ever registered from them — a config that set only Azure ran on the local LMSupply fallback without saying so, or stopped with «No API provider configured» when that was off. A config that still has the section now gets the unknown-key warning.
-  Migration for code that reads the config: `IronHiveConfig.AzureOpenAI` and `AzureOpenAIConfig` are gone — delete the references (an `IsConfigured` check on it was always false in effect for the CLI).
+  Migration for code that reads the config: `IronHiveConfig.AzureOpenAI` and `AzureOpenAIConfig` are gone — delete the references (no provider was ever built from it, so a check on it never selected one).
 
 ## 0.44.2 — 2026-10-05
 
