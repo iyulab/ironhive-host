@@ -54,7 +54,3 @@ npm run dev
 cd samples/console-chat
 dotnet run
 ```
-
-## 자세한 내용
-
-- [샘플 주도 개발 사이클 문서](../dev-docs/dev-cycles/sample-driven-web-chat-cycle.md)
