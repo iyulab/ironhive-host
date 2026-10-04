@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.44.0 — Unreleased
+## 0.44.0 — 2026-10-04
 
 ### Added
 - **`run --json` lists every tool call with its outcome (`calls`).** Each entry has `tool`, `outcome` (`ok`, `failed`,
