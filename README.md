@@ -276,11 +276,15 @@ reading the answer:
 ```json
 { "content": "…", "stop_reason": "step_limit", "duration_ms": 41230,
   "tool_calls": 12, "refused_tool_calls": 2, "failed_tool_calls": 1,
+  "calls": [ { "tool": "read_file", "outcome": "ok", "refusal_kind": null, "arguments": "{\"path\":\"a.txt\"}", "refusal": null },
+             { "tool": "read_file", "outcome": "refused", "refusal_kind": "repeated_call", "arguments": "…", "refusal": "…" } ],
   "thinking": null, "usage": { "input_tokens": 18342, "output_tokens": 1210, "total_tokens": 19552 } }
 ```
 
 `refused_tool_calls` counts calls the permission rules or a guard refused (the tool did not run, or its result was
-withheld); `failed_tool_calls` counts tools that ran and failed. A failure or timeout prints
+withheld); `failed_tool_calls` counts tools that ran and failed. `calls` lists every call in order — `outcome` is `ok`,
+`failed`, `refused` or `unknown`, a refusal carries its `refusal_kind` and message, and `arguments` is cut to 300
+characters (a tool's own result is not included). A failure or timeout prints
 `{ "error": "…", "stop_reason": "error" | "timeout", "duration_ms": … }`. Log output goes to stderr. A non-interactive
 run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in
 `.ironhive/permissions.yaml` (`default_action: allow`) when the run is meant to act unattended.

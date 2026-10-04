@@ -88,6 +88,28 @@ public sealed class RunCommandOutcomeTests
     }
 
     [Fact]
+    public async Task EachCall_IsListedInOrder_WithItsOutcome_AndARefusalSaysWhy()
+    {
+        var (command, loop, _) = Command();
+        var longArguments = "{\"content\":\"" + new string('x', 1000) + "\"}";
+        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(Response(TurnStopReason.ToolTerminated,
+            Call(true) with { ToolName = "describe_image", Arguments = "{\"path\":\"a.jpg\"}", Result = "a beach" },
+            Call(false) with { Arguments = longArguments, Result = "disk full" },
+            Call(false, ToolCallRefusalKind.RepeatedCall) with { ToolName = "describe_image", Result = "'describe_image' already ran 3 times" }));
+
+        var (_, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true });
+
+        var calls = json.GetProperty("calls").EnumerateArray().ToList();
+        calls.Select(c => c.GetProperty("outcome").GetString()).Should().Equal("ok", "failed", "refused");
+        calls[0].GetProperty("tool").GetString().Should().Be("describe_image");
+        calls[0].GetProperty("arguments").GetString().Should().Be("{\"path\":\"a.jpg\"}");
+        calls[0].GetProperty("refusal").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "a tool's own result is not reported");
+        calls[1].GetProperty("arguments").GetString().Should().HaveLength(RunOutcome.CallTextLimit + 1).And.EndWith("…");
+        calls[2].GetProperty("refusal_kind").GetString().Should().Be("repeated_call");
+        calls[2].GetProperty("refusal").GetString().Should().Be("'describe_image' already ran 3 times");
+    }
+
+    [Fact]
     public async Task ARunPastItsTimeout_StopsWithTimeout_AndExitCode2()
     {
         var (command, loop, _) = Command();

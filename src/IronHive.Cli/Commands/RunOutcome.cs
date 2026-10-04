@@ -27,6 +27,9 @@ internal static class RunOutcome
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
+    /// <summary>How much of a call's arguments, and of a refusal's message, the <c>calls</c> list keeps.</summary>
+    internal const int CallTextLimit = 300;
+
     /// <summary>The <c>stop_reason</c> text of a turn: the loop's reason in snake case (<c>step_limit</c>).</summary>
     public static string ReasonOf(TurnStopReason reason) => JsonNamingPolicy.SnakeCaseLower.ConvertName(reason.ToString());
 
@@ -47,6 +50,17 @@ internal static class RunOutcome
         tool_calls = response.ToolCalls.Count,
         refused_tool_calls = response.ToolCalls.Count(c => c.RefusalKind is not null),
         failed_tool_calls = response.ToolCalls.Count(c => c.Success == false && c.RefusalKind is null),
+        // In call order, so a reader can see which call a guard refused and what it said — a `tool_terminated` run is
+        // otherwise only a count. Arguments are cut to CallTextLimit (a write's content can be the whole file); a tool's
+        // own result is left out, a refusal's message kept.
+        calls = response.ToolCalls.Select(c => new
+        {
+            tool = c.ToolName,
+            outcome = OutcomeOf(c),
+            refusal_kind = c.RefusalKind is { } kind ? JsonNamingPolicy.SnakeCaseLower.ConvertName(kind.ToString()) : null,
+            arguments = Cut(c.Arguments),
+            refusal = c.RefusalKind is not null ? Cut(c.Result) : null,
+        }),
         thinking = showThinking && response.ThinkingContent is not null ? new
         {
             content = response.ThinkingContent.Content,
@@ -59,6 +73,12 @@ internal static class RunOutcome
             total_tokens = response.Usage.TotalTokens
         } : null
     }, JsonOptions);
+
+    /// <summary><c>ok</c>, <c>failed</c>, <c>refused</c>, or <c>unknown</c> when the invoker did not report one.</summary>
+    private static string OutcomeOf(ToolCallResult call) =>
+        call.RefusalKind is not null ? "refused" : call.Success switch { true => "ok", false => "failed", null => "unknown" };
+
+    private static string Cut(string text) => text.Length <= CallTextLimit ? text : string.Concat(text.AsSpan(0, CallTextLimit), "…");
 
     /// <summary>The <c>--json</c> document of a run that did not produce a turn (an error, or the timeout).</summary>
     public static string FailureJson(string stopReason, string error, long durationMs) => JsonSerializer.Serialize(new

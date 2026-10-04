@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.44.0 — Unreleased
+
+### Added
+- **`run --json` lists every tool call with its outcome (`calls`).** Each entry has `tool`, `outcome` (`ok`, `failed`,
+  `refused` or `unknown`), `refusal_kind` and the refusal's message, and the call's `arguments` cut to 300 characters.
+  The tool's own result is not included. A run that ends as `tool_terminated` now says which call a guard refused and
+  why. Before, it reported only a count.
+
 ## 0.43.0 — 2026-10-04
 
 ### Added
