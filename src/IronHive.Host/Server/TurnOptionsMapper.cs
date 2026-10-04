@@ -1,3 +1,4 @@
+using IronHive.Host.Config;
 using IronHive.Host.Protocol;
 using Microsoft.Extensions.AI;
 
@@ -64,7 +65,7 @@ public static class TurnOptionsMapper
 
         if (options.ReasoningEffort is not null)
         {
-            chatOptions.Reasoning = new ReasoningOptions { Effort = ParseReasoningEffort(options.ReasoningEffort) };
+            chatOptions.Reasoning = new ReasoningOptions { Effort = ReasoningEffortName.Parse(options.ReasoningEffort, nameof(options)) };
         }
 
         return chatOptions;
@@ -96,14 +97,4 @@ public static class TurnOptionsMapper
         };
     }
 
-    private static ReasoningEffort ParseReasoningEffort(string effort) => effort switch
-    {
-        "none" => ReasoningEffort.None,
-        "low" => ReasoningEffort.Low,
-        "medium" => ReasoningEffort.Medium,
-        "high" => ReasoningEffort.High,
-        "extra_high" => ReasoningEffort.ExtraHigh,
-        _ => throw new ArgumentException(
-            $"Unknown reasoning effort '{effort}'. Expected none, low, medium, high or extra_high.", nameof(effort))
-    };
 }

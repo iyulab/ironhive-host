@@ -340,6 +340,15 @@ public class ChatBehaviorConfig
     /// server allows.
     /// </summary>
     public int MaxOutputTokens { get; set; } = 4096;
+
+    /// <summary>
+    /// How much the model reasons on every call: <c>none</c>, <c>low</c>, <c>medium</c>, <c>high</c> or
+    /// <c>extra_high</c> (<see cref="ReasoningEffortName"/>). Null (the default) sends nothing, so a reasoning model
+    /// uses its own default — which can be tens of thousands of thinking tokens on one call. <c>none</c> turns thinking
+    /// off; the other levels are requests a server may hold loosely. A server turn's <c>reasoning_effort</c> replaces it
+    /// for that turn.
+    /// </summary>
+    public string? ReasoningEffort { get; set; }
 }
 
 /// <summary>

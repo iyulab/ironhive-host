@@ -585,6 +585,11 @@ public class ConfigurationManager
             target.ChatBehavior.MaxOutputTokens = source.ChatBehavior.MaxOutputTokens;
         }
 
+        if (source.ChatBehavior.ReasoningEffort is not null)
+        {
+            target.ChatBehavior.ReasoningEffort = source.ChatBehavior.ReasoningEffort;
+        }
+
         // Skills — a scope that names roots replaces the section; the lists are one decision, not a union.
         if (source.Skills.Roots.Count > 0)
         {

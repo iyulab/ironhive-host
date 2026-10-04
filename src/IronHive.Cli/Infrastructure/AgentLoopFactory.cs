@@ -201,6 +201,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             Temperature = options.Temperature ?? DefaultTemperature,
             // Read when the loop is created, so `run --max-output-tokens` (which sets it first) applies.
             MaxTokens = options.MaxTokens ?? _chatBehavior.MaxOutputTokens,
+            // Read here for the same reason: `run --reasoning-effort` sets it first.
+            Reasoning = _chatBehavior.ReasoningEffort is { } effort
+                ? new ReasoningOptions { Effort = ReasoningEffortName.Parse(effort, "chatBehavior.reasoningEffort") }
+                : null,
             Tools = tools,
             // Prices the usage the budget counts (TokenMeter catalog); an unknown model is counted in tokens only.
             ModelId = modelId,

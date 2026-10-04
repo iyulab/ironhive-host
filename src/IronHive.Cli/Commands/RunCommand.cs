@@ -66,6 +66,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [Description("Output tokens per model call (overrides chatBehavior.maxOutputTokens)")]
         public int? MaxOutputTokens { get; init; }
 
+        [CommandOption("--reasoning-effort <LEVEL>")]
+        [Description("How much the model reasons per call: none, low, medium, high, extra_high (overrides chatBehavior.reasoningEffort)")]
+        public string? ReasoningEffort { get; init; }
+
         [CommandOption("--timeout <SECONDS>")]
         [Description("Stop the run after this many seconds (stop_reason \"timeout\", exit code 2)")]
         public int? TimeoutSeconds { get; init; }
@@ -106,6 +110,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             if (MaxOutputTokens is <= 0)
             {
                 return ValidationResult.Error("--max-output-tokens must be a positive number.");
+            }
+
+            if (ReasoningEffort is not null && !ReasoningEffortName.TryParse(ReasoningEffort, out _))
+            {
+                return ValidationResult.Error(
+                    $"--reasoning-effort must be one of {string.Join(", ", ReasoningEffortName.Values)}.");
             }
 
             if (TimeoutSeconds is <= 0)
@@ -154,6 +164,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         if (settings.MaxOutputTokens is { } maxOutputTokens && _config is not null)
         {
             _config.ChatBehavior.MaxOutputTokens = maxOutputTokens;
+        }
+
+        if (settings.ReasoningEffort is { } reasoningEffort && _config is not null)
+        {
+            _config.ChatBehavior.ReasoningEffort = reasoningEffort;
         }
 
         if (settings.MaxIterations is { } maxIterations && _config is not null)

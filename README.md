@@ -256,6 +256,7 @@ Options of the default command (`ironhive` / `ironhive -p`):
 | `--json` | Output the result as one JSON document (below); stdout carries nothing else |
 | `--max-iterations <N>` | Model-call rounds allowed in this turn (overrides `chatBehavior.maximumIterationsPerRequest`) |
 | `--max-output-tokens <N>` | Output tokens per model call (overrides `chatBehavior.maxOutputTokens`) |
+| `--reasoning-effort <LEVEL>` | How much the model reasons per call — `none`, `low`, `medium`, `high`, `extra_high` (overrides `chatBehavior.reasoningEffort`) |
 | `--timeout <SECONDS>` | Stop the run after this many seconds |
 | `--server` | Server mode (JSON Lines on stdin/stdout — see [AgentServerRunner](#agentserverrunner--agenthttprunner)) |
 | `--session-id <ID>` | Session ID for server mode |
@@ -419,6 +420,8 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 chatBehavior:
   maximumIterationsPerRequest: 7      # tune down for small/quantized models
   maxOutputTokens: 16384              # per model call (default 4096); a reasoning model spends part of it thinking
+  reasoningEffort: low                # none | low | medium | high | extra_high; unset = the model's default.
+                                      # none turns thinking off; the other levels are requests a server may hold loosely
   maximumConsecutiveErrorsPerRequest: 3
 ```
 

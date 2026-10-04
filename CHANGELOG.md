@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.43.0 — Unreleased
+
+### Added
+- **`chatBehavior.reasoningEffort` and `run --reasoning-effort`: how much the model reasons on every call.** `none`,
+  `low`, `medium`, `high` or `extra_high`; unset sends nothing (the model's own default, which for a reasoning model can
+  be tens of thousands of thinking tokens on one call). `none` turns thinking off; the other levels are requests a server
+  may hold loosely. A server turn's `reasoning_effort` still replaces it for that turn. An unknown value fails when the
+  loop is created and names the setting.
+
 ## 0.42.2 — 2026-10-04
 
 ### Changed
