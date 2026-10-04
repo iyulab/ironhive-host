@@ -325,6 +325,8 @@ Configuration is merged in order (later overrides earlier):
 
 The loader accepts these top-level keys in `config.yaml`. Acronym provider sections use **lowercase** keys; unknown top-level keys are ignored with a logged warning.
 
+Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `lmstudio`) also takes `streamIdleTimeoutSeconds` — how long a streaming answer may stay silent, before its first token and between tokens, before the request ends with a «stream idle timeout». Unset = no limit (default); zero or negative is refused, naming the key, when that provider is set up. Unlike a whole-request deadline it tells a slow answer that is still flowing from a dead stream: for a local server on slow hardware, set it above the prompt-evaluation time before the first token (e.g. `ironhive set lmstudio.streamIdleTimeoutSeconds 300`).
+
 | Key | Notes |
 |-----|-------|
 | `gpuStack` | camelCase; `carryToolImages` (default off) — see `lmstudio` |

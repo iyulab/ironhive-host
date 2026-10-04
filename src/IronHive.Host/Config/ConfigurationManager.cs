@@ -252,6 +252,11 @@ public class ConfigurationManager
     private static void MergeConfig(IronHiveConfig target, IronHiveConfig source)
     {
         // GpuStack
+        if (source.GpuStack.StreamIdleTimeoutSeconds is { } gpuStackIdle)
+        {
+            target.GpuStack.StreamIdleTimeoutSeconds = gpuStackIdle;
+        }
+
         if (source.GpuStack.CarryToolImages is { } gpuStackCarry)
         {
             target.GpuStack.CarryToolImages = gpuStackCarry;
@@ -283,6 +288,11 @@ public class ConfigurationManager
         }
 
         // OpenAI
+        if (source.OpenAI.StreamIdleTimeoutSeconds is { } openAIIdle)
+        {
+            target.OpenAI.StreamIdleTimeoutSeconds = openAIIdle;
+        }
+
         if (!string.IsNullOrEmpty(source.OpenAI.ApiKey))
         {
             target.OpenAI.ApiKey = source.OpenAI.ApiKey;
@@ -299,6 +309,11 @@ public class ConfigurationManager
         }
 
         // Anthropic
+        if (source.Anthropic.StreamIdleTimeoutSeconds is { } anthropicIdle)
+        {
+            target.Anthropic.StreamIdleTimeoutSeconds = anthropicIdle;
+        }
+
         if (!string.IsNullOrEmpty(source.Anthropic.ApiKey))
         {
             target.Anthropic.ApiKey = source.Anthropic.ApiKey;
@@ -310,6 +325,11 @@ public class ConfigurationManager
         }
 
         // GoogleAI
+        if (source.GoogleAI.StreamIdleTimeoutSeconds is { } googleAIIdle)
+        {
+            target.GoogleAI.StreamIdleTimeoutSeconds = googleAIIdle;
+        }
+
         if (!string.IsNullOrEmpty(source.GoogleAI.ApiKey))
         {
             target.GoogleAI.ApiKey = source.GoogleAI.ApiKey;
@@ -320,7 +340,13 @@ public class ConfigurationManager
             target.GoogleAI.Model = source.GoogleAI.Model;
         }
 
-        // Xai — Endpoint has a non-empty default; only overwrite when source differs from it,
+        // Xai
+        if (source.Xai.StreamIdleTimeoutSeconds is { } xaiIdle)
+        {
+            target.Xai.StreamIdleTimeoutSeconds = xaiIdle;
+        }
+
+        // Xai Endpoint has a non-empty default; only overwrite when source differs from it,
         // otherwise an unset project scope would clobber a real global override with the default.
         if (!string.IsNullOrEmpty(source.Xai.ApiKey))
         {
@@ -389,6 +415,11 @@ public class ConfigurationManager
         target.Ollama.Enabled = source.Ollama.Enabled;
 
         // LMStudio
+        if (source.LMStudio.StreamIdleTimeoutSeconds is { } lMStudioIdle)
+        {
+            target.LMStudio.StreamIdleTimeoutSeconds = lMStudioIdle;
+        }
+
         if (!string.IsNullOrEmpty(source.LMStudio.Endpoint))
         {
             target.LMStudio.Endpoint = source.LMStudio.Endpoint;

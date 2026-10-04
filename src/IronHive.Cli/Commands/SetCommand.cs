@@ -83,14 +83,14 @@ public class SetCommand : Command<SetCommand.Settings>
 
         var keys = new Dictionary<string, string[]>
         {
-            ["openai"] = ["apiKey", "model", "endpoint"],
-            ["anthropic"] = ["apiKey", "model"],
-            ["googleai"] = ["apiKey", "model"],
-            ["xai"] = ["apiKey", "model", "endpoint"],
+            ["openai"] = ["apiKey", "model", "endpoint", "streamIdleTimeoutSeconds"],
+            ["anthropic"] = ["apiKey", "model", "streamIdleTimeoutSeconds"],
+            ["googleai"] = ["apiKey", "model", "streamIdleTimeoutSeconds"],
+            ["xai"] = ["apiKey", "model", "endpoint", "streamIdleTimeoutSeconds"],
             ["azureopenai"] = ["endpoint", "apiKey", "deploymentName"],
-            ["gpuStack"] = ["endpoint", "apiKey", "model", "embeddingModel", "rerankModel", "carryToolImages"],
+            ["gpuStack"] = ["endpoint", "apiKey", "model", "embeddingModel", "rerankModel", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["ollama"] = ["enabled", "endpoint", "model"],
-            ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages"],
+            ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["lmsupply"] = ["enabled", "embedderModel", "rerankerModel", "generatorModel", "maxContextLength"]
         };
 

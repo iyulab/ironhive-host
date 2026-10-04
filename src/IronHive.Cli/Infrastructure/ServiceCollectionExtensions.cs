@@ -430,8 +430,51 @@ public static class ServiceCollectionExtensions
     /// and it appends the versioned path itself — the value this used to set (<c>.../v1/</c>) doubled it, so every
     /// Anthropic call from the CLI was a 404.
     /// </summary>
-    internal static IronHive.Providers.Anthropic.AnthropicConfig CreateAnthropicConfig(CliConfig.AnthropicConfig configured) =>
-        new() { ApiKey = configured.ApiKey! };
+    internal static IronHive.Providers.Anthropic.AnthropicConfig CreateAnthropicConfig(CliConfig.AnthropicConfig configured) => new()
+    {
+        ApiKey = configured.ApiKey!,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "anthropic"),
+    };
+
+    /// <summary>The provider config the CLI's OpenAI (first-party, Responses) registration uses.</summary>
+    internal static IronHive.Providers.OpenAI.OpenAIConfig CreateOpenAIConfig(CliConfig.OpenAIConfig configured) => new()
+    {
+        BaseUrl = NormalizeEndpoint(configured.Endpoint ?? "https://api.openai.com/v1"),
+        ApiKey = configured.ApiKey!,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "openai"),
+    };
+
+    /// <summary>The provider config the CLI's Google AI registration uses.</summary>
+    internal static IronHive.Providers.GoogleAI.GoogleAIConfig CreateGoogleAIConfig(CliConfig.GoogleAIConfig configured) => new()
+    {
+        HttpOptions = new Google.GenAI.Types.HttpOptions
+        {
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta/",
+        },
+        ApiKey = configured.ApiKey!,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "googleai"),
+    };
+
+    /// <summary>The provider config the CLI's xAI (Chat Completions) registration uses.</summary>
+    internal static OpenAICompatibleConfig CreateXaiConfig(CliConfig.XaiConfig configured) => new()
+    {
+        BaseUrl = configured.Endpoint.TrimEnd('/'),
+        ApiKey = configured.ApiKey!,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "xai"),
+    };
+
+    /// <summary>
+    /// A provider block's <c>streamIdleTimeoutSeconds</c> as the provider config's <c>StreamIdleTimeout</c>: unset is no
+    /// limit (the library default); zero or negative is refused here, naming the key, rather than by the provider
+    /// constructor with a parameter name the config file never shows.
+    /// </summary>
+    internal static TimeSpan StreamIdleTimeout(int? seconds, string section) => seconds switch
+    {
+        null => Timeout.InfiniteTimeSpan,
+        > 0 => TimeSpan.FromSeconds(seconds.Value),
+        _ => throw new InvalidOperationException(
+            $"{section}.streamIdleTimeoutSeconds must be a positive number of seconds (remove it for no limit); got {seconds}."),
+    };
 
     /// <summary>The provider config the CLI's GPUStack registration uses.</summary>
     internal static IronHive.Providers.OpenAI.Compatible.GpuStack.GpuStackConfig CreateGpuStackConfig(CliConfig.GpuStackConfig configured) => new()
@@ -439,6 +482,7 @@ public static class ServiceCollectionExtensions
         BaseUrl = StripApiPath(configured.Endpoint!),
         ApiKey = configured.ApiKey!,
         CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "gpuStack"),
     };
 
     /// <summary>The provider config the CLI's LM Studio (or any local OpenAI-compatible server) registration uses.</summary>
@@ -447,6 +491,7 @@ public static class ServiceCollectionExtensions
         BaseUrl = configured.Endpoint.TrimEnd('/'),
         ApiKey = "lm-studio",
         CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "lmstudio"),
     };
 
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
@@ -475,11 +520,7 @@ public static class ServiceCollectionExtensions
         // 2. OpenAI (first-party; default Responses surface)
         if (config.OpenAI.IsConfigured)
         {
-            var openAIConfig = new IronHive.Providers.OpenAI.OpenAIConfig
-            {
-                BaseUrl = NormalizeEndpoint(config.OpenAI.Endpoint ?? "https://api.openai.com/v1"),
-                ApiKey = config.OpenAI.ApiKey!
-            };
+            var openAIConfig = CreateOpenAIConfig(config.OpenAI);
             var generator = new OpenAIMessageGenerator(openAIConfig);
             var finder = new OpenAIModelFinder(openAIConfig);
             providersDict["openai"] = new IronhiveChatClientProvider(generator, "openai", config.OpenAI.Model!, finder);
@@ -498,14 +539,7 @@ public static class ServiceCollectionExtensions
         // 4. Google AI
         if (config.GoogleAI.IsConfigured)
         {
-            var googleConfig = new IronHive.Providers.GoogleAI.GoogleAIConfig
-            {
-                HttpOptions = new Google.GenAI.Types.HttpOptions
-                {
-                    BaseUrl = "https://generativelanguage.googleapis.com/v1beta/",
-                },
-                ApiKey = config.GoogleAI.ApiKey!
-            };
+            var googleConfig = CreateGoogleAIConfig(config.GoogleAI);
             var generator = new GoogleAIMessageGenerator(googleConfig);
             var finder = new GoogleAIModelFinder(googleConfig);
             providersDict["google"] = new IronhiveChatClientProvider(generator, "google", config.GoogleAI.Model!, finder);
@@ -515,11 +549,7 @@ public static class ServiceCollectionExtensions
         // 5. Xai (OpenAI-compatible API; Chat Completions surface, same as GpuStack)
         if (config.Xai.IsConfigured)
         {
-            var xaiConfig = new OpenAICompatibleConfig
-            {
-                BaseUrl = config.Xai.Endpoint.TrimEnd('/'),
-                ApiKey = config.Xai.ApiKey!
-            };
+            var xaiConfig = CreateXaiConfig(config.Xai);
             var generator = new OpenAICompatibleMessageGenerator(xaiConfig);
             var finder = new OpenAIModelFinder(xaiConfig.ToOpenAI());
             providersDict["xai"] = new IronhiveChatClientProvider(generator, "xai", config.Xai.Model!, finder);

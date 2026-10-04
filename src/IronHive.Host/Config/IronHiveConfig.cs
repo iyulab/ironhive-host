@@ -287,6 +287,14 @@ public class GpuStackConfig
     public bool? CarryToolImages { get; set; }
 
     /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
+
+    /// <summary>
     /// Gets whether GpuStack is configured.
     /// </summary>
     public bool IsConfigured =>
@@ -409,6 +417,14 @@ public class OpenAIConfig
     public string? Endpoint { get; set; }
 
     /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
+
+    /// <summary>
     /// Gets whether OpenAI is configured.
     /// </summary>
     public bool IsConfigured =>
@@ -432,6 +448,14 @@ public class AnthropicConfig
     public string? Model { get; set; }
 
     /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
+
+    /// <summary>
     /// Gets whether Anthropic is configured.
     /// </summary>
     public bool IsConfigured =>
@@ -453,6 +477,14 @@ public class GoogleAIConfig
     /// Model name (e.g., "gemini-2.0-flash", "gemini-1.5-pro").
     /// </summary>
     public string? Model { get; set; }
+
+    /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
 
     /// <summary>
     /// Gets whether Google AI is configured.
@@ -483,6 +515,14 @@ public class XaiConfig
     /// Model name (e.g., "grok-3", "grok-3-mini").
     /// </summary>
     public string? Model { get; set; }
+
+    /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
 
     /// <summary>
     /// Gets whether Xai is configured.
@@ -576,6 +616,14 @@ public class LMStudioConfig
     /// image is replaced by a note. Turn it on for a vision model. Unset = off.
     /// </summary>
     public bool? CarryToolImages { get; set; }
+
+    /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
 
     /// <summary>
     /// Gets whether LMStudio is configured and enabled.

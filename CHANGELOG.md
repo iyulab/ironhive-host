@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.45.0 — Unreleased
+
+### Added
+- **`streamIdleTimeoutSeconds` in every provider block the CLI wires** (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `lmstudio`) — how long a streaming answer may stay silent before the request ends with a «stream idle timeout». Unset keeps the previous behaviour (no limit); zero or negative is refused naming the key. Settable with `ironhive set <section>.streamIdleTimeoutSeconds <seconds>`; a project `config.yaml` overrides the global value per provider.
+
 ## 0.44.2 — 2026-10-05
 
 ### Changed

@@ -369,6 +369,27 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void StreamIdleTimeoutSeconds_EveryWiredProviderBlock_LoadsFromSet_AndAProjectScopeOverridesOnlyWhatItNames()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        foreach (var section in new[] { "gpuStack", "openai", "anthropic", "googleai", "xai", "lmstudio" })
+        {
+            mgr.SetValue($"{section}.streamIdleTimeoutSeconds", "90");
+        }
+
+        tmp.WriteProject("lmstudio:\n  streamIdleTimeoutSeconds: 600\n");
+
+        var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+        loaded.GpuStack.StreamIdleTimeoutSeconds.Should().Be(90);
+        loaded.OpenAI.StreamIdleTimeoutSeconds.Should().Be(90);
+        loaded.Anthropic.StreamIdleTimeoutSeconds.Should().Be(90);
+        loaded.GoogleAI.StreamIdleTimeoutSeconds.Should().Be(90);
+        loaded.Xai.StreamIdleTimeoutSeconds.Should().Be(90);
+        loaded.LMStudio.StreamIdleTimeoutSeconds.Should().Be(600, "the project scope names it");
+    }
+
+    [Fact]
     public void GetValue_NonStringLeaf_ReturnsStringNotThrow_AndTypedLoadReadsIt()
     {
         using var tmp = new TempConfigDirs();
