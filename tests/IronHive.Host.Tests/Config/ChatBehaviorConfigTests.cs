@@ -21,6 +21,8 @@ public class ChatBehaviorConfigTests
             because: "must match the previous hard-coded value in ServiceCollectionExtensions to avoid behavior drift on consumers that don't override");
         config.MaximumConsecutiveErrorsPerRequest.Should().Be(3,
             because: "must match the previous hard-coded value");
+        config.MaxOutputTokens.Should().Be(4096,
+            because: "must match the CLI's previous hard-coded output cap");
     }
 
     [Fact]

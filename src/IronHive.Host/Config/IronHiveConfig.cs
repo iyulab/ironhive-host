@@ -333,6 +333,13 @@ public class ChatBehaviorConfig
     /// <see cref="Tools.ResilientFunctionInvoker"/> as the invoker) this is rarely hit.
     /// </summary>
     public int MaximumConsecutiveErrorsPerRequest { get; set; } = 3;
+
+    /// <summary>
+    /// Output tokens allowed per model call. Default: 4096. A reasoning model spends part of it on its thinking, so a
+    /// turn that ends at <c>output_limit</c> with little or no answer needs a larger value (e.g. 16384) — within what the
+    /// server allows.
+    /// </summary>
+    public int MaxOutputTokens { get; set; } = 4096;
 }
 
 /// <summary>

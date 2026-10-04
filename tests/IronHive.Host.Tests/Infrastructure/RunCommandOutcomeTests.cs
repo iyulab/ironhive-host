@@ -136,6 +136,22 @@ public sealed class RunCommandOutcomeTests
         new IronHiveConfig().ChatBehavior.MaximumIterationsPerRequest.Should().NotBe(40, "the positive control: 40 is not the default");
     }
 
+    [Fact]
+    public async Task MaxOutputTokens_SetsThePerCallCap_BeforeTheLoopIsCreated()
+    {
+        var (command, loop, config) = Command();
+        int? capWhenRun = null;
+        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            capWhenRun = config.ChatBehavior.MaxOutputTokens;
+            return Response(TurnStopReason.Completed);
+        });
+
+        await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, MaxOutputTokens = 16384 });
+
+        capWhenRun.Should().Be(16384);
+    }
+
     [Theory]
     [InlineData(0, null)]
     [InlineData(null, 0)]

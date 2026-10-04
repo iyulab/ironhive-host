@@ -202,7 +202,8 @@ public static class ServiceCollectionExtensions
                 agentsMd: config.AgentsMd,
                 toolRetrieval: config.ToolRetrieval,
                 delegation: config.Delegation,
-                delegationClients: config.Delegation.Agents.Count > 0 ? sp.GetRequiredService<DelegationClients>().Factory : null);
+                delegationClients: config.Delegation.Agents.Count > 0 ? sp.GetRequiredService<DelegationClients>().Factory : null,
+                chatBehavior: config.ChatBehavior);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.

@@ -62,6 +62,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [Description("Model-call rounds allowed in this turn (overrides chatBehavior.maximumIterationsPerRequest)")]
         public int? MaxIterations { get; init; }
 
+        [CommandOption("--max-output-tokens <N>")]
+        [Description("Output tokens per model call (overrides chatBehavior.maxOutputTokens)")]
+        public int? MaxOutputTokens { get; init; }
+
         [CommandOption("--timeout <SECONDS>")]
         [Description("Stop the run after this many seconds (stop_reason \"timeout\", exit code 2)")]
         public int? TimeoutSeconds { get; init; }
@@ -97,6 +101,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             if (MaxIterations is <= 0)
             {
                 return ValidationResult.Error("--max-iterations must be a positive number.");
+            }
+
+            if (MaxOutputTokens is <= 0)
+            {
+                return ValidationResult.Error("--max-output-tokens must be a positive number.");
             }
 
             if (TimeoutSeconds is <= 0)
@@ -142,6 +151,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
         // This process runs one turn, so the flag is the turn's setting: the chat client reads the cap when the loop is
         // created below.
+        if (settings.MaxOutputTokens is { } maxOutputTokens && _config is not null)
+        {
+            _config.ChatBehavior.MaxOutputTokens = maxOutputTokens;
+        }
+
         if (settings.MaxIterations is { } maxIterations && _config is not null)
         {
             _config.ChatBehavior.MaximumIterationsPerRequest = maxIterations;

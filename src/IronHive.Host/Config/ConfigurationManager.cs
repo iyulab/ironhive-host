@@ -580,6 +580,11 @@ public class ConfigurationManager
             target.ChatBehavior.MaximumConsecutiveErrorsPerRequest = source.ChatBehavior.MaximumConsecutiveErrorsPerRequest;
         }
 
+        if (source.ChatBehavior.MaxOutputTokens > 0)
+        {
+            target.ChatBehavior.MaxOutputTokens = source.ChatBehavior.MaxOutputTokens;
+        }
+
         // Skills — a scope that names roots replaces the section; the lists are one decision, not a union.
         if (source.Skills.Roots.Count > 0)
         {

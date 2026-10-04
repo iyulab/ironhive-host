@@ -139,6 +139,7 @@ public class ConfigurationManagerTests : IDisposable
             chatBehavior:
               maximumIterationsPerRequest: 5
               maximumConsecutiveErrorsPerRequest: 7
+              maxOutputTokens: 16384
             compaction:
               thresholdPercentage: 0.85
             """);
@@ -147,6 +148,7 @@ public class ConfigurationManagerTests : IDisposable
 
         Assert.Equal(5, config.ChatBehavior.MaximumIterationsPerRequest);
         Assert.Equal(7, config.ChatBehavior.MaximumConsecutiveErrorsPerRequest);
+        Assert.Equal(16384, config.ChatBehavior.MaxOutputTokens);
         Assert.Equal(0.85f, config.Compaction.ThresholdPercentage);
     }
 

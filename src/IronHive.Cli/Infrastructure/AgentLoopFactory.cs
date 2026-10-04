@@ -41,6 +41,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly UsageLimitsConfig? _budget;
     private readonly AgentsMdHostConfig? _agentsMd;
     private readonly ToolRetrievalHostConfig? _toolRetrieval;
+    private readonly ChatBehaviorConfig _chatBehavior;
     private readonly DelegationHostConfig? _delegation;
     private readonly IChatClientFactory? _delegationClients;
     private int _mcpPluginsLoaded;
@@ -74,7 +75,6 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         - After using tools, summarize what was done without repeating tool output verbatim.
         """;
     private const float DefaultTemperature = 0.7f;
-    private const int DefaultMaxTokens = 4096;
 
     public AgentLoopFactory(
         IChatClientFactory clientFactory,
@@ -96,8 +96,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         AgentsMdHostConfig? agentsMd = null,
         ToolRetrievalHostConfig? toolRetrieval = null,
         DelegationHostConfig? delegation = null,
-        IChatClientFactory? delegationClients = null)
+        IChatClientFactory? delegationClients = null,
+        ChatBehaviorConfig? chatBehavior = null)
     {
+        _chatBehavior = chatBehavior ?? new ChatBehaviorConfig();
         _delegation = delegation;
         _delegationClients = delegationClients;
         _budget = budget;
@@ -197,7 +199,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         {
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,
             Temperature = options.Temperature ?? DefaultTemperature,
-            MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
+            // Read when the loop is created, so `run --max-output-tokens` (which sets it first) applies.
+            MaxTokens = options.MaxTokens ?? _chatBehavior.MaxOutputTokens,
             Tools = tools,
             // Prices the usage the budget counts (TokenMeter catalog); an unknown model is counted in tokens only.
             ModelId = modelId,
