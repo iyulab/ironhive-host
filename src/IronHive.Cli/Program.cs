@@ -72,6 +72,12 @@ try
 
     return await app.RunAsync(args);
 }
+catch (Exception ex) when (args.Contains("--json") && args.Contains("run"))
+{
+    // `run --json` promises a JSON document on stdout, failures included — also one raised before the command runs.
+    Console.WriteLine(RunOutcome.FailureJson(RunOutcome.ErrorReason, ex.Message, 0));
+    return RunOutcome.Error;
+}
 catch (InvalidOperationException ex) when (ex.Message.Contains("provider configured"))
 {
     // Configuration error - show user-friendly message

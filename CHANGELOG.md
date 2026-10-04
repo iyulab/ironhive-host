@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.41.0 — Unreleased
+
+### Added
+- **`ironhive run --json` says how the turn ended: `stop_reason`, `duration_ms`, `tool_calls`, `refused_tool_calls`,
+  `failed_tool_calls`**, beside `content`, `thinking` and `usage`. A failure — also one before the turn starts, such as
+  a provider that cannot be created — is a JSON document (`error`, `stop_reason: "error"`) instead of plain text.
+- **`run --max-iterations <N>` and `run --timeout <SECONDS>`.** The cap overrides `chatBehavior.maximumIterationsPerRequest`
+  for the run; a run past its timeout stops with `stop_reason: "timeout"`.
+
+### Changed
+- **Breaking (scripts that read `run`'s exit code):** a turn that did not complete now exits **2** (iteration cap, output
+  limit, a guard that ended the turn, or `--timeout`), and **3** when the content filter stopped it. Both were 0. An error
+  is still 1.
+- Configuration warnings logged while the CLI starts go to stderr, so they no longer land in the middle of `run --json`
+  or `run --server` output.
+
+### Fixed
+- **A `run` cut off at its iteration cap reports `step_limit` (exit 2) and the tool calls that ran.** It read as
+  `completed` with no tool calls: at the cap the model is asked once more without tools, and an answer that was then
+  continued lost the turn's tool rounds — and the continuation offered the tools again, so more calls ran unrecorded
+  past the cap (IronHive.Agent 0.44.0, IndexThinking 0.24.1).
+
+### Dependencies
+- IronHive.Agent family 0.43.1 -> 0.44.0 (`ToolCallResult.RefusalKind`, step-limit classification); IndexThinking
+  0.24.1 through it.
+
 ## 0.40.1 — 2026-10-04
 
 ### Changed

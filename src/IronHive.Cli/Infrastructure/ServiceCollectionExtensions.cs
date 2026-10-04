@@ -120,7 +120,9 @@ public static class ServiceCollectionExtensions
         var globalConfigPath = Path.Combine(userProfile, ".ironhive", "config.yaml");
         var projectRoot = Directory.GetCurrentDirectory();
         var legacySettingsPath = Path.Combine(userProfile, ".ironhive", "settings.json");
-        using var bootstrapLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
+        // Diagnostics go to stderr: stdout is the command's output (a `run --json` document, server-mode JSON Lines), and
+        // a config warning written there would corrupt it.
+        using var bootstrapLoggerFactory = LoggerFactory.Create(b => b.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace));
         var configLogger = bootstrapLoggerFactory.CreateLogger<ConfigurationManager>();
         ConfigMigrator.MigrateIfNeeded(globalConfigPath, projectRoot, legacySettingsPath, configLogger);
         var configManager = new ConfigurationManager(projectRoot, globalConfigPath, configLogger);

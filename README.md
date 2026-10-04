@@ -253,11 +253,35 @@ Options of the default command (`ironhive` / `ironhive -p`):
 
 | Flag | Purpose |
 |------|---------|
-| `--json` | Output the response as JSON |
+| `--json` | Output the result as one JSON document (below); stdout carries nothing else |
+| `--max-iterations <N>` | Model-call rounds allowed in this turn (overrides `chatBehavior.maximumIterationsPerRequest`) |
+| `--timeout <SECONDS>` | Stop the run after this many seconds |
 | `--server` | Server mode (JSON Lines on stdin/stdout — see [AgentServerRunner](#agentserverrunner--agenthttprunner)) |
 | `--session-id <ID>` | Session ID for server mode |
 | `--auto-commit` | Commit changes after a successful run |
 | `--commit-message <MESSAGE>` | Commit message for `--auto-commit` (default: generated from the prompt) |
+
+For an unattended caller (a script, a scheduler, a benchmark harness) `run` says how the turn ended without anyone
+reading the answer:
+
+| Exit code | `stop_reason` | Meaning |
+|---|---|---|
+| 0 | `completed` | The model finished its answer |
+| 2 | `step_limit` · `output_limit` · `tool_terminated` · `timeout` | Stopped short: the iteration cap, the output limit, a loop guard that ended the turn, or `--timeout` |
+| 3 | `content_filter` | The provider's content filter stopped the answer |
+| 1 | `error` | The run failed (including a provider that could not be created) |
+
+```json
+{ "content": "…", "stop_reason": "step_limit", "duration_ms": 41230,
+  "tool_calls": 12, "refused_tool_calls": 2, "failed_tool_calls": 1,
+  "thinking": null, "usage": { "input_tokens": 18342, "output_tokens": 1210, "total_tokens": 19552 } }
+```
+
+`refused_tool_calls` counts calls the permission rules or a guard refused (the tool did not run, or its result was
+withheld); `failed_tool_calls` counts tools that ran and failed. A failure or timeout prints
+`{ "error": "…", "stop_reason": "error" | "timeout", "duration_ms": … }`. Log output goes to stderr. A non-interactive
+run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in
+`.ironhive/permissions.yaml` (`default_action: allow`) when the run is meant to act unattended.
 
 ### Model Configuration
 

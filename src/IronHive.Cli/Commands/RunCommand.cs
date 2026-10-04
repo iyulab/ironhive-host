@@ -1,9 +1,10 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Cli.Infrastructure;
+using IronHive.Host.Config;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 using IronHive.Host.Utils;
@@ -18,17 +19,21 @@ namespace IronHive.Cli.Commands;
 /// </summary>
 public class RunCommand : AsyncCommand<RunCommand.Settings>
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
     private readonly IHostAgentLoopFactory _factory;
     private readonly IMcpPluginManager? _pluginManager;
     private readonly HitlBridge? _hitlBridge;
+    private readonly IronHiveConfig? _config;
 
-    public RunCommand(IHostAgentLoopFactory factory, IMcpPluginManager? pluginManager = null, HitlBridge? hitlBridge = null)
+    public RunCommand(
+        IHostAgentLoopFactory factory,
+        IMcpPluginManager? pluginManager = null,
+        HitlBridge? hitlBridge = null,
+        IronHiveConfig? config = null)
     {
         _factory = factory;
         _pluginManager = pluginManager;
         _hitlBridge = hitlBridge;
+        _config = config;
     }
 
     public class Settings : CommandSettings
@@ -50,8 +55,16 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         public string? Provider { get; init; }
 
         [CommandOption("--json")]
-        [Description("Output response as JSON")]
+        [Description("Output the result as JSON: content, stop_reason, duration_ms, tool call counts, usage")]
         public bool Json { get; init; }
+
+        [CommandOption("--max-iterations <N>")]
+        [Description("Model-call rounds allowed in this turn (overrides chatBehavior.maximumIterationsPerRequest)")]
+        public int? MaxIterations { get; init; }
+
+        [CommandOption("--timeout <SECONDS>")]
+        [Description("Stop the run after this many seconds (stop_reason \"timeout\", exit code 2)")]
+        public int? TimeoutSeconds { get; init; }
 
         [CommandOption("--show-tokens")]
         [Description("Show token usage statistics")]
@@ -78,6 +91,21 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         public string? CommitMessage { get; init; }
 
         public string? GetPrompt() => PromptArg ?? PromptOption;
+
+        public override ValidationResult Validate()
+        {
+            if (MaxIterations is <= 0)
+            {
+                return ValidationResult.Error("--max-iterations must be a positive number.");
+            }
+
+            if (TimeoutSeconds is <= 0)
+            {
+                return ValidationResult.Error("--timeout must be a positive number of seconds.");
+            }
+
+            return ValidationResult.Success();
+        }
     }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -87,13 +115,36 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             return await RunServerModeAsync(settings, cancellationToken);
         }
 
+        return await RunOnceAsync(settings, Console.Out, cancellationToken);
+    }
+
+    /// <summary>
+    /// One prompt, one turn, then exit — the code a script reads (<see cref="RunOutcome"/>): 0 completed, 1 error,
+    /// 2 stopped short (a step, output or time limit, or a guard), 3 content filter. Under <c>--json</c>
+    /// <paramref name="stdout"/> carries only the result document.
+    /// </summary>
+    internal async Task<int> RunOnceAsync(Settings settings, TextWriter stdout, CancellationToken cancellationToken)
+    {
         var prompt = settings.GetPrompt();
 
         if (string.IsNullOrWhiteSpace(prompt))
         {
+            if (settings.Json)
+            {
+                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.ErrorReason, "A prompt is required.", 0));
+                return RunOutcome.Error;
+            }
+
             AnsiConsole.MarkupLine("[red]Error: Prompt is required.[/]");
             AnsiConsole.MarkupLine("[grey]Usage: ironhive run -p \"your prompt here\"[/]");
-            return 1;
+            return RunOutcome.Error;
+        }
+
+        // This process runs one turn, so the flag is the turn's setting: the chat client reads the cap when the loop is
+        // created below.
+        if (settings.MaxIterations is { } maxIterations && _config is not null)
+        {
+            _config.ChatBehavior.MaximumIterationsPerRequest = maxIterations;
         }
 
         // Capture initial Git state if auto-commit is enabled
@@ -103,58 +154,56 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             initialStatus = GitHelper.GetStatus();
         }
 
-        // Create agent loop with optional model/provider override
-        var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
-        {
-            Provider = settings.Provider,
-            Model = settings.Model
-        }, cancellationToken);
+        using var timeout = settings.TimeoutSeconds is { } seconds ? new CancellationTokenSource(TimeSpan.FromSeconds(seconds)) : null;
+        using var linked = timeout is null
+            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        var clock = Stopwatch.StartNew();
+        IAgentLoop? agentLoop = null;
 
         try
         {
-            var response = await agentLoop.RunAsync(prompt, cancellationToken);
+            // Inside the error boundary: a provider that cannot be created is reported like any other failure (JSON
+            // under --json), not as unstructured text from the host.
+            agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
+            {
+                Provider = settings.Provider,
+                Model = settings.Model
+            }, linked.Token);
+
+            var response = await agentLoop.RunAsync(prompt, linked.Token);
+            clock.Stop();
 
             if (settings.Json)
             {
-                var json = JsonSerializer.Serialize(new
-                {
-                    content = response.Content,
-                    thinking = settings.ShowThinking && response.ThinkingContent is not null ? new
-                    {
-                        content = response.ThinkingContent.Content,
-                        token_count = response.ThinkingContent.TokenCount
-                    } : null,
-                    usage = response.Usage is not null ? new
-                    {
-                        input_tokens = response.Usage.InputTokens,
-                        output_tokens = response.Usage.OutputTokens,
-                        total_tokens = response.Usage.TotalTokens
-                    } : null
-                }, JsonOptions);
-
-                Console.WriteLine(json);
+                await stdout.WriteLineAsync(RunOutcome.Json(response, clock.ElapsedMilliseconds, settings.ShowThinking));
             }
             else
             {
                 // Show thinking content if available and requested
                 if (settings.ShowThinking && response.ThinkingContent?.Content is not null)
                 {
-                    Console.WriteLine("=== Thinking ===");
-                    Console.WriteLine(response.ThinkingContent.Content);
+                    await stdout.WriteLineAsync("=== Thinking ===");
+                    await stdout.WriteLineAsync(response.ThinkingContent.Content);
                     if (response.ThinkingContent.TokenCount.HasValue)
                     {
-                        Console.WriteLine($"(Thinking tokens: {response.ThinkingContent.TokenCount.Value})");
+                        await stdout.WriteLineAsync($"(Thinking tokens: {response.ThinkingContent.TokenCount.Value})");
                     }
-                    Console.WriteLine("================");
-                    Console.WriteLine();
+                    await stdout.WriteLineAsync("================");
+                    await stdout.WriteLineAsync();
                 }
 
-                Console.WriteLine(response.Content);
+                await stdout.WriteLineAsync(response.Content);
 
                 if (settings.ShowTokens && response.Usage is not null)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total");
+                    await stdout.WriteLineAsync();
+                    await stdout.WriteLineAsync($"Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total");
+                }
+
+                if (response.StopReason != TurnStopReason.Completed)
+                {
+                    await Console.Error.WriteLineAsync($"Stopped: {RunOutcome.ReasonOf(response.StopReason)}");
                 }
             }
 
@@ -164,23 +213,34 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 await HandleAutoCommitAsync(settings, prompt);
             }
 
-            return 0;
+            return RunOutcome.ExitCodeFor(response.StopReason);
+        }
+        catch (OperationCanceledException) when (timeout?.IsCancellationRequested == true && !cancellationToken.IsCancellationRequested)
+        {
+            var message = $"The run did not finish within {settings.TimeoutSeconds} s.";
+            if (settings.Json)
+            {
+                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.Timeout, message, clock.ElapsedMilliseconds));
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[red]{Markup.Escape(message)}[/]");
+            }
+
+            return RunOutcome.Incomplete;
         }
         catch (Exception ex)
         {
             if (settings.Json)
             {
-                Console.WriteLine(JsonSerializer.Serialize(new
-                {
-                    error = ex.Message
-                }, JsonOptions));
+                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.ErrorReason, ex.Message, clock.ElapsedMilliseconds));
             }
             else
             {
                 AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(ex.Message)}[/]");
             }
 
-            return 1;
+            return RunOutcome.Error;
         }
         finally
         {
