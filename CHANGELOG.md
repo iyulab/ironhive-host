@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.42.1 — 2026-10-04
+
+### Changed
+- Re-pinned sibling package(s) `IronHive.Agent` 0.44.0 -> 0.45.1, `IronHive.Agent.Ironbees` 0.44.0 -> 0.45.1, `IronHive.Agent.Memory` 0.44.0 -> 0.45.1, `IronHive.DeepResearch` 0.44.0 -> 0.45.1, `LMSupply.Embedder` 0.104.0 -> 0.105.0, `LMSupply.Generator` 0.104.0 -> 0.105.0, `LMSupply.Reranker` 0.104.0 -> 0.105.0. No source changes.
+
 ## 0.42.0 — 2026-10-04
 
 ### Added
