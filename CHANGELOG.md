@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.45.0 — Unreleased
+## 0.45.0 — 2026-10-05
 
 ### Added
 - **The `ollama` provider works.** Enabling it (`ollama.enabled: true` + `ollama.model`, or `OLLAMA_ENABLED`/`OLLAMA_MODEL`) used to stop the CLI with «temporarily unsupported»; it now registers on Ollama's OpenAI-compatible `/v1` surface (the endpoint may be given with or without `/v1`) and takes `carryToolImages` like `lmstudio`.
