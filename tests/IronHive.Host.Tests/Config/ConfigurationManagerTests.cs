@@ -117,7 +117,6 @@ public class ConfigurationManagerTests : IDisposable
         Assert.NotNull(config.Anthropic);
         Assert.NotNull(config.GoogleAI);
         Assert.NotNull(config.Xai);
-        Assert.NotNull(config.AzureOpenAI);
         Assert.NotNull(config.LMSupply);
         Assert.NotNull(config.Ollama);
         Assert.NotNull(config.LMStudio);
@@ -253,13 +252,12 @@ public class ConfigurationManagerTests : IDisposable
     public void Load_AcronymSectionKeys_UseCleanLowercaseAliases()
     {
         using var tmp = new TempConfigDirs();
-        tmp.WriteGlobal("openai:\n  apiKey: k1\nlmsupply:\n  generatorModel: gm\nlmstudio:\n  model: ls\ngoogleai:\n  apiKey: g\nazureopenai:\n  deploymentName: d\n");
+        tmp.WriteGlobal("openai:\n  apiKey: k1\nlmsupply:\n  generatorModel: gm\nlmstudio:\n  model: ls\ngoogleai:\n  apiKey: g\n");
         var config = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
         config.OpenAI.ApiKey.Should().Be("k1");
         config.LMSupply.GeneratorModel.Should().Be("gm");
         config.LMStudio.Model.Should().Be("ls");
         config.GoogleAI.ApiKey.Should().Be("g");
-        config.AzureOpenAI.DeploymentName.Should().Be("d");
     }
 
     [Fact]
@@ -414,7 +412,7 @@ public class ConfigurationManagerTests : IDisposable
     {
         var src = new IronHiveConfig();
         src.GpuStack.Endpoint = "e"; src.OpenAI.ApiKey = "o"; src.Anthropic.Model = "a";
-        src.GoogleAI.ApiKey = "g"; src.Xai.ApiKey = "x"; src.AzureOpenAI.Endpoint = "az";
+        src.GoogleAI.ApiKey = "g"; src.Xai.ApiKey = "x";
         src.LMSupply.GeneratorModel = "gm"; src.Ollama.Model = "ol"; src.LMStudio.Model = "ls";
         src.WebSearch.TavilyApiKey = "t"; src.DeepResearch.MaxIterations = 9;
         src.ChatBehavior.MaximumIterationsPerRequest = 7;
@@ -422,7 +420,7 @@ public class ConfigurationManagerTests : IDisposable
         var back = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml)!;
         back.GpuStack.Endpoint.Should().Be("e"); back.OpenAI.ApiKey.Should().Be("o");
         back.Anthropic.Model.Should().Be("a"); back.GoogleAI.ApiKey.Should().Be("g");
-        back.Xai.ApiKey.Should().Be("x"); back.AzureOpenAI.Endpoint.Should().Be("az");
+        back.Xai.ApiKey.Should().Be("x");
         back.LMSupply.GeneratorModel.Should().Be("gm"); back.Ollama.Model.Should().Be("ol");
         back.LMStudio.Model.Should().Be("ls"); back.WebSearch.TavilyApiKey.Should().Be("t");
         back.DeepResearch.MaxIterations.Should().Be(9);

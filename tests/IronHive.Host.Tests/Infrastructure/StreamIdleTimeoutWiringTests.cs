@@ -30,6 +30,12 @@ public class StreamIdleTimeoutWiringTests
         ServiceCollectionExtensions.CreateGpuStackConfig(new CliConfig.GpuStackConfig { Endpoint = "http://gpu:80", ApiKey = "k", StreamIdleTimeoutSeconds = configured })
             .ToOpenAICompatible().StreamIdleTimeout.Should().Be(expected);
 
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void Ollama(int? configured, TimeSpan expected) =>
+        ServiceCollectionExtensions.CreateOllamaConfig(new CliConfig.OllamaConfig { StreamIdleTimeoutSeconds = configured })
+            .StreamIdleTimeout.Should().Be(expected);
+
     [Fact]
     public void OpenAI() =>
         ServiceCollectionExtensions.CreateOpenAIConfig(new CliConfig.OpenAIConfig { ApiKey = "k", StreamIdleTimeoutSeconds = 90 })

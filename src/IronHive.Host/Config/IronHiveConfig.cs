@@ -39,12 +39,6 @@ public class IronHiveConfig
     public XaiConfig Xai { get; set; } = new();
 
     /// <summary>
-    /// Azure OpenAI configuration.
-    /// </summary>
-    [YamlMember(Alias = "azureopenai")]
-    public AzureOpenAIConfig AzureOpenAI { get; set; } = new();
-
-    /// <summary>
     /// LMSupply configuration (fallback provider).
     /// </summary>
     [YamlMember(Alias = "lmsupply")]
@@ -534,35 +528,6 @@ public class XaiConfig
 }
 
 /// <summary>
-/// Azure OpenAI configuration.
-/// </summary>
-public class AzureOpenAIConfig
-{
-    /// <summary>
-    /// Azure OpenAI endpoint URL (e.g., "https://my-resource.openai.azure.com").
-    /// </summary>
-    public string? Endpoint { get; set; }
-
-    /// <summary>
-    /// API key for authentication.
-    /// </summary>
-    public string? ApiKey { get; set; }
-
-    /// <summary>
-    /// Deployment name (e.g., "gpt-4o-deployment").
-    /// </summary>
-    public string? DeploymentName { get; set; }
-
-    /// <summary>
-    /// Gets whether Azure OpenAI is configured.
-    /// </summary>
-    public bool IsConfigured =>
-        !string.IsNullOrEmpty(Endpoint) &&
-        !string.IsNullOrEmpty(ApiKey) &&
-        !string.IsNullOrEmpty(DeploymentName);
-}
-
-/// <summary>
 /// Ollama local inference configuration.
 /// </summary>
 public class OllamaConfig
@@ -582,6 +547,21 @@ public class OllamaConfig
     /// Whether Ollama provider is enabled.
     /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Whether an image a tool returns (an MCP tool drawing a chart, a screenshot) is sent to the model in a user message
+    /// after the tool results. This endpoint speaks Chat Completions, whose tool messages hold text only; without this the
+    /// image is replaced by a note. Turn it on for a vision model. Unset = off.
+    /// </summary>
+    public bool? CarryToolImages { get; set; }
+
+    /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
+    /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
+    /// above the prompt-evaluation time before the first token.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
 
     /// <summary>
     /// Gets whether Ollama is configured and enabled.

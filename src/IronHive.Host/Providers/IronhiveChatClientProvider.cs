@@ -162,7 +162,6 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
             "anthropic" or "claude" => ModelCatalog.Anthropic,
             "google" or "gemini" or "googleai" => ModelCatalog.Google,
             "xai" or "grok" => ModelCatalog.XAI,
-            "azure" or "azure-openai" or "azureopenai" => ModelCatalog.Azure,
             _ => null
         };
     }

@@ -76,12 +76,6 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AddConfigRow(table, "xai", "model", _config.Xai.Model);
         AddStatusRow(table, "xai", "configured", _config.Xai.IsConfigured);
 
-        // Azure OpenAI configuration
-        AddConfigRow(table, "azureopenai", "endpoint", _config.AzureOpenAI.Endpoint);
-        AddSecretRow(table, "azureopenai", "apiKey", _config.AzureOpenAI.ApiKey);
-        AddConfigRow(table, "azureopenai", "deploymentName", _config.AzureOpenAI.DeploymentName);
-        AddStatusRow(table, "azureopenai", "configured", _config.AzureOpenAI.IsConfigured);
-
         // Ollama configuration
         AddBoolRow(table, "ollama", "enabled", _config.Ollama.Enabled);
         AddConfigRow(table, "ollama", "endpoint", _config.Ollama.Endpoint);

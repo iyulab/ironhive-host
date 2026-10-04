@@ -54,19 +54,7 @@ public class ConfigWriter
         { "xai.endpoint", "XAI_ENDPOINT" },
         { "xai.apikey", "XAI_API_KEY" },
         { "xai.api_key", "XAI_API_KEY" },
-        { "xai.model", "XAI_MODEL" },
-
-        // Azure OpenAI mappings
-        { "azure.endpoint", "AZURE_OPENAI_ENDPOINT" },
-        { "azure.apikey", "AZURE_OPENAI_API_KEY" },
-        { "azure.api_key", "AZURE_OPENAI_API_KEY" },
-        { "azure.deployment", "AZURE_OPENAI_DEPLOYMENT" },
-        { "azure.deploymentname", "AZURE_OPENAI_DEPLOYMENT" },
-        { "azure.deployment_name", "AZURE_OPENAI_DEPLOYMENT" },
-        { "azureopenai.endpoint", "AZURE_OPENAI_ENDPOINT" },
-        { "azureopenai.apikey", "AZURE_OPENAI_API_KEY" },
-        { "azureopenai.api_key", "AZURE_OPENAI_API_KEY" },
-        { "azureopenai.deployment", "AZURE_OPENAI_DEPLOYMENT" }
+        { "xai.model", "XAI_MODEL" }
     };
 
     /// <summary>

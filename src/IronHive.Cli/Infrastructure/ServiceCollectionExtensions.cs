@@ -485,6 +485,17 @@ public static class ServiceCollectionExtensions
         StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "gpuStack"),
     };
 
+    /// <summary>
+    /// The provider config the CLI's Ollama registration uses. Ollama serves the OpenAI Chat Completions surface under
+    /// <c>/v1</c> and needs no key; the endpoint may be given with or without the <c>/v1</c> path.
+    /// </summary>
+    internal static OpenAICompatibleConfig CreateOllamaConfig(CliConfig.OllamaConfig configured) => new()
+    {
+        BaseUrl = configured.Endpoint.TrimEnd('/'),
+        CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "ollama"),
+    };
+
     /// <summary>The provider config the CLI's LM Studio (or any local OpenAI-compatible server) registration uses.</summary>
     internal static OpenAICompatibleConfig CreateLMStudioConfig(CliConfig.LMStudioConfig configured) => new()
     {
@@ -556,17 +567,13 @@ public static class ServiceCollectionExtensions
             providersDict["grok"] = providersDict["xai"]; // Alias
         }
 
-        // 6. Ollama (local inference) -- NOT WIRED. IronHive.Providers.Ollama 0.3.3 (last published
-        // version; unbumped since ironhive core moved to 0.6.2+) implements IMessageGenerator without
-        // CountTokensAsync, added to the interface in 0.7.9 -- loading it against Abstractions 0.8.2
-        // throws TypeLoadException. Whether the provider is revived is an open maintainer decision.
+        // 6. Ollama (OpenAI-compatible local inference; Chat Completions surface, same transport as LM Studio)
         if (config.Ollama.IsConfigured)
         {
-            throw new NotSupportedException(
-                "Ollama provider (OLLAMA_ENDPOINT) is temporarily unsupported: IronHive.Providers.Ollama " +
-                "0.3.3 is incompatible with the current IronHive.Abstractions contract (missing " +
-                "CountTokensAsync). Use '/model local' (LMSupply) for local inference until the Ollama " +
-                "provider is rebuilt against a current IronHive.Abstractions version.");
+            var ollamaConfig = CreateOllamaConfig(config.Ollama);
+            var generator = new OpenAICompatibleMessageGenerator(ollamaConfig);
+            var finder = new OpenAIModelFinder(ollamaConfig.ToOpenAI());
+            providersDict["ollama"] = new IronhiveChatClientProvider(generator, "ollama", config.Ollama.Model!, finder);
         }
 
         // 7. LMStudio (OpenAI-compatible local inference; Chat Completions surface)

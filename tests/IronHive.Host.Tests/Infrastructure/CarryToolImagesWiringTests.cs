@@ -21,6 +21,13 @@ public class CarryToolImagesWiringTests
     [Theory]
     [InlineData(true, true)]
     [InlineData(null, false)]
+    public void Ollama(bool? configured, bool expected) =>
+        ServiceCollectionExtensions.CreateOllamaConfig(new CliConfig.OllamaConfig { CarryToolImages = configured })
+            .CarryImageToolResultsAsUserMessage.Should().Be(expected);
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(null, false)]
     public void GpuStack(bool? configured, bool expected) =>
         ServiceCollectionExtensions.CreateGpuStackConfig(new CliConfig.GpuStackConfig { Endpoint = "http://gpu:80", ApiKey = "k", CarryToolImages = configured })
             .ToOpenAICompatible().CarryImageToolResultsAsUserMessage.Should().Be(expected);

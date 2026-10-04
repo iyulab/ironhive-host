@@ -162,7 +162,6 @@ public class ModelsCommand : AsyncCommand<ModelsCommand.Settings>
             "anthropic" or "claude" => 2,
             "google" or "gemini" => 3,
             "xai" or "grok" => 4,
-            "azure" or "azure-openai" => 5,
             "ollama" => 6,
             "lmstudio" => 7,
             "lmsupply" or "local" => 8,

@@ -205,7 +205,6 @@ public class ConfigWriterTests : IDisposable
     [InlineData("openai.api_key", "OPENAI_API_KEY")]
     [InlineData("anthropic.api_key", "ANTHROPIC_API_KEY")]
     [InlineData("google.apikey", "GOOGLE_API_KEY")]
-    [InlineData("azure.endpoint", "AZURE_OPENAI_ENDPOINT")]
     [InlineData("gpustack.embedding_model", "GPUSTACK_EMBEDDING_MODEL")]
     [InlineData("lmsupply.max_context_length", "LMSUPPLY_MAX_CONTEXT")]
     [InlineData("xai.model", "XAI_MODEL")]
@@ -309,7 +308,7 @@ public class ConfigWriterTests : IDisposable
         Assert.Contains("openai", keys.Keys);
         Assert.Contains("anthropic", keys.Keys);
         Assert.Contains("google", keys.Keys);
-        Assert.Contains("azure", keys.Keys);
+        Assert.DoesNotContain("azure", keys.Keys);
         Assert.Contains("xai", keys.Keys);
         Assert.Contains("lmsupply", keys.Keys);
     }

@@ -363,22 +363,6 @@ public class ConfigurationManager
             target.Xai.Endpoint = source.Xai.Endpoint;
         }
 
-        // AzureOpenAI
-        if (!string.IsNullOrEmpty(source.AzureOpenAI.Endpoint))
-        {
-            target.AzureOpenAI.Endpoint = source.AzureOpenAI.Endpoint;
-        }
-
-        if (!string.IsNullOrEmpty(source.AzureOpenAI.ApiKey))
-        {
-            target.AzureOpenAI.ApiKey = source.AzureOpenAI.ApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.AzureOpenAI.DeploymentName))
-        {
-            target.AzureOpenAI.DeploymentName = source.AzureOpenAI.DeploymentName;
-        }
-
         // LMSupply
         target.LMSupply.Enabled = source.LMSupply.Enabled;
         if (!string.IsNullOrEmpty(source.LMSupply.EmbedderModel))
@@ -402,6 +386,16 @@ public class ConfigurationManager
         }
 
         // Ollama
+        if (source.Ollama.CarryToolImages is { } ollamaCarry)
+        {
+            target.Ollama.CarryToolImages = ollamaCarry;
+        }
+
+        if (source.Ollama.StreamIdleTimeoutSeconds is { } ollamaIdle)
+        {
+            target.Ollama.StreamIdleTimeoutSeconds = ollamaIdle;
+        }
+
         if (!string.IsNullOrEmpty(source.Ollama.Endpoint))
         {
             target.Ollama.Endpoint = source.Ollama.Endpoint;
@@ -655,7 +649,7 @@ public class ConfigurationManager
     /// </summary>
     private static bool HasAnyApiProvider(IronHiveConfig config) =>
         config.GpuStack.IsConfigured || config.OpenAI.IsConfigured || config.Anthropic.IsConfigured ||
-        config.GoogleAI.IsConfigured || config.Xai.IsConfigured || config.AzureOpenAI.IsConfigured ||
+        config.GoogleAI.IsConfigured || config.Xai.IsConfigured ||
         config.Ollama.IsConfigured || config.LMStudio.IsConfigured;
 
     private static void ApplyEnvironmentVariables(IronHiveConfig config)
@@ -761,25 +755,6 @@ public class ConfigurationManager
         if (!string.IsNullOrEmpty(xaiEndpoint))
         {
             config.Xai.Endpoint = xaiEndpoint;
-        }
-
-        // AzureOpenAI from environment
-        var azureOpenAiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
-        if (!string.IsNullOrEmpty(azureOpenAiEndpoint))
-        {
-            config.AzureOpenAI.Endpoint = azureOpenAiEndpoint;
-        }
-
-        var azureOpenAiApiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
-        if (!string.IsNullOrEmpty(azureOpenAiApiKey))
-        {
-            config.AzureOpenAI.ApiKey = azureOpenAiApiKey;
-        }
-
-        var azureOpenAiDeployment = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT");
-        if (!string.IsNullOrEmpty(azureOpenAiDeployment))
-        {
-            config.AzureOpenAI.DeploymentName = azureOpenAiDeployment;
         }
 
         // Ollama from environment

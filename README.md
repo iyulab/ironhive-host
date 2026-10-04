@@ -23,7 +23,7 @@ expose a generic turn-stream rather than an application-specific wire format.
 - **Three surfaces, one core** — CLI (`ironhive`), embeddable SDK (`IronHive.Host`), and server runners (stdio or HTTP/SSE) all drive the same `IronHive.Agent` loop.
 - **Approvals on every surface** — one tool-call policy (`IToolCallPolicy`) judges each call; an `Ask` is answered on the terminal, or — in `run --server` and by any host that passes a `HitlBridge` to its runner — by the client over the wire (`hitl_request` → `hitl_response`). See [Human approval over the wire](#human-approval-over-the-wire).
 - **MCP-native tooling** — plugs into MCP servers (memory, code execution, custom tools) instead of hardcoding a tool set.
-- **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, Azure OpenAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
+- **Multi-provider out of the box** — OpenAI, Anthropic, GoogleAI, xAI, Ollama, LM Studio, GPUStack, and local inference via `LMSUPPLY_ENABLED`.
 - **Context-window safe by default** — automatic history compaction (`ContextManager`, wired on every surface including `AddIronHive`) prevents silent context overflows, including on small quantized models. The CLI and `run --server` additionally install a hard-backstop `TokenBudgetChatClient`; library embedders wrap their own `IChatClient` with it (see [TokenBudgetChatClient](#tokenbudgetchatclient)).
 - **Resilient tool-calling** — `ResilientArgumentsMiddleware` (a tool invocation pipeline step) and `ResilientFunctionInvoker` (the same behaviour as a plain `FunctionInvoker`) turn tool-call arguments that do not fit the tool into model-actionable recovery hints instead of aborting the stream. Installed by the CLI and `run --server` (after the loop guards and the permission gate); `AddIronHive`/`AddIronHiveWithOpenAI` do not decorate the client, so embedders install it themselves (see [ResilientFunctionInvoker](#resilientfunctioninvoker)).
 - **Advisor** — set `advisor.model` and every CLI / `run --server` session gets an `advisor` tool (the library `AddIronHive` path has no advisor option): the working model can send the conversation so far to a stronger model and read its review (before committing to an approach, when stuck, before declaring done). It appears on the wire as an ordinary `tool_start`/`tool_end`.
@@ -313,7 +313,6 @@ Configuration is merged in order (later overrides earlier):
    - `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
    - `GOOGLEAI_API_KEY` (or `GOOGLE_API_KEY`), `GOOGLEAI_MODEL`
    - `XAI_API_KEY`, `XAI_MODEL`, `XAI_ENDPOINT`
-   - `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT`
    - `OLLAMA_ENDPOINT`, `OLLAMA_MODEL`, `OLLAMA_ENABLED`
    - `LMSTUDIO_ENDPOINT`, `LMSTUDIO_MODEL`, `LMSTUDIO_ENABLED`
    - `LMSUPPLY_ENABLED`
@@ -325,7 +324,7 @@ Configuration is merged in order (later overrides earlier):
 
 The loader accepts these top-level keys in `config.yaml`. Acronym provider sections use **lowercase** keys; unknown top-level keys are ignored with a logged warning.
 
-Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `lmstudio`) also takes `streamIdleTimeoutSeconds` — how long a streaming answer may stay silent, before its first token and between tokens, before the request ends with a «stream idle timeout». Unset = no limit (default); zero or negative is refused, naming the key, when that provider is set up. Unlike a whole-request deadline it tells a slow answer that is still flowing from a dead stream: for a local server on slow hardware, set it above the prompt-evaluation time before the first token (e.g. `ironhive set lmstudio.streamIdleTimeoutSeconds 300`).
+Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `ollama`, `lmstudio`) also takes `streamIdleTimeoutSeconds` — how long a streaming answer may stay silent, before its first token and between tokens, before the request ends with a «stream idle timeout». Unset = no limit (default); zero or negative is refused, naming the key, when that provider is set up. Unlike a whole-request deadline it tells a slow answer that is still flowing from a dead stream: for a local server on slow hardware, set it above the prompt-evaluation time before the first token (e.g. `ironhive set lmstudio.streamIdleTimeoutSeconds 300`).
 
 | Key | Notes |
 |-----|-------|
@@ -333,9 +332,8 @@ Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai
 | `openai` | lowercase (acronym) |
 | `anthropic` | |
 | `googleai` | lowercase (acronym) |
-| `azureopenai` | lowercase (acronym) |
 | `xai` | |
-| `ollama` | |
+| `ollama` | `enabled`, `endpoint` (default `http://localhost:11434`, with or without `/v1`), `model`; `carryToolImages` (default off) — see `lmstudio`. Served through Ollama's OpenAI-compatible `/v1` surface; no key |
 | `lmstudio` | lowercase (acronym); `carryToolImages` (default off) — an image a tool returns (an MCP tool drawing a chart) is sent to the model in a user message after the tool results. These endpoints speak Chat Completions, whose tool messages hold text only, so without it the image is replaced by a note; turn it on for a vision model (llama-server with `--mmproj`, LM Studio, vLLM) |
 | `lmsupply` | lowercase (acronym) |
 | `permissions` | |

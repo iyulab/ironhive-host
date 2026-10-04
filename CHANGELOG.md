@@ -8,7 +8,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## 0.45.0 — Unreleased
 
 ### Added
-- **`streamIdleTimeoutSeconds` in every provider block the CLI wires** (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `lmstudio`) — how long a streaming answer may stay silent before the request ends with a «stream idle timeout». Unset keeps the previous behaviour (no limit); zero or negative is refused naming the key. Settable with `ironhive set <section>.streamIdleTimeoutSeconds <seconds>`; a project `config.yaml` overrides the global value per provider.
+- **The `ollama` provider works.** Enabling it (`ollama.enabled: true` + `ollama.model`, or `OLLAMA_ENABLED`/`OLLAMA_MODEL`) used to stop the CLI with «temporarily unsupported»; it now registers on Ollama's OpenAI-compatible `/v1` surface (the endpoint may be given with or without `/v1`) and takes `carryToolImages` like `lmstudio`.
+- **`streamIdleTimeoutSeconds` in every provider block the CLI wires** (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `ollama`, `lmstudio`) — how long a streaming answer may stay silent before the request ends with a «stream idle timeout». Unset keeps the previous behaviour (no limit); zero or negative is refused naming the key. Settable with `ironhive set <section>.streamIdleTimeoutSeconds <seconds>`; a project `config.yaml` overrides the global value per provider.
+
+### Removed
+- **Breaking: the `azureopenai` config section and the `AZURE_OPENAI_*` variables.** No Azure provider was ever registered from them — a config that set only Azure ran on the local LMSupply fallback without saying so, or stopped with «No API provider configured» when that was off. A config that still has the section now gets the unknown-key warning.
 
 ## 0.44.2 — 2026-10-05
 

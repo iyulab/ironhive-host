@@ -100,20 +100,19 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         var configuredCount = 0;
 
         // Check each provider
-        var providers = new (string name, bool configured, string? model, string? hint)[]
+        var providers = new (string name, bool configured, string? model)[]
         {
-            ("gpustack", _config.GpuStack.IsConfigured, _config.GpuStack.Model, "set gpustack.endpoint, gpustack.apiKey, gpustack.model"),
-            ("openai", _config.OpenAI.IsConfigured, _config.OpenAI.Model, "set openai.apiKey, openai.model"),
-            ("anthropic", _config.Anthropic.IsConfigured, _config.Anthropic.Model, "set anthropic.apiKey, anthropic.model"),
-            ("google", _config.GoogleAI.IsConfigured, _config.GoogleAI.Model, "set google.apiKey, google.model"),
-            ("xai", _config.Xai.IsConfigured, _config.Xai.Model, "set xai.apiKey, xai.model"),
-            ("azure", _config.AzureOpenAI.IsConfigured, _config.AzureOpenAI.DeploymentName, "set azure.endpoint, azure.apiKey, azure.deploymentName"),
-            ("ollama", _config.Ollama.IsConfigured, _config.Ollama.Model, "set ollama.enabled true, ollama.model"),
-            ("lmstudio", _config.LMStudio.IsConfigured, _config.LMStudio.Model, "set lmstudio.enabled true, lmstudio.model"),
-            ("lmsupply", _config.LMSupply.Enabled, _config.LMSupply.GeneratorModel, null)
+            ("gpustack", _config.GpuStack.IsConfigured, _config.GpuStack.Model),
+            ("openai", _config.OpenAI.IsConfigured, _config.OpenAI.Model),
+            ("anthropic", _config.Anthropic.IsConfigured, _config.Anthropic.Model),
+            ("google", _config.GoogleAI.IsConfigured, _config.GoogleAI.Model),
+            ("xai", _config.Xai.IsConfigured, _config.Xai.Model),
+            ("ollama", _config.Ollama.IsConfigured, _config.Ollama.Model),
+            ("lmstudio", _config.LMStudio.IsConfigured, _config.LMStudio.Model),
+            ("lmsupply", _config.LMSupply.Enabled, _config.LMSupply.GeneratorModel)
         };
 
-        foreach (var (name, configured, model, hint) in providers)
+        foreach (var (name, configured, model) in providers)
         {
             if (configured)
             {
@@ -159,7 +158,6 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
                _config.Anthropic.IsConfigured ||
                _config.GoogleAI.IsConfigured ||
                _config.Xai.IsConfigured ||
-               _config.AzureOpenAI.IsConfigured ||
                _config.Ollama.IsConfigured ||
                _config.LMStudio.IsConfigured;
     }
@@ -187,11 +185,6 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         }
 
         if (_config.Xai.IsConfigured && string.IsNullOrEmpty(_config.Xai.Model))
-        {
-            return false;
-        }
-
-        if (_config.AzureOpenAI.IsConfigured && string.IsNullOrEmpty(_config.AzureOpenAI.DeploymentName))
         {
             return false;
         }

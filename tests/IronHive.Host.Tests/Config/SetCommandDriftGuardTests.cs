@@ -25,7 +25,6 @@ public class SetCommandDriftGuardTests
         "anthropic",
         "googleai",
         "xai",
-        "azureopenai",
         "gpuStack",
         "ollama",
         "lmstudio",
@@ -45,7 +44,8 @@ public class SetCommandDriftGuardTests
 
     [Theory]
     [InlineData("google")] // wrong: real key is "googleai"
-    [InlineData("azure")] // wrong: real key is "azureopenai"
+    [InlineData("azure")] // never a provider the CLI registers
+    [InlineData("azureopenai")] // removed: no IronHive provider served it; a config that still has it is warned about
     [InlineData("gpustack")] // wrong case: real key is "gpuStack"
     public void KnownStaleKeys_AreCorrectlyReportedAsUnknown(string staleKey)
     {
