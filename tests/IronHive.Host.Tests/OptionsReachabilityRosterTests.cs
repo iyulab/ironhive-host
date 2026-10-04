@@ -11,7 +11,7 @@ namespace IronHive.Host.Tests;
 /// </summary>
 public class OptionsReachabilityRosterTests
 {
-    private static readonly Assembly[] Libraries =
+    internal static readonly Assembly[] Libraries =
     [
         Assembly.Load("IronHive.Host"),
         Assembly.Load("IronHive.Host.Protocol"),
