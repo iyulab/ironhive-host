@@ -49,7 +49,7 @@ public class OopsService : IOopsService
             _isInstalled = CheckInstalled();
             return _isInstalled.Value;
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             return false;
         }

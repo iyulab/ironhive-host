@@ -224,7 +224,7 @@ public static class UpdateChecker
 
             return await _checkTask;
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             return null;
         }

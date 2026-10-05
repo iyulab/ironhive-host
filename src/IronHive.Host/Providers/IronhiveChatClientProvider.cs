@@ -84,7 +84,7 @@ public sealed class IronhiveChatClientProvider : IChatClientProvider, IDisposabl
                 EnrichWithPricingData(models);
                 return models;
             }
-            catch
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 // Fall through to static data
             }

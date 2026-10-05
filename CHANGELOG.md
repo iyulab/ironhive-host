@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.48.2 — Unreleased
+
+### Fixed
+- **Cancelling a call now cancels it.** 4 method(s) that take a `CancellationToken` caught every exception to
+  return a fallback (`null`, an empty result, a failure value) or to log and continue, and treated the caller's own
+  cancellation the same way. They now let the caller's `OperationCanceledException` through; other failures behave
+  as before. Affected: `doctor`, `update`, the Oops service and the chat client provider.
+
 ## 0.48.1 — 2026-10-06
 
 ### Changed

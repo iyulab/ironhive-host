@@ -227,7 +227,7 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
                     PrintCheck(true, $"{providerName} - reachable", isWarning: true);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 allOk = false;
                 PrintCheck(false, $"{providerName} - unreachable");
