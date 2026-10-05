@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.48.2 — Unreleased
 
+### Changed
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.53.0 -> 0.53.1, `IronHive.Core` 0.53.0 -> 0.53.1, `IronHive.Extensions.AI` 0.53.0 -> 0.53.1, `IronHive.Providers.Anthropic` 0.53.0 -> 0.53.1, `IronHive.Providers.GoogleAI` 0.53.0 -> 0.53.1, `IronHive.Providers.OpenAI` 0.53.0 -> 0.53.1, `IronHive.Providers.OpenAI.Compatible` 0.53.0 -> 0.53.1, `LMSupply.Embedder` 0.106.0 -> 0.106.1, `LMSupply.Generator` 0.106.0 -> 0.106.1, `LMSupply.Reranker` 0.106.0 -> 0.106.1.
+
 ### Fixed
 - **Cancelling a call now cancels it.** 4 method(s) that take a `CancellationToken` caught every exception to
   return a fallback (`null`, an empty result, a failure value) or to log and continue, and treated the caller's own
