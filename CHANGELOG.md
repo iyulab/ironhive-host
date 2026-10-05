@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.53.0 -> 0.53.1, `IronHive.Core` 0.53.0 -> 0.53.1, `IronHive.Extensions.AI` 0.53.0 -> 0.53.1, `IronHive.Providers.Anthropic` 0.53.0 -> 0.53.1, `IronHive.Providers.GoogleAI` 0.53.0 -> 0.53.1, `IronHive.Providers.OpenAI` 0.53.0 -> 0.53.1, `IronHive.Providers.OpenAI.Compatible` 0.53.0 -> 0.53.1, `LMSupply.Embedder` 0.106.0 -> 0.106.1, `LMSupply.Generator` 0.106.0 -> 0.106.1, `LMSupply.Reranker` 0.106.0 -> 0.106.1.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.22.0 -> 0.22.1.
 
 ### Fixed
 - **Cancelling a call now cancels it.** 4 method(s) that take a `CancellationToken` caught every exception to
