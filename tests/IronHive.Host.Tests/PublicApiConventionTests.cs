@@ -21,15 +21,6 @@ public class PublicApiConventionTests
     // the model; a failed oops command is reported to the model, not raised. Kept.
     private static readonly string[] KnownResultReturns =
     [
-        "IronHive.Host.Integration.ICodeExecutionProvider.CreateSessionAsync(String, CancellationToken)",
-        "IronHive.Host.Integration.ICodeExecutionProvider.DestroySessionAsync(String, CancellationToken)",
-        "IronHive.Host.Integration.ICodeExecutionProvider.ExecuteAsync(String, String, String, Int32, CancellationToken)",
-        "IronHive.Host.Integration.ICodeExecutionProvider.InstallPackagesAsync(String, String[], CancellationToken)",
-        "IronHive.Host.Integration.ICodeExecutionProvider.ListSessionsAsync(CancellationToken)",
-        "IronHive.Host.Integration.IMemoryToolsProvider.ForgetAsync(String, String, CancellationToken)",
-        "IronHive.Host.Integration.IMemoryToolsProvider.RecallAsync(String, String, Int32, CancellationToken)",
-        "IronHive.Host.Integration.IMemoryToolsProvider.SearchAsync(String, MemorySearchOptions, CancellationToken)",
-        "IronHive.Host.Integration.IMemoryToolsProvider.StoreAsync(String, String, Single, String, CancellationToken)",
         "IronHive.Host.Oops.IOopsService.BackAsync(String, Int32, CancellationToken)",
         "IronHive.Host.Oops.IOopsService.ChangesAsync(String, Nullable<Int32>, Nullable<Int32>, CancellationToken)",
         "IronHive.Host.Oops.IOopsService.CleanupAsync(Boolean, CancellationToken)",

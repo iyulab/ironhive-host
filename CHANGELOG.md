@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.47.0 — Unreleased
+
+### Removed
+- **Breaking:** `IronHive.Host.Integration` — `CodeBeakerTools`, `ICodeExecutionProvider` (with `WebSocketCodeExecutionProvider`,
+  `InMemoryCodeExecutionProvider` and their result types) and `MemoryIndexerTools`, `IMemoryToolsProvider` (with
+  `InMemoryToolsProvider`, `MemorySearchOptions` and their result types). Nothing in the host registered or used them, no
+  documentation described them, and the memory tools had no implementation beyond an in-memory stand-in. Memory for an
+  agent is `IronHive.Agent.Memory`.
+
 ## 0.46.0 — 2026-10-06
 
 ### Fixed
