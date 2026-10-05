@@ -14,7 +14,7 @@ The agent loop, context/compaction, mode system, MCP plugins, and permission eng
 [`IronHive.Agent`](https://www.nuget.org/packages/IronHive.Agent) (from [`ironhive-agent`](https://github.com/iyulab/ironhive-agent)),
 which this package consumes as a `PackageReference`. `IronHive.Host` adds the hosting surface on top:
 CLI/server/embed entry points, the `IronHive.Host.Protocol` turn-stream contract, layered config,
-provider adapters, and session/execution-log/memory integration. The agent loop runs on
+provider adapters, and session/execution-log integration (long-term memory comes from an MCP server). The agent loop runs on
 any injected `IChatClient` (`UseChatClient` / `UseChatClientFactory`), and the server surfaces
 expose a generic turn-stream rather than an application-specific wire format.
 

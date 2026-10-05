@@ -9,7 +9,6 @@ using IronHive.Agent.Extensions;
 using IronHive.Agent.Invocation;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
-using IronHive.Agent.Memory;
 using IronHive.Agent.Mode;
 using IronHive.Agent.Providers;
 using IronHive.Agent.Tracking;
@@ -163,9 +162,6 @@ public static class ServiceCollectionExtensions
         // Register IndexThinking services
         services.AddIndexThinkingAgents();
         services.AddIndexThinkingInMemoryStorage();
-
-        // Register Memory services (MemoryIndexer integration)
-        services.AddIronHiveMemory();
 
         // Note: IAgentLoop is obtained via IAgentLoopFactory.CreateAsync() at runtime
         // This avoids synchronous blocking during DI resolution

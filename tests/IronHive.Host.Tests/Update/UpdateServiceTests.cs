@@ -50,7 +50,7 @@ public class GitHubUpdateServiceTests
     }
 
     [Fact]
-    public async Task CheckForUpdateAsync_WithNetworkError_ReturnsNull()
+    public async Task CheckForUpdateAsync_WithServerError_Throws()
     {
         // Arrange
         var mockHandler = new MockHttpHandler();
@@ -59,11 +59,22 @@ public class GitHubUpdateServiceTests
         var httpClient = new HttpClient(mockHandler);
         var service = new GitHubUpdateService(httpClient);
 
-        // Act
-        var result = await service.CheckForUpdateAsync(TestContext.Current.CancellationToken);
+        // Act / Assert - the failure names its cause instead of reading as "no update"
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+            () => service.CheckForUpdateAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(HttpStatusCode.InternalServerError, ex.StatusCode);
+    }
 
-        // Assert
-        Assert.Null(result);
+    [Fact]
+    public async Task CheckForUpdateAsync_WhenCallerCancels_Propagates()
+    {
+        var mockHandler = new MockHttpHandler();
+        mockHandler.SetResponse(HttpStatusCode.OK, CreateReleaseJson("v1.0.0"));
+        var service = new GitHubUpdateService(new HttpClient(mockHandler));
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.UpdateAsync(cancellationToken: cts.Token));
     }
 
     [Fact]
@@ -104,7 +115,7 @@ public class GitHubUpdateServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_WhenUpToDate_ReturnsSuccessWithNoChange()
+    public async Task UpdateAsync_WhenUpToDate_ReportsAlreadyUpToDate()
     {
         // Arrange
         var mockHandler = new MockHttpHandler();
@@ -118,12 +129,13 @@ public class GitHubUpdateServiceTests
         var result = await service.UpdateAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Contains("up to date", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.AlreadyUpToDate);
+        Assert.Equal(service.CurrentVersion, result.UpdatedVersion);
+        Assert.False(result.RestartRequired);
     }
 
     [Fact]
-    public async Task UpdateAsync_WithNetworkError_ReturnsFailure()
+    public async Task UpdateAsync_WithServerError_Throws()
     {
         // Arrange
         var mockHandler = new MockHttpHandler();
@@ -132,12 +144,9 @@ public class GitHubUpdateServiceTests
         var httpClient = new HttpClient(mockHandler);
         var service = new GitHubUpdateService(httpClient);
 
-        // Act
-        var result = await service.UpdateAsync(cancellationToken: TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Contains("check for updates", result.Error, StringComparison.OrdinalIgnoreCase);
+        // Act / Assert
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => service.UpdateAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -286,16 +295,13 @@ public class UpdateResultTests
     {
         var result = new UpdateResult
         {
-            Success = true,
             UpdatedVersion = new Version(1, 0, 0),
-            Error = null,
             RestartRequired = true,
             NewExecutablePath = "/usr/local/bin/ironhive"
         };
 
-        Assert.True(result.Success);
+        Assert.False(result.AlreadyUpToDate);
         Assert.Equal(new Version(1, 0, 0), result.UpdatedVersion);
-        Assert.Null(result.Error);
         Assert.True(result.RestartRequired);
         Assert.Equal("/usr/local/bin/ironhive", result.NewExecutablePath);
     }

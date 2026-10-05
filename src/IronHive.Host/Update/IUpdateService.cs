@@ -16,18 +16,22 @@ public interface IUpdateService
     bool IsDotnetToolInstallation { get; }
 
     /// <summary>
-    /// Checks if an update is available.
+    /// Reads the latest published version; <see cref="UpdateInfo.IsUpdateAvailable"/> says whether it is newer.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Update information if available, null otherwise.</returns>
-    Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default);
+    /// <returns>The latest version and where it comes from.</returns>
+    /// <exception cref="HttpRequestException">The release source could not be reached or answered with an error status.</exception>
+    /// <exception cref="InvalidOperationException">The release source answered but published no usable version.</exception>
+    Task<UpdateInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Performs the update to the latest version.
+    /// Updates to the latest version, or reports that the installed version is already the latest.
     /// </summary>
     /// <param name="progress">Progress reporter.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if update was successful.</returns>
+    /// <returns>What was installed. A failed update throws; it is never returned.</returns>
+    /// <exception cref="HttpRequestException">The release source or the download could not be reached.</exception>
+    /// <exception cref="InvalidOperationException">No release fits this platform, or the installer failed.</exception>
     Task<UpdateResult> UpdateAsync(IProgress<UpdateProgress>? progress = null, CancellationToken cancellationToken = default);
 }
 
@@ -73,24 +77,19 @@ public record UpdateInfo
 }
 
 /// <summary>
-/// Result of an update operation.
+/// What a completed update installed. A failed update throws instead.
 /// </summary>
 public record UpdateResult
 {
     /// <summary>
-    /// Whether the update was successful.
+    /// The version now installed: the new one, or the current one when <see cref="AlreadyUpToDate"/> is set.
     /// </summary>
-    public required bool Success { get; init; }
+    public required Version UpdatedVersion { get; init; }
 
     /// <summary>
-    /// The version updated to (if successful).
+    /// The installed version was already the latest, so nothing was installed.
     /// </summary>
-    public Version? UpdatedVersion { get; init; }
-
-    /// <summary>
-    /// Error message (if failed).
-    /// </summary>
-    public string? Error { get; init; }
+    public bool AlreadyUpToDate { get; init; }
 
     /// <summary>
     /// Whether a restart is required.

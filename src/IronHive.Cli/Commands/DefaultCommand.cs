@@ -237,7 +237,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             if (settings.CheckUpdate)
             {
                 // --update flag: check for updates after execution
-                await CheckAndDisplayUpdateAsync();
+                await CheckAndDisplayUpdateAsync(cancellationToken);
             }
             else
             {
@@ -247,23 +247,22 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
-    private async Task CheckAndDisplayUpdateAsync()
+    private async Task CheckAndDisplayUpdateAsync(CancellationToken cancellationToken)
     {
         AnsiConsole.WriteLine();
         AnsiConsole.Write(new Rule("[blue]Update Check[/]").RuleStyle("grey"));
 
-        UpdateInfo? updateInfo = null;
-        await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots)
-            .SpinnerStyle(Style.Parse("blue"))
-            .StartAsync("Checking for updates...", async _ =>
-            {
-                updateInfo = await _updateService.CheckForUpdateAsync();
-            });
-
-        if (updateInfo is null)
+        UpdateInfo updateInfo;
+        try
         {
-            AnsiConsole.MarkupLine("[grey]Could not check for updates.[/]");
+            updateInfo = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("blue"))
+                .StartAsync("Checking for updates...", _ => _updateService.CheckForUpdateAsync(cancellationToken));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AnsiConsole.MarkupLine($"[grey]Could not check for updates: {Markup.Escape(ex.Message)}[/]");
             return;
         }
 

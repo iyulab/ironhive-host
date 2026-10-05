@@ -46,40 +46,16 @@ public class GitHubUpdateService : IUpdateService
     public bool IsDotnetToolInstallation => _isDotnetTool;
 
     /// <inheritdoc />
-    public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+    public Task<UpdateInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default) =>
+        _isDotnetTool ? CheckForNuGetUpdateAsync(cancellationToken) : CheckForGitHubUpdateAsync(cancellationToken);
+
+    private async Task<UpdateInfo> CheckForGitHubUpdateAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            if (_isDotnetTool)
-            {
-                return await CheckForNuGetUpdateAsync(cancellationToken);
-            }
+        var release = await GetLatestReleaseAsync(cancellationToken)
+            ?? throw new InvalidOperationException($"No release is published at github.com/{_owner}/{_repo}.");
 
-            return await CheckForGitHubUpdateAsync(cancellationToken);
-        }
-        catch (HttpRequestException)
-        {
-            return null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private async Task<UpdateInfo?> CheckForGitHubUpdateAsync(CancellationToken cancellationToken)
-    {
-        var release = await GetLatestReleaseAsync(cancellationToken);
-        if (release is null)
-        {
-            return null;
-        }
-
-        var latestVersion = ParseVersion(release.TagName);
-        if (latestVersion is null)
-        {
-            return null;
-        }
+        var latestVersion = ParseVersion(release.TagName)
+            ?? throw new InvalidOperationException($"The latest release tag '{release.TagName}' is not a version.");
 
         var downloadUrl = GetDownloadUrlForCurrentPlatform(release);
 
@@ -94,7 +70,7 @@ public class GitHubUpdateService : IUpdateService
         };
     }
 
-    private async Task<UpdateInfo?> CheckForNuGetUpdateAsync(CancellationToken cancellationToken)
+    private async Task<UpdateInfo> CheckForNuGetUpdateAsync(CancellationToken cancellationToken)
     {
         var url = $"https://api.nuget.org/v3-flatcontainer/{NuGetPackageIdLower}/index.json";
 
@@ -102,15 +78,12 @@ public class GitHubUpdateService : IUpdateService
         request.Headers.Add("User-Agent", $"ironhive-cli/{_currentVersion}");
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadFromJsonAsync<NuGetVersionIndex>(JsonOptions, cancellationToken);
         if (content?.Versions is null || content.Versions.Count == 0)
         {
-            return null;
+            throw new InvalidOperationException($"NuGet lists no version of {NuGetPackageId}.");
         }
 
         // Get the latest stable version (not prerelease)
@@ -120,7 +93,7 @@ public class GitHubUpdateService : IUpdateService
 
         if (latestVersionString is null || !Version.TryParse(latestVersionString, out var latestVersion))
         {
-            return null;
+            throw new InvalidOperationException($"NuGet lists no stable version of {NuGetPackageId}.");
         }
 
         return new UpdateInfo
@@ -137,47 +110,21 @@ public class GitHubUpdateService : IUpdateService
     /// <inheritdoc />
     public async Task<UpdateResult> UpdateAsync(IProgress<UpdateProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        try
+        progress?.Report(new UpdateProgress { Operation = "Checking for updates..." });
+        var updateInfo = await CheckForUpdateAsync(cancellationToken);
+
+        if (!updateInfo.IsUpdateAvailable)
         {
-            // Check for update
-            progress?.Report(new UpdateProgress { Operation = "Checking for updates..." });
-            var updateInfo = await CheckForUpdateAsync(cancellationToken);
-
-            if (updateInfo is null)
-            {
-                return new UpdateResult
-                {
-                    Success = false,
-                    Error = "Failed to check for updates. Please check your network connection."
-                };
-            }
-
-            if (!updateInfo.IsUpdateAvailable)
-            {
-                return new UpdateResult
-                {
-                    Success = true,
-                    UpdatedVersion = _currentVersion,
-                    Error = "Already up to date."
-                };
-            }
-
-            // Use different update strategy based on installation type
-            if (_isDotnetTool)
-            {
-                return await UpdateViaDotnetToolAsync(updateInfo.LatestVersion, progress, cancellationToken);
-            }
-
-            return await UpdateViaGitHubReleaseAsync(updateInfo, progress, cancellationToken);
+            return new UpdateResult { UpdatedVersion = _currentVersion, AlreadyUpToDate = true };
         }
-        catch (Exception ex)
+
+        // Use different update strategy based on installation type
+        if (_isDotnetTool)
         {
-            return new UpdateResult
-            {
-                Success = false,
-                Error = ex.Message
-            };
+            return await UpdateViaDotnetToolAsync(updateInfo.LatestVersion, progress, cancellationToken);
         }
+
+        return await UpdateViaGitHubReleaseAsync(updateInfo, progress, cancellationToken);
     }
 
     private static async Task<UpdateResult> UpdateViaDotnetToolAsync(
@@ -197,15 +144,8 @@ public class GitHubUpdateService : IUpdateService
             CreateNoWindow = true
         };
 
-        using var process = Process.Start(psi);
-        if (process is null)
-        {
-            return new UpdateResult
-            {
-                Success = false,
-                Error = "Failed to start dotnet tool update process."
-            };
-        }
+        using var process = Process.Start(psi)
+            ?? throw new InvalidOperationException("Failed to start the 'dotnet tool update' process.");
 
         progress?.Report(new UpdateProgress { Operation = "Installing update...", PercentComplete = 50 });
 
@@ -215,18 +155,13 @@ public class GitHubUpdateService : IUpdateService
 
         if (process.ExitCode != 0)
         {
-            return new UpdateResult
-            {
-                Success = false,
-                Error = $"dotnet tool update failed: {error}".Trim()
-            };
+            throw new InvalidOperationException($"dotnet tool update failed: {error}".Trim());
         }
 
         progress?.Report(new UpdateProgress { Operation = "Update complete!", PercentComplete = 100 });
 
         return new UpdateResult
         {
-            Success = true,
             UpdatedVersion = latestVersion,
             RestartRequired = true
         };
@@ -239,11 +174,7 @@ public class GitHubUpdateService : IUpdateService
     {
         if (string.IsNullOrEmpty(updateInfo.DownloadUrl))
         {
-            return new UpdateResult
-            {
-                Success = false,
-                Error = $"No download available for your platform ({GetRuntimeIdentifier()})."
-            };
+            throw new InvalidOperationException($"No download available for your platform ({GetRuntimeIdentifier()}).");
         }
 
         // Download update
@@ -266,7 +197,6 @@ public class GitHubUpdateService : IUpdateService
 
         return new UpdateResult
         {
-            Success = true,
             UpdatedVersion = updateInfo.LatestVersion,
             RestartRequired = true,
             NewExecutablePath = newExecutablePath
@@ -283,15 +213,13 @@ public class GitHubUpdateService : IUpdateService
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-        if (!response.IsSuccessStatusCode)
+        // "latest" answers 404 when every release is a prerelease; the list still has them.
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            // Try to get releases list if "latest" endpoint fails (might be all prereleases)
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return await GetLatestReleaseFromListAsync(cancellationToken);
-            }
-            return null;
+            return await GetLatestReleaseFromListAsync(cancellationToken);
         }
+
+        response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<GitHubRelease>(JsonOptions, cancellationToken);
     }
@@ -305,11 +233,7 @@ public class GitHubUpdateService : IUpdateService
         request.Headers.Add("Accept", "application/vnd.github+json");
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        response.EnsureSuccessStatusCode();
 
         var releases = await response.Content.ReadFromJsonAsync<List<GitHubRelease>>(JsonOptions, cancellationToken);
         return releases?.FirstOrDefault();

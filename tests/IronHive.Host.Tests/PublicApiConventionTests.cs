@@ -30,7 +30,6 @@ public class PublicApiConventionTests
         "IronHive.Host.Oops.IOopsService.StatusAsync(String, CancellationToken)",
         "IronHive.Host.Oops.IOopsService.StopAsync(String, CancellationToken)",
         "IronHive.Host.Oops.IOopsService.UndoAsync(String, CancellationToken)",
-        "IronHive.Host.Update.IUpdateService.UpdateAsync(IProgress<UpdateProgress>, CancellationToken)",
     ];
 
     [Fact]

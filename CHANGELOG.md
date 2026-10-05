@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.48.0 — Unreleased
+
+### Changed
+- **Breaking: `IUpdateService` reports a failed check or update by throwing.** Before, `CheckForUpdateAsync` returned
+  `null` for a network error, an error status and an unusable release alike, and `UpdateAsync` caught every exception —
+  cancellation included — into `UpdateResult { Success = false, Error = … }`. Now `CheckForUpdateAsync` returns the
+  latest `UpdateInfo` or throws (`HttpRequestException` with the status, `InvalidOperationException` when no usable
+  version is published), and `UpdateAsync` returns only what it installed; a cancelled update stops instead of reading
+  as a failed one. `UpdateResult.Success` and `UpdateResult.Error` are removed, `UpdatedVersion` is now required, and the
+  "already up to date" case is `UpdateResult.AlreadyUpToDate` (it was a success carrying the text in `Error`).
+  Migration: wrap the calls in `try`/`catch` instead of testing `Success` or `null`.
+- `ironhive update` and `ironhive --update` pass the command's cancellation to the update check and the install, and
+  print the reason a check failed.
+
+### Removed
+- **Breaking:** the in-process long-term memory wiring, which nothing in the host ever read: `LongTermMemoryManager`,
+  `LongTermMemoryOptions` and `AddIronHiveMemory()` (the CLI registered the MemoryIndexer stack with it, but no code
+  resolved `ISessionMemoryService` or `IMemoryService`). The package no longer depends on `MemoryIndexer`,
+  `MemoryIndexer.Sdk` or `IronHive.Agent.Memory`. Long-term memory for an agent comes from a memory MCP server; an
+  embedder that wants it in process composes `IronHive.Agent.Memory` itself.
+
 ## 0.47.0 — 2026-10-06
 
 ### Removed

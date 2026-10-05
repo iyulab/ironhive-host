@@ -35,19 +35,17 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
         AnsiConsole.WriteLine();
 
         // Check for updates
-        UpdateInfo? updateInfo = null;
-
-        await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots)
-            .SpinnerStyle(Style.Parse("blue"))
-            .StartAsync("Checking for updates...", async _ =>
-            {
-                updateInfo = await _updateService.CheckForUpdateAsync();
-            });
-
-        if (updateInfo is null)
+        UpdateInfo updateInfo;
+        try
         {
-            AnsiConsole.MarkupLine("[red]Failed to check for updates.[/]");
+            updateInfo = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("blue"))
+                .StartAsync("Checking for updates...", _ => _updateService.CheckForUpdateAsync(cancellationToken));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AnsiConsole.MarkupLine($"[red]Failed to check for updates: {Markup.Escape(ex.Message)}[/]");
             AnsiConsole.MarkupLine("[grey]Please check your network connection and try again.[/]");
             return 1;
         }
@@ -74,12 +72,21 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
         }
 
         // Perform update
-        var result = await PerformUpdateAsync();
-
-        if (!result.Success)
+        UpdateResult result;
+        try
         {
-            AnsiConsole.MarkupLine($"[red]Update failed: {Markup.Escape(result.Error ?? "Unknown error")}[/]");
+            result = await PerformUpdateAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AnsiConsole.MarkupLine($"[red]Update failed: {Markup.Escape(ex.Message)}[/]");
             return 1;
+        }
+
+        if (result.AlreadyUpToDate)
+        {
+            AnsiConsole.MarkupLine($"[green]v{result.UpdatedVersion} is already the latest version.[/]");
+            return 0;
         }
 
         AnsiConsole.WriteLine();
@@ -127,9 +134,9 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
         }
     }
 
-    private async Task<UpdateResult> PerformUpdateAsync()
+    private async Task<UpdateResult> PerformUpdateAsync(CancellationToken cancellationToken)
     {
-        UpdateResult result = new() { Success = false };
+        UpdateResult? result = null;
 
         await AnsiConsole.Progress()
             .AutoClear(false)
@@ -152,11 +159,11 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
                     }
                 });
 
-                result = await _updateService.UpdateAsync(progress);
+                result = await _updateService.UpdateAsync(progress, cancellationToken);
                 task.Value = 100;
             });
 
-        return result;
+        return result!;
     }
 }
 

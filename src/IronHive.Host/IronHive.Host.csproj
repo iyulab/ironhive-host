@@ -49,10 +49,6 @@
     <PackageReference Include="LMSupply.Embedder" />
     <PackageReference Include="LMSupply.Reranker" />
     <PackageReference Include="LMSupply.Generator" />
-
-    <!-- MemoryIndexer (conversation memory, session management) -->
-    <PackageReference Include="MemoryIndexer" />
-    <PackageReference Include="MemoryIndexer.Sdk" />
   </ItemGroup>
 
   <ItemGroup>
@@ -74,8 +70,7 @@
   <ItemGroup>
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent NuGet) -->
     <PackageReference Include="IronHive.Agent" />
-    <!-- IronHive.Agent 0.19.0 satellites: long-term memory (MemoryServiceExtensions) and the Ironbees integration (IronHive.Cli) -->
-    <PackageReference Include="IronHive.Agent.Memory" />
+    <!-- IronHive.Agent 0.19.0 satellite: the Ironbees integration (IronHive.Cli) -->
     <PackageReference Include="IronHive.Agent.Ironbees" />
   </ItemGroup>
 
