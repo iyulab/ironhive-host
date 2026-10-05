@@ -33,7 +33,7 @@ public static class AgentResponseMapper
         {
             if (logger is not null)
             {
-                await logger.ProcessChunkAsync(chunk);
+                await logger.ProcessChunkAsync(chunk, cancellationToken: ct);
             }
 
             if (chunk.TextDelta is not null)

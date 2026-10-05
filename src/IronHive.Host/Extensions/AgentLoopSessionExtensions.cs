@@ -17,22 +17,23 @@ public static class AgentLoopSessionExtensions
     /// <param name="agentLoop">The agent loop to initialize.</param>
     /// <param name="sessionManager">The session manager.</param>
     /// <param name="sessionId">The session ID to load.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="SessionNotFoundException">Thrown when session is not found.</exception>
     /// <returns>The loaded session.</returns>
     public static async Task<SessionData> LoadSessionAsync(
         this IAgentLoop agentLoop,
         ISessionManager sessionManager,
-        string sessionId)
+        string sessionId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agentLoop);
         ArgumentNullException.ThrowIfNull(sessionManager);
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
-        var session = await sessionManager.LoadSessionAsync(sessionId)
+        var session = await sessionManager.LoadSessionAsync(sessionId, cancellationToken: cancellationToken)
             ?? throw new SessionNotFoundException(sessionId);
 
-        var messages = await sessionManager.RestoreContextAsync(session);
-        await agentLoop.InitializeHistoryAsync(messages);
+        var messages = await sessionManager.RestoreContextAsync(session, cancellationToken: cancellationToken);
+        await agentLoop.InitializeHistoryAsync(messages, cancellationToken: cancellationToken);
 
         return session;
     }
@@ -45,13 +46,14 @@ public static class AgentLoopSessionExtensions
     /// <param name="projectPath">The project path.</param>
     /// <param name="model">The model ID to use for new sessions.</param>
     /// <param name="continueLatest">If true, continues from latest session if available.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The session (new or existing).</returns>
     public static async Task<SessionData> LoadOrCreateSessionAsync(
         this IAgentLoop agentLoop,
         ISessionManager sessionManager,
         string projectPath,
         string model,
-        bool continueLatest = false)
+        bool continueLatest = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agentLoop);
         ArgumentNullException.ThrowIfNull(sessionManager);
@@ -61,18 +63,18 @@ public static class AgentLoopSessionExtensions
 
         if (continueLatest)
         {
-            session = await sessionManager.GetLatestSessionAsync(projectPath);
+            session = await sessionManager.GetLatestSessionAsync(projectPath, cancellationToken: cancellationToken);
             if (session != null)
             {
-                var messages = await sessionManager.RestoreContextAsync(session);
-                await agentLoop.InitializeHistoryAsync(messages);
+                var messages = await sessionManager.RestoreContextAsync(session, cancellationToken: cancellationToken);
+                await agentLoop.InitializeHistoryAsync(messages, cancellationToken: cancellationToken);
                 return session;
             }
         }
 
         // Create new session
-        session = await sessionManager.CreateSessionAsync(projectPath, model);
-        await agentLoop.ClearHistoryAsync();
+        session = await sessionManager.CreateSessionAsync(projectPath, model, cancellationToken: cancellationToken);
+        await agentLoop.ClearHistoryAsync(cancellationToken: cancellationToken);
 
         return session;
     }
@@ -84,11 +86,12 @@ public static class AgentLoopSessionExtensions
     /// <param name="session">The session to save to.</param>
     /// <param name="userPrompt">The user's prompt.</param>
     /// <param name="response">The agent's response.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     public static async Task SaveTurnAsync(
         this ISessionManager sessionManager,
         SessionData session,
         string userPrompt,
-        AgentResponse response)
+        AgentResponse response, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sessionManager);
         ArgumentNullException.ThrowIfNull(session);
@@ -96,20 +99,20 @@ public static class AgentLoopSessionExtensions
         ArgumentNullException.ThrowIfNull(response);
 
         // Save user message
-        await sessionManager.SaveUserMessageAsync(session, userPrompt);
+        await sessionManager.SaveUserMessageAsync(session, userPrompt, cancellationToken: cancellationToken);
 
         // Save tool calls if any
         foreach (var toolCall in response.ToolCalls)
         {
             var toolUseId = Guid.NewGuid().ToString("N")[..12];
-            await sessionManager.SaveToolUseAsync(session, toolCall.ToolName, toolCall.Arguments, toolUseId);
+            await sessionManager.SaveToolUseAsync(session, toolCall.ToolName, toolCall.Arguments, toolUseId, cancellationToken: cancellationToken);
             // ToolCallResult.Success is null when the outcome is unknown (no function-invocation
             // middleware in the pipeline) — only an explicit false is reported as an error.
-            await sessionManager.SaveToolResultAsync(session, toolUseId, toolCall.Result, toolCall.Success == false);
+            await sessionManager.SaveToolResultAsync(session, toolUseId, toolCall.Result, toolCall.Success == false, cancellationToken: cancellationToken);
         }
 
         // Save assistant response
-        await sessionManager.SaveAssistantMessageAsync(session, response.Content);
+        await sessionManager.SaveAssistantMessageAsync(session, response.Content, cancellationToken: cancellationToken);
     }
 }
 

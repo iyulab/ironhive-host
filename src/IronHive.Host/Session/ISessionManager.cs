@@ -13,78 +13,86 @@ public interface ISessionManager
     /// </summary>
     /// <param name="projectPath">The project root directory</param>
     /// <param name="model">The model ID being used</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The newly created session</returns>
-    Task<Session> CreateSessionAsync(string projectPath, string model);
+    Task<Session> CreateSessionAsync(string projectPath, string model, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Loads an existing session by its ID.
     /// </summary>
     /// <param name="sessionId">The session ID to load</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The loaded session, or null if not found</returns>
-    Task<Session?> LoadSessionAsync(string sessionId);
+    Task<Session?> LoadSessionAsync(string sessionId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the most recent session for a project.
     /// </summary>
     /// <param name="projectPath">The project root directory</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The latest session, or null if none exists</returns>
-    Task<Session?> GetLatestSessionAsync(string projectPath);
+    Task<Session?> GetLatestSessionAsync(string projectPath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lists all sessions for a project.
     /// </summary>
     /// <param name="projectPath">The project root directory</param>
     /// <param name="limit">Maximum number of sessions to return</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of sessions, newest first</returns>
-    Task<IReadOnlyList<SessionSummary>> ListSessionsAsync(string projectPath, int limit = 10);
+    Task<IReadOnlyList<SessionSummary>> ListSessionsAsync(string projectPath, int limit = 10, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves a user message to the session transcript.
     /// </summary>
-    Task SaveUserMessageAsync(Session session, string content);
+    Task SaveUserMessageAsync(Session session, string content, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves an assistant message to the session transcript.
     /// </summary>
-    Task SaveAssistantMessageAsync(Session session, string content);
+    Task SaveAssistantMessageAsync(Session session, string content, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves a tool use to the session transcript.
     /// </summary>
-    Task SaveToolUseAsync(Session session, string tool, object input, string toolUseId);
+    Task SaveToolUseAsync(Session session, string tool, object input, string toolUseId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves a tool result to the session transcript.
     /// </summary>
-    Task SaveToolResultAsync(Session session, string toolUseId, string output, bool isError = false);
+    Task SaveToolResultAsync(Session session, string toolUseId, string output, bool isError = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Restores the conversation context from a session.
     /// </summary>
     /// <param name="session">The session to restore</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of chat messages for context</returns>
-    Task<IReadOnlyList<ChatMessage>> RestoreContextAsync(Session session);
+    Task<IReadOnlyList<ChatMessage>> RestoreContextAsync(Session session, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Forks a session, creating a new session with the same history up to a point.
     /// </summary>
     /// <param name="session">The session to fork</param>
     /// <param name="forkPoint">Optional entry index to fork from (default: latest)</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The new forked session</returns>
-    Task<Session> ForkSessionAsync(Session session, int? forkPoint = null);
+    Task<Session> ForkSessionAsync(Session session, int? forkPoint = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks a session as ended.
     /// </summary>
     /// <param name="session">The session to end</param>
     /// <param name="reason">The reason for ending (user_exit, error, etc.)</param>
-    Task EndSessionAsync(Session session, string reason);
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task EndSessionAsync(Session session, string reason, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a session and its transcript.
     /// </summary>
     /// <param name="sessionId">The session ID to delete</param>
-    Task DeleteSessionAsync(string sessionId);
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

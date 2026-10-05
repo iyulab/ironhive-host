@@ -45,7 +45,7 @@ public class ExecutionLogServiceTests : IDisposable
         var sut = new ExecutionLogService();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("Hello, world!");
+        await sut.BeginTurnAsync("Hello, world!", cancellationToken: TestContext.Current.CancellationToken);
         await sut.DisposeAsync();
 
         var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
@@ -64,7 +64,7 @@ public class ExecutionLogServiceTests : IDisposable
         var sut = new ExecutionLogService();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("test");
+        await sut.BeginTurnAsync("test", cancellationToken: TestContext.Current.CancellationToken);
 
         // Simulate tool call streaming: name first, then arguments
         await sut.ProcessChunkAsync(new AgentResponseChunk
@@ -74,7 +74,7 @@ public class ExecutionLogServiceTests : IDisposable
                 Id = "tc-001",
                 NameDelta = "ReadFile"
             }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk
@@ -82,7 +82,7 @@ public class ExecutionLogServiceTests : IDisposable
                 Id = "tc-001",
                 ArgumentsDelta = "{\"filePath\":"
             }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk
@@ -90,9 +90,9 @@ public class ExecutionLogServiceTests : IDisposable
                 Id = "tc-001",
                 ArgumentsDelta = "\"test.txt\"}"
             }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        await sut.EndTurnAsync();
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
         await sut.DisposeAsync();
 
         var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
@@ -113,29 +113,29 @@ public class ExecutionLogServiceTests : IDisposable
         var sut = new ExecutionLogService();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("analyze files");
+        await sut.BeginTurnAsync("analyze files", cancellationToken: TestContext.Current.CancellationToken);
 
         // First tool call
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", NameDelta = "GlobFiles" }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", ArgumentsDelta = "{\"pattern\":\"*.cs\"}" }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Second tool call (triggers flush of first)
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-002", NameDelta = "ReadFile" }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-002", ArgumentsDelta = "{\"filePath\":\"Program.cs\"}" }
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        await sut.EndTurnAsync();
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         sut.TotalSteps.Should().Be(2);
         await sut.DisposeAsync();
@@ -160,11 +160,11 @@ public class ExecutionLogServiceTests : IDisposable
         var sut = new ExecutionLogService();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("hello");
+        await sut.BeginTurnAsync("hello", cancellationToken: TestContext.Current.CancellationToken);
 
-        await sut.ProcessChunkAsync(new AgentResponseChunk { TextDelta = "Response text" });
+        await sut.ProcessChunkAsync(new AgentResponseChunk { TextDelta = "Response text" }, cancellationToken: TestContext.Current.CancellationToken);
 
-        await sut.EndTurnAsync();
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         sut.TotalSteps.Should().Be(0);
         await sut.DisposeAsync();
@@ -182,20 +182,20 @@ public class ExecutionLogServiceTests : IDisposable
         sut.Initialize(path);
 
         // Turn 1
-        await sut.BeginTurnAsync("first");
+        await sut.BeginTurnAsync("first", cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", NameDelta = "ReadFile" }
-        });
-        await sut.EndTurnAsync();
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Turn 2
-        await sut.BeginTurnAsync("second");
+        await sut.BeginTurnAsync("second", cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-002", NameDelta = "WriteFile" }
-        });
-        await sut.EndTurnAsync();
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         sut.TurnCount.Should().Be(2);
         sut.TotalSteps.Should().Be(2);
@@ -210,7 +210,7 @@ public class ExecutionLogServiceTests : IDisposable
         sut.Initialize(path);
 
         var longPrompt = new string('x', 1000);
-        await sut.BeginTurnAsync(longPrompt);
+        await sut.BeginTurnAsync(longPrompt, cancellationToken: TestContext.Current.CancellationToken);
         await sut.DisposeAsync();
 
         var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
@@ -226,12 +226,12 @@ public class ExecutionLogServiceTests : IDisposable
         var sut = new ExecutionLogService();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("test");
+        await sut.BeginTurnAsync("test", cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", NameDelta = "ListDirectory" }
-        });
-        await sut.EndTurnAsync(responseLength: 1500);
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        await sut.EndTurnAsync(responseLength: 1500, cancellationToken: TestContext.Current.CancellationToken);
         await sut.DisposeAsync();
 
         var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
@@ -256,10 +256,10 @@ public class ExecutionLogServiceTests : IDisposable
         var path = LogPath();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("test");
-        await sut.ProcessChunkAsync(new AgentResponseChunk { TextDelta = "hello" });
-        await sut.ProcessChunkAsync(new AgentResponseChunk { ThinkingDelta = "thinking..." });
-        await sut.EndTurnAsync();
+        await sut.BeginTurnAsync("test", cancellationToken: TestContext.Current.CancellationToken);
+        await sut.ProcessChunkAsync(new AgentResponseChunk { TextDelta = "hello" }, cancellationToken: TestContext.Current.CancellationToken);
+        await sut.ProcessChunkAsync(new AgentResponseChunk { ThinkingDelta = "thinking..." }, cancellationToken: TestContext.Current.CancellationToken);
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         sut.TotalSteps.Should().Be(0);
         await sut.DisposeAsync();
@@ -272,12 +272,12 @@ public class ExecutionLogServiceTests : IDisposable
         var sut = new ExecutionLogService();
         sut.Initialize(path);
 
-        await sut.BeginTurnAsync("test");
+        await sut.BeginTurnAsync("test", cancellationToken: TestContext.Current.CancellationToken);
         await sut.ProcessChunkAsync(new AgentResponseChunk
         {
             ToolCallDelta = new ToolCallChunk { Id = "tc-001", NameDelta = "ReadFile" }
-        });
-        await sut.EndTurnAsync();
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        await sut.EndTurnAsync(cancellationToken: TestContext.Current.CancellationToken);
         await sut.DisposeAsync();
 
         var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);

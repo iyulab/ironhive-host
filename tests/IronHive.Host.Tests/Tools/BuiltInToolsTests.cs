@@ -104,7 +104,7 @@ public class BuiltInToolsTests : IDisposable
     {
         var oops = Substitute.For<IronHive.Host.Oops.IOopsService>();
         oops.IsTracked(Arg.Any<string>()).Returns(true);
-        oops.SaveAsync(Arg.Any<string>(), Arg.Any<string?>())
+        oops.SaveAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new IronHive.Host.Oops.OopsResult { Success = true, Output = "" });
 
         var write = BuiltInTools.GetAll(_testDir, oops)

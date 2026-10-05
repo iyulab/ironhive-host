@@ -11,7 +11,7 @@ public interface IExecutionLogger
     int TotalSteps { get; }
 
     void Initialize(string logFilePath);
-    Task BeginTurnAsync(string userPrompt);
-    Task ProcessChunkAsync(AgentResponseChunk chunk);
-    Task EndTurnAsync(int? responseLength = null);
+    Task BeginTurnAsync(string userPrompt, CancellationToken cancellationToken = default);
+    Task ProcessChunkAsync(AgentResponseChunk chunk, CancellationToken cancellationToken = default);
+    Task EndTurnAsync(int? responseLength = null, CancellationToken cancellationToken = default);
 }

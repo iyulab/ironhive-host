@@ -39,7 +39,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<Session> CreateSessionAsync(string projectPath, string model)
+    public async Task<Session> CreateSessionAsync(string projectPath, string model, CancellationToken cancellationToken = default)
     {
         var projectHash = ComputeProjectHash(projectPath);
         var sessionId = GenerateSessionId();
@@ -77,7 +77,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<Session?> LoadSessionAsync(string sessionId)
+    public async Task<Session?> LoadSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         // Search all project directories for the session
         var projectsDir = Path.Combine(_baseDirectory, "projects");
@@ -99,7 +99,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<Session?> GetLatestSessionAsync(string projectPath)
+    public async Task<Session?> GetLatestSessionAsync(string projectPath, CancellationToken cancellationToken = default)
     {
         var projectHash = ComputeProjectHash(projectPath);
         var projectDir = GetProjectDirectory(projectHash);
@@ -122,7 +122,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<SessionSummary>> ListSessionsAsync(string projectPath, int limit = 10)
+    public async Task<IReadOnlyList<SessionSummary>> ListSessionsAsync(string projectPath, int limit = 10, CancellationToken cancellationToken = default)
     {
         var projectHash = ComputeProjectHash(projectPath);
         var projectDir = GetProjectDirectory(projectHash);
@@ -152,7 +152,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task SaveUserMessageAsync(Session session, string content)
+    public async Task SaveUserMessageAsync(Session session, string content, CancellationToken cancellationToken = default)
     {
         var entry = new UserMessageEntry
         {
@@ -163,7 +163,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task SaveAssistantMessageAsync(Session session, string content)
+    public async Task SaveAssistantMessageAsync(Session session, string content, CancellationToken cancellationToken = default)
     {
         var entry = new AssistantMessageEntry
         {
@@ -174,7 +174,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task SaveToolUseAsync(Session session, string tool, object input, string toolUseId)
+    public async Task SaveToolUseAsync(Session session, string tool, object input, string toolUseId, CancellationToken cancellationToken = default)
     {
         var entry = new ToolUseEntry
         {
@@ -187,7 +187,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task SaveToolResultAsync(Session session, string toolUseId, string output, bool isError = false)
+    public async Task SaveToolResultAsync(Session session, string toolUseId, string output, bool isError = false, CancellationToken cancellationToken = default)
     {
         var entry = new ToolResultEntry
         {
@@ -200,7 +200,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ChatMessage>> RestoreContextAsync(Session session)
+    public async Task<IReadOnlyList<ChatMessage>> RestoreContextAsync(Session session, CancellationToken cancellationToken = default)
     {
         var entries = await ReadEntriesAsync(session.TranscriptPath);
         var messages = new List<ChatMessage>();
@@ -234,7 +234,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<Session> ForkSessionAsync(Session session, int? forkPoint = null)
+    public async Task<Session> ForkSessionAsync(Session session, int? forkPoint = null, CancellationToken cancellationToken = default)
     {
         var entries = await ReadEntriesAsync(session.TranscriptPath);
 
@@ -274,13 +274,13 @@ public class SessionManager : ISessionManager
         await AppendEntryAsync(newTranscriptPath, resumeEntry);
 
         // Mark original session as forked
-        await EndSessionAsync(session, "forked");
+        await EndSessionAsync(session, "forked", cancellationToken: cancellationToken);
 
         return newSession;
     }
 
     /// <inheritdoc />
-    public async Task EndSessionAsync(Session session, string reason)
+    public async Task EndSessionAsync(Session session, string reason, CancellationToken cancellationToken = default)
     {
         var entry = new SessionEndEntry
         {
@@ -291,7 +291,7 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public Task DeleteSessionAsync(string sessionId)
+    public Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         var projectsDir = Path.Combine(_baseDirectory, "projects");
         if (!Directory.Exists(projectsDir))

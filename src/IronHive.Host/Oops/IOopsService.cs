@@ -34,38 +34,43 @@ public interface IOopsService
     /// Starts versioning a file.
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result message.</returns>
-    Task<OopsResult> StartAsync(string filePath);
+    Task<OopsResult> StartAsync(string filePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves a snapshot of the file.
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
     /// <param name="message">Optional snapshot message.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result message.</returns>
-    Task<OopsResult> SaveAsync(string filePath, string? message = null);
+    Task<OopsResult> SaveAsync(string filePath, string? message = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Undoes changes to the file (restores last saved state).
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result message.</returns>
-    Task<OopsResult> UndoAsync(string filePath);
+    Task<OopsResult> UndoAsync(string filePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Goes back to a specific snapshot.
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
     /// <param name="snapshotNumber">Snapshot number to restore.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result message.</returns>
-    Task<OopsResult> BackAsync(string filePath, int snapshotNumber);
+    Task<OopsResult> BackAsync(string filePath, int snapshotNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the snapshot history for a file.
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>History output.</returns>
-    Task<OopsResult> HistoryAsync(string filePath);
+    Task<OopsResult> HistoryAsync(string filePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the changes (diff) for a file.
@@ -73,29 +78,33 @@ public interface IOopsService
     /// <param name="filePath">Path to the file.</param>
     /// <param name="snapshotA">Optional first snapshot number.</param>
     /// <param name="snapshotB">Optional second snapshot number.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Diff output.</returns>
-    Task<OopsResult> ChangesAsync(string filePath, int? snapshotA = null, int? snapshotB = null);
+    Task<OopsResult> ChangesAsync(string filePath, int? snapshotA = null, int? snapshotB = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the current status of a tracked file.
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Status output.</returns>
-    Task<OopsResult> StatusAsync(string filePath);
+    Task<OopsResult> StatusAsync(string filePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Stops versioning a file.
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result message.</returns>
-    Task<OopsResult> StopAsync(string filePath);
+    Task<OopsResult> StopAsync(string filePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Cleans up orphaned stores (files that no longer exist).
     /// </summary>
     /// <param name="dryRun">If true, only preview what would be cleaned.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Cleanup result.</returns>
-    Task<OopsResult> CleanupAsync(bool dryRun = false);
+    Task<OopsResult> CleanupAsync(bool dryRun = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks if oops should be automatically used for a file.

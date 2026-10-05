@@ -29,7 +29,7 @@ public sealed class OopsFileWriteInterceptor : IFileWriteInterceptor
         var activated = false;
         if (_oopsService.ShouldAutoActivate(fullPath) && !_oopsService.IsTracked(fullPath))
         {
-            await _oopsService.StartAsync(fullPath);
+            await _oopsService.StartAsync(fullPath, cancellationToken: cancellationToken);
             activated = true;
         }
 
@@ -40,7 +40,7 @@ public sealed class OopsFileWriteInterceptor : IFileWriteInterceptor
             return null;
         }
 
-        var saved = await _oopsService.SaveAsync(fullPath);
+        var saved = await _oopsService.SaveAsync(fullPath, cancellationToken: cancellationToken);
         if (!saved.Success)
         {
             return null;

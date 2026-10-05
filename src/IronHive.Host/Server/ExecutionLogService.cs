@@ -40,7 +40,7 @@ public sealed class ExecutionLogService : IExecutionLogger, IAsyncDisposable
         };
     }
 
-    public async Task BeginTurnAsync(string userPrompt)
+    public async Task BeginTurnAsync(string userPrompt, CancellationToken cancellationToken = default)
     {
         _turnNumber++;
         _stepNumber = 0;
@@ -53,7 +53,7 @@ public sealed class ExecutionLogService : IExecutionLogger, IAsyncDisposable
         });
     }
 
-    public async Task ProcessChunkAsync(AgentResponseChunk chunk)
+    public async Task ProcessChunkAsync(AgentResponseChunk chunk, CancellationToken cancellationToken = default)
     {
         if (chunk.ToolCallDelta is null)
         {
@@ -76,7 +76,7 @@ public sealed class ExecutionLogService : IExecutionLogger, IAsyncDisposable
         }
     }
 
-    public async Task EndTurnAsync(int? responseLength = null)
+    public async Task EndTurnAsync(int? responseLength = null, CancellationToken cancellationToken = default)
     {
         await FlushPendingToolCallAsync();
 

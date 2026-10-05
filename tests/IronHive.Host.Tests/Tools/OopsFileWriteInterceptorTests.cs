@@ -19,12 +19,12 @@ public class OopsFileWriteInterceptorTests
     public OopsFileWriteInterceptorTests()
     {
         _oops.When(o => o.RecordEdit(FilePath)).Do(_ => _order.Add("record"));
-        _oops.StartAsync(FilePath).Returns(_ =>
+        _oops.StartAsync(FilePath, Arg.Any<CancellationToken>()).Returns(_ =>
         {
             _order.Add("start");
             return new OopsResult { Success = true, Output = "" };
         });
-        _oops.SaveAsync(FilePath, Arg.Any<string?>()).Returns(_ =>
+        _oops.SaveAsync(FilePath, Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(_ =>
         {
             _order.Add("save");
             return new OopsResult { Success = true, Output = "" };
@@ -78,7 +78,7 @@ public class OopsFileWriteInterceptorTests
     public async Task AFailedSnapshot_IsNotReportedAsSaved()
     {
         _oops.IsTracked(FilePath).Returns(true);
-        _oops.SaveAsync(FilePath, Arg.Any<string?>()).Returns(new OopsResult { Success = false, Output = "" });
+        _oops.SaveAsync(FilePath, Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(new OopsResult { Success = false, Output = "" });
 
         var note = await Intercept();
 

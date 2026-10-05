@@ -109,7 +109,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
         if (settings.Continue)
         {
-            session = await _sessionManager.GetLatestSessionAsync(projectPath);
+            session = await _sessionManager.GetLatestSessionAsync(projectPath, cancellationToken: cancellationToken);
             if (session is null)
             {
                 AnsiConsole.MarkupLine("[yellow]No previous session found. Starting new session.[/]");
@@ -122,7 +122,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
         else if (!string.IsNullOrEmpty(settings.ResumeSessionId))
         {
-            session = await _sessionManager.LoadSessionAsync(settings.ResumeSessionId);
+            session = await _sessionManager.LoadSessionAsync(settings.ResumeSessionId, cancellationToken: cancellationToken);
             if (session is null)
             {
                 AnsiConsole.MarkupLine($"[red]Session not found: {settings.ResumeSessionId}[/]");
@@ -133,7 +133,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             if (settings.Fork)
             {
                 var originalId = session.Id;
-                session = await _sessionManager.ForkSessionAsync(session);
+                session = await _sessionManager.ForkSessionAsync(session, cancellationToken: cancellationToken);
                 AnsiConsole.MarkupLine($"[grey]Forked session [cyan]{originalId}[/] → [cyan]{session.Id}[/][/]");
             }
             else
@@ -145,7 +145,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
 
         // Create new session if not resuming
-        session ??= await _sessionManager.CreateSessionAsync(projectPath, model);
+        session ??= await _sessionManager.CreateSessionAsync(projectPath, model, cancellationToken: cancellationToken);
 
         // Create agent loop with optional model/provider override
         var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
@@ -174,7 +174,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
             // Restore context if resuming session
             if (settings.Continue || !string.IsNullOrEmpty(settings.ResumeSessionId))
             {
-                var restoredMessages = await _sessionManager.RestoreContextAsync(session);
+                var restoredMessages = await _sessionManager.RestoreContextAsync(session, cancellationToken: cancellationToken);
                 if (restoredMessages.Count > 0)
                 {
                     agentLoop.InitializeHistory(restoredMessages);
@@ -337,7 +337,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
     private async Task<int> RunSinglePromptJsonAsync(string prompt, Settings settings, IAgentLoop agentLoop, string format, CancellationToken cancellationToken)
     {
-        var session = await _sessionManager.GetLatestSessionAsync(Directory.GetCurrentDirectory());
+        var session = await _sessionManager.GetLatestSessionAsync(Directory.GetCurrentDirectory(), cancellationToken: cancellationToken);
         var sessionId = session?.Id;
 
         if (format == "jsonl")

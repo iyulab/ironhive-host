@@ -68,41 +68,41 @@ public class OopsService : IOopsService
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> StartAsync(string filePath)
+    public Task<OopsResult> StartAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(RunOops($"-g start \"{filePath}\""));
+        return RunOopsAsync($"-g start \"{filePath}\"", cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> SaveAsync(string filePath, string? message = null)
+    public Task<OopsResult> SaveAsync(string filePath, string? message = null, CancellationToken cancellationToken = default)
     {
         var args = string.IsNullOrEmpty(message)
             ? $"-g save \"{filePath}\""
             : $"-g save \"{filePath}\" \"{EscapeMessage(message)}\"";
 
-        return Task.FromResult(RunOops(args));
+        return RunOopsAsync(args, cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> UndoAsync(string filePath)
+    public Task<OopsResult> UndoAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(RunOops($"-g oops! \"{filePath}\""));
+        return RunOopsAsync($"-g oops! \"{filePath}\"", cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> BackAsync(string filePath, int snapshotNumber)
+    public Task<OopsResult> BackAsync(string filePath, int snapshotNumber, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(RunOops($"-g back {snapshotNumber} \"{filePath}\""));
+        return RunOopsAsync($"-g back {snapshotNumber} \"{filePath}\"", cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> HistoryAsync(string filePath)
+    public Task<OopsResult> HistoryAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(RunOops($"-g history \"{filePath}\""));
+        return RunOopsAsync($"-g history \"{filePath}\"", cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> ChangesAsync(string filePath, int? snapshotA = null, int? snapshotB = null)
+    public Task<OopsResult> ChangesAsync(string filePath, int? snapshotA = null, int? snapshotB = null, CancellationToken cancellationToken = default)
     {
         string args;
         if (snapshotA.HasValue && snapshotB.HasValue)
@@ -118,26 +118,26 @@ public class OopsService : IOopsService
             args = $"-g changes \"{filePath}\"";
         }
 
-        return Task.FromResult(RunOops(args));
+        return RunOopsAsync(args, cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> StatusAsync(string filePath)
+    public Task<OopsResult> StatusAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(RunOops($"-g now \"{filePath}\""));
+        return RunOopsAsync($"-g now \"{filePath}\"", cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> StopAsync(string filePath)
+    public Task<OopsResult> StopAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(RunOops($"-g done \"{filePath}\""));
+        return RunOopsAsync($"-g done \"{filePath}\"", cancellationToken);
     }
 
     /// <inheritdoc />
-    public Task<OopsResult> CleanupAsync(bool dryRun = false)
+    public Task<OopsResult> CleanupAsync(bool dryRun = false, CancellationToken cancellationToken = default)
     {
         var args = dryRun ? "gc -g --dry-run" : "gc -g -y";
-        return Task.FromResult(RunOops(args));
+        return RunOopsAsync(args, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -226,6 +226,78 @@ public class OopsService : IOopsService
         catch
         {
             return null;
+        }
+    }
+
+    // The commands the tools run: the oops process is awaited, not blocked on, and the caller's token stops it (the
+    // process tree is killed) instead of leaving a hung command holding the turn.
+    private async Task<OopsResult> RunOopsAsync(string arguments, CancellationToken cancellationToken)
+    {
+        if (!IsInstalled)
+        {
+            return new OopsResult
+            {
+                Success = false,
+                Output = string.Empty,
+                Error = "oops is not installed. Run EnsureInstalledAsync() first.",
+                ExitCode = -1
+            };
+        }
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = OopsCommand,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process is null)
+            {
+                return new OopsResult
+                {
+                    Success = false,
+                    Output = string.Empty,
+                    Error = "Failed to start oops process.",
+                    ExitCode = -1
+                };
+            }
+
+            try
+            {
+                var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                var error = process.StandardError.ReadToEndAsync(cancellationToken);
+                await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+                var errorText = await error.ConfigureAwait(false);
+                return new OopsResult
+                {
+                    Success = process.ExitCode == 0,
+                    Output = (await output.ConfigureAwait(false)).Trim(),
+                    Error = string.IsNullOrEmpty(errorText) ? null : errorText.Trim(),
+                    ExitCode = process.ExitCode
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                process.Kill(entireProcessTree: true);
+                throw;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new OopsResult
+            {
+                Success = false,
+                Output = string.Empty,
+                Error = ex.Message,
+                ExitCode = -1
+            };
         }
     }
 

@@ -278,7 +278,7 @@ public class AgentResponseMapperTests
         {
         }
 
-        await logger.Received(1).ProcessChunkAsync(chunk);
+        await logger.Received(1).ProcessChunkAsync(chunk, Arg.Any<CancellationToken>());
     }
 
     [Fact]

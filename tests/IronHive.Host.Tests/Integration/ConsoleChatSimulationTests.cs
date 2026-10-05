@@ -99,7 +99,7 @@ public class ConsoleChatSimulationTests : IDisposable
 
         // Act - Create session and load it
         var session = await agentLoop.LoadOrCreateSessionAsync(
-            sessionManager, _testDir, "test-model", continueLatest: false);
+            sessionManager, _testDir, "test-model", continueLatest: false, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(session);
         Assert.Equal(_testDir, session.ProjectPath);
@@ -120,11 +120,11 @@ public class ConsoleChatSimulationTests : IDisposable
         var sessionManager = _serviceProvider.GetRequiredService<ISessionManager>();
 
         // Create first session
-        var session1 = await sessionManager.CreateSessionAsync(_testDir, "model1");
+        var session1 = await sessionManager.CreateSessionAsync(_testDir, "model1", cancellationToken: TestContext.Current.CancellationToken);
 
         // Simulate /new command - clear history and create new session
         agentLoop.ClearHistory();
-        var session2 = await sessionManager.CreateSessionAsync(_testDir, "model2");
+        var session2 = await sessionManager.CreateSessionAsync(_testDir, "model2", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - Different session IDs
         Assert.NotEqual(session1.Id, session2.Id);
@@ -138,14 +138,14 @@ public class ConsoleChatSimulationTests : IDisposable
         var sessionManager = _serviceProvider.GetRequiredService<ISessionManager>();
 
         // Create multiple sessions
-        await sessionManager.CreateSessionAsync(_testDir, "model1");
+        await sessionManager.CreateSessionAsync(_testDir, "model1", cancellationToken: TestContext.Current.CancellationToken);
         await Task.Delay(10, TestContext.Current.CancellationToken); // Ensure different timestamps
-        await sessionManager.CreateSessionAsync(_testDir, "model2");
+        await sessionManager.CreateSessionAsync(_testDir, "model2", cancellationToken: TestContext.Current.CancellationToken);
         await Task.Delay(10, TestContext.Current.CancellationToken);
-        await sessionManager.CreateSessionAsync(_testDir, "model3");
+        await sessionManager.CreateSessionAsync(_testDir, "model3", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act - List sessions
-        var sessions = await sessionManager.ListSessionsAsync(_testDir, limit: 10);
+        var sessions = await sessionManager.ListSessionsAsync(_testDir, limit: 10, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, sessions.Count);
@@ -162,16 +162,16 @@ public class ConsoleChatSimulationTests : IDisposable
         var sessionManager = _serviceProvider.GetRequiredService<ISessionManager>();
 
         // Create a session with some history
-        var originalSession = await sessionManager.CreateSessionAsync(_testDir, "model1");
-        await sessionManager.SaveUserMessageAsync(originalSession, "Original message");
-        await sessionManager.SaveAssistantMessageAsync(originalSession, "Original response");
+        var originalSession = await sessionManager.CreateSessionAsync(_testDir, "model1", cancellationToken: TestContext.Current.CancellationToken);
+        await sessionManager.SaveUserMessageAsync(originalSession, "Original message", cancellationToken: TestContext.Current.CancellationToken);
+        await sessionManager.SaveAssistantMessageAsync(originalSession, "Original response", cancellationToken: TestContext.Current.CancellationToken);
 
         // Clear agent history (simulate starting fresh)
         agentLoop.ClearHistory();
         Assert.Single(agentLoop.History); // Only system prompt
 
         // Act - Simulate /continue command
-        var loadedSession = await agentLoop.LoadSessionAsync(sessionManager, originalSession.Id);
+        var loadedSession = await agentLoop.LoadSessionAsync(sessionManager, originalSession.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(originalSession.Id, loadedSession.Id);
@@ -187,7 +187,7 @@ public class ConsoleChatSimulationTests : IDisposable
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<SessionNotFoundException>(
-            () => agentLoop.LoadSessionAsync(sessionManager, "nonexistent-session-id"));
+            () => agentLoop.LoadSessionAsync(sessionManager, "nonexistent-session-id", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("nonexistent-session-id", exception.SessionId);
     }

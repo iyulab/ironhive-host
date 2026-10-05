@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.46.0 — Unreleased
+
+### Fixed
+- **oops snapshot commands no longer block a thread and can be cancelled.** `IOopsService.StartAsync`, `SaveAsync`,
+  `UndoAsync`, `BackAsync`, `HistoryAsync`, `ChangesAsync`, `StatusAsync`, `StopAsync` and `CleanupAsync` returned a
+  completed task after running the `oops` process synchronously, so a hung `oops` held the caller (an agent's file
+  write) indefinitely. They now await the process and kill it when the token is cancelled.
+
+### Changed
+- **Breaking:** `IOopsService` (the methods above), `ISessionManager` (every method), `IExecutionLogger`
+  (`BeginTurnAsync`, `ProcessChunkAsync`, `EndTurnAsync`), the `AgentLoopSessionExtensions` methods,
+  `AgentServerRunner.WriteEventAsync` and `UpdateChecker.WaitForCheckAsync` take an optional `CancellationToken`, and the
+  host passes the turn's token through. Callers compile unchanged; implementations of the interfaces add the parameter.
+
 ## 0.45.5 — 2026-10-06
 
 ### Changed

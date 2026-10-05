@@ -242,7 +242,7 @@ public partial class AgentServerRunner
         await writeLock.WaitAsync(ct);
         try
         {
-            await WriteEventAsync(output, evt, _jsonOptions);
+            await WriteEventAsync(output, evt, _jsonOptions, cancellationToken: ct);
         }
         finally
         {
@@ -305,10 +305,10 @@ public partial class AgentServerRunner
     /// Serializes an event as a single JSON Line and flushes.
     /// </summary>
     public static async Task WriteEventAsync(
-        TextWriter output, ServerEvent evt, JsonSerializerOptions? opts = null)
+        TextWriter output, ServerEvent evt, JsonSerializerOptions? opts = null, CancellationToken cancellationToken = default)
     {
         var json = JsonSerializer.Serialize<ServerEvent>(evt, opts ?? DefaultJsonOpts);
         await output.WriteLineAsync(json);
-        await output.FlushAsync();
+        await output.FlushAsync(cancellationToken: cancellationToken);
     }
 }

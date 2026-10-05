@@ -297,7 +297,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
             await AgentServerRunner.WriteEventAsync(
                 Console.Out,
-                new SessionStartedEvent(sessionId));
+                new SessionStartedEvent(sessionId), cancellationToken: ct);
 
             await using var executionLog = new ExecutionLogService();
             var logDir = Path.Combine(

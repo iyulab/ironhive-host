@@ -46,11 +46,11 @@ public class AgentLoopSessionExtensionsTests : IDisposable
             new(ChatRole.Assistant, "Hi there!")
         };
 
-        _mockSessionManager.LoadSessionAsync(sessionId).Returns(Task.FromResult<SessionData?>(session));
-        _mockSessionManager.RestoreContextAsync(session).Returns(Task.FromResult<IReadOnlyList<ChatMessage>>(messages));
+        _mockSessionManager.LoadSessionAsync(sessionId, Arg.Any<CancellationToken>()).Returns(Task.FromResult<SessionData?>(session));
+        _mockSessionManager.RestoreContextAsync(session, Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<ChatMessage>>(messages));
 
         // Act
-        var result = await _agentLoop.LoadSessionAsync(_mockSessionManager, sessionId);
+        var result = await _agentLoop.LoadSessionAsync(_mockSessionManager, sessionId, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(sessionId, result.Id);
@@ -64,11 +64,11 @@ public class AgentLoopSessionExtensionsTests : IDisposable
     {
         // Arrange
         var sessionId = "nonexistent-session";
-        _mockSessionManager.LoadSessionAsync(sessionId).Returns(Task.FromResult<SessionData?>(null));
+        _mockSessionManager.LoadSessionAsync(sessionId, Arg.Any<CancellationToken>()).Returns(Task.FromResult<SessionData?>(null));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<SessionNotFoundException>(
-            () => _agentLoop.LoadSessionAsync(_mockSessionManager, sessionId));
+            () => _agentLoop.LoadSessionAsync(_mockSessionManager, sessionId, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(sessionId, exception.SessionId);
         Assert.Contains(sessionId, exception.Message);
@@ -79,7 +79,7 @@ public class AgentLoopSessionExtensionsTests : IDisposable
     {
         // Act & Assert
         await Assert.ThrowsAnyAsync<ArgumentException>(
-            () => _agentLoop.LoadSessionAsync(_mockSessionManager, null!));
+            () => _agentLoop.LoadSessionAsync(_mockSessionManager, null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class AgentLoopSessionExtensionsTests : IDisposable
     {
         // Act & Assert
         await Assert.ThrowsAnyAsync<ArgumentException>(
-            () => _agentLoop.LoadSessionAsync(_mockSessionManager, ""));
+            () => _agentLoop.LoadSessionAsync(_mockSessionManager, "", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -98,16 +98,16 @@ public class AgentLoopSessionExtensionsTests : IDisposable
         var model = "test-model";
         var newSession = CreateTestSession("new-session");
 
-        _mockSessionManager.GetLatestSessionAsync(projectPath).Returns(Task.FromResult<SessionData?>(null));
-        _mockSessionManager.CreateSessionAsync(projectPath, model).Returns(Task.FromResult(newSession));
+        _mockSessionManager.GetLatestSessionAsync(projectPath, Arg.Any<CancellationToken>()).Returns(Task.FromResult<SessionData?>(null));
+        _mockSessionManager.CreateSessionAsync(projectPath, model, Arg.Any<CancellationToken>()).Returns(Task.FromResult(newSession));
 
         // Act
         var result = await _agentLoop.LoadOrCreateSessionAsync(
-            _mockSessionManager, projectPath, model, continueLatest: true);
+            _mockSessionManager, projectPath, model, continueLatest: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("new-session", result.Id);
-        await _mockSessionManager.Received(1).CreateSessionAsync(projectPath, model);
+        await _mockSessionManager.Received(1).CreateSessionAsync(projectPath, model, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -123,17 +123,17 @@ public class AgentLoopSessionExtensionsTests : IDisposable
             new(ChatRole.Assistant, "Previous response")
         };
 
-        _mockSessionManager.GetLatestSessionAsync(projectPath).Returns(Task.FromResult<SessionData?>(latestSession));
-        _mockSessionManager.RestoreContextAsync(latestSession).Returns(Task.FromResult<IReadOnlyList<ChatMessage>>(messages));
+        _mockSessionManager.GetLatestSessionAsync(projectPath, Arg.Any<CancellationToken>()).Returns(Task.FromResult<SessionData?>(latestSession));
+        _mockSessionManager.RestoreContextAsync(latestSession, Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<ChatMessage>>(messages));
 
         // Act
         var result = await _agentLoop.LoadOrCreateSessionAsync(
-            _mockSessionManager, projectPath, model, continueLatest: true);
+            _mockSessionManager, projectPath, model, continueLatest: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("latest-session", result.Id);
         Assert.Equal(3, _agentLoop.History.Count); // System + 2 restored
-        await _mockSessionManager.DidNotReceive().CreateSessionAsync(Arg.Any<string>(), Arg.Any<string>());
+        await _mockSessionManager.DidNotReceive().CreateSessionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -144,16 +144,16 @@ public class AgentLoopSessionExtensionsTests : IDisposable
         var model = "test-model";
         var newSession = CreateTestSession("new-session");
 
-        _mockSessionManager.CreateSessionAsync(projectPath, model).Returns(Task.FromResult(newSession));
+        _mockSessionManager.CreateSessionAsync(projectPath, model, Arg.Any<CancellationToken>()).Returns(Task.FromResult(newSession));
 
         // Act
         var result = await _agentLoop.LoadOrCreateSessionAsync(
-            _mockSessionManager, projectPath, model, continueLatest: false);
+            _mockSessionManager, projectPath, model, continueLatest: false, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("new-session", result.Id);
-        await _mockSessionManager.DidNotReceive().GetLatestSessionAsync(Arg.Any<string>());
-        await _mockSessionManager.Received(1).CreateSessionAsync(projectPath, model);
+        await _mockSessionManager.DidNotReceive().GetLatestSessionAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _mockSessionManager.Received(1).CreateSessionAsync(projectPath, model, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -169,11 +169,11 @@ public class AgentLoopSessionExtensionsTests : IDisposable
         };
 
         // Act
-        await _mockSessionManager.SaveTurnAsync(session, prompt, response);
+        await _mockSessionManager.SaveTurnAsync(session, prompt, response, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        await _mockSessionManager.Received(1).SaveUserMessageAsync(session, prompt);
-        await _mockSessionManager.Received(1).SaveAssistantMessageAsync(session, response.Content);
+        await _mockSessionManager.Received(1).SaveUserMessageAsync(session, prompt, Arg.Any<CancellationToken>());
+        await _mockSessionManager.Received(1).SaveAssistantMessageAsync(session, response.Content, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -198,21 +198,21 @@ public class AgentLoopSessionExtensionsTests : IDisposable
         };
 
         // Act
-        await _mockSessionManager.SaveTurnAsync(session, prompt, response);
+        await _mockSessionManager.SaveTurnAsync(session, prompt, response, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        await _mockSessionManager.Received(1).SaveUserMessageAsync(session, prompt);
+        await _mockSessionManager.Received(1).SaveUserMessageAsync(session, prompt, Arg.Any<CancellationToken>());
         await _mockSessionManager.Received(1).SaveToolUseAsync(
             session,
             "shell",
             Arg.Any<string>(),
-            Arg.Any<string>());
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _mockSessionManager.Received(1).SaveToolResultAsync(
             session,
             Arg.Any<string>(),
             "file1.txt\nfile2.txt",
-            false);
-        await _mockSessionManager.Received(1).SaveAssistantMessageAsync(session, "Done!");
+            false, Arg.Any<CancellationToken>());
+        await _mockSessionManager.Received(1).SaveAssistantMessageAsync(session, "Done!", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -237,14 +237,14 @@ public class AgentLoopSessionExtensionsTests : IDisposable
         };
 
         // Act
-        await _mockSessionManager.SaveTurnAsync(session, prompt, response);
+        await _mockSessionManager.SaveTurnAsync(session, prompt, response, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         await _mockSessionManager.Received(1).SaveToolResultAsync(
             session,
             Arg.Any<string>(),
             "Error: command not found",
-            true); // isError = true
+            true, Arg.Any<CancellationToken>()); // isError = true
     }
 
     [Fact]
@@ -269,14 +269,14 @@ public class AgentLoopSessionExtensionsTests : IDisposable
         };
 
         // Act
-        await _mockSessionManager.SaveTurnAsync(session, prompt, response);
+        await _mockSessionManager.SaveTurnAsync(session, prompt, response, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert — unknown outcome is not treated as an error.
         await _mockSessionManager.Received(1).SaveToolResultAsync(
             session,
             Arg.Any<string>(),
             "file1.txt\nfile2.txt",
-            false); // isError = false
+            false, Arg.Any<CancellationToken>()); // isError = false
     }
 
     private static SessionData CreateTestSession(string id)

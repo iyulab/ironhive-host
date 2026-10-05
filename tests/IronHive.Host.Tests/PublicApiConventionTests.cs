@@ -15,39 +15,10 @@ namespace IronHive.Host.Tests;
 /// </remarks>
 public class PublicApiConventionTests
 {
-    private static readonly string[] KnownUncancellable =
-    [
-        "IronHive.Cli.Commands.UpdateChecker.WaitForCheckAsync(Nullable<TimeSpan>)",
-        "IronHive.Host.Extensions.AgentLoopSessionExtensions.LoadOrCreateSessionAsync(IAgentLoop, ISessionManager, String, String, Boolean)",
-        "IronHive.Host.Extensions.AgentLoopSessionExtensions.LoadSessionAsync(IAgentLoop, ISessionManager, String)",
-        "IronHive.Host.Extensions.AgentLoopSessionExtensions.SaveTurnAsync(ISessionManager, Session, String, AgentResponse)",
-        "IronHive.Host.Oops.IOopsService.BackAsync(String, Int32)",
-        "IronHive.Host.Oops.IOopsService.ChangesAsync(String, Nullable<Int32>, Nullable<Int32>)",
-        "IronHive.Host.Oops.IOopsService.CleanupAsync(Boolean)",
-        "IronHive.Host.Oops.IOopsService.HistoryAsync(String)",
-        "IronHive.Host.Oops.IOopsService.SaveAsync(String, String)",
-        "IronHive.Host.Oops.IOopsService.StartAsync(String)",
-        "IronHive.Host.Oops.IOopsService.StatusAsync(String)",
-        "IronHive.Host.Oops.IOopsService.StopAsync(String)",
-        "IronHive.Host.Oops.IOopsService.UndoAsync(String)",
-        "IronHive.Host.Server.AgentServerRunner.WriteEventAsync(TextWriter, ServerEvent, JsonSerializerOptions)",
-        "IronHive.Host.Server.IExecutionLogger.BeginTurnAsync(String)",
-        "IronHive.Host.Server.IExecutionLogger.EndTurnAsync(Nullable<Int32>)",
-        "IronHive.Host.Server.IExecutionLogger.ProcessChunkAsync(AgentResponseChunk)",
-        "IronHive.Host.Session.ISessionManager.CreateSessionAsync(String, String)",
-        "IronHive.Host.Session.ISessionManager.DeleteSessionAsync(String)",
-        "IronHive.Host.Session.ISessionManager.EndSessionAsync(Session, String)",
-        "IronHive.Host.Session.ISessionManager.ForkSessionAsync(Session, Nullable<Int32>)",
-        "IronHive.Host.Session.ISessionManager.GetLatestSessionAsync(String)",
-        "IronHive.Host.Session.ISessionManager.ListSessionsAsync(String, Int32)",
-        "IronHive.Host.Session.ISessionManager.LoadSessionAsync(String)",
-        "IronHive.Host.Session.ISessionManager.RestoreContextAsync(Session)",
-        "IronHive.Host.Session.ISessionManager.SaveAssistantMessageAsync(Session, String)",
-        "IronHive.Host.Session.ISessionManager.SaveToolResultAsync(Session, String, String, Boolean)",
-        "IronHive.Host.Session.ISessionManager.SaveToolUseAsync(Session, String, Object, String)",
-        "IronHive.Host.Session.ISessionManager.SaveUserMessageAsync(Session, String)",
-    ];
+    private static readonly string[] KnownUncancellable = [];
 
+    // IOopsService (2026-10-06): OopsResult is the oops CLI's answer (its output and exit status) for the tool to show
+    // the model; a failed oops command is reported to the model, not raised. Kept.
     private static readonly string[] KnownResultReturns =
     [
         "IronHive.Host.Integration.ICodeExecutionProvider.CreateSessionAsync(String, CancellationToken)",
@@ -59,15 +30,15 @@ public class PublicApiConventionTests
         "IronHive.Host.Integration.IMemoryToolsProvider.RecallAsync(String, String, Int32, CancellationToken)",
         "IronHive.Host.Integration.IMemoryToolsProvider.SearchAsync(String, MemorySearchOptions, CancellationToken)",
         "IronHive.Host.Integration.IMemoryToolsProvider.StoreAsync(String, String, Single, String, CancellationToken)",
-        "IronHive.Host.Oops.IOopsService.BackAsync(String, Int32)",
-        "IronHive.Host.Oops.IOopsService.ChangesAsync(String, Nullable<Int32>, Nullable<Int32>)",
-        "IronHive.Host.Oops.IOopsService.CleanupAsync(Boolean)",
-        "IronHive.Host.Oops.IOopsService.HistoryAsync(String)",
-        "IronHive.Host.Oops.IOopsService.SaveAsync(String, String)",
-        "IronHive.Host.Oops.IOopsService.StartAsync(String)",
-        "IronHive.Host.Oops.IOopsService.StatusAsync(String)",
-        "IronHive.Host.Oops.IOopsService.StopAsync(String)",
-        "IronHive.Host.Oops.IOopsService.UndoAsync(String)",
+        "IronHive.Host.Oops.IOopsService.BackAsync(String, Int32, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.ChangesAsync(String, Nullable<Int32>, Nullable<Int32>, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.CleanupAsync(Boolean, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.HistoryAsync(String, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.SaveAsync(String, String, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.StartAsync(String, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.StatusAsync(String, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.StopAsync(String, CancellationToken)",
+        "IronHive.Host.Oops.IOopsService.UndoAsync(String, CancellationToken)",
         "IronHive.Host.Update.IUpdateService.UpdateAsync(IProgress<UpdateProgress>, CancellationToken)",
     ];
 

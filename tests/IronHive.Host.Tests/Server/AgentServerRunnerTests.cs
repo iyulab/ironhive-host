@@ -115,7 +115,7 @@ public class AgentServerRunnerTests
         using var writer = new StringWriter();
         var evt = new TextDeltaEvent("chunk");
 
-        await AgentServerRunner.WriteEventAsync(writer, evt, JsonOpts);
+        await AgentServerRunner.WriteEventAsync(writer, evt, JsonOpts, cancellationToken: TestContext.Current.CancellationToken);
 
         var output = writer.ToString().TrimEnd();
         using var doc = JsonDocument.Parse(output);

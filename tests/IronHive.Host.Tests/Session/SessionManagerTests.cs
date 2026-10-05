@@ -31,7 +31,7 @@ public class SessionManagerTests : IDisposable
         var model = "gpt-4o";
 
         // Act
-        var session = await _sessionManager.CreateSessionAsync(projectPath, model);
+        var session = await _sessionManager.CreateSessionAsync(projectPath, model, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(session);
@@ -50,7 +50,7 @@ public class SessionManagerTests : IDisposable
         var model = "claude-3-opus";
 
         // Act
-        var session = await _sessionManager.CreateSessionAsync(projectPath, model);
+        var session = await _sessionManager.CreateSessionAsync(projectPath, model, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -65,10 +65,10 @@ public class SessionManagerTests : IDisposable
         // Arrange
         var projectPath = "/test/project";
         var model = "gpt-4o";
-        var created = await _sessionManager.CreateSessionAsync(projectPath, model);
+        var created = await _sessionManager.CreateSessionAsync(projectPath, model, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var loaded = await _sessionManager.LoadSessionAsync(created.Id);
+        var loaded = await _sessionManager.LoadSessionAsync(created.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(loaded);
@@ -81,7 +81,7 @@ public class SessionManagerTests : IDisposable
     public async Task LoadSessionAsync_ReturnsNullForNonexistent()
     {
         // Act
-        var session = await _sessionManager.LoadSessionAsync("nonexistent-id");
+        var session = await _sessionManager.LoadSessionAsync("nonexistent-id", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(session);
@@ -92,12 +92,12 @@ public class SessionManagerTests : IDisposable
     {
         // Arrange
         var projectPath = "/test/project";
-        var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model1");
+        var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model1", cancellationToken: TestContext.Current.CancellationToken);
         await Task.Delay(10, TestContext.Current.CancellationToken); // Ensure different timestamps
-        var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model2");
+        var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model2", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var latest = await _sessionManager.GetLatestSessionAsync(projectPath);
+        var latest = await _sessionManager.GetLatestSessionAsync(projectPath, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(latest);
@@ -108,7 +108,7 @@ public class SessionManagerTests : IDisposable
     public async Task GetLatestSessionAsync_ReturnsNullForNonexistentProject()
     {
         // Act
-        var latest = await _sessionManager.GetLatestSessionAsync("/nonexistent/project");
+        var latest = await _sessionManager.GetLatestSessionAsync("/nonexistent/project", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(latest);
@@ -119,14 +119,14 @@ public class SessionManagerTests : IDisposable
     {
         // Arrange
         var projectPath = "/test/project";
-        var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model1");
+        var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model1", cancellationToken: TestContext.Current.CancellationToken);
         await Task.Delay(10, TestContext.Current.CancellationToken);
-        var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model2");
+        var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model2", cancellationToken: TestContext.Current.CancellationToken);
         await Task.Delay(10, TestContext.Current.CancellationToken);
-        var session3 = await _sessionManager.CreateSessionAsync(projectPath, "model3");
+        var session3 = await _sessionManager.CreateSessionAsync(projectPath, "model3", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var sessions = await _sessionManager.ListSessionsAsync(projectPath);
+        var sessions = await _sessionManager.ListSessionsAsync(projectPath, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, sessions.Count);
@@ -142,12 +142,12 @@ public class SessionManagerTests : IDisposable
         var projectPath = "/test/project";
         for (var i = 0; i < 5; i++)
         {
-            await _sessionManager.CreateSessionAsync(projectPath, $"model{i}");
+            await _sessionManager.CreateSessionAsync(projectPath, $"model{i}", cancellationToken: TestContext.Current.CancellationToken);
             await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         // Act
-        var sessions = await _sessionManager.ListSessionsAsync(projectPath, limit: 3);
+        var sessions = await _sessionManager.ListSessionsAsync(projectPath, limit: 3, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, sessions.Count);
@@ -157,11 +157,11 @@ public class SessionManagerTests : IDisposable
     public async Task SaveUserMessageAsync_AppendsToTranscript()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         var message = "Hello, world!";
 
         // Act
-        await _sessionManager.SaveUserMessageAsync(session, message);
+        await _sessionManager.SaveUserMessageAsync(session, message, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -173,11 +173,11 @@ public class SessionManagerTests : IDisposable
     public async Task SaveAssistantMessageAsync_AppendsToTranscript()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         var message = "Hello! How can I help?";
 
         // Act
-        await _sessionManager.SaveAssistantMessageAsync(session, message);
+        await _sessionManager.SaveAssistantMessageAsync(session, message, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -189,13 +189,13 @@ public class SessionManagerTests : IDisposable
     public async Task SaveToolUseAsync_AppendsToTranscript()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         var tool = "Read";
         var input = new { file_path = "/test/file.txt" };
         var toolUseId = "toolu_01ABC";
 
         // Act
-        await _sessionManager.SaveToolUseAsync(session, tool, input, toolUseId);
+        await _sessionManager.SaveToolUseAsync(session, tool, input, toolUseId, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -208,12 +208,12 @@ public class SessionManagerTests : IDisposable
     public async Task SaveToolResultAsync_AppendsToTranscript()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         var toolUseId = "toolu_01ABC";
         var output = "File contents here...";
 
         // Act
-        await _sessionManager.SaveToolResultAsync(session, toolUseId, output);
+        await _sessionManager.SaveToolResultAsync(session, toolUseId, output, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -226,12 +226,12 @@ public class SessionManagerTests : IDisposable
     public async Task SaveToolResultAsync_RecordsErrors()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         var toolUseId = "toolu_01ABC";
         var error = "File not found";
 
         // Act
-        await _sessionManager.SaveToolResultAsync(session, toolUseId, error, isError: true);
+        await _sessionManager.SaveToolResultAsync(session, toolUseId, error, isError: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -243,14 +243,14 @@ public class SessionManagerTests : IDisposable
     public async Task RestoreContextAsync_RestoresUserAndAssistantMessages()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveUserMessageAsync(session, "Hello");
-        await _sessionManager.SaveAssistantMessageAsync(session, "Hi there!");
-        await _sessionManager.SaveUserMessageAsync(session, "How are you?");
-        await _sessionManager.SaveAssistantMessageAsync(session, "I'm doing well!");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "Hello", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveAssistantMessageAsync(session, "Hi there!", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "How are you?", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveAssistantMessageAsync(session, "I'm doing well!", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var messages = await _sessionManager.RestoreContextAsync(session);
+        var messages = await _sessionManager.RestoreContextAsync(session, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(4, messages.Count);
@@ -264,14 +264,14 @@ public class SessionManagerTests : IDisposable
     public async Task RestoreContextAsync_RestoresToolUseAndToolResult()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveUserMessageAsync(session, "Read the file");
-        await _sessionManager.SaveToolUseAsync(session, "Read", new { file_path = "/test/file.txt" }, "toolu_01ABC");
-        await _sessionManager.SaveToolResultAsync(session, "toolu_01ABC", "file contents here");
-        await _sessionManager.SaveAssistantMessageAsync(session, "Here's the file content.");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "Read the file", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveToolUseAsync(session, "Read", new { file_path = "/test/file.txt" }, "toolu_01ABC", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveToolResultAsync(session, "toolu_01ABC", "file contents here", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveAssistantMessageAsync(session, "Here's the file content.", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var messages = await _sessionManager.RestoreContextAsync(session);
+        var messages = await _sessionManager.RestoreContextAsync(session, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(4, messages.Count);
@@ -292,12 +292,12 @@ public class SessionManagerTests : IDisposable
     public async Task RestoreContextAsync_ToolResultError_PrefixesOutputWithError()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveToolUseAsync(session, "Read", new { file_path = "/missing" }, "toolu_01ERR");
-        await _sessionManager.SaveToolResultAsync(session, "toolu_01ERR", "File not found", isError: true);
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveToolUseAsync(session, "Read", new { file_path = "/missing" }, "toolu_01ERR", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveToolResultAsync(session, "toolu_01ERR", "File not found", isError: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var messages = await _sessionManager.RestoreContextAsync(session);
+        var messages = await _sessionManager.RestoreContextAsync(session, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var functionResult = Assert.IsType<Microsoft.Extensions.AI.FunctionResultContent>(
@@ -310,11 +310,11 @@ public class SessionManagerTests : IDisposable
     {
         // Arrange — mirrors AgentLoopSessionExtensions.SaveTurnAsync, which passes
         // ToolCallResult.Arguments (a JSON string) as the Input object.
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveToolUseAsync(session, "Read", "{\"file_path\":\"/test/file.txt\"}", "toolu_01JSON");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveToolUseAsync(session, "Read", "{\"file_path\":\"/test/file.txt\"}", "toolu_01JSON", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var messages = await _sessionManager.RestoreContextAsync(session);
+        var messages = await _sessionManager.RestoreContextAsync(session, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var functionCall = Assert.IsType<Microsoft.Extensions.AI.FunctionCallContent>(
@@ -326,13 +326,13 @@ public class SessionManagerTests : IDisposable
     public async Task ForkSessionAsync_CreatesNewSessionWithHistory()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveUserMessageAsync(session, "Message 1");
-        await _sessionManager.SaveAssistantMessageAsync(session, "Response 1");
-        await _sessionManager.SaveUserMessageAsync(session, "Message 2");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "Message 1", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveAssistantMessageAsync(session, "Response 1", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "Message 2", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var forked = await _sessionManager.ForkSessionAsync(session);
+        var forked = await _sessionManager.ForkSessionAsync(session, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEqual(session.Id, forked.Id);
@@ -350,10 +350,10 @@ public class SessionManagerTests : IDisposable
     public async Task EndSessionAsync_WritesEndEntry()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        await _sessionManager.EndSessionAsync(session, "user_exit");
+        await _sessionManager.EndSessionAsync(session, "user_exit", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var content = await File.ReadAllTextAsync(session.TranscriptPath, TestContext.Current.CancellationToken);
@@ -365,11 +365,11 @@ public class SessionManagerTests : IDisposable
     public async Task DeleteSessionAsync_RemovesTranscript()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(File.Exists(session.TranscriptPath));
 
         // Act
-        await _sessionManager.DeleteSessionAsync(session.Id);
+        await _sessionManager.DeleteSessionAsync(session.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(File.Exists(session.TranscriptPath));
@@ -379,13 +379,13 @@ public class SessionManagerTests : IDisposable
     public async Task ListSessionsAsync_IncludesMessageCount()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveUserMessageAsync(session, "Hello");
-        await _sessionManager.SaveAssistantMessageAsync(session, "Hi!");
-        await _sessionManager.SaveUserMessageAsync(session, "Bye");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "Hello", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveAssistantMessageAsync(session, "Hi!", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "Bye", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var sessions = await _sessionManager.ListSessionsAsync("/test");
+        var sessions = await _sessionManager.ListSessionsAsync("/test", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(sessions);
@@ -396,12 +396,12 @@ public class SessionManagerTests : IDisposable
     public async Task ListSessionsAsync_IncludesFirstUserMessage()
     {
         // Arrange
-        var session = await _sessionManager.CreateSessionAsync("/test", "model");
-        await _sessionManager.SaveUserMessageAsync(session, "This is my first message");
-        await _sessionManager.SaveAssistantMessageAsync(session, "Response");
+        var session = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveUserMessageAsync(session, "This is my first message", cancellationToken: TestContext.Current.CancellationToken);
+        await _sessionManager.SaveAssistantMessageAsync(session, "Response", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        var sessions = await _sessionManager.ListSessionsAsync("/test");
+        var sessions = await _sessionManager.ListSessionsAsync("/test", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(sessions);
@@ -412,9 +412,9 @@ public class SessionManagerTests : IDisposable
     public async Task SessionId_IsSortable()
     {
         // Arrange & Act
-        var session1 = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session1 = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
         await Task.Delay(10, TestContext.Current.CancellationToken);
-        var session2 = await _sessionManager.CreateSessionAsync("/test", "model");
+        var session2 = await _sessionManager.CreateSessionAsync("/test", "model", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(string.Compare(session1.Id, session2.Id, StringComparison.Ordinal) < 0,
@@ -428,8 +428,8 @@ public class SessionManagerTests : IDisposable
         var projectPath = "/test/project";
 
         // Act
-        var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model");
-        var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model");
+        var session1 = await _sessionManager.CreateSessionAsync(projectPath, "model", cancellationToken: TestContext.Current.CancellationToken);
+        var session2 = await _sessionManager.CreateSessionAsync(projectPath, "model", cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - both should be in the same project directory
         Assert.Equal(session1.ProjectHash, session2.ProjectHash);

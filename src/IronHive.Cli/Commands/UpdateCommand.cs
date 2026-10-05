@@ -196,7 +196,7 @@ public static class UpdateChecker
     /// <summary>
     /// Waits for the background check to complete and returns the result.
     /// </summary>
-    public static async Task<UpdateInfo?> WaitForCheckAsync(TimeSpan? timeout = null)
+    public static async Task<UpdateInfo?> WaitForCheckAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
         if (_checkTask is null)
         {
@@ -207,7 +207,7 @@ public static class UpdateChecker
         {
             if (timeout.HasValue)
             {
-                var completed = await Task.WhenAny(_checkTask, Task.Delay(timeout.Value));
+                var completed = await Task.WhenAny(_checkTask, Task.Delay(timeout.Value, cancellationToken: cancellationToken));
                 if (completed == _checkTask)
                 {
                     return await _checkTask;
