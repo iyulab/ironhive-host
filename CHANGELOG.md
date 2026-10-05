@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.45.2 — 2026-10-05
+
+### Changed
+- Re-pinned sibling package(s) `Cronex.Net` 0.6.2 -> 0.7.0, `Cronex.Net.Hosting` 0.6.2 -> 0.7.0. No source changes.
+
 ## 0.45.1 — 2026-10-05
 
 ### Changed
