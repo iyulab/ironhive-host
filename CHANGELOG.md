@@ -18,10 +18,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - Re-pinned sibling package(s) `IronHive.Agent` 0.49.1 -> 0.49.2, `IronHive.Agent.Ironbees` 0.49.1 -> 0.49.2, `IronHive.DeepResearch` 0.49.1 -> 0.49.2.
 
 ### Fixed
-- **Cancelling a call now cancels it.** 4 method(s) that take a `CancellationToken` caught every exception to
+- **Breaking** (released as a patch) — **cancelling a call now cancels it.** 4 method(s) that take a `CancellationToken` caught every exception to
   return a fallback (`null`, an empty result, a failure value) or to log and continue, and treated the caller's own
   cancellation the same way. They now let the caller's `OperationCanceledException` through; other failures behave
   as before. Affected: `doctor`, `update`, the Oops service and the chat client provider.
+  Migration: code that relied on a cancelled call returning `null`, an empty result or a failure value now
+  receives `OperationCanceledException` — catch it where a cancellation is expected.
 
 ## 0.48.1 — 2026-10-06
 
