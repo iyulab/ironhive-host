@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.48.4 — 2026-10-06
+
+### Changed
+- Re-pinned sibling package(s) `Ironbees.Core` 0.23.0 -> 0.24.0, `IronHive.Agent` 0.50.0 -> 0.50.1, `IronHive.Agent.Ironbees` 0.50.0 -> 0.50.1, `IronHive.DeepResearch` 0.50.0 -> 0.50.1. No source changes.
+
 ## 0.48.3 — 2026-10-06
 
 ### Changed

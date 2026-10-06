@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.23.0" />
+    <PackageVersion Include="Ironbees.Core" Version="0.24.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.1" />
@@ -35,8 +35,8 @@
     <PackageVersion Include="LMSupply.Reranker" Version="0.107.0" />
     <PackageVersion Include="LMSupply.Generator" Version="0.107.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.50.0" />
-    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.50.0" />
+    <PackageVersion Include="IronHive.Agent" Version="0.50.1" />
+    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.50.1" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.54.0" />
     <PackageVersion Include="IronHive.Core" Version="0.54.0" />
@@ -48,7 +48,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.3.0" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.50.0" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.50.1" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.7.0" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.7.0" />
