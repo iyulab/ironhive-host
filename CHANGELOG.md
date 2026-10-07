@@ -23,6 +23,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   request first (or answers the reconnect with 404/410); otherwise the agent keeps retrying until the limit.
 - An unreadable inbox message is posted back as an `error` event instead of being written to stderr only.
 - Re-pinned sibling package(s) `LMSupply.Embedder` 0.109.0 -> 0.110.0, `LMSupply.Generator` 0.109.0 -> 0.110.0, `LMSupply.Reranker` 0.109.0 -> 0.110.0.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.52.3 -> 0.52.4, `IronHive.Agent.Ironbees` 0.52.3 -> 0.52.4, `IronHive.DeepResearch` 0.52.3 -> 0.52.4.
 
 ### Added
 - **`run --server --session-id <id>` resumes the session**: started again with the same ID (a restart, a moved
