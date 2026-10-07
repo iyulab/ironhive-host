@@ -84,6 +84,31 @@ public class AgentHttpRunnerTests
         host.PostedEvents.Should().Contain(e => e.Contains("Unreadable request skipped", StringComparison.Ordinal));
     }
 
+    // A turn a previous process left waiting for approval resumes before the inbox's messages, once
+    [Fact]
+    public async Task ResumeTurn_RunsBeforeInboxMessages_AndOnlyOnce()
+    {
+        var host = new FakeHost(
+            Inbox("id: 1", """data: {"type":"user_message","content":"first"}"""),
+            Inbox("id: 2", """data: {"type":"shutdown"}"""));
+        var messages = new ConcurrentQueue<string>();
+        using var runner = CreateRunner(host, messages);
+        runner.ResumeTurn = ct => Resumed(messages, ct);
+
+        await runner.RunAsync(TestContext.Current.CancellationToken);
+
+        messages.Should().Equal("resumed", "first");
+        runner.ResumeTurn.Should().BeNull("a second run must not offer the settled waits again");
+    }
+
+    private static async IAsyncEnumerable<ServerEvent> Resumed(
+        ConcurrentQueue<string> messages, [EnumeratorCancellation] CancellationToken ct)
+    {
+        await Task.Delay(50, ct);
+        messages.Enqueue("resumed");
+        yield return new TurnEndEvent();
+    }
+
     private static AgentHttpRunner CreateRunner(FakeHost host, ConcurrentQueue<string> messages)
         => new("http://agent-host.test", "s1", (msg, ct) => Echo(msg, messages, ct), NullLogger<AgentHttpRunner>.Instance,
             httpHandler: host)

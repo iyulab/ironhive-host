@@ -43,7 +43,7 @@ public partial class AgentServerRunner
     /// <summary>
     /// A turn to run before any message is read - the turn a previous process left waiting for approval
     /// (<see cref="Session.SuspendedTurnResumer"/>). It runs once the approval bridge is attached, and the messages that
-    /// arrive meanwhile queue behind it.
+    /// arrive meanwhile queue behind it. It runs once: the property is cleared when a run takes it.
     /// </summary>
     public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
 
@@ -134,6 +134,7 @@ public partial class AgentServerRunner
         // A turn a previous process left waiting for approval runs first, once the bridge can reach the client
         if (ResumeTurn is { } resume)
         {
+            ResumeTurn = null; // once: the waits it resumes are settled by then
             turns.Enqueue(token => HandleTurnAsync(resume, output, writeLock, token));
         }
 

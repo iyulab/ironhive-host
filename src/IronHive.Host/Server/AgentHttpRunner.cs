@@ -71,6 +71,13 @@ public sealed partial class AgentHttpRunner : IDisposable
     public bool SkipContextEnrichment { get; set; }
 
     /// <summary>
+    /// A turn to run before any inbox message - the turn a previous process left waiting for approval
+    /// (<see cref="Session.SuspendedTurnResumer"/>). It runs once the approval bridge is attached and the inbox is read;
+    /// messages that arrive meanwhile queue behind it. It runs once: the property is cleared when a run takes it.
+    /// </summary>
+    public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
+
+    /// <summary>
     /// Delay before the first reconnect after the inbox stream ends without a shutdown request or cannot be reached.
     /// Each further consecutive attempt doubles it, up to <see cref="MaxReconnectDelay"/>. Default: 1 second.
     /// </summary>
@@ -170,6 +177,13 @@ public sealed partial class AgentHttpRunner : IDisposable
         // Turns run on their own task so the inbox keeps being read — a turn waiting for approval gets its
         // hitl_response even when another message arrived first.
         _turns = new TurnQueue(ct);
+        // Runs once: the waits it resumes are settled by then
+        if (ResumeTurn is { } resume)
+        {
+            ResumeTurn = null;
+            _turns.Enqueue(token => HandleTurnAsync(resume, token));
+        }
+
         try
         {
             while (true)
@@ -291,7 +305,7 @@ public sealed partial class AgentHttpRunner : IDisposable
                     ? msg
                     : msg with { Content = BuildContextualContent(msg.Content) };
 
-                _turns?.Enqueue(token => HandleMessageAsync(contextualMsg, token));
+                _turns?.Enqueue(token => HandleTurnAsync(t => _processMessage(contextualMsg, t), token));
             }
         }
 
@@ -352,12 +366,12 @@ public sealed partial class AgentHttpRunner : IDisposable
         return sb.ToString();
     }
 
-    private async Task HandleMessageAsync(UserMessageRequest msg, CancellationToken ct)
+    private async Task HandleTurnAsync(Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, CancellationToken ct)
     {
         var turnEndSent = false;
         try
         {
-            await foreach (var evt in _processMessage(msg, ct))
+            await foreach (var evt in turn(ct))
             {
                 if (evt is TurnEndEvent)
                 {

@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.51.0 — Unreleased
+
+### Added
+- **The HTTP runner resumes a suspended approval turn too.** `AgentHttpRunner.ResumeTurn` runs before the inbox's
+  messages, like `AgentServerRunner.ResumeTurn`, so a host that embeds the HTTP surface wires the same
+  `SuspendedTurnResumer` (see «A wait outlives the process» in the README).
+
+### Changed
+- `ResumeTurn` runs once on both runners: the property is cleared when a run takes it, so a second `RunAsync` does not
+  offer the settled waits again.
+
 ## 0.50.0 — 2026-10-08
 
 ### Added
