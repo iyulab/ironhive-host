@@ -56,9 +56,11 @@ public static class AgentResponseMapper
                 yield return new AddendumEvent(chunk.Addendum);
             }
 
-            if (chunk.ToolCallDelta?.NameDelta is not null)
+            // One start per call: argument fragments of a call still being written (IsComplete false, when the loop
+            // streams tool arguments) are progress, and the complete call that follows names the tool again.
+            if (chunk.ToolCallDelta is { IsComplete: true, NameDelta: { } toolName } started)
             {
-                yield return new ToolStartEvent(chunk.ToolCallDelta.NameDelta, CallId: chunk.ToolCallDelta.Id);
+                yield return new ToolStartEvent(toolName, CallId: started.Id);
             }
 
             // A tool's outcome, the moment it arrives — a client's step timeline shows each result as the tool

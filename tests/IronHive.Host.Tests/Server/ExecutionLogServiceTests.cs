@@ -107,6 +107,30 @@ public class ExecutionLogServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ProcessChunk_StreamedArgumentFragments_RecordTheCallOnce_WithItsWholeArguments()
+    {
+        // With StreamToolArguments the loop yields fragments (IsComplete false, the first one named) and then the
+        // complete call: one log entry, from the complete call.
+        var path = LogPath();
+        var sut = new ExecutionLogService();
+        sut.Initialize(path);
+        var ct = TestContext.Current.CancellationToken;
+
+        await sut.BeginTurnAsync("write", cancellationToken: ct);
+        await sut.ProcessChunkAsync(new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", NameDelta = "WriteFile", ArgumentsDelta = "{\"pa", IsComplete = false } }, ct);
+        await sut.ProcessChunkAsync(new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", ArgumentsDelta = "th\":\"a\"}", IsComplete = false } }, ct);
+        await sut.ProcessChunkAsync(new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", NameDelta = "WriteFile", ArgumentsDelta = "{\"path\":\"a\"}" } }, ct);
+        await sut.EndTurnAsync(cancellationToken: ct);
+        await sut.DisposeAsync();
+
+        var lines = await File.ReadAllLinesAsync(path, ct);
+        lines.Should().HaveCount(3);
+        var toolEntry = JsonDocument.Parse(lines[1]);
+        toolEntry.RootElement.GetProperty("tool").GetString().Should().Be("WriteFile");
+        toolEntry.RootElement.GetProperty("arguments").GetString().Should().Be("{\"path\":\"a\"}");
+    }
+
+    [Fact]
     public async Task ProcessChunk_MultipleToolCalls_RecordsAll()
     {
         var path = LogPath();

@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.48.10 — Unreleased
+
+### Fixed
+- **A tool call whose arguments stream is started and logged once.** When the agent loop streams tool arguments
+  (`AgentOptions.StreamToolArguments`), the server's `tool_start` event, the execution log and the CLI's tool lines now
+  act on the complete call only; the argument fragments before it (`ToolCallChunk.IsComplete = false`) named the tool too,
+  so each call was started twice and logged once with its arguments cut short.
+
 ## 0.48.9 — 2026-10-07
 
 ### Changed

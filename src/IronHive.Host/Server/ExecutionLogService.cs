@@ -55,12 +55,12 @@ public sealed class ExecutionLogService : IExecutionLogger, IAsyncDisposable
 
     public async Task ProcessChunkAsync(AgentResponseChunk chunk, CancellationToken cancellationToken = default)
     {
-        if (chunk.ToolCallDelta is null)
+        // The complete call only: argument fragments (IsComplete false) are followed by the complete call with the whole
+        // arguments, and logging both would record the call twice with the first copy's arguments cut short.
+        if (chunk.ToolCallDelta is not { IsComplete: true } tc)
         {
             return;
         }
-
-        var tc = chunk.ToolCallDelta;
 
         if (tc.NameDelta is not null)
         {

@@ -363,7 +363,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                     OutputJsonLine(new { type = "addendum", content = chunk.Addendum });
                 }
 
-                if (chunk.ToolCallDelta is not null && !string.IsNullOrEmpty(chunk.ToolCallDelta.NameDelta))
+                if (chunk.ToolCallDelta is { IsComplete: true } && !string.IsNullOrEmpty(chunk.ToolCallDelta.NameDelta))
                 {
                     OutputJsonLine(new
                     {
@@ -574,8 +574,8 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 Console.Write(chunk.Addendum);
             }
 
-            // Handle tool calls
-            if (chunk.ToolCallDelta is not null)
+            // Handle tool calls (the complete call; argument fragments are progress)
+            if (chunk.ToolCallDelta is { IsComplete: true })
             {
                 var toolCall = chunk.ToolCallDelta;
                 if (!string.IsNullOrEmpty(toolCall.NameDelta))
@@ -789,8 +789,8 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 Console.Write(chunk.Addendum);
             }
 
-            // Handle tool calls
-            if (chunk.ToolCallDelta is not null)
+            // Handle tool calls (the complete call; argument fragments are progress)
+            if (chunk.ToolCallDelta is { IsComplete: true })
             {
                 var toolCall = chunk.ToolCallDelta;
                 if (!string.IsNullOrEmpty(toolCall.NameDelta))

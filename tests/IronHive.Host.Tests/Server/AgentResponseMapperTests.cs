@@ -111,6 +111,23 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_StreamedArgumentFragments_StartTheToolOnce()
+    {
+        // Argument fragments (IsComplete false, the first one named) are progress; the complete call names the tool again.
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", NameDelta = "WriteFile", ArgumentsDelta = "{", IsComplete = false } },
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", ArgumentsDelta = "}", IsComplete = false } },
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-1", NameDelta = "WriteFile", ArgumentsDelta = "{}" } });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        events.OfType<ToolStartEvent>().Should().ContainSingle().Which.CallId.Should().Be("tc-1");
+    }
+
+    [Fact]
     public async Task ToServerEvents_FinalChunkToolOutcomes_YieldToolEndEvents_BeforeTurnEnd()
     {
         // The wire had tool_end from the start and nothing emitted it: a client saw a tool start and
