@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.51.2 — Unreleased
+
+### Fixed
+- **`run --server` answers while the client keeps its input open.** The stdio server handled no message until its standard
+  input closed: `Console.In` reads synchronously even through `ReadLineAsync`, and the read loop ran inline, so after the
+  first line it waited for the next one before any message was handled. A client that writes a message and waits for the
+  answer — every interactive client — got none. The read loop now runs on its own task, and stopping the server no longer
+  waits for a line that may never come.
+- **A request may name its `type` after its other fields.** `{"id":"…","approved":true,"type":"hitl_response"}` was
+  skipped as unreadable; JSON members are unordered, and a client writing from a dictionary sends them in any order.
+
 ## 0.51.1 — 2026-10-08
 
 ### Changed
