@@ -39,10 +39,31 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public async Task<Session> CreateSessionAsync(string projectPath, string model, CancellationToken cancellationToken = default)
+    public Task<Session> CreateSessionAsync(string projectPath, string model, CancellationToken cancellationToken = default)
+        => CreateSessionCoreAsync(projectPath, model, GenerateSessionId(), cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<Session> OpenSessionAsync(string sessionId, string projectPath, string model, CancellationToken cancellationToken = default)
+    {
+        ValidateSessionId(sessionId);
+        return await LoadSessionAsync(sessionId, cancellationToken)
+            ?? await CreateSessionCoreAsync(projectPath, model, sessionId, cancellationToken);
+    }
+
+    // A session ID becomes a file name, so it is held to a shape that cannot leave the project directory
+    private static void ValidateSessionId(string sessionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        if (sessionId.Length > 128 || !sessionId.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
+        {
+            throw new ArgumentException(
+                $"'{sessionId}' is not a session ID: use letters, digits, '-' and '_' (at most 128).", nameof(sessionId));
+        }
+    }
+
+    private async Task<Session> CreateSessionCoreAsync(string projectPath, string model, string sessionId, CancellationToken cancellationToken)
     {
         var projectHash = ComputeProjectHash(projectPath);
-        var sessionId = GenerateSessionId();
         var projectDir = GetProjectDirectory(projectHash);
 
         Directory.CreateDirectory(projectDir);
@@ -79,6 +100,8 @@ public class SessionManager : ISessionManager
     /// <inheritdoc />
     public async Task<Session?> LoadSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId);
+
         // Search all project directories for the session
         var projectsDir = Path.Combine(_baseDirectory, "projects");
         if (!Directory.Exists(projectsDir))
@@ -293,6 +316,7 @@ public class SessionManager : ISessionManager
     /// <inheritdoc />
     public Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
+        ValidateSessionId(sessionId);
         var projectsDir = Path.Combine(_baseDirectory, "projects");
         if (!Directory.Exists(projectsDir))
         {

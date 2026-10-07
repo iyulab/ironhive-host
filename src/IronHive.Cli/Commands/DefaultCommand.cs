@@ -20,6 +20,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     private readonly IModeManager _modeManager;
     private readonly IUpdateService _updateService;
     private readonly ISessionManager _sessionManager;
+    private SessionTurnRecorder? _recorder;
 
     public DefaultCommand(
         IAgentLoopFactory factory,
@@ -146,6 +147,9 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
         // Create new session if not resuming
         session ??= await _sessionManager.CreateSessionAsync(projectPath, model, cancellationToken: cancellationToken);
+
+        // Every turn of this run is written to the session, so --continue / --resume pick up where it stopped
+        _recorder = new SessionTurnRecorder(_sessionManager, session);
 
         // Create agent loop with optional model/provider override
         var agentLoop = await _factory.CreateAsync(new AgentLoopFactoryOptions
@@ -278,6 +282,21 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         }
     }
 
+    private IAsyncEnumerable<AgentResponseChunk> Record(
+        string prompt, IAsyncEnumerable<AgentResponseChunk> turn, CancellationToken cancellationToken)
+        => _recorder is null ? turn : _recorder.RecordAsync(prompt, turn, cancellationToken);
+
+    private async Task<AgentResponse> RunAndRecordAsync(IAgentLoop agentLoop, string prompt, CancellationToken cancellationToken)
+    {
+        var response = await agentLoop.RunAsync(prompt, cancellationToken);
+        if (_recorder is not null)
+        {
+            await _recorder.RecordAsync(prompt, response, cancellationToken);
+        }
+
+        return response;
+    }
+
     private async Task<int> RunSinglePromptAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken = default)
     {
         var outputFormat = settings.OutputFormat?.ToLowerInvariant() ?? "text";
@@ -336,15 +355,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
 
     private async Task<int> RunSinglePromptJsonAsync(string prompt, Settings settings, IAgentLoop agentLoop, string format, CancellationToken cancellationToken)
     {
-        var session = await _sessionManager.GetLatestSessionAsync(Directory.GetCurrentDirectory(), cancellationToken: cancellationToken);
-        var sessionId = session?.Id;
+        var sessionId = _recorder?.Session.Id;
 
         if (format == "jsonl")
         {
             // JSON Lines streaming format
             OutputJsonLine(new { type = "start", sessionId });
 
-            await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
+            await foreach (var chunk in Record(prompt, agentLoop.RunStreamingAsync(prompt, cancellationToken), cancellationToken))
             {
                 // Emit thinking content if available and --show-thinking is enabled
                 if (settings.ShowThinking && !string.IsNullOrEmpty(chunk.ThinkingDelta))
@@ -394,7 +412,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         else
         {
             // Single JSON output (non-streaming)
-            var response = await agentLoop.RunAsync(prompt, cancellationToken);
+            var response = await RunAndRecordAsync(agentLoop, prompt, cancellationToken);
 
             var result = new
             {
@@ -449,14 +467,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         Console.WriteLine(json);
     }
 
-    private static async Task<int> RunSinglePromptNonStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
+    private async Task<int> RunSinglePromptNonStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
     {
         AgentResponse response;
 
         if (settings.Plain)
         {
             // Plain mode: no spinner, no ANSI
-            response = await agentLoop.RunAsync(prompt, cancellationToken);
+            response = await RunAndRecordAsync(agentLoop, prompt, cancellationToken);
         }
         else
         {
@@ -465,7 +483,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 .SpinnerStyle(Style.Parse("blue"))
                 .StartAsync("Thinking...", async _ =>
                 {
-                    return await agentLoop.RunAsync(prompt, cancellationToken);
+                    return await RunAndRecordAsync(agentLoop, prompt, cancellationToken);
                 });
         }
 
@@ -517,7 +535,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         return 0;
     }
 
-    private static async Task<int> RunSinglePromptStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
+    private async Task<int> RunSinglePromptStreamingAsync(string prompt, Settings settings, IAgentLoop agentLoop, CancellationToken cancellationToken)
     {
         if (!settings.Plain)
         {
@@ -527,7 +545,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         var hasOutput = false;
         var hasThinking = false;
 
-        await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
+        await foreach (var chunk in Record(prompt, agentLoop.RunStreamingAsync(prompt, cancellationToken), cancellationToken))
         {
             // Handle thinking output (if --show-thinking is enabled)
             if (settings.ShowThinking && !string.IsNullOrEmpty(chunk.ThinkingDelta))
@@ -602,7 +620,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         return 0;
     }
 
-    private static async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop, IUsageTracker usageTracker, CancellationToken cancellationToken)
+    private async Task<int> RunInteractiveAsync(Settings settings, IAgentLoop agentLoop, IUsageTracker usageTracker, CancellationToken cancellationToken)
     {
         AnsiConsole.Write(new FigletText("IronHive")
             .Color(Color.Yellow));
@@ -677,7 +695,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
                 if (settings.NoStream)
                 {
                     // Non-streaming mode
-                    var response = await agentLoop.RunAsync(prompt, cancellationToken);
+                    var response = await RunAndRecordAsync(agentLoop, prompt, cancellationToken);
                     DisplayNonStreamingResponse(response, settings, usageTracker);
                 }
                 else
@@ -743,14 +761,14 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         AnsiConsole.WriteLine();
     }
 
-    private static async Task DisplayStreamingResponseAsync(IAgentLoop agentLoop, string prompt, Settings settings, CancellationToken cancellationToken)
+    private async Task DisplayStreamingResponseAsync(IAgentLoop agentLoop, string prompt, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.WriteLine();
 
         var hasOutput = false;
         var hasThinking = false;
 
-        await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, cancellationToken))
+        await foreach (var chunk in Record(prompt, agentLoop.RunStreamingAsync(prompt, cancellationToken), cancellationToken))
         {
             // Handle thinking output (if --show-thinking is enabled)
             if (settings.ShowThinking && !string.IsNullOrEmpty(chunk.ThinkingDelta))

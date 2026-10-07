@@ -18,6 +18,18 @@ public interface ISessionManager
     Task<Session> CreateSessionAsync(string projectPath, string model, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Opens the session with this ID — loading it when it exists, creating it under this ID when it does not. The
+    /// resume key of a long-running process: restarting with the same ID continues the same session.
+    /// </summary>
+    /// <param name="sessionId">The session ID: letters, digits, '-' and '_' (at most 128).</param>
+    /// <param name="projectPath">The project root directory, used when the session is created.</param>
+    /// <param name="model">The model ID, used when the session is created.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The existing or new session.</returns>
+    /// <exception cref="ArgumentException">The ID is not a valid session ID.</exception>
+    Task<Session> OpenSessionAsync(string sessionId, string projectPath, string model, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Loads an existing session by its ID.
     /// </summary>
     /// <param name="sessionId">The session ID to load</param>

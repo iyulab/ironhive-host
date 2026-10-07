@@ -125,6 +125,24 @@ public class IronHiveConfig
     /// <see cref="DelegationHostConfig.Agents"/> lists at least one agent.
     /// </summary>
     public DelegationHostConfig Delegation { get; set; } = new();
+
+    /// <summary>
+    /// How a tool call that needs a person's approval is waited on when a client answers it over the wire
+    /// (<c>run --server</c>).
+    /// </summary>
+    public ApprovalHostConfig Approval { get; set; } = new();
+}
+
+/// <summary>
+/// Waiting for an approval answered by the client (<c>hitl_request</c> -> <c>hitl_response</c>).
+/// </summary>
+public class ApprovalHostConfig
+{
+    /// <summary>
+    /// How long a request waits for the client's answer before it is closed as a denial. Default 300 (five minutes);
+    /// raise it when a person answers from another device or later.
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 300;
 }
 
 /// <summary>

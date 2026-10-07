@@ -95,24 +95,8 @@ public static class AgentLoopSessionExtensions
     {
         ArgumentNullException.ThrowIfNull(sessionManager);
         ArgumentNullException.ThrowIfNull(session);
-        ArgumentException.ThrowIfNullOrWhiteSpace(userPrompt);
-        ArgumentNullException.ThrowIfNull(response);
 
-        // Save user message
-        await sessionManager.SaveUserMessageAsync(session, userPrompt, cancellationToken: cancellationToken);
-
-        // Save tool calls if any
-        foreach (var toolCall in response.ToolCalls)
-        {
-            var toolUseId = Guid.NewGuid().ToString("N")[..12];
-            await sessionManager.SaveToolUseAsync(session, toolCall.ToolName, toolCall.Arguments, toolUseId, cancellationToken: cancellationToken);
-            // ToolCallResult.Success is null when the outcome is unknown (no function-invocation
-            // middleware in the pipeline) — only an explicit false is reported as an error.
-            await sessionManager.SaveToolResultAsync(session, toolUseId, toolCall.Result, toolCall.Success == false, cancellationToken: cancellationToken);
-        }
-
-        // Save assistant response
-        await sessionManager.SaveAssistantMessageAsync(session, response.Content, cancellationToken: cancellationToken);
+        await new SessionTurnRecorder(sessionManager, session).RecordAsync(userPrompt, response, cancellationToken);
     }
 }
 

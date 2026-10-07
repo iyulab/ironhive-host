@@ -218,7 +218,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IToolCallPolicy>(sp =>
             new ToolCallPolicy(sp.GetRequiredService<IronHiveConfig>().Permissions));
         // The terminal answers approvals, except while `run --server` has a client attached to the bridge.
-        services.AddSingleton<HitlBridge>(_ => new HitlBridge());
+        services.AddSingleton<HitlBridge>(sp =>
+            new HitlBridge(TimeSpan.FromSeconds(sp.GetRequiredService<IronHiveConfig>().Approval.TimeoutSeconds)));
         services.AddSingleton<Services.ConsoleApprovalService>();
         services.AddSingleton<IHumanApprovalService, Services.HostApprovalService>();
         services.AddSingleton<IReplanningService, ReplanningService>();

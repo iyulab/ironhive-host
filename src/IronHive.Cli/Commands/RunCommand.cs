@@ -7,6 +7,7 @@ using IronHive.Cli.Infrastructure;
 using IronHive.Host.Config;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
+using IronHive.Host.Session;
 using IronHive.Host.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
@@ -23,17 +24,20 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
     private readonly IMcpPluginManager? _pluginManager;
     private readonly HitlBridge? _hitlBridge;
     private readonly IronHiveConfig? _config;
+    private readonly ISessionManager? _sessionManager;
 
     public RunCommand(
         IHostAgentLoopFactory factory,
         IMcpPluginManager? pluginManager = null,
         HitlBridge? hitlBridge = null,
-        IronHiveConfig? config = null)
+        IronHiveConfig? config = null,
+        ISessionManager? sessionManager = null)
     {
         _factory = factory;
         _pluginManager = pluginManager;
         _hitlBridge = hitlBridge;
         _config = config;
+        _sessionManager = sessionManager;
     }
 
     public class Settings : CommandSettings
@@ -293,7 +297,22 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         McpHealthCheckService? healthCheck = null;
         try
         {
+            // The session is the resume key: started again with the same --session-id, the server continues the
+            // conversation it had (each turn, and each tool call as it completes, is written as it happens).
+            SessionTurnRecorder? recorder = null;
             var sessionId = settings.SessionId ?? Guid.NewGuid().ToString("N");
+            if (_sessionManager is not null)
+            {
+                var session = await _sessionManager.OpenSessionAsync(
+                    sessionId, Directory.GetCurrentDirectory(), settings.Model ?? "default", ct);
+                var history = await _sessionManager.RestoreContextAsync(session, ct);
+                if (history.Count > 0)
+                {
+                    await agentLoop.InitializeHistoryAsync(history, ct);
+                }
+
+                recorder = new SessionTurnRecorder(_sessionManager, session);
+            }
 
             await AgentServerRunner.WriteEventAsync(
                 Console.Out,
@@ -322,8 +341,13 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // client as an ErrorEvent (the runner turns exceptions into one) — never a silent drop.
                 var overrideOptions = TurnOptionsMapper.ToChatOptions(msg.Options, created.Tools);
 
-                await foreach (var evt in agentLoop.RunStreamingAsync(msg.Content, overrideOptions, token)
-                    .ToServerEvents(executionLog, token))
+                var turn = agentLoop.RunStreamingAsync(msg.Content, overrideOptions, token);
+                if (recorder is not null)
+                {
+                    turn = recorder.RecordAsync(msg.Content, turn, token);
+                }
+
+                await foreach (var evt in turn.ToServerEvents(executionLog, token))
                 {
                     yield return evt;
                 }

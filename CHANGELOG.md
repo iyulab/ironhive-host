@@ -24,9 +24,23 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - An unreadable inbox message is posted back as an `error` event instead of being written to stderr only.
 
 ### Added
+- **`run --server --session-id <id>` resumes the session**: started again with the same ID (a restart, a moved
+  container), the server restores the conversation and continues it. Each turn is written to the session transcript
+  as it happens — the user message when the turn starts, each tool call when its result arrives, the assistant text
+  when it ends; a turn cut short by an error or cancellation keeps what it wrote and is marked
+  `[turn interrupted before it finished]`, so the resumed model knows it did not finish. Session IDs are letters,
+  digits, `-` and `_` (at most 128).
+- `ISessionManager.OpenSessionAsync(sessionId, projectPath, model)` — load-or-create under a given ID (**Breaking** for
+  implementers of the interface). `SessionTurnRecorder` writes a streaming or completed turn to a session;
+  `SaveTurnAsync` now uses it (tool calls keep their call IDs).
+- `approval.timeoutSeconds` (default 300) — how long `run --server` waits for the client's `hitl_response`.
 - `AgentHttpRunner` takes an optional `httpHandler` (`HttpMessageHandler`) for the connection to the host.
 
 ### Fixed
+- **`--continue` and `--resume` restore the conversation.** The interactive CLI created a session per run but never
+  wrote a turn to it, so resuming restored nothing; every turn (interactive, single prompt, JSON output) is now
+  written. `SessionManager.LoadSessionAsync`/`DeleteSessionAsync` refuse an ID that is not a file-name segment
+  (`../x`) with `ArgumentException`.
 - **A turn waiting for approval no longer blocks the session when another message arrives first.** Both server runners
   waited for the running turn before reading past a second `user_message`, so the `hitl_response` behind it was never read
   and the approval timed out as a denial (and nothing else, `cancel` included, was read until then). Turns now run in
