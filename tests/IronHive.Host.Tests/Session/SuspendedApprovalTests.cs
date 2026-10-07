@@ -105,7 +105,12 @@ public sealed class SuspendedApprovalTests : IDisposable
         bridge.WaitLog = recorder;
         return new Process
         {
-            Loop = loop, Recorder = recorder, Bridge = bridge, Tools = tools, Pipeline = pipeline, Model = model,
+            Loop = loop,
+            Recorder = recorder,
+            Bridge = bridge,
+            Tools = tools,
+            Pipeline = pipeline,
+            Model = model,
             Pending = await sessions.GetPendingApprovalsAsync(session, ct),
         };
     }
@@ -241,7 +246,10 @@ public sealed class SuspendedApprovalTests : IDisposable
         using var attachment = bridge.Attach((evt, _) => { sent.Writer.TryWrite(evt); return Task.CompletedTask; });
         var old = new ApprovalWaitEntry
         {
-            Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2), RequestId = "r-1", ToolUseId = "call-1", Tool = "write_note",
+            Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
+            RequestId = "r-1",
+            ToolUseId = "call-1",
+            Tool = "write_note",
         };
 
         var answer = await bridge.ReofferAsync(old, ct);
@@ -260,7 +268,9 @@ public sealed class SuspendedApprovalTests : IDisposable
         using var attachment = bridge.Attach((evt, _) => { sent.Writer.TryWrite(evt); return Task.CompletedTask; });
         var request = new ApprovalRequest
         {
-            ToolName = "write_note", CallId = "call-9", Arguments = new Dictionary<string, object?>(),
+            ToolName = "write_note",
+            CallId = "call-9",
+            Arguments = new Dictionary<string, object?>(),
             RiskAssessment = RiskAssessment.Risky(RiskLevel.Medium, "writes", "Allow?"),
         };
 

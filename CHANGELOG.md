@@ -5,9 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.49.1 — 2026-10-08
+## 0.50.0 — Unreleased
+
+### Added
+- **A tool call waiting for a human approval survives a server restart.** With a recorded session
+  (`run --server --session-id <ID>`) each asked call is written to the session before its `hitl_request` is sent (the call
+  and an `approval_wait` entry) and settled when answered (`approval_closed`). A process that stops while a call waits
+  leaves the turn suspended, not interrupted; the next `run --server` with the same `--session-id` sends the same
+  `hitl_request` again (same `id`) before reading any message, runs the call through the session's tool pipeline once the
+  client answers — the same gate, guards and tool as in a live turn — and the model finishes the turn. The approval timeout
+  counts from the first request: an older wait resumes as a denial without asking.
+- Library surface for hosts of their own: `HitlBridge.WaitLog` (`IApprovalWaitLog`, implemented by `SessionTurnRecorder`),
+  `HitlBridge.ReofferAsync`, `HitlBridge.Preanswer`, `SessionTurnRecorder.RecordContinuationAsync` /
+  `WriteResumedResultAsync`, `SuspendedTurnResumer.ResumeAsync`, `AgentServerRunner.ResumeTurn`,
+  `CreatedAgentLoop.Pipeline`, and the transcript entries `ApprovalWaitEntry` / `ApprovalClosedEntry`.
+
+### Fixed
+- **Each tool call is written to a recorded session once.** The loop reports a call when its result arrives and again in the
+  turn's final record (a different object), and the recorder wrote both — every call of a `run --server` session appeared
+  twice in the transcript and in a restored history (since 0.49.0). It now goes by the call id.
 
 ### Changed
+- **Breaking** — `ISessionManager` has three more members: `SaveApprovalWaitAsync`, `SaveApprovalClosedAsync`,
+  `GetPendingApprovalsAsync`. Migration: an implementation of your own adds them (`SessionManager` has them).
+- Restoring a session joins tool calls written one after another without results between them into one assistant message,
+  so a batch that waited for approval is answered together.
 - **Server mode logs an unreadable request line by its error type, not its parser message.** A JSON parser message can
   quote what the sender wrote; the server's log now says only `JsonException`, and the sender still receives the full
   message on its own channel (the `error` event). A test over every shipped log template keeps user and model text out
