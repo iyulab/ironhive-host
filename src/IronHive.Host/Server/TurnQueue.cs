@@ -10,24 +10,24 @@ namespace IronHive.Host.Server;
 /// </summary>
 internal sealed class TurnQueue : IAsyncDisposable
 {
-    private readonly Channel<UserMessageRequest> _turns = Channel.CreateUnbounded<UserMessageRequest>(
+    private readonly Channel<Func<CancellationToken, Task>> _turns = Channel.CreateUnbounded<Func<CancellationToken, Task>>(
         new UnboundedChannelOptions { SingleReader = true });
-    private readonly Func<UserMessageRequest, CancellationToken, Task> _handle;
     private readonly CancellationToken _session;
     private readonly Task _worker;
     private CancellationTokenSource? _current;
 
-    /// <param name="handle">Runs one turn. Must not throw: a turn reports its own failure as events.</param>
     /// <param name="session">Cancels every turn when the session ends.</param>
-    public TurnQueue(Func<UserMessageRequest, CancellationToken, Task> handle, CancellationToken session)
+    public TurnQueue(CancellationToken session)
     {
-        _handle = handle;
         _session = session;
         _worker = Task.Run(RunAsync, CancellationToken.None);
     }
 
-    /// <summary>Queues a turn; it starts when the turns before it have finished.</summary>
-    public void Enqueue(UserMessageRequest message) => _turns.Writer.TryWrite(message);
+    /// <summary>
+    /// Queues a turn; it starts when the turns before it have finished. The turn must not throw: it reports its own
+    /// failure as events.
+    /// </summary>
+    public void Enqueue(Func<CancellationToken, Task> turn) => _turns.Writer.TryWrite(turn);
 
     /// <summary>Cancels the turn that is running, if any. Queued turns still run.</summary>
     public void CancelCurrent()
@@ -51,13 +51,13 @@ internal sealed class TurnQueue : IAsyncDisposable
 
     private async Task RunAsync()
     {
-        await foreach (var message in _turns.Reader.ReadAllAsync(CancellationToken.None))
+        await foreach (var run in _turns.Reader.ReadAllAsync(CancellationToken.None))
         {
             using var turn = CancellationTokenSource.CreateLinkedTokenSource(_session);
             Volatile.Write(ref _current, turn);
             try
             {
-                await _handle(message, turn.Token);
+                await run(turn.Token);
             }
             finally
             {

@@ -75,6 +75,23 @@ public interface ISessionManager
     Task SaveToolResultAsync(Session session, string toolUseId, string output, bool isError = false, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Saves a tool call that waits for a human answer (<see cref="ApprovalWaitEntry"/>). The call itself is saved with
+    /// <see cref="SaveToolUseAsync"/> first.
+    /// </summary>
+    Task SaveApprovalWaitAsync(Session session, ApprovalWaitEntry wait, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Saves that the approval request <paramref name="requestId"/> was settled (<see cref="ApprovalClosedEntry"/>).
+    /// </summary>
+    Task SaveApprovalClosedAsync(Session session, string requestId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The approval waits of the session that were never settled - calls a previous process was waiting on when it
+    /// stopped - oldest first.
+    /// </summary>
+    Task<IReadOnlyList<ApprovalWaitEntry>> GetPendingApprovalsAsync(Session session, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Restores the conversation context from a session.
     /// </summary>
     /// <param name="session">The session to restore</param>

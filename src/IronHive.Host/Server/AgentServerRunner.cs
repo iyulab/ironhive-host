@@ -41,6 +41,13 @@ public partial class AgentServerRunner
     public Action<ContextUpdateRequest>? OnContextUpdate { get; set; }
 
     /// <summary>
+    /// A turn to run before any message is read - the turn a previous process left waiting for approval
+    /// (<see cref="Session.SuspendedTurnResumer"/>). It runs once the approval bridge is attached, and the messages that
+    /// arrive meanwhile queue behind it.
+    /// </summary>
+    public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
+
+    /// <summary>
     /// When true, <see cref="BuildContextualContent"/> becomes a pass-through.
     /// Set this when an external orchestrator handles context injection itself.
     /// </summary>
@@ -120,9 +127,15 @@ public partial class AgentServerRunner
 
         // Turns run on their own task so this loop keeps reading — a turn waiting for approval gets its hitl_response
         // even when another message arrived first.
-        var turns = new TurnQueue((msg, token) => HandleMessageAsync(msg, output, writeLock, token), ct);
+        var turns = new TurnQueue(ct);
 
         using var hitlAttachment = _hitl?.Attach((evt, token) => WriteSerializedAsync(output, writeLock, evt, token));
+
+        // A turn a previous process left waiting for approval runs first, once the bridge can reach the client
+        if (ResumeTurn is { } resume)
+        {
+            turns.Enqueue(token => HandleTurnAsync(resume, output, writeLock, token));
+        }
 
         try
         {
@@ -156,7 +169,8 @@ public partial class AgentServerRunner
                 {
                     // The working path in effect when the message arrived. Turns run one at a time, each ending with
                     // its TurnEndEvent before the next starts. HandleMessageAsync never throws.
-                    turns.Enqueue(msg with { Content = BuildContextualContent(msg.Content) });
+                    var contextual = msg with { Content = BuildContextualContent(msg.Content) };
+                    turns.Enqueue(token => HandleTurnAsync(t => _processMessage(contextual, t), output, writeLock, token));
                 }
             }
         }
@@ -188,13 +202,13 @@ public partial class AgentServerRunner
         return sb.ToString();
     }
 
-    private async Task HandleMessageAsync(
-        UserMessageRequest msg, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)
+    private async Task HandleTurnAsync(
+        Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)
     {
         var turnEndSent = false;
         try
         {
-            await foreach (var evt in _processMessage(msg, ct))
+            await foreach (var evt in turn(ct))
             {
                 if (evt is TurnEndEvent)
                 {

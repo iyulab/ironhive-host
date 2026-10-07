@@ -300,6 +300,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             // The session is the resume key: started again with the same --session-id, the server continues the
             // conversation it had (each turn, and each tool call as it completes, is written as it happens).
             SessionTurnRecorder? recorder = null;
+            IReadOnlyList<ApprovalWaitEntry> pending = [];
             var sessionId = settings.SessionId ?? Guid.NewGuid().ToString("N");
             if (_sessionManager is not null)
             {
@@ -312,6 +313,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 }
 
                 recorder = new SessionTurnRecorder(_sessionManager, session);
+                if (_hitlBridge is not null)
+                {
+                    // Approval waits are written to the session, so a restart can offer them again and finish the turn
+                    _hitlBridge.WaitLog = recorder;
+                    pending = await _sessionManager.GetPendingApprovalsAsync(session, ct);
+                }
             }
 
             await AgentServerRunner.WriteEventAsync(
@@ -355,6 +362,13 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
             var logger = NullLogger<AgentServerRunner>.Instance;
             var runner = new AgentServerRunner(ProcessMessage, logger, hitlBridge: _hitlBridge);
+            if (pending.Count > 0 && recorder is not null && _hitlBridge is not null)
+            {
+                var bridge = _hitlBridge;
+                runner.ResumeTurn = token => SuspendedTurnResumer
+                    .ResumeAsync(agentLoop, pending, bridge, recorder, created.Tools, created.Pipeline, token)
+                    .ToServerEvents(executionLog, token);
+            }
             await runner.RunAsync(ct);
 
             return 0;

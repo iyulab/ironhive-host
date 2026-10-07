@@ -14,6 +14,8 @@ namespace IronHive.Host.Session;
 [JsonDerivedType(typeof(AssistantMessageEntry), "assistant_message")]
 [JsonDerivedType(typeof(ToolUseEntry), "tool_use")]
 [JsonDerivedType(typeof(ToolResultEntry), "tool_result")]
+[JsonDerivedType(typeof(ApprovalWaitEntry), "approval_wait")]
+[JsonDerivedType(typeof(ApprovalClosedEntry), "approval_closed")]
 public abstract record TranscriptEntry
 {
     /// <summary>
@@ -159,4 +161,55 @@ public record ToolResultEntry : TranscriptEntry
     /// </summary>
     [JsonPropertyName("is_error")]
     public bool IsError { get; init; }
+}
+
+/// <summary>
+/// A tool call waiting for a human answer: the approval request as it was sent to the client. Written when the request
+/// is published, so a process that restarts before the answer can offer it again. Closed by
+/// <see cref="ApprovalClosedEntry"/> when the answer (or its timeout) settles the call.
+/// </summary>
+public record ApprovalWaitEntry : TranscriptEntry
+{
+    /// <summary>The request id the client answers with.</summary>
+    [JsonPropertyName("request_id")]
+    public required string RequestId { get; init; }
+
+    /// <summary>The tool call the request is about (its <see cref="ToolUseEntry.ToolUseId"/>).</summary>
+    [JsonPropertyName("tool_use_id")]
+    public required string ToolUseId { get; init; }
+
+    /// <summary>The tool name.</summary>
+    [JsonPropertyName("tool")]
+    public required string Tool { get; init; }
+
+    /// <summary>The call's arguments, as sent.</summary>
+    [JsonPropertyName("arguments")]
+    public System.Text.Json.JsonElement? Arguments { get; init; }
+
+    /// <summary>What the request asks to allow.</summary>
+    [JsonPropertyName("action")]
+    public string Action { get; init; } = string.Empty;
+
+    /// <summary>The call's primary target (a path, a command, a URL).</summary>
+    [JsonPropertyName("target")]
+    public string Target { get; init; } = string.Empty;
+
+    /// <summary>The prompt shown to the human.</summary>
+    [JsonPropertyName("description")]
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>The risk level, lower case.</summary>
+    [JsonPropertyName("level")]
+    public string? Level { get; init; }
+}
+
+/// <summary>
+/// The approval request <see cref="RequestId"/> was settled: answered, rejected or timed out. Its call's result follows
+/// as a <see cref="ToolResultEntry"/>.
+/// </summary>
+public record ApprovalClosedEntry : TranscriptEntry
+{
+    /// <summary>The request id of the settled <see cref="ApprovalWaitEntry"/>.</summary>
+    [JsonPropertyName("request_id")]
+    public required string RequestId { get; init; }
 }

@@ -223,6 +223,28 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
+    public async Task SaveApprovalWaitAsync(Session session, ApprovalWaitEntry wait, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(wait);
+        await AppendEntryAsync(session.TranscriptPath, wait);
+    }
+
+    /// <inheritdoc />
+    public async Task SaveApprovalClosedAsync(Session session, string requestId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(requestId);
+        await AppendEntryAsync(session.TranscriptPath, new ApprovalClosedEntry { Timestamp = DateTimeOffset.UtcNow, RequestId = requestId });
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ApprovalWaitEntry>> GetPendingApprovalsAsync(Session session, CancellationToken cancellationToken = default)
+    {
+        var entries = await ReadEntriesAsync(session.TranscriptPath);
+        var closed = entries.OfType<ApprovalClosedEntry>().Select(e => e.RequestId).ToHashSet(StringComparer.Ordinal);
+        return [.. entries.OfType<ApprovalWaitEntry>().Where(w => !closed.Contains(w.RequestId))];
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ChatMessage>> RestoreContextAsync(Session session, CancellationToken cancellationToken = default)
     {
         var entries = await ReadEntriesAsync(session.TranscriptPath);
@@ -241,8 +263,19 @@ public class SessionManager : ISessionManager
                     break;
 
                 case ToolUseEntry toolUse:
-                    messages.Add(new ChatMessage(ChatRole.Assistant,
-                        [new FunctionCallContent(toolUse.ToolUseId, toolUse.Tool, ParseToolInput(toolUse.Input))]));
+                    var call = new FunctionCallContent(toolUse.ToolUseId, toolUse.Tool, ParseToolInput(toolUse.Input));
+                    // Calls written one after another without results between them (a batch that waited for approval)
+                    // are one assistant message: the results that follow answer them together
+                    if (messages.Count > 0 && messages[^1].Role == ChatRole.Assistant
+                        && messages[^1].Contents.Count > 0 && messages[^1].Contents.All(c => c is FunctionCallContent))
+                    {
+                        messages[^1].Contents.Add(call);
+                    }
+                    else
+                    {
+                        messages.Add(new ChatMessage(ChatRole.Assistant, [call]));
+                    }
+
                     break;
 
                 case ToolResultEntry toolResult:

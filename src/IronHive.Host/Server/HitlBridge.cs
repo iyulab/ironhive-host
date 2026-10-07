@@ -20,6 +20,9 @@ namespace IronHive.Host.Server;
 /// <see cref="HitlResponseRequest.Id"/>. A response without an id resolves the request only when exactly one is waiting.</item>
 /// <item>The wait is registered before the request is published, so an answer can never arrive before anything waits for
 /// it.</item>
+/// <item>A wait can outlive the process: with a <see cref="WaitLog"/> each request is logged before it is sent and settled
+/// when answered, and a restarted host offers a logged wait again with <see cref="ReofferAsync"/>. A call whose answer is
+/// already known (<see cref="Preanswer"/>) is answered without asking.</item>
 /// </list>
 /// Session rules a host keeps of its own (trust lists, "already denied in this session") fit as an
 /// <see cref="IHumanApprovalService"/> that decorates this one.
@@ -30,6 +33,7 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
 
     private readonly ConcurrentDictionary<string, TaskCompletionSource<HitlResponseRequest>> _pending = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, HitlResponseRequest> _preanswered = new(StringComparer.Ordinal);
     private readonly Func<ApprovalRequest, string, HitlRequestEvent> _format;
     private Func<ServerEvent, CancellationToken, Task>? _publish;
 
@@ -51,6 +55,12 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
 
     /// <summary>How long a request waits for an answer before it is rejected.</summary>
     public TimeSpan Timeout { get; }
+
+    /// <summary>
+    /// Hears each request when it starts waiting and when it is settled; null keeps waits in memory only. A server mode
+    /// that records its session sets this to the session's <see cref="Session.SessionTurnRecorder"/>.
+    /// </summary>
+    public IApprovalWaitLog? WaitLog { get; set; }
 
     /// <summary>True while a runner is attached — requests can reach a client.</summary>
     public bool IsAttached => Volatile.Read(ref _publish) is not null;
@@ -92,15 +102,91 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
         return _pending.TryRemove(snapshot[0].Key, out var only) && only.TrySetResult(response);
     }
 
+    /// <summary>
+    /// Records the answer to the call <paramref name="callId"/> before it is asked: the next request for that call is
+    /// answered with it at once, without sending anything. A host resuming a wait that a previous process logged runs the
+    /// call through its tool pipeline after this, so the gate hears the answer the client gave.
+    /// </summary>
+    /// <returns>Withdraws the answer if no request used it (a gate that no longer asks about the call).</returns>
+    public IDisposable Preanswer(string callId, HitlResponseRequest answer)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(callId);
+        ArgumentNullException.ThrowIfNull(answer);
+        _preanswered[callId] = answer;
+        return new Withdrawal(this, callId, answer);
+    }
+
+    private sealed class Withdrawal(HitlBridge bridge, string callId, HitlResponseRequest answer) : IDisposable
+    {
+        public void Dispose() =>
+            bridge._preanswered.TryRemove(new KeyValuePair<string, HitlResponseRequest>(callId, answer));
+    }
+
+    /// <summary>
+    /// Offers a wait logged by a previous process to the client again, with the same request id, and waits for the answer.
+    /// The wait's time counts from when it was first sent: past <see cref="Timeout"/> it is a rejection without asking.
+    /// The wait is not settled here - the caller settles it once the call's result is written.
+    /// </summary>
+    /// <param name="wait">The logged wait.</param>
+    /// <param name="cancellationToken">Cancels the wait; it stays unsettled.</param>
+    public async Task<HitlResponseRequest> ReofferAsync(Session.ApprovalWaitEntry wait, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(wait);
+
+        var remaining = Timeout - (DateTimeOffset.UtcNow - wait.Timestamp);
+        if (remaining <= TimeSpan.Zero)
+        {
+            return new HitlResponseRequest(false, TimedOutReason(), wait.RequestId);
+        }
+
+        var publish = Volatile.Read(ref _publish);
+        if (publish is null)
+        {
+            return new HitlResponseRequest(false, NoClientReason, wait.RequestId);
+        }
+
+        var waiter = new TaskCompletionSource<HitlResponseRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pending[wait.RequestId] = waiter;
+        try
+        {
+            using var timeoutCts = new CancellationTokenSource(remaining);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+            await using var registration = linked.Token.Register(() => waiter.TrySetCanceled(linked.Token));
+
+            await publish(
+                new HitlRequestEvent(
+                    wait.RequestId, wait.Action, wait.Target, wait.Description, wait.Tool, wait.Arguments, wait.ToolUseId, wait.Level),
+                cancellationToken);
+
+            try
+            {
+                return await waiter.Task;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return new HitlResponseRequest(false, TimedOutReason(), wait.RequestId);
+            }
+        }
+        finally
+        {
+            _pending.TryRemove(wait.RequestId, out _);
+        }
+    }
+
     /// <inheritdoc />
     public async Task<ApprovalResult> RequestApprovalAsync(ApprovalRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        if (request.CallId is { Length: > 0 } callId && _preanswered.TryRemove(callId, out var known))
+        {
+            return ToResult(known);
+        }
+
         var publish = Volatile.Read(ref _publish);
         if (publish is null)
         {
-            return ApprovalResult.Reject("no client is attached to answer approval requests");
+            return ApprovalResult.Reject(NoClientReason);
         }
 
         var id = Guid.NewGuid().ToString("N");
@@ -112,8 +198,15 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
             await using var registration = linked.Token.Register(() => waiter.TrySetCanceled(linked.Token));
 
-            // Registered above, published here: an answer cannot outrun its wait.
-            await publish(_format(request, id), cancellationToken);
+            // Registered above, logged and published here: an answer cannot outrun its wait, and a wait the client can
+            // see is already on record.
+            var sent = _format(request, id);
+            if (WaitLog is { } log)
+            {
+                await log.WaitingAsync(request, sent, cancellationToken);
+            }
+
+            await publish(sent, cancellationToken);
 
             HitlResponseRequest response;
             try
@@ -122,26 +215,20 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                // The turn was cancelled: the wait stays on record, unsettled, for a restarted host to offer again
                 throw;
             }
             catch (OperationCanceledException)
             {
-                return ApprovalResult.Reject(
-                    string.Create(CultureInfo.InvariantCulture, $"no answer to the approval request within {Timeout.TotalSeconds:F0}s"));
+                response = new HitlResponseRequest(false, TimedOutReason(), id);
             }
 
-            if (!response.Approved)
+            if (WaitLog is { } settledLog)
             {
-                return ApprovalResult.Reject(response.Reason);
+                await settledLog.SettledAsync(id, CancellationToken.None);
             }
 
-            return new ApprovalResult
-            {
-                Approved = true,
-                AlwaysApprove = response.AlwaysApprove,
-                ModifiedArguments = response.ModifiedArguments?.ToDictionary(
-                    kv => kv.Key, kv => (object?)kv.Value, StringComparer.Ordinal)
-            };
+            return ToResult(response);
         }
         finally
         {
@@ -165,6 +252,27 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
                 waiter.TrySetResult(new HitlResponseRequest(false, reason, id));
             }
         }
+    }
+
+    private const string NoClientReason = "no client is attached to answer approval requests";
+
+    private string TimedOutReason() =>
+        string.Create(CultureInfo.InvariantCulture, $"no answer to the approval request within {Timeout.TotalSeconds:F0}s");
+
+    private static ApprovalResult ToResult(HitlResponseRequest response)
+    {
+        if (!response.Approved)
+        {
+            return ApprovalResult.Reject(response.Reason);
+        }
+
+        return new ApprovalResult
+        {
+            Approved = true,
+            AlwaysApprove = response.AlwaysApprove,
+            ModifiedArguments = response.ModifiedArguments?.ToDictionary(
+                kv => kv.Key, kv => (object?)kv.Value, StringComparer.Ordinal)
+        };
     }
 
     private static HitlRequestEvent DefaultFormat(ApprovalRequest request, string id)

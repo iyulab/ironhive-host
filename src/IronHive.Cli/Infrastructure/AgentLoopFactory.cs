@@ -222,7 +222,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
             toolRetriever: _toolRetrieval?.Enabled == true ? new IronHive.Agent.Context.KeywordToolRetriever() : null,
             errorRecovery: _errorRecovery, usageLimiter: usageLimiter);
-        return new CreatedAgentLoop(loop, tools.AsReadOnly());
+        return new CreatedAgentLoop(loop, tools.AsReadOnly())
+        {
+            Pipeline = chatClient.GetService<IronHive.Agent.Invocation.ToolInvocationPipeline>(),
+        };
     }
 
     /// <summary>The library options for the configured section, or <c>null</c> when tool retrieval is off.</summary>

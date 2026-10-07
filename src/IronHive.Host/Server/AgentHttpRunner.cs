@@ -169,7 +169,7 @@ public sealed partial class AgentHttpRunner : IDisposable
         var attempt = 0;
         // Turns run on their own task so the inbox keeps being read — a turn waiting for approval gets its
         // hitl_response even when another message arrived first.
-        _turns = new TurnQueue(HandleMessageAsync, ct);
+        _turns = new TurnQueue(ct);
         try
         {
             while (true)
@@ -291,7 +291,7 @@ public sealed partial class AgentHttpRunner : IDisposable
                     ? msg
                     : msg with { Content = BuildContextualContent(msg.Content) };
 
-                _turns?.Enqueue(contextualMsg);
+                _turns?.Enqueue(token => HandleMessageAsync(contextualMsg, token));
             }
         }
 

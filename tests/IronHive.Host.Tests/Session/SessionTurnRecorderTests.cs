@@ -81,6 +81,30 @@ public class SessionTurnRecorderTests : IDisposable
             () => sessions.LoadSessionAsync(id, TestContext.Current.CancellationToken));
     }
 
+    // The loop reports a call when its result arrives and again in the turn's final record, as a different object
+    [Fact]
+    public async Task ACallReportedTwice_IsWrittenOnce()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var sessions = new SessionManager(_dir);
+        var session = await sessions.OpenSessionAsync("twice-1", "/proj", "m", ct);
+        var recorder = new SessionTurnRecorder(sessions, session);
+        var final = new AgentResponseChunk
+        {
+            Turn = new TurnRecord
+            {
+                Content = "Listed.",
+                ToolCalls = [new ToolCallResult { CallId = "c1", ToolName = "list_directory", Arguments = "{}", Result = "a.txt", Success = true }],
+            },
+        };
+
+        await Drain(recorder.RecordAsync("list", Turn(Tool("c1", "list_directory", "{}", "a.txt"), Text("Listed."), final), ct));
+
+        var history = await sessions.RestoreContextAsync(session, ct);
+        Assert.Single(history, m => m.Contents.OfType<FunctionCallContent>().Any(c => c.CallId == "c1"));
+        Assert.Single(history, m => m.Contents.OfType<FunctionResultContent>().Any(r => r.CallId == "c1"));
+    }
+
     private static async Task Drain(IAsyncEnumerable<AgentResponseChunk> chunks)
     {
         await foreach (var _ in chunks)

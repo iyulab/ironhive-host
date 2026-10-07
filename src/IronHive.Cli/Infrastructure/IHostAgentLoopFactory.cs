@@ -19,4 +19,11 @@ public interface IHostAgentLoopFactory : IAgentLoopFactory
 /// <summary>
 /// A loop the host created, with the tools it registered on it.
 /// </summary>
-public sealed record CreatedAgentLoop(IAgentLoop Loop, IReadOnlyList<AITool> Tools);
+public sealed record CreatedAgentLoop(IAgentLoop Loop, IReadOnlyList<AITool> Tools)
+{
+    /// <summary>
+    /// The tool pipeline the loop's chat client runs every call through, or null when it has none. A host that runs a
+    /// call itself - a call a previous process left waiting for approval - runs it through this.
+    /// </summary>
+    public IronHive.Agent.Invocation.ToolInvocationPipeline? Pipeline { get; init; }
+}
