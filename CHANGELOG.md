@@ -12,6 +12,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   quote what the sender wrote; the server's log now says only `JsonException`, and the sender still receives the full
   message on its own channel (the `error` event). A test over every shipped log template keeps user and model text out
   of log messages.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.110.0 -> 0.111.0, `LMSupply.Generator` 0.110.0 -> 0.111.0, `LMSupply.Reranker` 0.110.0 -> 0.111.0.
 
 ## 0.49.0 — 2026-10-07
 
