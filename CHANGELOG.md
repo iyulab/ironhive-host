@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.49.1 — Unreleased
+
+### Changed
+- **Server mode logs an unreadable request line by its error type, not its parser message.** A JSON parser message can
+  quote what the sender wrote; the server's log now says only `JsonException`, and the sender still receives the full
+  message on its own channel (the `error` event). A test over every shipped log template keeps user and model text out
+  of log messages.
+
 ## 0.49.0 — 2026-10-07
 
 ### Changed

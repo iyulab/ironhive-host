@@ -20,8 +20,8 @@ public partial class AgentServerRunner
     [LoggerMessage(Level = LogLevel.Error, Message = "Agent processing error")]
     private partial void LogAgentProcessingError(Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable request line skipped: {Reason}")]
-    private partial void LogUnreadableRequest(string reason);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable request line skipped ({ErrorType})")]
+    private partial void LogUnreadableRequest(string errorType);
 
     internal static readonly JsonSerializerOptions DefaultJsonOpts = new()
     {
@@ -257,7 +257,7 @@ public partial class AgentServerRunner
                 catch (JsonException ex)
                 {
                     // One bad line is the sender's mistake to hear about, not a reason to end the session
-                    LogUnreadableRequest(ex.Message);
+                    LogUnreadableRequest(ex.GetType().Name);
                     await reportError(new ErrorEvent($"Unreadable request skipped: {ex.Message}"));
                     continue;
                 }

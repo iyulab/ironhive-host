@@ -35,11 +35,11 @@ public sealed partial class AgentHttpRunner : IDisposable
     [LoggerMessage(Level = LogLevel.Information, Message = "SSE connection closed by host")]
     private partial void LogSseConnectionClosed();
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Agent inbox unavailable ({Reason}); reconnect attempt {Attempt} in {DelayMs} ms")]
-    private partial void LogReconnecting(string reason, int attempt, long delayMs);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Agent inbox unavailable ({Cause}); reconnect attempt {Attempt} in {DelayMs} ms")]
+    private partial void LogReconnecting(string cause, int attempt, long delayMs);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable inbox message skipped: {Reason}")]
-    private partial void LogUnreadableRequest(string reason);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable inbox message skipped ({ErrorType})")]
+    private partial void LogUnreadableRequest(string errorType);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Posted ready signal for session {SessionId}")]
     private partial void LogReadyPosted(string sessionId);
@@ -331,7 +331,7 @@ public sealed partial class AgentHttpRunner : IDisposable
             catch (Exception ex) when (ex is JsonException or NotSupportedException)
             {
                 parsed = null;
-                LogUnreadableRequest(ex.Message);
+                LogUnreadableRequest(ex.GetType().Name);
                 await PostEventAsync(new ErrorEvent($"Unreadable request skipped: {ex.Message}"), CancellationToken.None);
             }
 

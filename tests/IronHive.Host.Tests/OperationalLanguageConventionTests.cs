@@ -22,6 +22,21 @@ public class OperationalLanguageConventionTests
             "Non-ASCII operational text:\n" + string.Join("\n", findings.Select(f => $"  [{f.Kind}] {f.Location}: {f.Text}")));
     }
 
+    /// <summary>
+    /// No log template carries what a sender or a model wrote - a request line, a prompt, a reason someone typed. A
+    /// server's logs leave its per-user boundary and outlive a deletion request; an unreadable line is logged by the
+    /// exception type, and the sender hears the details on its own channel.
+    /// </summary>
+    [Fact]
+    public void LogTemplates_CarryNoContent()
+    {
+        var report = OperationalLanguage.Scan(OptionsReachabilityRosterTests.Libraries,
+            OperationalLanguage.PlaceholderNamed([.. OperationalLanguage.ContentPlaceholderNames, "Reason", "Line", "Request", "Message"]));
+        Assert.True(report.Findings.Count == 0,
+            "Log templates that carry content (log a length, a count or a type instead):\n"
+            + string.Join("\n", report.Findings.Select(f => $"  {f.Location}: {f.Text}")));
+    }
+
     // Positive control: the scan must read operational text at all, or an empty finding list would pass because the
     // reader sees nothing.
     [Fact]
