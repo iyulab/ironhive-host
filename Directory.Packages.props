@@ -35,8 +35,8 @@
     <PackageVersion Include="LMSupply.Reranker" Version="0.111.0" />
     <PackageVersion Include="LMSupply.Generator" Version="0.111.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.52.4" />
-    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.52.4" />
+    <PackageVersion Include="IronHive.Agent" Version="0.52.5" />
+    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.52.5" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.58.0" />
     <PackageVersion Include="IronHive.Core" Version="0.58.0" />
@@ -48,7 +48,7 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.3.0" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.52.4" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.52.5" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.7.0" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.7.0" />
