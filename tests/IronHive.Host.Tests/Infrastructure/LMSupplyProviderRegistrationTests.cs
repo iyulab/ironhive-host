@@ -63,6 +63,6 @@ public class LMSupplyProviderRegistrationTests
         var alias = new LMSupplyConfig().GeneratorModel;
 
         Assert.Equal("gguf:auto", alias);
-        Assert.True(LMSupply.Generator.Internal.Llama.GgufModelRegistry.IsAlias(alias));
+        Assert.True(LMSupply.Generator.Gguf.GgufModelRegistry.IsAlias(alias));
     }
 }
