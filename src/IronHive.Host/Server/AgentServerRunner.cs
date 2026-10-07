@@ -17,6 +17,9 @@ namespace IronHive.Host.Server;
 /// </remarks>
 public partial class AgentServerRunner
 {
+    // How long the loop's end waits for the input reader before leaving it to finish on its own.
+    private static readonly TimeSpan ReaderStopGrace = TimeSpan.FromSeconds(1);
+
     [LoggerMessage(Level = LogLevel.Error, Message = "Agent processing error")]
     private partial void LogAgentProcessingError(Exception ex);
 
@@ -25,7 +28,10 @@ public partial class AgentServerRunner
 
     internal static readonly JsonSerializerOptions DefaultJsonOpts = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        // A JSON object's members are unordered: a client that writes "type" after the other fields (a dictionary,
+        // a serializer that sorts keys) sends a valid request.
+        AllowOutOfOrderMetadataProperties = true,
     };
 
     private readonly Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
@@ -112,9 +118,18 @@ public partial class AgentServerRunner
     /// Runs the server loop with explicit I/O (testable).
     /// </summary>
     /// <remarks>
-    /// Stdin is read on a background task into a bounded channel so that
+    /// <para>
+    /// The input is read on a background task into a bounded channel so that
     /// <see cref="CancelRequest"/> can interrupt the in-flight message handler
     /// without requiring the entire session to restart.
+    /// </para>
+    /// <para>
+    /// The reader may block: <see cref="Console.In"/> reads synchronously even through
+    /// <see cref="TextReader.ReadLineAsync(CancellationToken)"/>, so the read loop runs on a thread of its own — run
+    /// inline it would wait for the next line before this loop ever started, and no message would be handled until
+    /// the input closed. For the same reason a read in progress cannot be cancelled: when the loop ends for any reason
+    /// other than the input (cancellation, a <see cref="ShutdownRequest"/> already taken), it does not wait on it.
+    /// </para>
     /// </remarks>
     public async Task RunAsync(TextReader input, TextWriter output, CancellationToken ct)
     {
@@ -122,8 +137,10 @@ public partial class AgentServerRunner
         using var readerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         // The turn writes its events while an approval request is published from inside a tool call: one line at a time.
         using var writeLock = new SemaphoreSlim(1, 1);
-        var readerTask = ReadStdinIntoChannelAsync(
-            input, channel.Writer, evt => WriteSerializedAsync(output, writeLock, evt, CancellationToken.None), readerCts.Token);
+        var readerTask = Task.Run(
+            () => ReadStdinIntoChannelAsync(
+                input, channel.Writer, evt => WriteSerializedAsync(output, writeLock, evt, CancellationToken.None), readerCts.Token),
+            CancellationToken.None);
 
         // Turns run on their own task so this loop keeps reading — a turn waiting for approval gets its hitl_response
         // even when another message arrived first.
@@ -183,8 +200,9 @@ public partial class AgentServerRunner
             // Run the turns already received so each one's TurnEndEvent is written.
             await turns.DisposeAsync();
 
-            // Wait for the reader task to exit cleanly.
-            await readerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            // Let the reader exit when it can: an asynchronous reader stops on the cancellation, a synchronous one
+            // blocked on a line cannot be interrupted and ends with the next line or the end of the input.
+            await Task.WhenAny(readerTask, Task.Delay(ReaderStopGrace, CancellationToken.None));
         }
     }
 

@@ -579,6 +579,84 @@ public class AgentServerRunnerTests
         }
     }
 
+    [Fact]
+    public async Task ReadNextRequest_TypeAfterTheOtherMembers_IsRead()
+    {
+        // Member order carries no meaning in JSON; a client writing from a dictionary may put "type" last.
+        using var reader = new StringReader("""{"id":"r1","approved":true,"type":"hitl_response"}""");
+
+        var result = await AgentServerRunner.ReadNextRequestAsync(reader, AgentServerRunner.DefaultJsonOpts, CancellationToken.None);
+
+        var hitl = result.Should().BeOfType<HitlResponseRequest>().Which;
+        hitl.Id.Should().Be("r1");
+        hitl.Approved.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RunAsync_ASynchronousReaderLikeConsoleIn_HandlesEachMessageWhileTheInputStaysOpen()
+    {
+        // Console.In blocks inside ReadLineAsync. Read inline, the loop waited for the next line before it started
+        // handling the first, so an interactive client got no answer until it closed its input.
+        var handled = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var runner = CreateRunner(content =>
+        {
+            handled.TrySetResult(content);
+            return EmptyEvents();
+        });
+        using var input = new SynchronousLineReader();
+        input.Enqueue("""{"type":"user_message","content":"hello"}""");
+
+        var run = Task.Run(() => runner.RunAsync(input, TextWriter.Synchronized(new StringWriter()), CancellationToken.None), TestContext.Current.CancellationToken);
+
+        (await handled.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken)).Should().Contain("hello");
+        input.Enqueue("""{"type":"shutdown"}""");
+        await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task RunAsync_Cancelled_WhileASynchronousReaderWaits_Returns()
+    {
+        // A blocked synchronous read cannot be cancelled; ending the run must not wait for the next line.
+        var runner = CreateRunner(_ => EmptyEvents());
+        using var input = new SynchronousLineReader();
+        using var cts = new CancellationTokenSource();
+
+        var run = Task.Run(() => runner.RunAsync(input, TextWriter.Synchronized(new StringWriter()), cts.Token), TestContext.Current.CancellationToken);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+        await cts.CancelAsync();
+
+        await run.ContinueWith(_ => { }, TaskScheduler.Default).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        input.Enqueue("""{"type":"shutdown"}"""); // releases the blocked reader thread
+    }
+
+    /// <summary>
+    /// Reads like <see cref="Console.In"/>: <see cref="ReadLineAsync(CancellationToken)"/> blocks the calling thread
+    /// until a line arrives, and ignores cancellation once it waits.
+    /// </summary>
+    private sealed class SynchronousLineReader : TextReader
+    {
+        private readonly System.Collections.Concurrent.BlockingCollection<string> _lines = [];
+
+        public void Enqueue(string line) => _lines.Add(line);
+
+        public override string? ReadLine() => _lines.Take();
+
+        public override ValueTask<string?> ReadLineAsync(CancellationToken cancellationToken)
+            => cancellationToken.IsCancellationRequested
+                ? ValueTask.FromCanceled<string?>(cancellationToken)
+                : new ValueTask<string?>(ReadLine());
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _lines.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
+
     private static StringReader BuildInput(params string[] lines)
         => new StringReader(string.Join('\n', lines));
 
