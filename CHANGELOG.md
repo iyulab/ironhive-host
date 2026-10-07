@@ -14,6 +14,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   of log messages.
 - Re-pinned sibling package(s) `LMSupply.Embedder` 0.110.0 -> 0.111.0, `LMSupply.Generator` 0.110.0 -> 0.111.0, `LMSupply.Reranker` 0.110.0 -> 0.111.0.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.57.0 -> 0.58.0, `IronHive.Core` 0.57.0 -> 0.58.0, `IronHive.Extensions.AI` 0.57.0 -> 0.58.0, `IronHive.Providers.Anthropic` 0.57.0 -> 0.58.0, `IronHive.Providers.GoogleAI` 0.57.0 -> 0.58.0, `IronHive.Providers.OpenAI` 0.57.0 -> 0.58.0, `IronHive.Providers.OpenAI.Compatible` 0.57.0 -> 0.58.0.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.24.4 -> 0.24.5.
 
 ## 0.49.0 — 2026-10-07
 
