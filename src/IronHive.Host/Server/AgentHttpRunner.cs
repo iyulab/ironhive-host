@@ -53,8 +53,7 @@ public sealed partial class AgentHttpRunner : IDisposable
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger<AgentHttpRunner> _logger;
 
-    private CancellationTokenSource? _turnCts;
-    private Task? _handleTask;
+    private TurnQueue? _turns;
     private string? _workingPath;
     private string? _lastEventId;
     private bool _receivedSinceConnect;
@@ -168,6 +167,9 @@ public sealed partial class AgentHttpRunner : IDisposable
     private async Task ProcessInboxAsync(CancellationToken ct)
     {
         var attempt = 0;
+        // Turns run on their own task so the inbox keeps being read — a turn waiting for approval gets its
+        // hitl_response even when another message arrived first.
+        _turns = new TurnQueue(HandleMessageAsync, ct);
         try
         {
             while (true)
@@ -208,13 +210,8 @@ public sealed partial class AgentHttpRunner : IDisposable
         }
         finally
         {
-            if (_handleTask is not null)
-            {
-                await _handleTask;
-            }
-
-            _turnCts?.Dispose();
-            _turnCts = null;
+            await _turns.DisposeAsync();
+            _turns = null;
         }
     }
 
@@ -271,7 +268,7 @@ public sealed partial class AgentHttpRunner : IDisposable
 
             if (serverRequest is CancelRequest)
             {
-                _turnCts?.Cancel();
+                _turns?.CancelCurrent();
                 continue;
             }
 
@@ -290,19 +287,11 @@ public sealed partial class AgentHttpRunner : IDisposable
 
             if (serverRequest is UserMessageRequest msg)
             {
-                if (_handleTask is not null)
-                {
-                    await _handleTask;
-                }
-
-                _turnCts?.Dispose();
-                _turnCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-
                 var contextualMsg = SkipContextEnrichment || _workingPath is null
                     ? msg
                     : msg with { Content = BuildContextualContent(msg.Content) };
 
-                _handleTask = HandleMessageAsync(contextualMsg, _turnCts.Token);
+                _turns?.Enqueue(contextualMsg);
             }
         }
 
@@ -417,7 +406,6 @@ public sealed partial class AgentHttpRunner : IDisposable
 
     public void Dispose()
     {
-        _turnCts?.Dispose();
         _http.Dispose();
     }
 }

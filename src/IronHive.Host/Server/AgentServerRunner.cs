@@ -118,8 +118,9 @@ public partial class AgentServerRunner
         var readerTask = ReadStdinIntoChannelAsync(
             input, channel.Writer, evt => WriteSerializedAsync(output, writeLock, evt, CancellationToken.None), readerCts.Token);
 
-        CancellationTokenSource? messageCts = null;
-        Task? handleTask = null;
+        // Turns run on their own task so this loop keeps reading — a turn waiting for approval gets its hitl_response
+        // even when another message arrived first.
+        var turns = new TurnQueue((msg, token) => HandleMessageAsync(msg, output, writeLock, token), ct);
 
         using var hitlAttachment = _hitl?.Attach((evt, token) => WriteSerializedAsync(output, writeLock, evt, token));
 
@@ -134,7 +135,7 @@ public partial class AgentServerRunner
 
                 if (request is CancelRequest)
                 {
-                    messageCts?.Cancel();
+                    turns.CancelCurrent();
                     continue;
                 }
 
@@ -153,20 +154,9 @@ public partial class AgentServerRunner
 
                 if (request is UserMessageRequest msg)
                 {
-                    // Ensure the previous message has fully completed (TurnEndEvent written)
-                    // before starting a new one. HandleMessageAsync never throws.
-                    if (handleTask is not null)
-                    {
-                        await handleTask;
-                    }
-
-                    messageCts?.Dispose();
-                    messageCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    handleTask = HandleMessageAsync(
-                        msg with { Content = BuildContextualContent(msg.Content) }, output, writeLock, messageCts.Token);
-
-                    // Fire-and-forget: keep draining the channel so CancelRequest
-                    // can be processed while handleTask runs concurrently.
+                    // The working path in effect when the message arrived. Turns run one at a time, each ending with
+                    // its TurnEndEvent before the next starts. HandleMessageAsync never throws.
+                    turns.Enqueue(msg with { Content = BuildContextualContent(msg.Content) });
                 }
             }
         }
@@ -175,13 +165,8 @@ public partial class AgentServerRunner
             // Stop background stdin reader.
             await readerCts.CancelAsync();
 
-            // Drain any in-flight message so TurnEndEvent is always written.
-            if (handleTask is not null)
-            {
-                await handleTask;
-            }
-
-            messageCts?.Dispose();
+            // Run the turns already received so each one's TurnEndEvent is written.
+            await turns.DisposeAsync();
 
             // Wait for the reader task to exit cleanly.
             await readerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);

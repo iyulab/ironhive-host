@@ -501,6 +501,40 @@ public class AgentServerRunnerTests
 
     // ── Helpers ───────────────────────────────────────────────────────
 
+    [Fact]
+    public async Task RunAsync_TurnWaiting_LaterRequestsAreStillRead_EvenAfterAnotherMessage()
+    {
+        // A turn waits for something only a later request delivers (as an approval waits for its hitl_response).
+        // A second user_message arrives before that request; the loop must not stop reading behind it.
+        var released = new TaskCompletionSource();
+        var order = new List<string>();
+        var runner = CreateRunner(content => WaitThenEcho(content, content == "first" ? released.Task : Task.CompletedTask, order));
+        runner.OnContextUpdate = _ => released.TrySetResult();
+
+        var input = BuildInput(
+            """{"type":"user_message","content":"first"}""",
+            """{"type":"user_message","content":"second"}""",
+            """{"type":"context_update","working_path":"/x"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        order.Should().Equal("first", "second");
+        ParseEvents(output).OfType<TurnEndEvent>().Should().HaveCount(2);
+    }
+
+    private static async IAsyncEnumerable<ServerEvent> WaitThenEcho(string content, Task gate, List<string> order)
+    {
+        await gate;
+        lock (order)
+        {
+            order.Add(content);
+        }
+
+        yield return new TextDeltaEvent(content);
+    }
+
     private static AgentServerRunner CreateRunner(
         Func<string, IAsyncEnumerable<ServerEvent>> handler)
     {

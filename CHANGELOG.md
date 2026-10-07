@@ -26,6 +26,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Added
 - `AgentHttpRunner` takes an optional `httpHandler` (`HttpMessageHandler`) for the connection to the host.
 
+### Fixed
+- **A turn waiting for approval no longer blocks the session when another message arrives first.** Both server runners
+  waited for the running turn before reading past a second `user_message`, so the `hitl_response` behind it was never read
+  and the approval timed out as a denial (and nothing else, `cancel` included, was read until then). Turns now run in
+  order on their own task while the request loop keeps reading.
+
 ## 0.48.11 — 2026-10-07
 
 ### Changed
