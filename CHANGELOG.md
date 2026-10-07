@@ -15,6 +15,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Changed
 - `ResumeTurn` runs once on both runners: the property is cleared when a run takes it, so a second `RunAsync` does not
   offer the settled waits again.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.52.5 -> 0.52.6, `IronHive.Agent.Ironbees` 0.52.5 -> 0.52.6, `IronHive.DeepResearch` 0.52.5 -> 0.52.6.
 
 ## 0.50.0 — 2026-10-08
 
