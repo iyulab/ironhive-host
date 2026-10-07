@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.49.1 — Unreleased
+## 0.49.1 — 2026-10-08
 
 ### Changed
 - **Server mode logs an unreadable request line by its error type, not its parser message.** A JSON parser message can
