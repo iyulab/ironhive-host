@@ -20,6 +20,9 @@ public partial class AgentServerRunner
     [LoggerMessage(Level = LogLevel.Error, Message = "Agent processing error")]
     private partial void LogAgentProcessingError(Exception ex);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable request line skipped: {Reason}")]
+    private partial void LogUnreadableRequest(string reason);
+
     internal static readonly JsonSerializerOptions DefaultJsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
@@ -110,13 +113,14 @@ public partial class AgentServerRunner
     {
         var channel = Channel.CreateBounded<ServerRequest>(capacity: 16);
         using var readerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var readerTask = ReadStdinIntoChannelAsync(input, channel.Writer, readerCts.Token);
+        // The turn writes its events while an approval request is published from inside a tool call: one line at a time.
+        using var writeLock = new SemaphoreSlim(1, 1);
+        var readerTask = ReadStdinIntoChannelAsync(
+            input, channel.Writer, evt => WriteSerializedAsync(output, writeLock, evt, CancellationToken.None), readerCts.Token);
 
         CancellationTokenSource? messageCts = null;
         Task? handleTask = null;
 
-        // The turn writes its events while an approval request is published from inside a tool call: one line at a time.
-        using var writeLock = new SemaphoreSlim(1, 1);
         using var hitlAttachment = _hitl?.Attach((evt, token) => WriteSerializedAsync(output, writeLock, evt, token));
 
         try
@@ -253,16 +257,29 @@ public partial class AgentServerRunner
     private async Task ReadStdinIntoChannelAsync(
         TextReader reader,
         ChannelWriter<ServerRequest> writer,
+        Func<ServerEvent, Task> reportError,
         CancellationToken ct)
     {
         try
         {
             while (!ct.IsCancellationRequested)
             {
-                var request = await ReadNextRequestAsync(reader, _jsonOptions, ct);
-                if (request is null or ShutdownRequest)
+                ServerRequest request;
+                try
                 {
-                    await writer.WriteAsync(new ShutdownRequest(), CancellationToken.None);
+                    request = await ReadNextRequestAsync(reader, _jsonOptions, ct);
+                }
+                catch (JsonException ex)
+                {
+                    // One bad line is the sender's mistake to hear about, not a reason to end the session
+                    LogUnreadableRequest(ex.Message);
+                    await reportError(new ErrorEvent($"Unreadable request skipped: {ex.Message}"));
+                    continue;
+                }
+
+                if (request is ShutdownRequest)
+                {
+                    await writer.WriteAsync(request, CancellationToken.None);
                     break;
                 }
 
@@ -280,24 +297,32 @@ public partial class AgentServerRunner
     }
 
     /// <summary>
-    /// Reads one JSON Line and deserializes it as a ServerRequest.
+    /// Reads the next request line. Blank lines are skipped; the end of the input is a <see cref="ShutdownRequest"/>.
     /// </summary>
-    public static async Task<ServerRequest?> ReadNextRequestAsync(
+    /// <exception cref="JsonException">The line is not a request (malformed JSON, unknown type, or null). The reader is
+    /// positioned after it, so the caller can report it and read on.</exception>
+    public static async Task<ServerRequest> ReadNextRequestAsync(
         TextReader reader, JsonSerializerOptions options, CancellationToken ct)
     {
-        var line = await reader.ReadLineAsync(ct);
-        if (string.IsNullOrWhiteSpace(line))
+        string? line;
+        do
         {
-            return new ShutdownRequest();
+            line = await reader.ReadLineAsync(ct);
+            if (line is null)
+            {
+                return new ShutdownRequest();
+            }
         }
+        while (string.IsNullOrWhiteSpace(line));
 
         try
         {
-            return JsonSerializer.Deserialize<ServerRequest>(line, options);
+            return JsonSerializer.Deserialize<ServerRequest>(line, options)
+                ?? throw new JsonException("The line is null, not a request.");
         }
-        catch
+        catch (NotSupportedException ex)
         {
-            return new ShutdownRequest();
+            throw new JsonException(ex.Message, ex);
         }
     }
 

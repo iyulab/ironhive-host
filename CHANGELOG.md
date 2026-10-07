@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.49.0 — Unreleased
+
+### Changed
+- **Breaking** — **a server-mode request line that is not a request no longer ends the server.** The stdio runner
+  (`ironhive run --server`, `AgentServerRunner`) skips blank lines and answers an unreadable line (malformed JSON, unknown
+  `type`, `null`) with an `error` event, then reads on; it ends only on a `shutdown` request or the end of its input.
+  `AgentServerRunner.ReadNextRequestAsync` returns `ServerRequest` (not nullable), skips blank lines, and throws
+  `JsonException` for an unreadable line. Migration: a client that ended a session by sending an empty line sends
+  `{"type":"shutdown"}` or closes stdin.
+- **Breaking** — **`AgentHttpRunner` reconnects when the inbox stream ends** without a `shutdown` request or the host is
+  briefly unreachable (5xx, 408, 429, connection errors): exponential backoff (`InitialReconnectDelay`, `MaxReconnectDelay`),
+  `Last-Event-ID` resume when the host sends `id:` lines, and a turn in progress keeps running. After
+  `MaxReconnectAttempts` consecutive failures (default 10, about three minutes; `null` = never give up) `RunAsync` throws
+  `HttpRequestException`; a host that refuses the session fails at once. Before, a dropped stream ended `RunAsync` as if the
+  session were over. Migration: a host that ends a session — or stops — by closing the inbox stream now sends a `shutdown`
+  request first (or answers the reconnect with 404/410); otherwise the agent keeps retrying until the limit.
+- An unreadable inbox message is posted back as an `error` event instead of being written to stderr only.
+
+### Added
+- `AgentHttpRunner` takes an optional `httpHandler` (`HttpMessageHandler`) for the connection to the host.
+
 ## 0.48.11 — 2026-10-07
 
 ### Changed

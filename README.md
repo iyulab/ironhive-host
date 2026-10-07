@@ -538,6 +538,17 @@ var runner = new AgentServerRunner(ProcessMessage, logger,
 
 `AgentHttpRunner` additionally exposes `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices).
 
+Both runners are meant to stay up unattended. A request line (stdio) or inbox message (HTTP) that is not a request — malformed
+JSON, an unknown `type` — is answered with an `error` event and skipped; blank lines are ignored. The stdio runner ends only on
+a `shutdown` request or the end of its input. When the HTTP inbox stream ends without a `shutdown` or the host is briefly
+unreachable (5xx, 408, 429, connection errors), `AgentHttpRunner` reconnects with exponential backoff
+(`InitialReconnectDelay` 1 s doubling up to `MaxReconnectDelay` 30 s), sends `Last-Event-ID` when the host numbers its events
+with `id:` lines, and keeps a turn in progress running. After `MaxReconnectAttempts` consecutive failures (default 10, about
+three minutes; `null` = never give up) `RunAsync` throws `HttpRequestException`, so an agent whose host is gone exits; a host
+that refuses the session (404, 401, ...) fails at once. A host that wants the agent to stop sends a `shutdown` request rather
+than closing the stream.
+Pass `httpHandler` to route the connection through your own `HttpMessageHandler`.
+
 #### Human approval over the wire
 
 `HitlBridge` is an `IHumanApprovalService` (the approver `IronHive.Agent`'s approval gate asks on an `Ask` verdict) whose

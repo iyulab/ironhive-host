@@ -35,6 +35,12 @@ public sealed partial class AgentHttpRunner : IDisposable
     [LoggerMessage(Level = LogLevel.Information, Message = "SSE connection closed by host")]
     private partial void LogSseConnectionClosed();
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Agent inbox unavailable ({Reason}); reconnect attempt {Attempt} in {DelayMs} ms")]
+    private partial void LogReconnecting(string reason, int attempt, long delayMs);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable inbox message skipped: {Reason}")]
+    private partial void LogUnreadableRequest(string reason);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Posted ready signal for session {SessionId}")]
     private partial void LogReadyPosted(string sessionId);
 
@@ -48,7 +54,10 @@ public sealed partial class AgentHttpRunner : IDisposable
     private readonly ILogger<AgentHttpRunner> _logger;
 
     private CancellationTokenSource? _turnCts;
+    private Task? _handleTask;
     private string? _workingPath;
+    private string? _lastEventId;
+    private bool _receivedSinceConnect;
     private readonly HitlBridge? _hitl;
 
     /// <summary>
@@ -62,6 +71,25 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// </summary>
     public bool SkipContextEnrichment { get; set; }
 
+    /// <summary>
+    /// Delay before the first reconnect after the inbox stream ends without a shutdown request or cannot be reached.
+    /// Each further consecutive attempt doubles it, up to <see cref="MaxReconnectDelay"/>. Default: 1 second.
+    /// </summary>
+    public TimeSpan InitialReconnectDelay { get; set; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Upper bound of the reconnect delay. Default: 30 seconds.
+    /// </summary>
+    public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Consecutive reconnect attempts before <see cref="RunAsync"/> fails with <see cref="HttpRequestException"/>.
+    /// Default 10 (about three minutes with the default delays), so an agent whose host is gone exits instead of
+    /// waiting forever; null keeps reconnecting until a shutdown request or cancellation. The count resets once a
+    /// reconnected stream delivers a message.
+    /// </summary>
+    public int? MaxReconnectAttempts { get; set; } = 10;
+
     /// <param name="hostUrl">Base URL of the host, e.g. "http://localhost:5100".</param>
     /// <param name="sessionId">Session ID to connect to.</param>
     /// <param name="processMessage">Processes a user message and yields server events.</param>
@@ -74,6 +102,8 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// <param name="hitlBridge">The approver the agent's gate asks: while the runner runs, its approval requests are posted
     /// as <see cref="HitlRequestEvent"/>s and each <see cref="HitlResponseRequest"/> from the inbox answers one. Without
     /// it, a <c>hitl_response</c> is ignored.</param>
+    /// <param name="httpHandler">Message handler for the connection to the host (proxy, TLS, testing). Null uses the
+    /// default handler. The runner disposes it.</param>
     public AgentHttpRunner(
         string hostUrl,
         string sessionId,
@@ -81,7 +111,8 @@ public sealed partial class AgentHttpRunner : IDisposable
         ILogger<AgentHttpRunner> logger,
         JsonSerializerOptions? jsonOptions = null,
         Action<JsonTypeInfo>[]? typeInfoModifiers = null,
-        HitlBridge? hitlBridge = null)
+        HitlBridge? hitlBridge = null,
+        HttpMessageHandler? httpHandler = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hostUrl);
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
@@ -94,7 +125,7 @@ public sealed partial class AgentHttpRunner : IDisposable
         _logger = logger;
         _jsonOptions = AgentServerRunner.ApplyModifiers(
             jsonOptions ?? AgentServerRunner.DefaultJsonOpts, typeInfoModifiers);
-        _http = new HttpClient
+        _http = new HttpClient(httpHandler ?? new HttpClientHandler(), disposeHandler: true)
         {
             BaseAddress = new Uri(hostUrl.TrimEnd('/')),
             Timeout = System.Threading.Timeout.InfiniteTimeSpan
@@ -103,8 +134,11 @@ public sealed partial class AgentHttpRunner : IDisposable
 
     /// <summary>
     /// Runs the agent loop: signals readiness, subscribes to the SSE inbox, and processes commands
-    /// until shutdown or cancellation.
+    /// until a shutdown request or cancellation. When the inbox stream ends or cannot be reached it reconnects with
+    /// backoff (sending <c>Last-Event-ID</c> when the host numbers its events); a turn in progress keeps running.
     /// </summary>
+    /// <exception cref="HttpRequestException">The host refused the inbox (a 4xx other than 408/429), or
+    /// <see cref="MaxReconnectAttempts"/> consecutive reconnects failed.</exception>
     public async Task RunAsync(CancellationToken ct = default)
     {
         using var hitlAttachment = _hitl?.Attach(PostEventAsync);
@@ -133,11 +167,89 @@ public sealed partial class AgentHttpRunner : IDisposable
 
     private async Task ProcessInboxAsync(CancellationToken ct)
     {
+        var attempt = 0;
+        try
+        {
+            while (true)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                string reason;
+                try
+                {
+                    if (await ReadInboxAsync(ct))
+                    {
+                        return; // shutdown request
+                    }
+
+                    reason = "stream closed";
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested && IsTransient(ex))
+                {
+                    reason = ex.Message;
+                }
+
+                if (_receivedSinceConnect)
+                {
+                    attempt = 0;
+                }
+
+                attempt++;
+                if (MaxReconnectAttempts is { } max && attempt > max)
+                {
+                    throw new HttpRequestException(
+                        $"The agent inbox for session '{_sessionId}' was lost and {max} reconnect attempt(s) failed ({reason}).");
+                }
+
+                var delay = ReconnectDelay(attempt);
+                LogReconnecting(reason, attempt, (long)delay.TotalMilliseconds);
+                await Task.Delay(delay, ct);
+            }
+        }
+        finally
+        {
+            if (_handleTask is not null)
+            {
+                await _handleTask;
+            }
+
+            _turnCts?.Dispose();
+            _turnCts = null;
+        }
+    }
+
+    private TimeSpan ReconnectDelay(int attempt)
+    {
+        var factor = Math.Pow(2, Math.Min(attempt - 1, 16));
+        var delay = TimeSpan.FromTicks((long)Math.Min(InitialReconnectDelay.Ticks * factor, MaxReconnectDelay.Ticks));
+        return delay < TimeSpan.Zero ? TimeSpan.Zero : delay;
+    }
+
+    // A dropped connection or a host that is briefly down or overloaded is worth retrying; a host that refuses the
+    // session (404, 401, ...) is not.
+    private static bool IsTransient(Exception ex) => ex switch
+    {
+        HttpRequestException { StatusCode: null } => true,
+        HttpRequestException { StatusCode: { } code } => (int)code >= 500
+            || code is System.Net.HttpStatusCode.RequestTimeout or System.Net.HttpStatusCode.TooManyRequests,
+        IOException => true,
+        _ => false,
+    };
+
+    /// <summary>
+    /// Reads one inbox connection to its end. Returns true when a shutdown request arrived.
+    /// </summary>
+    private async Task<bool> ReadInboxAsync(CancellationToken ct)
+    {
         var url = $"/api/agent/{_sessionId}/inbox";
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(
             new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
+        if (_lastEventId is not null)
+        {
+            request.Headers.TryAddWithoutValidation("Last-Event-ID", _lastEventId);
+        }
 
         using var response = await _http.SendAsync(
             request, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -145,67 +257,56 @@ public sealed partial class AgentHttpRunner : IDisposable
 
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream, Encoding.UTF8);
+        _receivedSinceConnect = false;
 
-        Task? handleTask = null;
-
-        try
+        await foreach (var serverRequest in ReadSseRequestsAsync(reader, ct))
         {
-            await foreach (var serverRequest in ReadSseRequestsAsync(reader, ct))
+            _receivedSinceConnect = true;
+            LogRequestReceived(serverRequest.GetType().Name);
+
+            if (serverRequest is ShutdownRequest)
             {
-                LogRequestReceived(serverRequest.GetType().Name);
-
-                if (serverRequest is ShutdownRequest)
-                {
-                    break;
-                }
-
-                if (serverRequest is CancelRequest)
-                {
-                    _turnCts?.Cancel();
-                    continue;
-                }
-
-                if (serverRequest is ContextUpdateRequest ctx)
-                {
-                    _workingPath = ctx.WorkingPath;
-                    OnContextUpdate?.Invoke(ctx);
-                    continue;
-                }
-
-                if (serverRequest is HitlResponseRequest hitl)
-                {
-                    _hitl?.Resolve(hitl);
-                    continue;
-                }
-
-                if (serverRequest is UserMessageRequest msg)
-                {
-                    if (handleTask is not null)
-                    {
-                        await handleTask;
-                    }
-
-                    _turnCts?.Dispose();
-                    _turnCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-
-                    var contextualMsg = SkipContextEnrichment || _workingPath is null
-                        ? msg
-                        : msg with { Content = BuildContextualContent(msg.Content) };
-
-                    handleTask = HandleMessageAsync(contextualMsg, _turnCts.Token);
-                }
-            }
-        }
-        finally
-        {
-            if (handleTask is not null)
-            {
-                await handleTask;
+                return true;
             }
 
-            _turnCts?.Dispose();
-            _turnCts = null;
+            if (serverRequest is CancelRequest)
+            {
+                _turnCts?.Cancel();
+                continue;
+            }
+
+            if (serverRequest is ContextUpdateRequest ctx)
+            {
+                _workingPath = ctx.WorkingPath;
+                OnContextUpdate?.Invoke(ctx);
+                continue;
+            }
+
+            if (serverRequest is HitlResponseRequest hitl)
+            {
+                _hitl?.Resolve(hitl);
+                continue;
+            }
+
+            if (serverRequest is UserMessageRequest msg)
+            {
+                if (_handleTask is not null)
+                {
+                    await _handleTask;
+                }
+
+                _turnCts?.Dispose();
+                _turnCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+                var contextualMsg = SkipContextEnrichment || _workingPath is null
+                    ? msg
+                    : msg with { Content = BuildContextualContent(msg.Content) };
+
+                _handleTask = HandleMessageAsync(contextualMsg, _turnCts.Token);
+            }
         }
+
+        return false;
     }
 
     private async IAsyncEnumerable<ServerRequest> ReadSseRequestsAsync(
@@ -214,46 +315,40 @@ public sealed partial class AgentHttpRunner : IDisposable
     {
         while (!ct.IsCancellationRequested)
         {
-            string? line;
-            try
-            {
-                line = await reader.ReadLineAsync(ct);
-            }
-            catch (IOException) when (!ct.IsCancellationRequested)
-            {
-                LogSseConnectionClosed();
-                yield break;
-            }
-
+            var line = await reader.ReadLineAsync(ct);
             if (line is null)
             {
                 LogSseConnectionClosed();
                 yield break;
             }
 
-            // SSE blank lines and "event:" lines are informational — skip.
-            if (string.IsNullOrEmpty(line) || line.StartsWith("event:", StringComparison.Ordinal))
+            if (line.StartsWith("id:", StringComparison.Ordinal))
             {
+                _lastEventId = line[3..].Trim();
                 continue;
             }
 
-            if (line.StartsWith("data: ", StringComparison.Ordinal))
+            if (!line.StartsWith("data:", StringComparison.Ordinal))
             {
-                var json = line[6..];
-                ServerRequest? parsed = null;
-                try
-                {
-                    parsed = JsonSerializer.Deserialize<ServerRequest>(json, _jsonOptions);
-                }
-                catch (JsonException ex)
-                {
-                    await Console.Error.WriteLineAsync($"[AgentHttpRunner] Failed to parse SSE data: {ex.Message}");
-                }
+                continue; // blank separators, "event:", comments
+            }
 
-                if (parsed is not null)
-                {
-                    yield return parsed;
-                }
+            var json = line[5..].TrimStart();
+            ServerRequest? parsed;
+            try
+            {
+                parsed = JsonSerializer.Deserialize<ServerRequest>(json, _jsonOptions);
+            }
+            catch (Exception ex) when (ex is JsonException or NotSupportedException)
+            {
+                parsed = null;
+                LogUnreadableRequest(ex.Message);
+                await PostEventAsync(new ErrorEvent($"Unreadable request skipped: {ex.Message}"), CancellationToken.None);
+            }
+
+            if (parsed is not null)
+            {
+                yield return parsed;
             }
         }
     }

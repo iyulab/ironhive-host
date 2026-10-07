@@ -64,10 +64,35 @@ public class AgentServerRunnerTests
         result.Should().BeOfType<ShutdownRequest>();
     }
 
-    [Fact]
-    public async Task ReadNextRequest_MalformedJson_ReturnsShutdownRequest()
+    [Theory]
+    [InlineData("{not-valid-json}")]
+    [InlineData("""{"type":"no_such_request"}""")]
+    [InlineData("null")]
+    public async Task ReadNextRequest_UnreadableLine_ThrowsJsonException_AndLeavesTheNextLineReadable(string line)
     {
-        using var reader = new StringReader("{not-valid-json}");
+        using var reader = new StringReader(line + "\n" + """{"type":"user_message","content":"after"}""");
+
+        var act = () => AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+        await act.Should().ThrowAsync<JsonException>();
+
+        var next = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+        next.Should().BeOfType<UserMessageRequest>().Which.Content.Should().Be("after");
+    }
+
+    [Fact]
+    public async Task ReadNextRequest_BlankLines_AreSkipped_NotAShutdown()
+    {
+        using var reader = new StringReader("\n   \n" + """{"type":"user_message","content":"hi"}""");
+
+        var result = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+
+        result.Should().BeOfType<UserMessageRequest>();
+    }
+
+    [Fact]
+    public async Task ReadNextRequest_OnlyBlankLinesThenEnd_IsShutdown()
+    {
+        using var reader = new StringReader("   \n\n");
 
         var result = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
 
@@ -75,13 +100,28 @@ public class AgentServerRunnerTests
     }
 
     [Fact]
-    public async Task ReadNextRequest_WhitespaceLine_ReturnsShutdownRequest()
+    public async Task RunAsync_UnreadableLineAndBlankLine_ReportErrorAndKeepServing()
     {
-        using var reader = new StringReader("   ");
+        var messages = new List<string>();
+        var runner = CreateRunner(content =>
+        {
+            messages.Add(content);
+            return SingleEvent(new TextDeltaEvent("ok"));
+        });
 
-        var result = await AgentServerRunner.ReadNextRequestAsync(reader, JsonOpts, CancellationToken.None);
+        var input = BuildInput(
+            "{broken",
+            "",
+            """{"type":"user_message","content":"still here"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
 
-        result.Should().BeOfType<ShutdownRequest>();
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        messages.Should().Equal("still here");
+        var events = ParseEvents(output);
+        events.OfType<ErrorEvent>().Should().ContainSingle()
+            .Which.Message.Should().StartWith("Unreadable request skipped");
     }
 
     [Fact]
