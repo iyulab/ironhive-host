@@ -22,6 +22,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   session were over. Migration: a host that ends a session — or stops — by closing the inbox stream now sends a `shutdown`
   request first (or answers the reconnect with 404/410); otherwise the agent keeps retrying until the limit.
 - An unreadable inbox message is posted back as an `error` event instead of being written to stderr only.
+- Re-pinned sibling package(s) `LMSupply.Embedder` 0.109.0 -> 0.110.0, `LMSupply.Generator` 0.109.0 -> 0.110.0, `LMSupply.Reranker` 0.109.0 -> 0.110.0.
 
 ### Added
 - **`run --server --session-id <id>` resumes the session**: started again with the same ID (a restart, a moved
