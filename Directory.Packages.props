@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.24.5" />
+    <PackageVersion Include="Ironbees.Core" Version="0.24.6" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.1" />
@@ -35,8 +35,8 @@
     <PackageVersion Include="LMSupply.Reranker" Version="0.111.0" />
     <PackageVersion Include="LMSupply.Generator" Version="0.111.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.52.6" />
-    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.52.6" />
+    <PackageVersion Include="IronHive.Agent" Version="0.52.7" />
+    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.52.7" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.58.0" />
     <PackageVersion Include="IronHive.Core" Version="0.58.0" />
@@ -48,13 +48,13 @@
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.3.0" />
     <!-- IronHive.DeepResearch (deep research agent) -->
-    <PackageVersion Include="IronHive.DeepResearch" Version="0.52.6" />
+    <PackageVersion Include="IronHive.DeepResearch" Version="0.52.7" />
     <!-- Cronex (scheduling) -->
     <PackageVersion Include="Cronex.Net" Version="0.7.0" />
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.7.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
     <!-- TokenMeter (model catalog & cost calculation) -->
-    <PackageVersion Include="TokenMeter" Version="0.7.9" />
+    <PackageVersion Include="TokenMeter" Version="0.7.10" />
     <!-- Testing (xUnit v3 on Microsoft.Testing.Platform) -->
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.6.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.0" />
