@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.48.8 — 2026-10-07
+
+### Changed
+- Re-pinned sibling package(s) `Ironbees.Core` 0.24.2 -> 0.24.3, `IronHive.Abstractions` 0.55.1 -> 0.56.0, `IronHive.Agent` 0.51.1 -> 0.52.1, `IronHive.Agent.Ironbees` 0.51.1 -> 0.52.1, `IronHive.Core` 0.55.1 -> 0.56.0, `IronHive.DeepResearch` 0.51.1 -> 0.52.1, `IronHive.Extensions.AI` 0.55.1 -> 0.56.0, `IronHive.Providers.Anthropic` 0.55.1 -> 0.56.0, `IronHive.Providers.GoogleAI` 0.55.1 -> 0.56.0, `IronHive.Providers.OpenAI` 0.55.1 -> 0.56.0, `IronHive.Providers.OpenAI.Compatible` 0.55.1 -> 0.56.0, `LMSupply.Embedder` 0.108.0 -> 0.109.0, `LMSupply.Generator` 0.108.0 -> 0.109.0, `LMSupply.Reranker` 0.108.0 -> 0.109.0. No source changes.
+
 ## 0.48.7 — 2026-10-06
 
 ### Changed
