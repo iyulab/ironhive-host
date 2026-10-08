@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.52.0 — Unreleased
 
 ### Removed
 - **Breaking: the embedding and rerank providers, which nothing in the host used, are gone.** The CLI registered an
@@ -20,7 +20,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   and no code called it.
 
 ### Dependencies
-- Re-pinned sibling package(s) `LMSupply.Generator` 0.111.0 -> 0.113.0, `IronHive.Agent` 0.52.7 -> 0.53.0, `IronHive.Agent.Ironbees` 0.52.7 -> 0.53.0, `Ironbees.Core` 0.24.6 -> 0.25.0.
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.111.0 -> 0.113.0, `IronHive.Agent` 0.52.7 -> 0.53.0, `IronHive.Agent.Ironbees` 0.52.7 -> 0.53.0, `IronHive.DeepResearch` 0.52.7 -> 0.53.0, `Ironbees.Core` 0.24.6 -> 0.25.0.
 
 ## 0.51.2 — 2026-10-08
 
