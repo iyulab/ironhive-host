@@ -277,16 +277,6 @@ public class ConfigurationManager
             target.GpuStack.Model = source.GpuStack.Model;
         }
 
-        if (!string.IsNullOrEmpty(source.GpuStack.EmbeddingModel))
-        {
-            target.GpuStack.EmbeddingModel = source.GpuStack.EmbeddingModel;
-        }
-
-        if (!string.IsNullOrEmpty(source.GpuStack.RerankModel))
-        {
-            target.GpuStack.RerankModel = source.GpuStack.RerankModel;
-        }
-
         // OpenAI
         if (source.OpenAI.StreamIdleTimeoutSeconds is { } openAIIdle)
         {
@@ -365,16 +355,6 @@ public class ConfigurationManager
 
         // LMSupply
         target.LMSupply.Enabled = source.LMSupply.Enabled;
-        if (!string.IsNullOrEmpty(source.LMSupply.EmbedderModel))
-        {
-            target.LMSupply.EmbedderModel = source.LMSupply.EmbedderModel;
-        }
-
-        if (!string.IsNullOrEmpty(source.LMSupply.RerankerModel))
-        {
-            target.LMSupply.RerankerModel = source.LMSupply.RerankerModel;
-        }
-
         if (!string.IsNullOrEmpty(source.LMSupply.GeneratorModel))
         {
             target.LMSupply.GeneratorModel = source.LMSupply.GeneratorModel;
@@ -671,18 +651,6 @@ public class ConfigurationManager
         if (!string.IsNullOrEmpty(gpuStackModel))
         {
             config.GpuStack.Model = gpuStackModel;
-        }
-
-        var gpuStackEmbeddingModel = Environment.GetEnvironmentVariable("GPUSTACK_EMBEDDING_MODEL");
-        if (!string.IsNullOrEmpty(gpuStackEmbeddingModel))
-        {
-            config.GpuStack.EmbeddingModel = gpuStackEmbeddingModel;
-        }
-
-        var gpuStackRerankModel = Environment.GetEnvironmentVariable("GPUSTACK_RERANK_MODEL");
-        if (!string.IsNullOrEmpty(gpuStackRerankModel))
-        {
-            config.GpuStack.RerankModel = gpuStackRerankModel;
         }
 
         // LMSupply from environment

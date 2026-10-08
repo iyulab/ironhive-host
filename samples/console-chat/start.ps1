@@ -32,7 +32,7 @@ switch ($Provider.ToLower()) {
     }
     "gpustack" {
         $env:OPENAI_API_KEY = if ($env:GPUSTACK_API_KEY) { $env:GPUSTACK_API_KEY } else { "gpustack" }
-        $env:OPENAI_ENDPOINT = if ($env:GPUSTACK_ENDPOINT) { $env:GPUSTACK_ENDPOINT } else { "http://172.30.1.53:8080/v1" }
+        $env:OPENAI_ENDPOINT = if ($env:GPUSTACK_ENDPOINT) { $env:GPUSTACK_ENDPOINT } else { "http://localhost:8080/v1" }
         $env:OPENAI_MODEL = if ($Model) { $Model } elseif ($env:GPUSTACK_MODEL) { $env:GPUSTACK_MODEL } else { "qwen3-30b-a3b" }
         Write-Host "Provider: GpuStack ($env:OPENAI_ENDPOINT)" -ForegroundColor Green
         Write-Host "Model: $env:OPENAI_MODEL" -ForegroundColor Green

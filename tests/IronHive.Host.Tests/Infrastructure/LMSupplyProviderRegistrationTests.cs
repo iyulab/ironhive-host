@@ -30,8 +30,6 @@ public class LMSupplyProviderRegistrationTests
         {
             Enabled = false,
             GeneratorModel = "gguf:qwen3-default",
-            EmbedderModel = "e",
-            RerankerModel = "r",
             MaxContextLength = 4096
         };
 
@@ -39,8 +37,6 @@ public class LMSupplyProviderRegistrationTests
 
         Assert.True(selected.Enabled);
         Assert.Equal("gguf:qwen3-default", selected.GeneratorModel);
-        Assert.Equal("e", selected.EmbedderModel);
-        Assert.Equal("r", selected.RerankerModel);
         Assert.Equal(4096, selected.MaxContextLength);
     }
 

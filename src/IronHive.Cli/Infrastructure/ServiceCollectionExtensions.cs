@@ -106,8 +106,6 @@ public static class ServiceCollectionExtensions
             : new CliConfig.LMSupplyConfig
             {
                 Enabled = true,
-                EmbedderModel = configured.EmbedderModel,
-                RerankerModel = configured.RerankerModel,
                 GeneratorModel = configured.GeneratorModel,
                 MaxContextLength = configured.MaxContextLength
             };
@@ -591,16 +589,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LMSupplyChatClientProvider>(sp =>
             new LMSupplyChatClientProvider(lmSupplyConfig, sp.GetService<ILogger<LMSupplyChatClientProvider>>()));
 
-        // LMSupply embedding/rerank providers (local fallback)
-        if (config.LMSupply.Enabled)
-        {
-            services.AddSingleton<LMSupplyEmbeddingProvider>(sp =>
-                new LMSupplyEmbeddingProvider(config.LMSupply));
-
-            services.AddSingleton<LMSupplyRerankProvider>(sp =>
-                new LMSupplyRerankProvider(config.LMSupply));
-        }
-
         // Determine default provider (priority: GpuStack > OpenAI > Anthropic > GoogleAI > Xai > Ollama > LMStudio)
         IChatClientProvider? defaultProvider = null;
         foreach (var providerName in new[] { "gpustack", "openai", "anthropic", "google", "xai", "ollama", "lmstudio" })
@@ -690,48 +678,6 @@ public static class ServiceCollectionExtensions
             providersDict["local"] = lmSupply;
             return new DelegationClients(new ChatClientFactory(
                 providersDict, sp.GetRequiredService<IChatClientProvider>(), static inner => inner));
-        });
-
-        // Embedding provider (simplified - uses first available)
-        services.AddSingleton<IEmbeddingProvider>(sp =>
-        {
-            var providers = new List<IEmbeddingProvider>();
-
-            var lmSupply = sp.GetService<LMSupplyEmbeddingProvider>();
-            if (lmSupply is not null && config.LMSupply.Enabled)
-            {
-                providers.Add(lmSupply);
-            }
-
-            if (providers.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    "No embedding provider configured.\n" +
-                    "Set LMSUPPLY_ENABLED=true for local inference.");
-            }
-
-            return new FallbackEmbeddingProvider([.. providers]);
-        });
-
-        // Rerank provider (simplified - uses first available)
-        services.AddSingleton<IRerankProvider>(sp =>
-        {
-            var providers = new List<IRerankProvider>();
-
-            var lmSupply = sp.GetService<LMSupplyRerankProvider>();
-            if (lmSupply is not null && config.LMSupply.Enabled)
-            {
-                providers.Add(lmSupply);
-            }
-
-            if (providers.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    "No rerank provider configured.\n" +
-                    "Set LMSUPPLY_ENABLED=true for local inference.");
-            }
-
-            return new FallbackRerankProvider([.. providers]);
         });
     }
 }

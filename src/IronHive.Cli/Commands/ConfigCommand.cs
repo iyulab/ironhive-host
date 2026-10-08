@@ -50,8 +50,6 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AddConfigRow(table, "gpuStack", "endpoint", _config.GpuStack.Endpoint);
         AddSecretRow(table, "gpuStack", "apiKey", _config.GpuStack.ApiKey);
         AddConfigRow(table, "gpuStack", "model", _config.GpuStack.Model);
-        AddConfigRow(table, "gpuStack", "embeddingModel", _config.GpuStack.EmbeddingModel);
-        AddConfigRow(table, "gpuStack", "rerankModel", _config.GpuStack.RerankModel);
         AddStatusRow(table, "gpuStack", "configured", _config.GpuStack.IsConfigured);
 
         // OpenAI configuration
@@ -88,8 +86,6 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
 
         // LMSupply configuration
         AddBoolRow(table, "lmsupply", "enabled", _config.LMSupply.Enabled);
-        AddConfigRow(table, "lmsupply", "embedderModel", _config.LMSupply.EmbedderModel);
-        AddConfigRow(table, "lmsupply", "rerankerModel", _config.LMSupply.RerankerModel);
         AddConfigRow(table, "lmsupply", "generatorModel", _config.LMSupply.GeneratorModel);
         table.AddRow("lmsupply", "maxContextLength",
             _config.LMSupply.MaxContextLength.HasValue

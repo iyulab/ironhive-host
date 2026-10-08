@@ -7,13 +7,20 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
-### Changed
-- **A host configured with an E5 or Nomic embedding model gets different vectors.** LMSupply 0.112.0 `EmbedAsync` applies
-  the model's default prefix, and `LMSupplyEmbeddingProvider` embeds documents and queries through it. The default (`auto`,
-  BGE-M3, no prefix) is unchanged; a store built with an E5 or Nomic model needs re-embedding after this upgrade.
+### Removed
+- **Breaking: the embedding and rerank providers, which nothing in the host used, are gone.** The CLI registered an
+  `IEmbeddingProvider` and an `IRerankProvider` backed by LMSupply, but no tool, retriever or command ever resolved them —
+  tool retrieval is keyword-based — and the GpuStack variants were never registered. Removed: `LMSupplyEmbeddingProvider`,
+  `LMSupplyRerankProvider`, `GpuStackEmbeddingProvider`, `GpuStackRerankProvider`, the config keys
+  `lmsupply.embedderModel`, `lmsupply.rerankerModel`, `gpuStack.embeddingModel`, `gpuStack.rerankModel` and the
+  environment variables `GPUSTACK_EMBEDDING_MODEL` and `GPUSTACK_RERANK_MODEL`; the package no longer depends on
+  `LMSupply.Embedder` or `LMSupply.Reranker`. Migration: delete those keys from `config.yaml` — a nested key the host does
+  not know is ignored without a warning, so leaving them has no effect either way; `ironhive set` now rejects them.
+- **Breaking: `ConfigWriter` is removed.** It wrote `.env` lines for dotted keys, but `ironhive set` writes `config.yaml`
+  and no code called it.
 
 ### Dependencies
-- Re-pinned sibling package(s) `LMSupply.Embedder` 0.111.0 -> 0.113.0, `LMSupply.Generator` 0.111.0 -> 0.113.0, `LMSupply.Reranker` 0.111.0 -> 0.113.0.
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.111.0 -> 0.113.0.
 
 ## 0.51.2 — 2026-10-08
 

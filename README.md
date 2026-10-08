@@ -308,7 +308,7 @@ Configuration is merged in order (later overrides earlier):
 1. **Global**: `~/.ironhive/config.yaml`
 2. **Project**: `.ironhive/config.yaml`
 3. **Environment**: exactly these variables are read (there is no `IRONHIVE_*` variable):
-   - `GPUSTACK_ENDPOINT`, `GPUSTACK_API_KEY`, `GPUSTACK_MODEL`, `GPUSTACK_EMBEDDING_MODEL`, `GPUSTACK_RERANK_MODEL`
+   - `GPUSTACK_ENDPOINT`, `GPUSTACK_API_KEY`, `GPUSTACK_MODEL`
    - `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_ENDPOINT`
    - `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
    - `GOOGLEAI_API_KEY` (or `GOOGLE_API_KEY`), `GOOGLEAI_MODEL`

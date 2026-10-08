@@ -1,6 +1,6 @@
 {
   "gpuStack": {
-    "endpoint": "http://172.30.1.53:8080",
+    "endpoint": "http://localhost:8080",
     "apiKey": "gpustack_xxxxx",
     "model": "gpt-oss-20b"
   },

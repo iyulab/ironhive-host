@@ -87,10 +87,10 @@ public class SetCommand : Command<SetCommand.Settings>
             ["anthropic"] = ["apiKey", "model", "streamIdleTimeoutSeconds"],
             ["googleai"] = ["apiKey", "model", "streamIdleTimeoutSeconds"],
             ["xai"] = ["apiKey", "model", "endpoint", "streamIdleTimeoutSeconds"],
-            ["gpuStack"] = ["endpoint", "apiKey", "model", "embeddingModel", "rerankModel", "carryToolImages", "streamIdleTimeoutSeconds"],
+            ["gpuStack"] = ["endpoint", "apiKey", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["ollama"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
-            ["lmsupply"] = ["enabled", "embedderModel", "rerankerModel", "generatorModel", "maxContextLength"]
+            ["lmsupply"] = ["enabled", "generatorModel", "maxContextLength"]
         };
 
         foreach (var (section, props) in keys)

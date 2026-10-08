@@ -282,16 +282,6 @@ public class GpuStackConfig
     public string? Model { get; set; }
 
     /// <summary>
-    /// Model name for embeddings (optional, uses Model if not set).
-    /// </summary>
-    public string? EmbeddingModel { get; set; }
-
-    /// <summary>
-    /// Model name for reranking (optional).
-    /// </summary>
-    public string? RerankModel { get; set; }
-
-    /// <summary>
     /// Whether an image a tool returns (an MCP tool drawing a chart, a screenshot) is sent to the model in a user message
     /// after the tool results. This endpoint speaks Chat Completions, whose tool messages hold text only; without this the
     /// image is replaced by a note. Turn it on for a vision model. Unset = off.
@@ -380,16 +370,6 @@ public class LMSupplyConfig
     /// Whether LMSupply fallback is enabled.
     /// </summary>
     public bool Enabled { get; set; } = true;
-
-    /// <summary>
-    /// Embedder model identifier ("auto", "default", or HuggingFace model ID).
-    /// </summary>
-    public string EmbedderModel { get; set; } = "auto";
-
-    /// <summary>
-    /// Reranker model identifier ("auto", "default", or HuggingFace model ID).
-    /// </summary>
-    public string RerankerModel { get; set; } = "auto";
 
     /// <summary>
     /// Generator model identifier: a GGUF alias LMSupply registers (<c>"gguf:auto"</c> picks by
