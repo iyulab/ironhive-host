@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using IronHive.Host.Config;
+using Microsoft.Extensions.Logging;
 
 namespace IronHive.Host.Tests.Config;
 
@@ -261,13 +262,48 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void FindUnknownTopLevelKeys_ReportsMisspelledSection()
+    public void FindUnknownKeys_ReportsMisspelledSection()
     {
         var yaml = "openai:\n  apiKey: k\nopenAI:\n  apiKey: dup\nbogusSection:\n  x: 1\n";
-        var unknown = ConfigurationManager.FindUnknownTopLevelKeys(yaml);
+        var unknown = ConfigurationManager.FindUnknownKeys(yaml);
         unknown.Should().Contain("openAI");     // wrong-case duplicate is unknown
         unknown.Should().Contain("bogusSection");
         unknown.Should().NotContain("openai");  // valid alias
+        unknown.Should().NotContain(k => k.StartsWith("openAI.", StringComparison.Ordinal) || k.StartsWith("bogusSection.", StringComparison.Ordinal),
+            "an unknown section is reported once, not key by key");
+    }
+
+    [Fact]
+    public void FindUnknownKeys_ReportsANestedKeyTheSectionDoesNotHave()
+    {
+        // lmsupply.embedderModel and gpuStack.rerankModel were removed; a config that still sets them must be told so.
+        var yaml = "lmsupply:\n  enabled: true\n  embedderModel: auto\n  generatorModel: gguf:auto\ngpuStack:\n  model: m\n  rerankModel: r\n";
+
+        var unknown = ConfigurationManager.FindUnknownKeys(yaml);
+
+        unknown.Should().BeEquivalentTo(["lmsupply.embedderModel", "gpuStack.rerankModel"]);
+    }
+
+    [Fact]
+    public void FindUnknownKeys_ReadsListItems_AndLeavesValuesAlone()
+    {
+        var yaml = "delegation:\n  agents:\n    - name: reviewer\n      bogus: 1\n  maxDepth: 2\n";
+
+        var unknown = ConfigurationManager.FindUnknownKeys(yaml);
+
+        unknown.Should().BeEquivalentTo(["delegation.agents[0].bogus"]);
+    }
+
+    [Fact]
+    public void Load_WarnsAboutANestedUnknownKey()
+    {
+        using var tmp = new TempConfigDirs();
+        tmp.WriteGlobal("lmsupply:\n  embedderModel: auto\n");
+        var logger = new CapturingLogger();
+
+        new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath, logger).Load();
+
+        logger.Warnings.Should().Contain(w => w.Contains("lmsupply.embedderModel", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -456,5 +492,22 @@ public class ConfigurationManagerTests : IDisposable
 
         var apiKeyEntry = result.First(kvp => kvp.Key.Contains("apiKey", StringComparison.OrdinalIgnoreCase));
         apiKeyEntry.Value.Should().Be("***");
+    }
+
+    private sealed class CapturingLogger : ILogger<ConfigurationManager>
+    {
+        public List<string> Warnings { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Warning)
+            {
+                Warnings.Add(formatter(state, exception));
+            }
+        }
     }
 }

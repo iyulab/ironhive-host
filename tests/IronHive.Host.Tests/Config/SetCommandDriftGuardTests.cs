@@ -10,7 +10,7 @@ namespace IronHive.Host.Tests.Config;
 /// silently drift from what <see cref="ConfigurationManager.MergeFromYaml"/> actually reads.
 /// A drifted key (e.g. advertising "google" while the loader only reads "googleai") causes a
 /// user-typed `ironhive set google.apiKey ...` to write a key the loader treats as unknown and
-/// silently drops -- see ConfigurationManager.FindUnknownTopLevelKeys.
+/// silently drops -- see ConfigurationManager.FindUnknownKeys.
 /// </summary>
 public class SetCommandDriftGuardTests
 {
@@ -36,9 +36,10 @@ public class SetCommandDriftGuardTests
     {
         var yaml = string.Join("\n", AdvertisedSectionKeys.Select(k => $"{k}:\n  x: 1"));
 
-        var unknown = ConfigurationManager.FindUnknownTopLevelKeys(yaml);
+        var unknown = ConfigurationManager.FindUnknownKeys(yaml);
 
-        unknown.Should().BeEmpty(
+        // The placeholder member "x" is not a real key; only the sections are under test here.
+        unknown.Where(k => !k.Contains('.')).Should().BeEmpty(
             "every key SetCommand's help advertises must be a real loader-recognized section key");
     }
 
@@ -51,7 +52,7 @@ public class SetCommandDriftGuardTests
     {
         var yaml = $"{staleKey}:\n  x: 1\n";
 
-        var unknown = ConfigurationManager.FindUnknownTopLevelKeys(yaml);
+        var unknown = ConfigurationManager.FindUnknownKeys(yaml);
 
         unknown.Should().Contain(staleKey,
             "this key was the pre-fix (wrong) SetCommand advertisement and must not be a valid loader key");

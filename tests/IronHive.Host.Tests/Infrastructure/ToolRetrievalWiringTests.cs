@@ -51,7 +51,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
         config.ToolRetrieval.AlwaysInclude.Should().Equal("read_file");
         config.ToolRetrieval.StickyToolLimit.Should().Be(24);
         config.ToolRetrieval.StickyChangeScore.Should().Be(0.8f);
-        ConfigurationManager.FindUnknownTopLevelKeys(yaml).Should().BeEmpty();
+        ConfigurationManager.FindUnknownKeys(yaml).Should().BeEmpty();
     }
 
     [Fact]

@@ -7,6 +7,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.52.0 — Unreleased
 
+### Changed
+- **Loading warns about a config key the host does not read at any depth, not only a misspelled section.** A member such as
+  `lmsupply.embedderModel` or `delegation.agents[0].bogus` was dropped without a word because the YAML reader ignores unmatched
+  members; it is now logged as `Unknown config key '<path>' … ignored`. The keys of dictionary sections are data and are not
+  checked. **Breaking**: `ConfigurationManager.FindUnknownTopLevelKeys` is renamed `FindUnknownKeys` and returns dotted paths.
+
 ### Removed
 - **Breaking: the embedding and rerank providers, which nothing in the host used, are gone.** The CLI registered an
   `IEmbeddingProvider` and an `IRerankProvider` backed by LMSupply, but no tool, retriever or command ever resolved them —
@@ -14,8 +20,8 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   `LMSupplyRerankProvider`, `GpuStackEmbeddingProvider`, `GpuStackRerankProvider`, the config keys
   `lmsupply.embedderModel`, `lmsupply.rerankerModel`, `gpuStack.embeddingModel`, `gpuStack.rerankModel` and the
   environment variables `GPUSTACK_EMBEDDING_MODEL` and `GPUSTACK_RERANK_MODEL`; the package no longer depends on
-  `LMSupply.Embedder` or `LMSupply.Reranker`. Migration: delete those keys from `config.yaml` — a nested key the host does
-  not know is ignored without a warning, so leaving them has no effect either way; `ironhive set` now rejects them.
+  `LMSupply.Embedder` or `LMSupply.Reranker`. Migration: delete those keys from `config.yaml` — loading now warns about each
+  one (below); `ironhive set` rejects them.
 - **Breaking: `ConfigWriter` is removed.** It wrote `.env` lines for dotted keys, but `ironhive set` writes `config.yaml`
   and no code called it.
 

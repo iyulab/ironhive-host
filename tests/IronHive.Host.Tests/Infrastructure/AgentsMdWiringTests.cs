@@ -47,7 +47,7 @@ public sealed class AgentsMdWiringTests : IDisposable
 
         config.AgentsMd.Enabled.Should().BeFalse();
         config.AgentsMd.MaxCharacters.Should().Be(8000);
-        ConfigurationManager.FindUnknownTopLevelKeys(yaml).Should().BeEmpty();
+        ConfigurationManager.FindUnknownKeys(yaml).Should().BeEmpty();
     }
 
     [Fact]

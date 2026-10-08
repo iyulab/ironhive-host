@@ -38,7 +38,7 @@ public sealed class AdvisorWiringTests : IDisposable
         config.Advisor.Provider.Should().Be("anthropic");
         config.Advisor.Model.Should().Be("strong-model");
         config.Advisor.MaxCalls.Should().Be(2);
-        ConfigurationManager.FindUnknownTopLevelKeys(yaml).Should().BeEmpty();
+        ConfigurationManager.FindUnknownKeys(yaml).Should().BeEmpty();
     }
 
     [Fact]

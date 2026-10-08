@@ -164,34 +164,24 @@ public class ConfigurationManager
     public string ProjectConfigPath => Path.Combine(_projectRoot, ".ironhive", "config.yaml");
 
     /// <summary>
-    /// Returns the top-level YAML keys in <paramref name="yaml"/> that do not correspond to a
-    /// known <see cref="IronHiveConfig"/> section (its <see cref="YamlMemberAttribute.Alias"/> if
-    /// annotated, else the CamelCaseNamingConvention-derived key). Comparison is ordinal/
-    /// case-sensitive, so a wrong-case key (e.g. "openAI" instead of "openai") is reported as
-    /// unknown even though it "looks" close to a valid section — this is intentional: it is the
-    /// exact silent-drop defect this hardening closes. Malformed YAML is not reported here (it is
+    /// Returns every YAML key in <paramref name="yaml"/> that the loader does not read, as a dotted path
+    /// (<c>lmsupply.embedderModel</c>, <c>delegation.agents[0].bogus</c>; an unknown section is one entry, not one per
+    /// member). A key matches a property by its <see cref="YamlMemberAttribute.Alias"/> if annotated, else by the
+    /// CamelCaseNamingConvention-derived name. Comparison is ordinal/case-sensitive, so a wrong-case key (e.g. "openAI"
+    /// instead of "openai") is reported even though it "looks" close — the deserializer ignores unmatched members
+    /// without a word, so this list is the only place a misspelled or removed setting shows up. The keys of a dictionary
+    /// member are data, not settings, and are not checked (its values are). Malformed YAML is not reported here (it is
     /// handled separately by <see cref="MergeFromYaml"/>'s own try/catch blocks).
     /// </summary>
-    public static IReadOnlyList<string> FindUnknownTopLevelKeys(string yaml)
+    public static IReadOnlyList<string> FindUnknownKeys(string yaml)
     {
-        var known = typeof(IronHiveConfig).GetProperties()
-            .Select(p => p.GetCustomAttribute<YamlMemberAttribute>()?.Alias
-                         ?? (char.ToLowerInvariant(p.Name[0]) + p.Name[1..]))
-            .ToHashSet(StringComparer.Ordinal);
-
         var unknown = new List<string>();
         try
         {
-            var root = YamlConfigSerializer.Deserialize<Dictionary<string, object>>(yaml);
+            var root = YamlConfigSerializer.Deserialize<Dictionary<object, object>>(yaml);
             if (root != null)
             {
-                foreach (var key in root.Keys)
-                {
-                    if (!known.Contains(key))
-                    {
-                        unknown.Add(key);
-                    }
-                }
+                CollectUnknownKeys(root, typeof(IronHiveConfig), prefix: "", unknown);
             }
         }
         catch
@@ -202,13 +192,95 @@ public class ConfigurationManager
         return unknown;
     }
 
+    private static void CollectUnknownKeys(object? node, Type type, string prefix, List<string> unknown)
+    {
+        type = Nullable.GetUnderlyingType(type) ?? type;
+        if (node is null || type == typeof(string) || type == typeof(object) || type.IsPrimitive || type.IsEnum)
+        {
+            return;
+        }
+
+        var dictionaryValue = DictionaryValueType(type);
+        if (dictionaryValue != null)
+        {
+            if (node is IDictionary<object, object> entries)
+            {
+                foreach (var (key, value) in entries)
+                {
+                    CollectUnknownKeys(value, dictionaryValue, $"{prefix}.{key}", unknown);
+                }
+            }
+
+            return;
+        }
+
+        var itemType = ListItemType(type);
+        if (itemType != null)
+        {
+            if (node is IList<object> items)
+            {
+                for (var i = 0; i < items.Count; i++)
+                {
+                    CollectUnknownKeys(items[i], itemType, $"{prefix}[{i}]", unknown);
+                }
+            }
+
+            return;
+        }
+
+        if (node is not IDictionary<object, object> members || !type.IsClass)
+        {
+            return;
+        }
+
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.GetCustomAttribute<YamlIgnoreAttribute>() == null)
+            .ToDictionary(
+                p => p.GetCustomAttribute<YamlMemberAttribute>()?.Alias ?? (char.ToLowerInvariant(p.Name[0]) + p.Name[1..]),
+                StringComparer.Ordinal);
+
+        foreach (var (rawKey, value) in members)
+        {
+            var key = rawKey?.ToString() ?? string.Empty;
+            var path = prefix.Length == 0 ? key : $"{prefix}.{key}";
+            if (properties.TryGetValue(key, out var property))
+            {
+                CollectUnknownKeys(value, property.PropertyType, path, unknown);
+            }
+            else
+            {
+                unknown.Add(path);
+            }
+        }
+    }
+
+    private static Type? DictionaryValueType(Type type) =>
+        (type.IsGenericType && type.GetGenericTypeDefinition() is var d &&
+         (d == typeof(Dictionary<,>) || d == typeof(IDictionary<,>) || d == typeof(IReadOnlyDictionary<,>)))
+            ? type.GetGenericArguments()[1]
+            : null;
+
+    private static Type? ListItemType(Type type)
+    {
+        if (type.IsArray)
+        {
+            return type.GetElementType();
+        }
+
+        return type.IsGenericType && type.GetGenericTypeDefinition() is var d &&
+               (d == typeof(List<>) || d == typeof(IList<>) || d == typeof(IReadOnlyList<>) || d == typeof(IEnumerable<>) ||
+                d == typeof(ICollection<>) || d == typeof(IReadOnlyCollection<>))
+            ? type.GetGenericArguments()[0]
+            : null;
+    }
+
     private void MergeFromYaml(IronHiveConfig config, string path)
     {
         try
         {
             var yaml = File.ReadAllText(path);
 
-            foreach (var key in FindUnknownTopLevelKeys(yaml))
+            foreach (var key in FindUnknownKeys(yaml))
             {
 #pragma warning disable CA1848 // Use LoggerMessage delegates for performance-critical paths
                 _logger?.LogWarning("Unknown config key '{Key}' in {Path} ignored", key, path);

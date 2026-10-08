@@ -184,7 +184,7 @@ public sealed class DelegationWiringTests : IDisposable
         config.Delegation.MaxDepth.Should().Be(3);
         config.Delegation.Agents.Should().ContainSingle().Which.Should().BeEquivalentTo(
             new DelegatedAgentHostConfig { Name = "researcher", Provider = "gpustack", Model = "qwen3.8-27b", MaxToolTurns = 8 });
-        ConfigurationManager.FindUnknownTopLevelKeys(project).Should().BeEmpty();
+        ConfigurationManager.FindUnknownKeys(project).Should().BeEmpty();
     }
 
     private Task<IReadOnlyList<AITool>> CreateAsync(

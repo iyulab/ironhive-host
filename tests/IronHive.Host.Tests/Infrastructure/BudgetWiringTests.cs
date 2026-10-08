@@ -41,7 +41,7 @@ public sealed class BudgetWiringTests : IDisposable
         config.Budget.MaxSessionCost.Should().Be(1.5m);
         config.Budget.WarningThreshold.Should().Be(0.9f);
         config.Budget.StopOnLimit.Should().BeTrue();
-        ConfigurationManager.FindUnknownTopLevelKeys(yaml).Should().BeEmpty();
+        ConfigurationManager.FindUnknownKeys(yaml).Should().BeEmpty();
     }
 
     [Fact]
