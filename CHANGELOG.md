@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## 0.52.0 — Unreleased
+## 0.52.0 — 2026-10-09
 
 ### Fixed
 - **Settings in `config.yaml` are no longer lost or reset between the global and the project file.** The two files are now
