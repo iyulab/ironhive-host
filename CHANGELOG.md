@@ -14,6 +14,10 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   `compaction.targetRatio`, `ollama.enabled`) to its default, never read the `approval` section at all
   (`approval.timeoutSeconds` was always 300), and ignored a `skills` section without `roots`. `permissions`, `budget` and
   `skills` still replace as a whole when a file writes them. A key written with an empty value now counts as set.
+- **`ironhive get` reads keys exactly as the loader does.** It matched case-insensitively, so `get openai.model` showed the
+  value of a wrong-case `openAI:` section that the loader ignores.
+- **`get`/`set`/`config`/`doctor` log config warnings through the application's logging.** They held a logger from the
+  startup logger factory, which is disposed once the services are built.
 
 ### Changed
 - **Loading warns about a config key the host does not read at any depth, not only a misspelled section.** A member such as

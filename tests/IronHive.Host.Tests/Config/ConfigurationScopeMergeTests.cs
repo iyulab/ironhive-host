@@ -128,4 +128,17 @@ public class ConfigurationScopeMergeTests
         config.Permissions.Read.Should().BeEmpty("the project's rules are the whole policy, not added to the global ones");
         config.Permissions.DefaultAction.Should().Be(PermissionAction.Ask);
     }
+
+    [Fact]
+    public void GetValue_FindsOnlyKeysTheLoaderReads()
+    {
+        // The loader matches keys exactly (camelCase); a wrong-case key in the file is ignored by Load, so `get` must not
+        // show it as if it were in force.
+        using var tmp = new TempConfigDirs();
+        tmp.WriteGlobal("openAI:\n  model: ignored-by-the-loader\n");
+        var manager = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+
+        manager.Load().OpenAI.Model.Should().NotBe("ignored-by-the-loader");
+        manager.GetValue("openai.model").Should().BeNull("the key the loader reads is not in the file");
+    }
 }

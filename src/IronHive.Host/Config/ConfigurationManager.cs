@@ -553,17 +553,7 @@ public class ConfigurationManager
             }
             else
             {
-                // Try case-insensitive match
-                if (current is JsonObject objCi)
-                {
-                    var match = objCi.FirstOrDefault(p =>
-                        p.Key.Equals(part, StringComparison.OrdinalIgnoreCase));
-                    if (match.Value is not null)
-                    {
-                        current = match.Value;
-                        continue;
-                    }
-                }
+                // Exact keys only, like the loader: a wrong-case key is not in force, so it has no value to show.
                 return null;
             }
         }

@@ -122,10 +122,11 @@ public static class ServiceCollectionExtensions
         using var bootstrapLoggerFactory = LoggerFactory.Create(b => b.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace));
         var configLogger = bootstrapLoggerFactory.CreateLogger<ConfigurationManager>();
         ConfigMigrator.MigrateIfNeeded(globalConfigPath, projectRoot, legacySettingsPath, configLogger);
-        var configManager = new ConfigurationManager(projectRoot, globalConfigPath, configLogger);
-        services.AddSingleton(configManager);
-        var config = configManager.Load();
+        var config = new ConfigurationManager(projectRoot, globalConfigPath, configLogger).Load();
         services.AddSingleton(config);
+        // The commands that read and write config.yaml later (`get`, `set`, `config`, `doctor`) get a manager that logs
+        // through the application's logging; the bootstrap factory above is disposed when this method returns.
+        services.AddSingleton(sp => new ConfigurationManager(projectRoot, globalConfigPath, sp.GetService<ILogger<ConfigurationManager>>()));
 
         // Register HttpClient factory with named clients
         services.AddHttpClient();
