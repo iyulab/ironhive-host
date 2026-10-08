@@ -7,6 +7,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **A turn can carry system instructions apart from the user's text: `TurnOptions.Instructions` (`instructions` on the
+  wire).** A client that sends its own directives beside text from someone untrusted no longer has to concatenate them
+  into `Content`. They reach the model as `ChatOptions.Instructions` for that turn only — sent as system text with the
+  agent's system prompt, never stored in the conversation history, not carried to the next turn. Blank instructions are
+  the same as none. Existing clients are unaffected.
+
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.113.0 -> 0.115.1.
 

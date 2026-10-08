@@ -39,12 +39,19 @@ public record UserMessageRequest(
 /// <c>extra_high</c>, for models that expose a reasoning effort.</param>
 /// <param name="Temperature">Sampling temperature for this turn.</param>
 /// <param name="MaxOutputTokens">Output token cap for this turn.</param>
+/// <param name="Instructions">System instructions for this turn, kept apart from the user's text: the client's own
+/// directives (an operator's standing instructions, rules it compiled) beside <see cref="UserMessageRequest.Content"/>
+/// that may come from someone untrusted. They reach the model as Microsoft.Extensions.AI's
+/// <c>ChatOptions.Instructions</c> — the providers send them as system text alongside the agent's system prompt — and
+/// are never added to the conversation history, so a later turn without them does not carry them and a guard that reads
+/// the user's text does not read them. Send them again with every turn that should have them.</param>
 public record TurnOptions(
     string[]? ToolNames = null,
     string? ToolMode = null,
     string? ReasoningEffort = null,
     float? Temperature = null,
-    int? MaxOutputTokens = null);
+    int? MaxOutputTokens = null,
+    string? Instructions = null);
 
 /// <summary>
 /// A client's answer to a <see cref="HitlRequestEvent"/>.

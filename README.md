@@ -590,7 +590,7 @@ a wait older than `approval.timeoutSeconds` resumes as a denial without asking. 
 
 | Type | Discriminator | Key fields |
 |------|---------------|-----------|
-| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens` — see below) |
+| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions` — see below) |
 | `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` |
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?`, `Id?` (the request being answered), `ModifiedArguments?`, `AlwaysApprove?` |
 | `CancelRequest` | `cancel` | — |
@@ -618,6 +618,13 @@ configured value for this turn only, an unset field keeps it, and the next reque
 is back on the agent's configuration — nothing is remembered across turns. A tool name that is not
 registered, or an unknown mode/effort, is answered with an `error` event, never silently dropped. A
 request without `options` is byte-identical to the pre-0.21.0 wire form.
+
+`instructions` is a second text channel for the turn, apart from `content`: the client's own directives (an operator's
+standing instructions, rules it compiled) beside user text that may come from someone untrusted. They reach the model as
+system text alongside the agent's system prompt (Microsoft.Extensions.AI `ChatOptions.Instructions`) and are never added
+to the conversation history — a guard that reads the user's text does not read them, and the next turn does not carry
+them. Send them with every turn that should have them; keeping them identical from turn to turn keeps the prompt prefix
+stable for providers that cache it.
 
 ## Samples
 

@@ -40,7 +40,8 @@ public static class TurnOptionsMapper
         var chatOptions = new ChatOptions
         {
             Temperature = options.Temperature,
-            MaxOutputTokens = options.MaxOutputTokens
+            MaxOutputTokens = options.MaxOutputTokens,
+            Instructions = string.IsNullOrWhiteSpace(options.Instructions) ? null : options.Instructions
         };
 
         if (options.ToolNames is not null)
