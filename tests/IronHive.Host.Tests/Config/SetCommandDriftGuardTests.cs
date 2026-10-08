@@ -7,7 +7,7 @@ namespace IronHive.Host.Tests.Config;
 /// Pins <c>SetCommand.ShowValidKeys()</c>'s advertised top-level section keys against the
 /// loader's real keys (<see cref="IronHiveConfig"/>'s <c>YamlMemberAttribute</c> aliases /
 /// CamelCaseNamingConvention-derived names), so the CLI's `set`/`config` help text can never
-/// silently drift from what <see cref="ConfigurationManager.MergeFromYaml"/> actually reads.
+/// silently drift from what <see cref="ConfigurationManager.Load"/> actually reads.
 /// A drifted key (e.g. advertising "google" while the loader only reads "googleai") causes a
 /// user-typed `ironhive set google.apiKey ...` to write a key the loader treats as unknown and
 /// silently drops -- see ConfigurationManager.FindUnknownKeys.

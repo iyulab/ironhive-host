@@ -6,6 +6,7 @@ using IronHive.Host.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
 namespace IronHive.Host.Config;
@@ -50,20 +51,23 @@ public class ConfigurationManager
             return _cachedConfig;
         }
 
-        var config = new IronHiveConfig();
-
-        // 1. Load global config
+        // 1-2. The global, then the project config.yaml, laid over each other as YAML trees and read once: a key the
+        //      project file sets wins, a key it does not set keeps the global value — whatever its section or type.
+        //      (A field-by-field merge of two deserialized objects cannot tell «not set» from «set to the default», and
+        //      had to be extended for every new setting; sections it did not list were never read.)
+        var merged = new YamlMappingNode();
         if (File.Exists(_globalConfigPath))
         {
-            MergeFromYaml(config, _globalConfigPath);
+            OverlayFile(merged, _globalConfigPath);
         }
 
-        // 2. Load project config
         var projectConfigPath = Path.Combine(_projectRoot, ".ironhive", "config.yaml");
         if (File.Exists(projectConfigPath))
         {
-            MergeFromYaml(config, projectConfigPath);
+            OverlayFile(merged, projectConfigPath);
         }
+
+        var config = merged.Children.Count == 0 ? new IronHiveConfig() : Read(merged);
 
         // 3. Load .env file
         var dotEnvPath = Path.Combine(_projectRoot, ".env");
@@ -171,7 +175,7 @@ public class ConfigurationManager
     /// instead of "openai") is reported even though it "looks" close — the deserializer ignores unmatched members
     /// without a word, so this list is the only place a misspelled or removed setting shows up. The keys of a dictionary
     /// member are data, not settings, and are not checked (its values are). Malformed YAML is not reported here (it is
-    /// handled separately by <see cref="MergeFromYaml"/>'s own try/catch blocks).
+    /// handled separately by <see cref="OverlayFile"/>'s own try/catch blocks).
     /// </summary>
     public static IReadOnlyList<string> FindUnknownKeys(string yaml)
     {
@@ -186,7 +190,7 @@ public class ConfigurationManager
         }
         catch
         {
-            // Malformed YAML is handled by MergeFromYaml's own catch blocks.
+            // Malformed YAML is handled by OverlayFile's own catch blocks.
         }
 
         return unknown;
@@ -274,7 +278,12 @@ public class ConfigurationManager
             : null;
     }
 
-    private void MergeFromYaml(IronHiveConfig config, string path)
+    /// <summary>
+    /// Reads one config file and lays it over <paramref name="merged"/>. A file that cannot be read, is not YAML, or does
+    /// not deserialize into <see cref="IronHiveConfig"/> (a word where a number belongs) is skipped as a whole, with a
+    /// warning, so it cannot leave half its settings applied. Keys the loader does not read are reported.
+    /// </summary>
+    private void OverlayFile(YamlMappingNode merged, string path)
     {
         try
         {
@@ -287,10 +296,14 @@ public class ConfigurationManager
 #pragma warning restore CA1848
             }
 
-            var loaded = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml);
-            if (loaded != null)
+            // Values must fit their members before the file joins the merge.
+            _ = YamlConfigSerializer.Deserialize<IronHiveConfig>(yaml);
+
+            var stream = new YamlStream();
+            stream.Load(new StringReader(yaml));
+            if (stream.Documents.Count > 0 && stream.Documents[0].RootNode is YamlMappingNode root)
             {
-                MergeConfig(config, loaded);
+                Overlay(merged, root, atRoot: true);
             }
         }
         catch (IOException ex)
@@ -314,386 +327,33 @@ public class ConfigurationManager
     }
 
     /// <summary>
-    /// Mechanical field-by-field merge of <paramref name="source"/> into <paramref name="target"/>
-    /// across every <see cref="IronHiveConfig"/> section. String/reference-type fields fall through
-    /// from the earlier scope when unset (non-empty-wins); value-type/bool fields overwrite
-    /// unconditionally on presence (YAML omission = the type's default, so a later scope that omits
-    /// a key cannot be distinguished from one that explicitly sets the default — acceptable per
-    /// Task 1 scope; a round-trip regression test lands in a later task).
+    /// Lays <paramref name="source"/> over <paramref name="target"/>: mappings merge key by key, anything else (a scalar, a
+    /// list) replaces — a list is one decision, never a union with another scope's. Three top-level sections replace as a
+    /// whole: <c>permissions</c> (a scope's rules are a complete policy), <c>budget</c> (a scope's threshold and stop flag
+    /// belong to its limits) and <c>skills</c> (the roots, the enabled and excluded lists and the size limit are one
+    /// choice).
     /// </summary>
-    private static void MergeConfig(IronHiveConfig target, IronHiveConfig source)
+    private static void Overlay(YamlMappingNode target, YamlMappingNode source, bool atRoot)
     {
-        // GpuStack
-        if (source.GpuStack.StreamIdleTimeoutSeconds is { } gpuStackIdle)
-        {
-            target.GpuStack.StreamIdleTimeoutSeconds = gpuStackIdle;
-        }
-
-        if (source.GpuStack.CarryToolImages is { } gpuStackCarry)
-        {
-            target.GpuStack.CarryToolImages = gpuStackCarry;
-        }
-
-        if (!string.IsNullOrEmpty(source.GpuStack.Endpoint))
-        {
-            target.GpuStack.Endpoint = source.GpuStack.Endpoint;
-        }
-
-        if (!string.IsNullOrEmpty(source.GpuStack.ApiKey))
-        {
-            target.GpuStack.ApiKey = source.GpuStack.ApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.GpuStack.Model))
-        {
-            target.GpuStack.Model = source.GpuStack.Model;
-        }
-
-        // OpenAI
-        if (source.OpenAI.StreamIdleTimeoutSeconds is { } openAIIdle)
-        {
-            target.OpenAI.StreamIdleTimeoutSeconds = openAIIdle;
-        }
-
-        if (!string.IsNullOrEmpty(source.OpenAI.ApiKey))
-        {
-            target.OpenAI.ApiKey = source.OpenAI.ApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.OpenAI.Model))
-        {
-            target.OpenAI.Model = source.OpenAI.Model;
-        }
-
-        if (!string.IsNullOrEmpty(source.OpenAI.Endpoint))
-        {
-            target.OpenAI.Endpoint = source.OpenAI.Endpoint;
-        }
-
-        // Anthropic
-        if (source.Anthropic.StreamIdleTimeoutSeconds is { } anthropicIdle)
-        {
-            target.Anthropic.StreamIdleTimeoutSeconds = anthropicIdle;
-        }
-
-        if (!string.IsNullOrEmpty(source.Anthropic.ApiKey))
-        {
-            target.Anthropic.ApiKey = source.Anthropic.ApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.Anthropic.Model))
-        {
-            target.Anthropic.Model = source.Anthropic.Model;
-        }
-
-        // GoogleAI
-        if (source.GoogleAI.StreamIdleTimeoutSeconds is { } googleAIIdle)
-        {
-            target.GoogleAI.StreamIdleTimeoutSeconds = googleAIIdle;
-        }
-
-        if (!string.IsNullOrEmpty(source.GoogleAI.ApiKey))
-        {
-            target.GoogleAI.ApiKey = source.GoogleAI.ApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.GoogleAI.Model))
-        {
-            target.GoogleAI.Model = source.GoogleAI.Model;
-        }
-
-        // Xai
-        if (source.Xai.StreamIdleTimeoutSeconds is { } xaiIdle)
-        {
-            target.Xai.StreamIdleTimeoutSeconds = xaiIdle;
-        }
-
-        // Xai Endpoint has a non-empty default; only overwrite when source differs from it,
-        // otherwise an unset project scope would clobber a real global override with the default.
-        if (!string.IsNullOrEmpty(source.Xai.ApiKey))
-        {
-            target.Xai.ApiKey = source.Xai.ApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.Xai.Model))
-        {
-            target.Xai.Model = source.Xai.Model;
-        }
-
-        if (!string.IsNullOrEmpty(source.Xai.Endpoint) && source.Xai.Endpoint != new XaiConfig().Endpoint)
-        {
-            target.Xai.Endpoint = source.Xai.Endpoint;
-        }
-
-        // LMSupply
-        target.LMSupply.Enabled = source.LMSupply.Enabled;
-        if (!string.IsNullOrEmpty(source.LMSupply.GeneratorModel))
-        {
-            target.LMSupply.GeneratorModel = source.LMSupply.GeneratorModel;
-        }
-
-        if (source.LMSupply.MaxContextLength is not null)
-        {
-            target.LMSupply.MaxContextLength = source.LMSupply.MaxContextLength;
-        }
-
-        // Ollama
-        if (source.Ollama.CarryToolImages is { } ollamaCarry)
-        {
-            target.Ollama.CarryToolImages = ollamaCarry;
-        }
-
-        if (source.Ollama.StreamIdleTimeoutSeconds is { } ollamaIdle)
-        {
-            target.Ollama.StreamIdleTimeoutSeconds = ollamaIdle;
-        }
-
-        if (!string.IsNullOrEmpty(source.Ollama.Endpoint))
-        {
-            target.Ollama.Endpoint = source.Ollama.Endpoint;
-        }
-
-        if (!string.IsNullOrEmpty(source.Ollama.Model))
-        {
-            target.Ollama.Model = source.Ollama.Model;
-        }
-
-        target.Ollama.Enabled = source.Ollama.Enabled;
-
-        // LMStudio
-        if (source.LMStudio.StreamIdleTimeoutSeconds is { } lMStudioIdle)
-        {
-            target.LMStudio.StreamIdleTimeoutSeconds = lMStudioIdle;
-        }
-
-        if (!string.IsNullOrEmpty(source.LMStudio.Endpoint))
-        {
-            target.LMStudio.Endpoint = source.LMStudio.Endpoint;
-        }
-
-        if (!string.IsNullOrEmpty(source.LMStudio.Model))
-        {
-            target.LMStudio.Model = source.LMStudio.Model;
-        }
-
-        target.LMStudio.Enabled = source.LMStudio.Enabled;
-
-        if (source.LMStudio.CarryToolImages is { } lmStudioCarry)
-        {
-            target.LMStudio.CarryToolImages = lmStudioCarry;
-        }
-
-        // Permissions — replace wholesale when the source scope defines any rule or a non-default action. These are the
-        // config.yaml rules; Load uses them when the project has no permission file of its own.
-        if (source.Permissions.Read.Count > 0 || source.Permissions.Edit.Count > 0 ||
-            source.Permissions.Bash.Count > 0 || source.Permissions.ExternalDirectory.Count > 0 ||
-            source.Permissions.McpTools.Count > 0 || source.Permissions.Tools.Count > 0 ||
-            source.Permissions.ReadOnlyTools.Count > 0 || source.Permissions.DefaultAction != PermissionAction.Ask ||
-            !source.Permissions.AskBeforeDelete)
-        {
-            target.Permissions = source.Permissions;
-        }
-
-        // Compaction — mechanical port of every IronHive.Agent.Context.CompactionConfig scalar.
-        target.Compaction.ProtectRecentTokens = source.Compaction.ProtectRecentTokens;
-        target.Compaction.MinimumPruneTokens = source.Compaction.MinimumPruneTokens;
-        if (source.Compaction.ProtectedToolOutputs.Count > 0)
-        {
-            target.Compaction.ProtectedToolOutputs = source.Compaction.ProtectedToolOutputs;
-        }
-
-        target.Compaction.TargetRatio = source.Compaction.TargetRatio;
-        target.Compaction.UseTokenBasedCompaction = source.Compaction.UseTokenBasedCompaction;
-        target.Compaction.ThresholdPercentage = source.Compaction.ThresholdPercentage;
-        target.Compaction.EnableObservationMasking = source.Compaction.EnableObservationMasking;
-        target.Compaction.ObservationMaskingProtectedTurns = source.Compaction.ObservationMaskingProtectedTurns;
-        target.Compaction.ObservationMaskingMinResultLength = source.Compaction.ObservationMaskingMinResultLength;
-        target.Compaction.ObservationMaskingProtectedTokens = source.Compaction.ObservationMaskingProtectedTokens;
-        target.Compaction.GoalReminder = source.Compaction.GoalReminder;
-        target.Compaction.EnableToolResultCompaction = source.Compaction.EnableToolResultCompaction;
-        target.Compaction.MaxToolResultChars = source.Compaction.MaxToolResultChars;
-        target.Compaction.ToolResultKeepHeadLines = source.Compaction.ToolResultKeepHeadLines;
-        target.Compaction.ToolResultKeepTailLines = source.Compaction.ToolResultKeepTailLines;
-        target.Compaction.UseAnchoredCompaction = source.Compaction.UseAnchoredCompaction;
-        target.Compaction.MaxAnchorStateChars = source.Compaction.MaxAnchorStateChars;
-        if (source.Compaction.MaxContextTokens is not null)
-        {
-            target.Compaction.MaxContextTokens = source.Compaction.MaxContextTokens;
-        }
-
-        target.Compaction.CompactOnOverflow = source.Compaction.CompactOnOverflow;
-
-        // WebSearch
-        target.WebSearch.Enabled = source.WebSearch.Enabled;
-        if (source.WebSearch.DefaultMaxResults > 0)
-        {
-            target.WebSearch.DefaultMaxResults = source.WebSearch.DefaultMaxResults;
-        }
-
-        if (source.WebSearch.MaxSitemapEntries > 0)
-        {
-            target.WebSearch.MaxSitemapEntries = source.WebSearch.MaxSitemapEntries;
-        }
-
-        if (!string.IsNullOrEmpty(source.WebSearch.DuckDuckGoRegion))
-        {
-            target.WebSearch.DuckDuckGoRegion = source.WebSearch.DuckDuckGoRegion;
-        }
-
-        if (!string.IsNullOrEmpty(source.WebSearch.TavilyApiKey))
-        {
-            target.WebSearch.TavilyApiKey = source.WebSearch.TavilyApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.WebSearch.SearchApiKey))
-        {
-            target.WebSearch.SearchApiKey = source.WebSearch.SearchApiKey;
-        }
-
-        if (!string.IsNullOrEmpty(source.WebSearch.SearchApiEngine))
-        {
-            target.WebSearch.SearchApiEngine = source.WebSearch.SearchApiEngine;
-        }
-
-        // DeepResearch
-        target.DeepResearch.Enabled = source.DeepResearch.Enabled;
-        if (!string.IsNullOrEmpty(source.DeepResearch.TavilyApiKey))
-        {
-            target.DeepResearch.TavilyApiKey = source.DeepResearch.TavilyApiKey;
-        }
-
-        if (source.DeepResearch.MaxIterations > 0)
-        {
-            target.DeepResearch.MaxIterations = source.DeepResearch.MaxIterations;
-        }
-
-        if (!string.IsNullOrEmpty(source.DeepResearch.Provider))
-        {
-            target.DeepResearch.Provider = source.DeepResearch.Provider;
-        }
-
-        if (!string.IsNullOrEmpty(source.DeepResearch.Model))
-        {
-            target.DeepResearch.Model = source.DeepResearch.Model;
-        }
-
-        // Advisor
-        if (!string.IsNullOrEmpty(source.Advisor.Provider))
-        {
-            target.Advisor.Provider = source.Advisor.Provider;
-        }
-
-        if (!string.IsNullOrEmpty(source.Advisor.Model))
-        {
-            target.Advisor.Model = source.Advisor.Model;
-        }
-
-        if (source.Advisor.MaxCalls > 0)
-        {
-            target.Advisor.MaxCalls = source.Advisor.MaxCalls;
-        }
-
-        // ToolRetrieval — field by field, like AgentsMd: a scope sets what it states.
-        if (source.ToolRetrieval.Enabled is { } toolRetrievalEnabled)
-        {
-            target.ToolRetrieval.Enabled = toolRetrievalEnabled;
-        }
-
-        if (source.ToolRetrieval.MaxTools > 0)
-        {
-            target.ToolRetrieval.MaxTools = source.ToolRetrieval.MaxTools;
-        }
-
-        if (source.ToolRetrieval.MinRelevanceScore is { } minRelevanceScore)
-        {
-            target.ToolRetrieval.MinRelevanceScore = minRelevanceScore;
-        }
-
-        if (source.ToolRetrieval.MinScoredSlots > 0)
-        {
-            target.ToolRetrieval.MinScoredSlots = source.ToolRetrieval.MinScoredSlots;
-        }
-
-        if (source.ToolRetrieval.AlwaysInclude.Count > 0)
-        {
-            target.ToolRetrieval.AlwaysInclude = [.. source.ToolRetrieval.AlwaysInclude];
-        }
-
-        if (source.ToolRetrieval.StickyToolLimit > 0)
-        {
-            target.ToolRetrieval.StickyToolLimit = source.ToolRetrieval.StickyToolLimit;
-        }
-
-        if (source.ToolRetrieval.StickyChangeScore is { } stickyChangeScore)
-        {
-            target.ToolRetrieval.StickyChangeScore = stickyChangeScore;
-        }
-
-        // AgentsMd
-        if (source.AgentsMd.Enabled is { } agentsMdEnabled)
-        {
-            target.AgentsMd.Enabled = agentsMdEnabled;
-        }
-
-        if (source.AgentsMd.MaxCharacters > 0)
-        {
-            target.AgentsMd.MaxCharacters = source.AgentsMd.MaxCharacters;
-        }
-
-        // Budget — a scope that sets a limit replaces the section (its threshold and stop flag go with its limits).
-        if (source.Budget.MaxSessionTokens > 0 || source.Budget.MaxSessionCost > 0)
-        {
-            target.Budget = source.Budget;
-        }
-
-        // ChatBehavior
-        if (source.ChatBehavior.MaximumIterationsPerRequest > 0)
-        {
-            target.ChatBehavior.MaximumIterationsPerRequest = source.ChatBehavior.MaximumIterationsPerRequest;
-        }
-
-        if (source.ChatBehavior.MaximumConsecutiveErrorsPerRequest > 0)
-        {
-            target.ChatBehavior.MaximumConsecutiveErrorsPerRequest = source.ChatBehavior.MaximumConsecutiveErrorsPerRequest;
-        }
-
-        if (source.ChatBehavior.MaxOutputTokens > 0)
-        {
-            target.ChatBehavior.MaxOutputTokens = source.ChatBehavior.MaxOutputTokens;
-        }
-
-        if (source.ChatBehavior.ReasoningEffort is not null)
-        {
-            target.ChatBehavior.ReasoningEffort = source.ChatBehavior.ReasoningEffort;
-        }
-
-        // Skills — a scope that names roots replaces the section; the lists are one decision, not a union.
-        if (source.Skills.Roots.Count > 0)
-        {
-            target.Skills = source.Skills;
-        }
-
-        // Delegation — the agent list is one decision (like Skills): a scope that lists agents replaces it. The
-        // directory and the limits are set field by field.
-        if (source.Delegation.Agents.Count > 0)
-        {
-            target.Delegation.Agents = [.. source.Delegation.Agents];
-        }
-
-        if (!string.IsNullOrWhiteSpace(source.Delegation.AgentsDirectory))
-        {
-            target.Delegation.AgentsDirectory = source.Delegation.AgentsDirectory;
-        }
-
-        if (source.Delegation.MaxDepth > 0)
-        {
-            target.Delegation.MaxDepth = source.Delegation.MaxDepth;
-        }
-
-        if (source.Delegation.MaxConcurrent > 0)
-        {
-            target.Delegation.MaxConcurrent = source.Delegation.MaxConcurrent;
-        }
+        foreach (var (key, value) in source.Children)
+        {
+            var replaceWhole = atRoot && key is YamlScalarNode { Value: "permissions" or "budget" or "skills" };
+            if (!replaceWhole && value is YamlMappingNode sourceSection &&
+                target.Children.TryGetValue(key, out var existing) && existing is YamlMappingNode targetSection)
+            {
+                Overlay(targetSection, sourceSection, atRoot: false);
+                continue;
+            }
+
+            target.Children[key] = value;
+        }
+    }
+
+    private static IronHiveConfig Read(YamlMappingNode merged)
+    {
+        using var writer = new StringWriter();
+        new YamlStream(new YamlDocument(merged)).Save(writer, assignAnchors: false);
+        return YamlConfigSerializer.Deserialize<IronHiveConfig>(writer.ToString()) ?? new IronHiveConfig();
     }
 
     /// <summary>
@@ -838,7 +498,7 @@ public class ConfigurationManager
 
     // --- YAML <-> JsonNode bridge for key-path mutation (GetValue/SetValue/UnsetValue/ListAll) ---
     // Uses dotted-key JsonNode navigation so a SetValue writes the same clean aliased top-level
-    // keys (e.g. "openai") that Load()/MergeFromYaml read via YamlConfigSerializer — no silent
+    // keys (e.g. "openai") that Load()/OverlayFile read via YamlConfigSerializer — no silent
     // ignore between the mutation API and the typed loader.
 
     private JsonNode? ReadConfigAsJsonNode()

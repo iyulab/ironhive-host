@@ -7,6 +7,14 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## 0.52.0 — Unreleased
 
+### Fixed
+- **Settings in `config.yaml` are no longer lost or reset between the global and the project file.** The two files are now
+  laid over each other as YAML trees and read once: a key the project file sets wins, a key it does not set keeps the
+  global value. Before, a field-by-field merge reset every number and switch the project file did not mention (for example
+  `compaction.targetRatio`, `ollama.enabled`) to its default, never read the `approval` section at all
+  (`approval.timeoutSeconds` was always 300), and ignored a `skills` section without `roots`. `permissions`, `budget` and
+  `skills` still replace as a whole when a file writes them. A key written with an empty value now counts as set.
+
 ### Changed
 - **Loading warns about a config key the host does not read at any depth, not only a misspelled section.** A member such as
   `lmsupply.embedderModel` or `delegation.agents[0].bogus` was dropped without a word because the YAML reader ignores unmatched
