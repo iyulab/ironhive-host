@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
-    <PackageVersion Include="Ironbees.Core" Version="0.24.6" />
+    <PackageVersion Include="Ironbees.Core" Version="0.25.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.1" />
@@ -33,8 +33,8 @@
     <!-- LMSupply packages (local AI inference fallback) -->
     <PackageVersion Include="LMSupply.Generator" Version="0.113.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
-    <PackageVersion Include="IronHive.Agent" Version="0.52.7" />
-    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.52.7" />
+    <PackageVersion Include="IronHive.Agent" Version="0.53.0" />
+    <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.53.0" />
     <!-- IronHive (LLM abstraction) -->
     <PackageVersion Include="IronHive.Abstractions" Version="0.58.0" />
     <PackageVersion Include="IronHive.Core" Version="0.58.0" />
