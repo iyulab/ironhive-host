@@ -38,6 +38,48 @@ public class CliToolInvocationPipelineTests
     }
 
     [Fact]
+    public async Task ToolCallTimeoutSeconds_StopsASlowTool_AndTheModelReadsWhichToolRanOutOfTime()
+    {
+        var walk = AIFunctionFactory.Create(
+            async (string path, CancellationToken ct) => { await Task.Delay(Timeout.Infinite, ct); return "never"; }, "search_files");
+        var options = new ToolInvocationOptions();
+        CliServices.ApplyToolCallTimeout(options, new ChatBehaviorConfig { ToolCallTimeoutSeconds = 1 });
+        var inner = new ScriptedChatClient(new FunctionCallContent("c1", "search_files", new Dictionary<string, object?> { ["path"] = "C:/" }));
+        var client = CliServices.DecorateChatClient(
+            inner,
+            new ChatBehaviorConfig(),
+            CliServices.CreateToolInvocationPipeline(FilterWith(PermissionAction.Allow), approvalService: null, loggerFactory: null, options: options));
+
+        await client.GetResponseAsync("find it", new ChatOptions { Tools = [walk] }, TestContext.Current.CancellationToken);
+
+        var refusal = inner.ToolResults.Should().ContainSingle().Which.Result.Should().BeOfType<ToolCallRefusal>().Subject;
+        refusal.Kind.Should().Be(ToolCallRefusalKind.TimedOut);
+        refusal.Message.Should().Contain("'search_files'").And.Contain("1 s");
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(30, 30)]
+    public void ApplyToolCallTimeout_SetsTheLimitFromConfig(int? seconds, int? expected)
+    {
+        var options = new ToolInvocationOptions { MaxInvocationDuration = TimeSpan.FromMinutes(9) };
+
+        CliServices.ApplyToolCallTimeout(options, new ChatBehaviorConfig { ToolCallTimeoutSeconds = seconds });
+
+        options.MaxInvocationDuration.Should().Be(expected is { } s ? TimeSpan.FromSeconds(s) : null);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void ApplyToolCallTimeout_RefusesANonPositiveValue_InsteadOfIgnoringIt(int seconds)
+    {
+        var act = () => CliServices.ApplyToolCallTimeout(new ToolInvocationOptions(), new ChatBehaviorConfig { ToolCallTimeoutSeconds = seconds });
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*toolCallTimeoutSeconds*");
+    }
+
+    [Fact]
     public async Task DecoratedClient_ADeniedCall_NeverReachesTheTool_AndTheModelReadsTheDenial()
     {
         var ran = false;

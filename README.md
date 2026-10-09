@@ -419,6 +419,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 |----------|---------|-------|
 | `MaximumIterationsPerRequest` | 10 | Lower (5–7) for small 4K-window models; raise (15–20) for large-context models |
 | `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back tool errors; rarely hit in the CLI, where argument errors become recovery hints and the same error three times in a row ends the turn first |
+| `ToolCallTimeoutSeconds` | none | Longest one tool call may run. Past it the call is stopped and the model reads which tool ran out of time; the same slow call three times in a row ends the turn. An approval prompt in front of the call is not timed. `run --tool-timeout <SECONDS>` overrides it for one run |
 
 ```yaml
 # .ironhive/config.yaml
@@ -428,6 +429,7 @@ chatBehavior:
   reasoningEffort: low                # none | low | medium | high | extra_high; unset = the model's default.
                                       # none turns thinking off; the other levels are requests a server may hold loosely
   maximumConsecutiveErrorsPerRequest: 3
+  toolCallTimeoutSeconds: 60          # stop a tool call (a huge folder walk, a hung request) after a minute; unset = no limit
 ```
 
 ### Context Compaction

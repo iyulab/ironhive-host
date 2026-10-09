@@ -7,6 +7,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **An operator can bound one tool call: `chatBehavior.toolCallTimeoutSeconds`, or `run --tool-timeout <SECONDS>` for
+  one run.** Past the limit the call is stopped and the model reads which tool ran out of time (so it can ask for less);
+  the same slow call three times in a row ends the turn. An approval prompt in front of the call is not timed. Unset (the
+  default) keeps no limit; zero or a negative value is refused when the client is created. Applies to the CLI and
+  `run --server`.
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.58.0 -> 0.59.0, `IronHive.Agent` 0.53.0 -> 0.54.0, `IronHive.Agent.Ironbees` 0.53.0 -> 0.54.0, `IronHive.Core` 0.58.0 -> 0.59.0, `IronHive.DeepResearch` 0.53.0 -> 0.54.0, `IronHive.Extensions.AI` 0.58.0 -> 0.59.0, `IronHive.Providers.Anthropic` 0.58.0 -> 0.59.0, `IronHive.Providers.GoogleAI` 0.58.0 -> 0.59.0, `IronHive.Providers.OpenAI` 0.58.0 -> 0.59.0, `IronHive.Providers.OpenAI.Compatible` 0.58.0 -> 0.59.0.
 - Re-pinned sibling package(s) `TokenMeter` 0.7.10 -> 0.8.0.

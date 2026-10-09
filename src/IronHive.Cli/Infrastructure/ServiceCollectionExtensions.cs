@@ -78,9 +78,10 @@ public static class ServiceCollectionExtensions
         IHumanApprovalService? approvalService,
         ILoggerFactory? loggerFactory,
         IModeManager? modeManager = null,
-        IModeToolFilter? modeToolFilter = null)
+        IModeToolFilter? modeToolFilter = null,
+        ToolInvocationOptions? options = null)
     {
-        var options = new ToolInvocationOptions();
+        options ??= new ToolInvocationOptions();
         return new ToolInvocationPipeline(
         [
             new ArgumentParseFailureMiddleware(options, loggerFactory?.CreateLogger<ArgumentParseFailureMiddleware>()),
@@ -89,7 +90,26 @@ public static class ServiceCollectionExtensions
             new RepeatedErrorGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedErrorGuardMiddleware>()),
             new ApprovalGateMiddleware(policy, approvalService, loggerFactory?.CreateLogger<ApprovalGateMiddleware>(), modeManager, modeToolFilter),
             new ResilientArgumentsMiddleware(),
-        ]);
+        ],
+        resultMiddleware: null,
+        options);
+    }
+
+    /// <summary>
+    /// Sets the per-call tool time limit from <see cref="ChatBehaviorConfig.ToolCallTimeoutSeconds"/>. Called when a
+    /// chat client is created — after <c>run --tool-timeout</c> has written the config — so the pipeline built earlier
+    /// reads the turn's setting.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The configured value is zero or negative.</exception>
+    internal static void ApplyToolCallTimeout(ToolInvocationOptions options, ChatBehaviorConfig behavior)
+    {
+        options.MaxInvocationDuration = behavior.ToolCallTimeoutSeconds switch
+        {
+            null => null,
+            > 0 and var seconds => TimeSpan.FromSeconds(seconds),
+            var invalid => throw new InvalidOperationException(
+                $"chatBehavior.toolCallTimeoutSeconds must be a positive number of seconds (was {invalid}); remove it for no limit."),
+        };
     }
 
     /// <summary>
@@ -658,14 +678,19 @@ public static class ServiceCollectionExtensions
             // tuned per model without forking: a malformed tool call must not throw out of the
             // turn, a retry storm must not overflow a small context window, and the right caps
             // differ between a 4K and a 16K+ model.
+            var toolInvocationOptions = new ToolInvocationOptions();
             var toolInvocationPipeline = CreateToolInvocationPipeline(
                 sp.GetRequiredService<IToolCallPolicy>(),
                 sp.GetService<IHumanApprovalService>(),
                 sp.GetService<ILoggerFactory>(),
                 sp.GetService<IModeManager>(),
-                sp.GetRequiredService<IModeToolFilter>());
-            IChatClient ClientDecorator(IChatClient inner) =>
-                DecorateChatClient(inner, config.ChatBehavior, toolInvocationPipeline);
+                sp.GetRequiredService<IModeToolFilter>(),
+                toolInvocationOptions);
+            IChatClient ClientDecorator(IChatClient inner)
+            {
+                ApplyToolCallTimeout(toolInvocationOptions, config.ChatBehavior);
+                return DecorateChatClient(inner, config.ChatBehavior, toolInvocationPipeline);
+            }
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
         });

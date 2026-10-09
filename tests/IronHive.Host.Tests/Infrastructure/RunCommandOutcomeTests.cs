@@ -159,6 +159,29 @@ public sealed class RunCommandOutcomeTests
     }
 
     [Fact]
+    public async Task ToolTimeout_SetsThePerCallToolLimit_BeforeTheLoopIsCreated()
+    {
+        var (command, loop, config) = Command();
+        int? limitWhenRun = null;
+        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            limitWhenRun = config.ChatBehavior.ToolCallTimeoutSeconds;
+            return Response(TurnStopReason.Completed);
+        });
+
+        await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, ToolTimeoutSeconds = 45 });
+
+        limitWhenRun.Should().Be(45);
+        new IronHiveConfig().ChatBehavior.ToolCallTimeoutSeconds.Should().BeNull("the positive control: no limit by default");
+    }
+
+    [Fact]
+    public void ANonPositiveToolTimeout_IsRefused()
+    {
+        new RunCommand.Settings { ToolTimeoutSeconds = 0 }.Validate().Successful.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task MaxOutputTokens_SetsThePerCallCap_BeforeTheLoopIsCreated()
     {
         var (command, loop, config) = Command();

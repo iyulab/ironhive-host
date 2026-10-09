@@ -74,6 +74,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         [Description("How much the model reasons per call: none, low, medium, high, extra_high (overrides chatBehavior.reasoningEffort)")]
         public string? ReasoningEffort { get; init; }
 
+        [CommandOption("--tool-timeout <SECONDS>")]
+        [Description("Longest one tool call may run before it is stopped (overrides chatBehavior.toolCallTimeoutSeconds)")]
+        public int? ToolTimeoutSeconds { get; init; }
+
         [CommandOption("--timeout <SECONDS>")]
         [Description("Stop the run after this many seconds (stop_reason \"timeout\", exit code 2)")]
         public int? TimeoutSeconds { get; init; }
@@ -127,6 +131,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 return ValidationResult.Error("--timeout must be a positive number of seconds.");
             }
 
+            if (ToolTimeoutSeconds is <= 0)
+            {
+                return ValidationResult.Error("--tool-timeout must be a positive number of seconds.");
+            }
+
             return ValidationResult.Success();
         }
     }
@@ -178,6 +187,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         if (settings.MaxIterations is { } maxIterations && _config is not null)
         {
             _config.ChatBehavior.MaximumIterationsPerRequest = maxIterations;
+        }
+
+        if (settings.ToolTimeoutSeconds is { } toolTimeout && _config is not null)
+        {
+            _config.ChatBehavior.ToolCallTimeoutSeconds = toolTimeout;
         }
 
         // Capture initial Git state if auto-commit is enabled

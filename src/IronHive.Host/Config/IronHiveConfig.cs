@@ -359,6 +359,13 @@ public class ChatBehaviorConfig
     /// for that turn.
     /// </summary>
     public string? ReasoningEffort { get; set; }
+
+    /// <summary>
+    /// Longest one tool call may run, in seconds. Past it the call is stopped and the model reads that the tool ran out
+    /// of time (so it can ask for less), and the same slow call repeated three times ends the turn. Only the tool's own
+    /// run is timed — an approval prompt in front of it is not. Null (the default): no limit. Must be positive when set.
+    /// </summary>
+    public int? ToolCallTimeoutSeconds { get; set; }
 }
 
 /// <summary>
