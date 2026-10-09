@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.58.0 -> 0.59.0, `IronHive.Agent` 0.53.0 -> 0.54.0, `IronHive.Agent.Ironbees` 0.53.0 -> 0.54.0, `IronHive.Core` 0.58.0 -> 0.59.0, `IronHive.DeepResearch` 0.53.0 -> 0.54.0, `IronHive.Extensions.AI` 0.58.0 -> 0.59.0, `IronHive.Providers.Anthropic` 0.58.0 -> 0.59.0, `IronHive.Providers.GoogleAI` 0.58.0 -> 0.59.0, `IronHive.Providers.OpenAI` 0.58.0 -> 0.59.0, `IronHive.Providers.OpenAI.Compatible` 0.58.0 -> 0.59.0.
+- Re-pinned sibling package(s) `TokenMeter` 0.7.10 -> 0.8.0.
 
 ## 0.53.0 — 2026-10-09
 
