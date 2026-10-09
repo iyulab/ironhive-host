@@ -215,10 +215,11 @@ public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) 
     public long? CachedInputTokens { get; init; }
 
     /// <summary>
-    /// Why the turn ended, when it ended without an error: <c>completed</c>, <c>output_limit</c>, <c>content_filter</c>,
-    /// <c>tool_terminated</c>, <c>awaiting_host_tools</c>, <c>step_limit</c>, or <c>cancelled</c> when the client cancelled
-    /// it (<see cref="CancelRequest"/>). Null when the turn failed (an <see cref="ErrorEvent"/> before this event says why —
-    /// a timeout is a failure, not a cancellation), or the turn produced no record.
+    /// Why the turn ended, when it ended without an error — one of the <see cref="StopReasons"/>: <c>completed</c>,
+    /// <c>output_limit</c>, <c>content_filter</c>, <c>tool_terminated</c>, <c>awaiting_host_tools</c>, <c>step_limit</c>, or
+    /// <c>cancelled</c> when the client cancelled it (<see cref="CancelRequest"/>). Null when the turn failed (an
+    /// <see cref="ErrorEvent"/> before this event says why — a timeout is a failure, not a cancellation), or the turn produced
+    /// no record.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? StopReason { get; init; }
@@ -226,6 +227,31 @@ public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) 
     /// <summary>Wall-clock time of the turn in milliseconds, from its first event to this one; null when unknown.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? DurationMs { get; init; }
+}
+
+/// <summary>The values of <see cref="TurnEndEvent.StopReason"/>.</summary>
+public static class StopReasons
+{
+    /// <summary>The model finished its answer.</summary>
+    public const string Completed = "completed";
+
+    /// <summary>The answer was cut off at the output token limit.</summary>
+    public const string OutputLimit = "output_limit";
+
+    /// <summary>The provider's content filter stopped the answer.</summary>
+    public const string ContentFilter = "content_filter";
+
+    /// <summary>A tool ended the turn.</summary>
+    public const string ToolTerminated = "tool_terminated";
+
+    /// <summary>The model called tools the client runs; the turn waits for their results.</summary>
+    public const string AwaitingHostTools = "awaiting_host_tools";
+
+    /// <summary>The turn reached its step limit.</summary>
+    public const string StepLimit = "step_limit";
+
+    /// <summary>The client cancelled the turn (<see cref="CancelRequest"/>).</summary>
+    public const string Cancelled = "cancelled";
 }
 
 /// <summary>

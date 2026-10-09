@@ -14,6 +14,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   request or count failures by cause without matching the sentence. The runners take the class from the agent's
   `IErrorRecoveryService`; set `ErrorClassifier` to pass the application's own (`run --server` passes its registered one).
   It is omitted from the JSON when null.
+- **`StopReasons`** names the `TurnEndEvent.StopReason` values as constants, the way `ErrorCodes` does for errors.
 - **A refused tool call says why.** `ToolEndEvent.Refusal` carries one of `ToolRefusalCodes` (`denied`, `rejected`,
   `timed_out`, …) for a call the agent refused or whose result it withheld, and is null when the tool ran.
 

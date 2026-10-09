@@ -124,12 +124,12 @@ public static class AgentResponseMapper
     /// <summary>The protocol spelling of a stop reason (snake_case, stable across renames of the enum).</summary>
     internal static string WireName(TurnStopReason reason) => reason switch
     {
-        TurnStopReason.Completed => "completed",
-        TurnStopReason.OutputLimit => "output_limit",
-        TurnStopReason.ContentFilter => "content_filter",
-        TurnStopReason.ToolTerminated => "tool_terminated",
-        TurnStopReason.AwaitingHostTools => "awaiting_host_tools",
-        TurnStopReason.StepLimit => "step_limit",
+        TurnStopReason.Completed => StopReasons.Completed,
+        TurnStopReason.OutputLimit => StopReasons.OutputLimit,
+        TurnStopReason.ContentFilter => StopReasons.ContentFilter,
+        TurnStopReason.ToolTerminated => StopReasons.ToolTerminated,
+        TurnStopReason.AwaitingHostTools => StopReasons.AwaitingHostTools,
+        TurnStopReason.StepLimit => StopReasons.StepLimit,
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "A stop reason without a wire name."),
     };
 

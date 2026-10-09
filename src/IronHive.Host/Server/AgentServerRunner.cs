@@ -271,7 +271,7 @@ public partial class AgentServerRunner
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await WriteSerializedAsync(output, writeLock, new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? "cancelled" : null }, CancellationToken.None);
+                await WriteSerializedAsync(output, writeLock, new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? StopReasons.Cancelled : null }, CancellationToken.None);
             }
         }
     }

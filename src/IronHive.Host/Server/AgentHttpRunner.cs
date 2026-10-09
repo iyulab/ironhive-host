@@ -415,7 +415,7 @@ public sealed partial class AgentHttpRunner : IDisposable
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await PostEventAsync(new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? "cancelled" : null }, CancellationToken.None);
+                await PostEventAsync(new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? StopReasons.Cancelled : null }, CancellationToken.None);
             }
         }
     }
