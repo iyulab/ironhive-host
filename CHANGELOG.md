@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Removed
+- **Breaking: the `IronHive.Host.Exceptions` namespace is gone.** `IronHiveException`, `ConfigurationException`,
+  `ProviderException`, `McpPluginException` and `SessionException` were never thrown by the host, and nothing used them.
+  Migration: catch the exceptions the host actually throws (standard .NET exceptions such as `InvalidOperationException`),
+  or define your own type if you threw these yourself.
+
 ## 0.55.0 — 2026-10-09
 
 ### Added

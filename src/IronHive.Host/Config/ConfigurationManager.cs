@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using IronHive.Agent.Permissions;
-using IronHive.Host.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Core;
