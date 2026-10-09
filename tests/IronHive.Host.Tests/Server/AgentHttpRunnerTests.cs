@@ -81,7 +81,27 @@ public class AgentHttpRunnerTests
         await runner.RunAsync(TestContext.Current.CancellationToken);
 
         messages.Should().Equal("ok");
-        host.PostedEvents.Should().Contain(e => e.Contains("Unreadable request skipped", StringComparison.Ordinal));
+        host.PostedEvents.Should().Contain(e => e.Contains("Unreadable request skipped", StringComparison.Ordinal)
+            && e.Contains("\"code\":\"unreadable_request\"", StringComparison.Ordinal));
+    }
+
+    // A provider call's timeout surfaces as a cancellation the client never asked for; it was posted like a cancel —
+    // no error, a bare turn end.
+    [Fact]
+    public async Task UnrequestedCancellation_IsPostedAsATimeoutError()
+    {
+        var host = new FakeHost(Inbox(
+            """data: {"type":"user_message","content":"slow"}""",
+            """data: {"type":"shutdown"}"""));
+        using var runner = new AgentHttpRunner(
+            "http://agent-host.test", "s1",
+            (_, _) => throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()),
+            NullLogger<AgentHttpRunner>.Instance, httpHandler: host);
+
+        await runner.RunAsync(TestContext.Current.CancellationToken);
+
+        host.PostedEvents.Should().Contain(e => e.Contains("\"type\":\"error\"", StringComparison.Ordinal)
+            && e.Contains("\"code\":\"timeout\"", StringComparison.Ordinal));
     }
 
     // A turn a previous process left waiting for approval resumes before the inbox's messages, once

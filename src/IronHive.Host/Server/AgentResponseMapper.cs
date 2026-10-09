@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using IronHive.Agent.Loop;
+using IronHive.Agent.Mode;
 
 using IronHive.Host.Protocol;
 
@@ -68,7 +69,10 @@ public static class AgentResponseMapper
             if (chunk.ToolResult is { Success: { } arrivedSuccess } arrived)
             {
                 relayed.Add(arrived);
-                yield return new ToolEndEvent(arrived.ToolName, arrivedSuccess, arrived.Result, arrived.CallId);
+                yield return new ToolEndEvent(arrived.ToolName, arrivedSuccess, arrived.Result, arrived.CallId)
+                {
+                    Refusal = arrived.RefusalKind is { } refused ? WireName(refused) : null,
+                };
             }
 
             // The final chunk carries the turn's consolidated tool outcomes. Relay each one whose outcome is known
@@ -84,7 +88,10 @@ public static class AgentResponseMapper
                     }
                     if (call.Success is { } success)
                     {
-                        yield return new ToolEndEvent(call.ToolName, success, call.Result, call.CallId);
+                        yield return new ToolEndEvent(call.ToolName, success, call.Result, call.CallId)
+                        {
+                            Refusal = call.RefusalKind is { } refused ? WireName(refused) : null,
+                        };
                     }
                 }
             }
@@ -124,5 +131,20 @@ public static class AgentResponseMapper
         TurnStopReason.AwaitingHostTools => "awaiting_host_tools",
         TurnStopReason.StepLimit => "step_limit",
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "A stop reason without a wire name."),
+    };
+
+    /// <summary>The protocol spelling of a tool refusal (<see cref="ToolRefusalCodes"/>).</summary>
+    internal static string WireName(ToolCallRefusalKind kind) => kind switch
+    {
+        ToolCallRefusalKind.Denied => ToolRefusalCodes.Denied,
+        ToolCallRefusalKind.ApprovalUnavailable => ToolRefusalCodes.ApprovalUnavailable,
+        ToolCallRefusalKind.Rejected => ToolRefusalCodes.Rejected,
+        ToolCallRefusalKind.ResultWithheld => ToolRefusalCodes.ResultWithheld,
+        ToolCallRefusalKind.InvalidArguments => ToolRefusalCodes.InvalidArguments,
+        ToolCallRefusalKind.RepeatedCall => ToolRefusalCodes.RepeatedCall,
+        ToolCallRefusalKind.RepeatedError => ToolRefusalCodes.RepeatedError,
+        ToolCallRefusalKind.RepeatedResult => ToolRefusalCodes.RepeatedResult,
+        ToolCallRefusalKind.TimedOut => ToolRefusalCodes.TimedOut,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "A tool refusal without a wire name."),
     };
 }

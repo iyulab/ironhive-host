@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Host.Protocol;
 using Microsoft.Extensions.Logging;
 
@@ -95,6 +96,19 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// reconnected stream delivers a message.
     /// </summary>
     public int? MaxReconnectAttempts { get; set; } = 10;
+
+    /// <summary>
+    /// Classifies a failed turn for <see cref="ErrorEvent.Code"/>. Defaults to an <see cref="ErrorRecoveryService"/> with its
+    /// built-in HTTP status reader; pass the application's own (with the provider gateways' failure readers) so the wire
+    /// and error recovery read a failure the same way.
+    /// </summary>
+    public IErrorRecoveryService ErrorClassifier
+    {
+        get => _errorClassifier;
+        set => _errorClassifier = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    private IErrorRecoveryService _errorClassifier = new ErrorRecoveryService();
 
     /// <param name="hostUrl">Base URL of the host, e.g. "http://localhost:5100".</param>
     /// <param name="sessionId">Session ID to connect to.</param>
@@ -346,7 +360,7 @@ public sealed partial class AgentHttpRunner : IDisposable
             {
                 parsed = null;
                 LogUnreadableRequest(ex.GetType().Name);
-                await PostEventAsync(new ErrorEvent($"Unreadable request skipped: {ex.Message}"), CancellationToken.None);
+                await PostEventAsync(new ErrorEvent($"Unreadable request skipped: {ex.Message}") { Code = ErrorCodes.UnreadableRequest }, CancellationToken.None);
             }
 
             if (parsed is not null)
@@ -369,6 +383,7 @@ public sealed partial class AgentHttpRunner : IDisposable
     private async Task HandleTurnAsync(Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, CancellationToken ct)
     {
         var turnEndSent = false;
+        var failed = false;
         try
         {
             await foreach (var evt in turn(ct))
@@ -381,14 +396,16 @@ public sealed partial class AgentHttpRunner : IDisposable
                 await PostEventAsync(evt, ct);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Intentional cancellation via CancelRequest — fallback TurnEndEvent posted in finally.
+            // Intentional cancellation via CancelRequest — fallback TurnEndEvent (StopReason "cancelled") posted in finally.
         }
         catch (Exception ex)
         {
+            // Includes a cancellation the client did not ask for — an HTTP or stream timeout is a failure, not a cancel.
+            failed = true;
             LogAgentProcessingError(ex);
-            await PostEventAsync(new ErrorEvent(ex.Message), CancellationToken.None);
+            await PostEventAsync(TurnFailures.ToErrorEvent(ex, _errorClassifier), CancellationToken.None);
         }
         finally
         {
@@ -398,7 +415,7 @@ public sealed partial class AgentHttpRunner : IDisposable
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await PostEventAsync(new TurnEndEvent(), CancellationToken.None);
+                await PostEventAsync(new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? "cancelled" : null }, CancellationToken.None);
             }
         }
     }

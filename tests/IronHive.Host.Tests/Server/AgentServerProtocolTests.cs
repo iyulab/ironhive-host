@@ -297,5 +297,30 @@ public class AgentServerProtocolTests
 
         deserialized.Should().BeOfType<ErrorEvent>()
             .Which.Message.Should().Be("something went wrong");
+        json.Should().NotContain("\"code\"", "an unclassified error writes no code");
+    }
+
+    [Fact]
+    public void Roundtrip_ErrorEvent_WithCode()
+    {
+        ServerEvent original = new ErrorEvent("The prompt is too long.") { Code = ErrorCodes.ContextLimit };
+        var json = JsonSerializer.Serialize(original, Options);
+        var deserialized = JsonSerializer.Deserialize<ServerEvent>(json, Options);
+
+        json.Should().Contain("\"code\":\"context_limit\"");
+        deserialized.Should().BeOfType<ErrorEvent>().Which.Code.Should().Be(ErrorCodes.ContextLimit);
+    }
+
+    [Fact]
+    public void Roundtrip_ToolEndEvent_WithRefusal()
+    {
+        ServerEvent original = new ToolEndEvent("WalkFolder", false, "timed out", "tc-1") { Refusal = ToolRefusalCodes.TimedOut };
+        var json = JsonSerializer.Serialize(original, Options);
+        var deserialized = JsonSerializer.Deserialize<ServerEvent>(json, Options);
+
+        json.Should().Contain("\"refusal\":\"timed_out\"");
+        deserialized.Should().BeOfType<ToolEndEvent>().Which.Refusal.Should().Be(ToolRefusalCodes.TimedOut);
+        JsonSerializer.Serialize<ServerEvent>(new ToolEndEvent("ReadFile", true), Options)
+            .Should().NotContain("refusal", "a tool that ran writes no refusal");
     }
 }

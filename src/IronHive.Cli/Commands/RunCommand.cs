@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Cli.Infrastructure;
@@ -25,19 +26,22 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
     private readonly HitlBridge? _hitlBridge;
     private readonly IronHiveConfig? _config;
     private readonly ISessionManager? _sessionManager;
+    private readonly IErrorRecoveryService? _errorRecovery;
 
     public RunCommand(
         IHostAgentLoopFactory factory,
         IMcpPluginManager? pluginManager = null,
         HitlBridge? hitlBridge = null,
         IronHiveConfig? config = null,
-        ISessionManager? sessionManager = null)
+        ISessionManager? sessionManager = null,
+        IErrorRecoveryService? errorRecovery = null)
     {
         _factory = factory;
         _pluginManager = pluginManager;
         _hitlBridge = hitlBridge;
         _config = config;
         _sessionManager = sessionManager;
+        _errorRecovery = errorRecovery;
     }
 
     public class Settings : CommandSettings
@@ -376,6 +380,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
             var logger = NullLogger<AgentServerRunner>.Instance;
             var runner = new AgentServerRunner(ProcessMessage, logger, hitlBridge: _hitlBridge);
+            if (_errorRecovery is not null)
+            {
+                // The same classifier error recovery uses (with the gateways' failure readers), so ErrorEvent.Code agrees with it.
+                runner.ErrorClassifier = _errorRecovery;
+            }
             if (pending.Count > 0 && recorder is not null && _hitlBridge is not null)
             {
                 var bridge = _hitlBridge;

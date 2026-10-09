@@ -126,7 +126,48 @@ public record ToolStartEvent(string Tool, JsonElement? Input = null, string? Cal
 /// On failure, <see cref="Output"/> carries "{ExceptionType}: {message}".
 /// <see cref="CallId"/> matches the corresponding <see cref="ToolStartEvent.CallId"/> for start/end pairing.
 /// </summary>
-public record ToolEndEvent(string Tool, bool Success, string? Output = null, string? CallId = null) : ServerEvent;
+public record ToolEndEvent(string Tool, bool Success, string? Output = null, string? CallId = null) : ServerEvent
+{
+    /// <summary>
+    /// Why the call was refused instead of run (or why its result was withheld), as one of the
+    /// <see cref="ToolRefusalCodes"/>; null when the tool ran. <see cref="Success"/> is false whenever this is set, so a
+    /// client tells «refused» from «ran and failed» — and a permission denial from a time limit — without reading
+    /// <see cref="Output"/>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Refusal { get; init; }
+}
+
+/// <summary>The values of <see cref="ToolEndEvent.Refusal"/>.</summary>
+public static class ToolRefusalCodes
+{
+    /// <summary>A permission rule denied the call.</summary>
+    public const string Denied = "denied";
+
+    /// <summary>The call needed approval and nothing could ask for it.</summary>
+    public const string ApprovalUnavailable = "approval_unavailable";
+
+    /// <summary>The approver said no.</summary>
+    public const string Rejected = "rejected";
+
+    /// <summary>The tool ran, and a result guard withheld its result from the model.</summary>
+    public const string ResultWithheld = "result_withheld";
+
+    /// <summary>The call's arguments could not be parsed, so the tool did not run.</summary>
+    public const string InvalidArguments = "invalid_arguments";
+
+    /// <summary>The same call already succeeded several times in a row, so it was not run again.</summary>
+    public const string RepeatedCall = "repeated_call";
+
+    /// <summary>The tool failed with the same error several times in a row, and the request was ended.</summary>
+    public const string RepeatedError = "repeated_error";
+
+    /// <summary>The call returned a result the model had already received several times, and the request was ended.</summary>
+    public const string RepeatedResult = "repeated_result";
+
+    /// <summary>The tool ran past its time limit and was stopped; it produced no result.</summary>
+    public const string TimedOut = "timed_out";
+}
 
 /// <summary>
 /// A tool call that needs a person's approval before it runs. The call waits; answer with a
@@ -175,8 +216,9 @@ public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) 
 
     /// <summary>
     /// Why the turn ended, when it ended without an error: <c>completed</c>, <c>output_limit</c>, <c>content_filter</c>,
-    /// <c>tool_terminated</c>, <c>awaiting_host_tools</c> or <c>step_limit</c>. Null when the turn failed or was cancelled
-    /// (an <see cref="ErrorEvent"/> says why), or the turn produced no record.
+    /// <c>tool_terminated</c>, <c>awaiting_host_tools</c>, <c>step_limit</c>, or <c>cancelled</c> when the client cancelled
+    /// it (<see cref="CancelRequest"/>). Null when the turn failed (an <see cref="ErrorEvent"/> before this event says why —
+    /// a timeout is a failure, not a cancellation), or the turn produced no record.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? StopReason { get; init; }
@@ -186,7 +228,65 @@ public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) 
     public long? DurationMs { get; init; }
 }
 
-public record ErrorEvent(string Message) : ServerEvent;
+/// <summary>
+/// A turn failed, or a request could not be read. <see cref="Message"/> is for people and may be reworded at any release;
+/// <see cref="Code"/> is for code to branch on.
+/// </summary>
+public record ErrorEvent(string Message) : ServerEvent
+{
+    /// <summary>
+    /// The class of the failure, as one of the <see cref="ErrorCodes"/> — or a value of the producer's own when it is not one
+    /// of them. Null when the producer did not classify it (an older producer, or a host-written event without a code).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Code { get; init; }
+}
+
+/// <summary>
+/// The values of <see cref="ErrorEvent.Code"/>. A turn's ending that is not a failure — a step limit, an output limit, a
+/// client's cancel — is a <see cref="TurnEndEvent.StopReason"/>, not an error code.
+/// </summary>
+public static class ErrorCodes
+{
+    /// <summary>The request did not fit the model's context window. A smaller request can succeed.</summary>
+    public const string ContextLimit = "context_limit";
+
+    /// <summary>The provider asked the caller to slow down. Waiting clears it.</summary>
+    public const string RateLimit = "rate_limit";
+
+    /// <summary>The account behind the credential cannot pay for the request. Waiting does not clear it.</summary>
+    public const string Billing = "billing";
+
+    /// <summary>The provider refused the credential.</summary>
+    public const string Auth = "auth";
+
+    /// <summary>The provider could not be reached, or failed in a way a retry can clear.</summary>
+    public const string Network = "network";
+
+    /// <summary>A time limit passed — the turn's own, or a provider call's or stream's — before the turn finished.</summary>
+    public const string Timeout = "timeout";
+
+    /// <summary>
+    /// The request was refused as invalid, and sending it again fails the same way (for example an unknown model, or an
+    /// argument the provider does not accept).
+    /// </summary>
+    public const string RequestRejected = "request_rejected";
+
+    /// <summary>A tool failed in a way that ended the turn.</summary>
+    public const string ToolExecution = "tool_execution";
+
+    /// <summary>A file-system operation failed.</summary>
+    public const string FileSystem = "file_system";
+
+    /// <summary>The producer failed internally.</summary>
+    public const string Internal = "internal";
+
+    /// <summary>The producer could not classify the failure.</summary>
+    public const string Unknown = "unknown";
+
+    /// <summary>A request line could not be read; it was skipped and the server kept running.</summary>
+    public const string UnreadableRequest = "unreadable_request";
+}
 
 /// <summary>
 /// LLM provider retry / fallback / exhaustion notice.

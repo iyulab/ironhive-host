@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
+using IronHive.Agent.ErrorRecovery;
 using IronHive.Host.Protocol;
 using Microsoft.Extensions.Logging;
 
@@ -58,6 +59,19 @@ public partial class AgentServerRunner
     /// Set this when an external orchestrator handles context injection itself.
     /// </summary>
     public bool SkipContextEnrichment { get; set; }
+
+    /// <summary>
+    /// Classifies a failed turn for <see cref="ErrorEvent.Code"/>. Defaults to an <see cref="ErrorRecoveryService"/> with its
+    /// built-in HTTP status reader; pass the application's own (with the provider gateways' failure readers) so the wire
+    /// and error recovery read a failure the same way.
+    /// </summary>
+    public IErrorRecoveryService ErrorClassifier
+    {
+        get => _errorClassifier;
+        set => _errorClassifier = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    private IErrorRecoveryService _errorClassifier = new ErrorRecoveryService();
 
     /// <param name="processMessage">Processes a user message and yields server events.</param>
     /// <param name="logger">Logger instance.</param>
@@ -225,6 +239,7 @@ public partial class AgentServerRunner
         Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)
     {
         var turnEndSent = false;
+        var failed = false;
         try
         {
             await foreach (var evt in turn(ct))
@@ -237,14 +252,16 @@ public partial class AgentServerRunner
                 await WriteSerializedAsync(output, writeLock, evt, CancellationToken.None);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Intentional cancellation via CancelRequest — fallback TurnEndEvent written in finally.
+            // Intentional cancellation via CancelRequest — fallback TurnEndEvent (StopReason "cancelled") written in finally.
         }
         catch (Exception ex)
         {
+            // Includes a cancellation the client did not ask for — an HTTP or stream timeout is a failure, not a cancel.
+            failed = true;
             LogAgentProcessingError(ex);
-            await WriteSerializedAsync(output, writeLock, new ErrorEvent(ex.Message), CancellationToken.None);
+            await WriteSerializedAsync(output, writeLock, TurnFailures.ToErrorEvent(ex, _errorClassifier), CancellationToken.None);
         }
         finally
         {
@@ -254,7 +271,7 @@ public partial class AgentServerRunner
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await WriteSerializedAsync(output, writeLock, new TurnEndEvent(), CancellationToken.None);
+                await WriteSerializedAsync(output, writeLock, new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? "cancelled" : null }, CancellationToken.None);
             }
         }
     }
@@ -291,7 +308,7 @@ public partial class AgentServerRunner
                 {
                     // One bad line is the sender's mistake to hear about, not a reason to end the session
                     LogUnreadableRequest(ex.GetType().Name);
-                    await reportError(new ErrorEvent($"Unreadable request skipped: {ex.Message}"));
+                    await reportError(new ErrorEvent($"Unreadable request skipped: {ex.Message}") { Code = ErrorCodes.UnreadableRequest });
                     continue;
                 }
 

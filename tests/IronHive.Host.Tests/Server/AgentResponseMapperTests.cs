@@ -163,6 +163,52 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_RefusedCall_CarriesTheRefusalCode_BothWhenItArrivesAndFromTheTurn()
+    {
+        // The agent knows why a call was refused; the wire carried only the sentence, so a client told a permission
+        // denial from a time limit by reading Output.
+        var timedOut = new ToolCallResult
+        {
+            CallId = "tc-1",
+            ToolName = "WalkFolder",
+            Arguments = "{}",
+            Result = "Tool 'WalkFolder' timed out",
+            Success = false,
+            RefusalKind = IronHive.Agent.Mode.ToolCallRefusalKind.TimedOut,
+        };
+        var denied = new ToolCallResult
+        {
+            CallId = "tc-2",
+            ToolName = "DeleteFile",
+            Arguments = "{}",
+            Result = "Permission denied: rule",
+            Success = false,
+            RefusalKind = IronHive.Agent.Mode.ToolCallRefusalKind.Denied,
+        };
+        var ran = new ToolCallResult { CallId = "tc-3", ToolName = "ReadFile", Arguments = "{}", Result = "boom", Success = false };
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ToolResult = timedOut },
+            new AgentResponseChunk { Turn = new TurnRecord { Content = "", ToolCalls = [timedOut, denied, ran] } });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var ends = events.OfType<ToolEndEvent>().ToList();
+        ends.Select(e => e.Refusal).Should().Equal(ToolRefusalCodes.TimedOut, ToolRefusalCodes.Denied, null);
+    }
+
+    [Fact]
+    public void WireName_EveryToolRefusalKind_HasACode()
+    {
+        foreach (var kind in Enum.GetValues<IronHive.Agent.Mode.ToolCallRefusalKind>())
+        {
+            AgentResponseMapper.WireName(kind).Should().MatchRegex("^[a-z_]+$", $"{kind} needs a wire name");
+        }
+    }
+
+    [Fact]
     public async Task ToServerEvents_ToolResultChunk_YieldsToolEndEvent_WhenItArrives_AndNotAgainFromTheTurn()
     {
         // The agent reports each tool's outcome on its own chunk as the tool finishes; relaying only the final

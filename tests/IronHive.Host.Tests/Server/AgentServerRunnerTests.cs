@@ -120,8 +120,9 @@ public class AgentServerRunnerTests
 
         messages.Should().Equal("still here");
         var events = ParseEvents(output);
-        events.OfType<ErrorEvent>().Should().ContainSingle()
-            .Which.Message.Should().StartWith("Unreadable request skipped");
+        var error = events.OfType<ErrorEvent>().Should().ContainSingle().Which;
+        error.Message.Should().StartWith("Unreadable request skipped");
+        error.Code.Should().Be(ErrorCodes.UnreadableRequest);
     }
 
     [Fact]
@@ -250,8 +251,99 @@ public class AgentServerRunnerTests
         events.Should().HaveCount(2);
         events[0].Should().BeOfType<ErrorEvent>()
             .Which.Message.Should().Be("boom");
-        events[1].Should().BeOfType<TurnEndEvent>();
+        ((ErrorEvent)events[0]).Code.Should().Be(ErrorCodes.Unknown);
+        events[1].Should().BeOfType<TurnEndEvent>().Which.StopReason.Should().BeNull("a failed turn is not a cancelled one");
     }
+
+    // A cancellation the client did not ask for is a clock running out somewhere (an HTTP client's or a stream's timeout).
+    // It was reported exactly like a CancelRequest: no ErrorEvent, a bare turn end - a client could not tell a provider
+    // stall from its own cancel.
+    [Theory]
+    [MemberData(nameof(UnrequestedCancellations))]
+    public async Task RunAsync_CancellationTheClientDidNotRequest_IsATimeoutError(Exception thrown)
+    {
+        var runner = CreateRunner(_ => Throw(thrown));
+        var input = BuildInput(
+            """{"type":"user_message","content":"slow"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        var events = ParseEvents(output);
+        events.Should().HaveCount(2);
+        events[0].Should().BeOfType<ErrorEvent>().Which.Code.Should().Be(ErrorCodes.Timeout);
+        events[1].Should().BeOfType<TurnEndEvent>().Which.StopReason.Should().BeNull();
+    }
+
+    public static TheoryData<Exception> UnrequestedCancellations() => new()
+    {
+        new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()),
+        new OperationCanceledException("A stream read was cancelled."),
+        new TimeoutException("The turn did not finish within 300 s (AgentOptions.MaxTurnDuration) and was cancelled."),
+    };
+
+    [Theory]
+    [MemberData(nameof(ClassifiedFailures))]
+    public async Task RunAsync_ProcessorThrows_ErrorCodeComesFromTheAgentsClassifier(Exception thrown, string code)
+    {
+        var runner = CreateRunner(_ => Throw(thrown));
+        var input = BuildInput(
+            """{"type":"user_message","content":"go"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        var error = ParseEvents(output).OfType<ErrorEvent>().Should().ContainSingle().Which;
+        error.Code.Should().Be(code);
+        error.Message.Should().Be(thrown.Message, "the sentence is unchanged; the code sits beside it");
+    }
+
+    public static TheoryData<Exception, string> ClassifiedFailures() => new()
+    {
+        { new IronHive.Abstractions.Exceptions.ContextOverflowException("The prompt is too long."), ErrorCodes.ContextLimit },
+        { new IronHive.Abstractions.Exceptions.RateLimitException("Slow down."), ErrorCodes.RateLimit },
+        { new IronHive.Abstractions.Exceptions.BillingException("Top up."), ErrorCodes.Billing },
+        { new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized), ErrorCodes.Auth },
+        { new HttpRequestException("model not found", null, System.Net.HttpStatusCode.NotFound), ErrorCodes.RequestRejected },
+        { new HttpRequestException("Connection refused"), ErrorCodes.Network },
+    };
+
+    [Fact]
+    public async Task RunAsync_ErrorClassifier_IsTheOneTheRunnerAsks()
+    {
+        var classifier = Substitute.For<IronHive.Agent.ErrorRecovery.IErrorRecoveryService>();
+        classifier.AnalyzeException(Arg.Any<Exception>(), Arg.Any<string?>()).Returns(new IronHive.Agent.ErrorRecovery.RecoveryAnalysis
+        {
+            Error = new IronHive.Agent.ErrorRecovery.ErrorOccurrence
+            {
+                Message = "x",
+                Category = IronHive.Agent.ErrorRecovery.ErrorCategory.FileSystem,
+            },
+        });
+        var runner = CreateRunner(_ => Throw(new InvalidOperationException("boom")));
+        runner.ErrorClassifier = classifier;
+        var input = BuildInput(
+            """{"type":"user_message","content":"go"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        ParseEvents(output).OfType<ErrorEvent>().Should().ContainSingle().Which.Code.Should().Be(ErrorCodes.FileSystem);
+    }
+
+    [Fact]
+    public void WireName_EveryErrorCategory_HasACode()
+    {
+        foreach (var category in Enum.GetValues<IronHive.Agent.ErrorRecovery.ErrorCategory>())
+        {
+            TurnFailures.WireName(category).Should().MatchRegex("^[a-z_]+$", $"{category} needs a wire name");
+        }
+    }
+
+    private static IAsyncEnumerable<ServerEvent> Throw(Exception exception) => throw exception;
 
     [Fact]
     public async Task RunAsync_MultipleMessages_ProcessesEachSequentially()
@@ -407,7 +499,8 @@ public class AgentServerRunnerTests
 
         var events = ParseEvents(output);
         events.Should().NotBeEmpty();
-        events.Last().Should().BeOfType<TurnEndEvent>();
+        events.Last().Should().BeOfType<TurnEndEvent>().Which.StopReason.Should().Be("cancelled");
+        events.OfType<ErrorEvent>().Should().BeEmpty("a cancel the client asked for is not a failure");
     }
 
     [Fact]

@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.55.0 — Unreleased
+
+### Added
+- **A failed turn says what kind of failure it was.** `ErrorEvent.Code` carries one of `ErrorCodes` (`context_limit`,
+  `rate_limit`, `billing`, `auth`, `network`, `timeout`, `request_rejected`, `tool_execution`, `file_system`, `internal`,
+  `unknown`; `unreadable_request` for a skipped request line) beside `Message`, so a client can retry, suggest a smaller
+  request or count failures by cause without matching the sentence. The runners take the class from the agent's
+  `IErrorRecoveryService`; set `ErrorClassifier` to pass the application's own (`run --server` passes its registered one).
+  It is omitted from the JSON when null.
+- **A refused tool call says why.** `ToolEndEvent.Refusal` carries one of `ToolRefusalCodes` (`denied`, `rejected`,
+  `timed_out`, …) for a call the agent refused or whose result it withheld, and is null when the tool ran.
+
+### Changed
+- **Breaking** — **a cancellation the client did not ask for is now a `timeout` error, and a client's cancel ends the turn
+  with `StopReason` `cancelled`.** Before, both ended the same way: no `error` event and a `turn_end` with no stop reason,
+  so a provider or stream timeout looked like the client's own cancel. Migration: a client that read «`turn_end` without
+  `stop_reason` and no `error`» as «cancelled» reads `stop_reason == "cancelled"` instead.
+
+### Dependencies
+- IronHive.Agent / .Ironbees / IronHive.DeepResearch 0.55.0 → 0.55.1.
+
 ## 0.54.0 — 2026-10-09
 
 ### Added
