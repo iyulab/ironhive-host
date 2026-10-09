@@ -13,6 +13,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   Migration: catch the exceptions the host actually throws (standard .NET exceptions such as `InvalidOperationException`),
   or define your own type if you threw these yourself.
 
+### Changed
+- **Breaking: a cancelled `run` exits 130 with `stop_reason` `cancelled` instead of exit 1 with `stop_reason` `error`.**
+  The cancellation was reported as a failed run carrying the cancellation's message. The `--timeout` result (exit 2,
+  `timeout`) is unchanged. Migration: a script that treated exit 1 as «cancelled» checks for exit 130 or `cancelled`.
+
 ## 0.55.0 — 2026-10-09
 
 ### Added

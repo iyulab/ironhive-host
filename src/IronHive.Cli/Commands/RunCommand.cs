@@ -156,7 +156,8 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     /// <summary>
     /// One prompt, one turn, then exit — the code a script reads (<see cref="RunOutcome"/>): 0 completed, 1 error,
-    /// 2 stopped short (a step, output or time limit, or a guard), 3 content filter. Under <c>--json</c>
+    /// 2 stopped short (a step, output or time limit, or a guard), 3 content filter, 130 cancelled by the caller
+    /// (<paramref name="cancellationToken"/>). Under <c>--json</c>
     /// <paramref name="stdout"/> carries only the result document.
     /// </summary>
     internal async Task<int> RunOnceAsync(Settings settings, TextWriter stdout, CancellationToken cancellationToken)
@@ -279,6 +280,21 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             }
 
             return RunOutcome.Incomplete;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The caller cancelled: neither a failure of the run nor the timeout.
+            const string message = "The run was cancelled.";
+            if (settings.Json)
+            {
+                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.CancelledReason, message, clock.ElapsedMilliseconds));
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[yellow]{message}[/]");
+            }
+
+            return RunOutcome.Cancelled;
         }
         catch (Exception ex)
         {

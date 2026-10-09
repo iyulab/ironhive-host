@@ -110,6 +110,27 @@ public sealed class RunCommandOutcomeTests
     }
 
     [Fact]
+    public async Task ARunTheCallerCancels_StopsWithCancelled_AndExitCode130_NotAnError()
+    {
+        var (command, loop, _) = Command();
+        using var caller = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            caller.Cancel();
+            call.ArgAt<CancellationToken>(1).ThrowIfCancellationRequested();
+            return Task.FromResult(Response(TurnStopReason.Completed));
+        });
+
+        using var stdout = new StringWriter();
+        var code = await command.RunOnceAsync(
+            new RunCommand.Settings { PromptOption = "task", Json = true, TimeoutSeconds = 60 }, stdout, caller.Token);
+        var json = JsonDocument.Parse(stdout.ToString()).RootElement;
+
+        code.Should().Be(130);
+        json.GetProperty("stop_reason").GetString().Should().Be("cancelled");
+    }
+
+    [Fact]
     public async Task ARunPastItsTimeout_StopsWithTimeout_AndExitCode2()
     {
         var (command, loop, _) = Command();

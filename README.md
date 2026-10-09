@@ -272,6 +272,7 @@ reading the answer:
 | 2 | `step_limit` · `output_limit` · `tool_terminated` · `timeout` | Stopped short: the iteration cap, the output limit, a loop guard that ended the turn, or `--timeout` |
 | 3 | `content_filter` | The provider's content filter stopped the answer |
 | 1 | `error` | The run failed (including a provider that could not be created) |
+| 130 | `cancelled` | The caller cancelled the run (not a failure, and not `--timeout`) |
 
 ```json
 { "content": "…", "stop_reason": "step_limit", "duration_ms": 41230,
@@ -284,8 +285,8 @@ reading the answer:
 `refused_tool_calls` counts calls the permission rules or a guard refused (the tool did not run, or its result was
 withheld); `failed_tool_calls` counts tools that ran and failed. `calls` lists every call in order — `outcome` is `ok`,
 `failed`, `refused` or `unknown`, a refusal carries its `refusal_kind` and message, and `arguments` is cut to 300
-characters (a tool's own result is not included). A failure or timeout prints
-`{ "error": "…", "stop_reason": "error" | "timeout", "duration_ms": … }`. Log output goes to stderr. A non-interactive
+characters (a tool's own result is not included). A failure, timeout or cancellation prints
+`{ "error": "…", "stop_reason": "error" | "timeout" | "cancelled", "duration_ms": … }`. Log output goes to stderr. A non-interactive
 run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in
 `.ironhive/permissions.yaml` (`default_action: allow`) when the run is meant to act unattended.
 

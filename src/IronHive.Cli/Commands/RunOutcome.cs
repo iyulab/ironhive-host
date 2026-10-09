@@ -10,7 +10,8 @@ namespace IronHive.Cli.Commands;
 /// </summary>
 /// <remarks>
 /// Exit codes: <see cref="Completed"/> 0 · <see cref="Error"/> 1 · <see cref="Incomplete"/> 2 (a step, output or time
-/// limit, or a guard that ended the turn) · <see cref="Filtered"/> 3 (the provider's content filter).
+/// limit, or a guard that ended the turn) · <see cref="Filtered"/> 3 (the provider's content filter) ·
+/// <see cref="Cancelled"/> 130 (the caller cancelled the run).
 /// </remarks>
 internal static class RunOutcome
 {
@@ -19,8 +20,14 @@ internal static class RunOutcome
     public const int Incomplete = 2;
     public const int Filtered = 3;
 
+    /// <summary>The exit code of a run the caller cancelled — the conventional code for an interrupt.</summary>
+    public const int Cancelled = 130;
+
     /// <summary>The <c>stop_reason</c> value of a run that hit <c>--timeout</c>.</summary>
     public const string Timeout = "timeout";
+
+    /// <summary>The <c>stop_reason</c> value of a run the caller cancelled.</summary>
+    public const string CancelledReason = "cancelled";
 
     /// <summary>The <c>stop_reason</c> value of a run that failed with an error.</summary>
     public const string ErrorReason = "error";
