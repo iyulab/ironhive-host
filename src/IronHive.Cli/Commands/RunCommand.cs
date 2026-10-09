@@ -146,12 +146,35 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        if (settings.Server)
+        // Ctrl+C cancels the run the way a caller's token does (a single run exits 130, a server stops and ends its turn)
+        // instead of killing the process mid-write; a second Ctrl+C still ends the process — the interactive command's
+        // convention.
+        using var interrupt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var presses = 0;
+        ConsoleCancelEventHandler onCancel = (_, e) =>
         {
-            return await RunServerModeAsync(settings, cancellationToken);
-        }
+            if (Interlocked.Increment(ref presses) > 1)
+            {
+                return;
+            }
 
-        return await RunOnceAsync(settings, Console.Out, cancellationToken);
+            e.Cancel = true;
+            interrupt.Cancel();
+        };
+        Console.CancelKeyPress += onCancel;
+        try
+        {
+            if (settings.Server)
+            {
+                return await RunServerModeAsync(settings, interrupt.Token);
+            }
+
+            return await RunOnceAsync(settings, Console.Out, interrupt.Token);
+        }
+        finally
+        {
+            Console.CancelKeyPress -= onCancel;
+        }
     }
 
     /// <summary>

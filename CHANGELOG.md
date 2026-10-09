@@ -17,6 +17,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **Breaking: a cancelled `run` exits 130 with `stop_reason` `cancelled` instead of exit 1 with `stop_reason` `error`.**
   The cancellation was reported as a failed run carrying the cancellation's message. The `--timeout` result (exit 2,
   `timeout`) is unchanged. Migration: a script that treated exit 1 as «cancelled» checks for exit 130 or `cancelled`.
+- **Ctrl+C stops `run` and `run --server` instead of killing the process.** The first Ctrl+C cancels the run the way a
+  caller's token does — a single run exits 130 (`cancelled`), a server stops reading and ends the turn in progress; a second
+  Ctrl+C ends the process as before.
 
 ## 0.55.0 — 2026-10-09
 

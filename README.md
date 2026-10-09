@@ -272,7 +272,7 @@ reading the answer:
 | 2 | `step_limit` · `output_limit` · `tool_terminated` · `timeout` | Stopped short: the iteration cap, the output limit, a loop guard that ended the turn, or `--timeout` |
 | 3 | `content_filter` | The provider's content filter stopped the answer |
 | 1 | `error` | The run failed (including a provider that could not be created) |
-| 130 | `cancelled` | The caller cancelled the run (not a failure, and not `--timeout`) |
+| 130 | `cancelled` | The caller cancelled the run — Ctrl+C, or a host's token (not a failure, and not `--timeout`); a second Ctrl+C ends the process at once |
 
 ```json
 { "content": "…", "stop_reason": "step_limit", "duration_ms": 41230,
