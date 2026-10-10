@@ -323,4 +323,24 @@ public class AgentServerProtocolTests
         JsonSerializer.Serialize<ServerEvent>(new ToolEndEvent("ReadFile", true), Options)
             .Should().NotContain("refusal", "a tool that ran writes no refusal");
     }
+
+    [Fact]
+    public void Roundtrip_ToolEndEvent_WithStats()
+    {
+        var stats = new Dictionary<string, JsonElement>
+        {
+            ["files_visited"] = JsonSerializer.SerializeToElement(40),
+            ["stopped"] = JsonSerializer.SerializeToElement("budget"),
+        };
+        ServerEvent original = new ToolEndEvent("SearchFolder", true, "3 matches", "tc-1") { Stats = stats };
+        var json = JsonSerializer.Serialize(original, Options);
+        var deserialized = JsonSerializer.Deserialize<ServerEvent>(json, Options);
+
+        json.Should().Contain("\"stats\":{\"files_visited\":40,\"stopped\":\"budget\"}");
+        var end = deserialized.Should().BeOfType<ToolEndEvent>().Subject;
+        end.Stats!["files_visited"].GetInt32().Should().Be(40);
+        end.Stats["stopped"].GetString().Should().Be("budget");
+        JsonSerializer.Serialize<ServerEvent>(new ToolEndEvent("ReadFile", true), Options)
+            .Should().NotContain("stats", "a tool that reported nothing writes no stats");
+    }
 }

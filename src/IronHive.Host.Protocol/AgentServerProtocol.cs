@@ -136,6 +136,15 @@ public record ToolEndEvent(string Tool, bool Success, string? Output = null, str
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Refusal { get; init; }
+
+    /// <summary>
+    /// What the tool reported about its own work during this call — items visited, bytes read, why it stopped — keyed by
+    /// the tool's own names; null (omitted) when it reported nothing. Values are numbers, booleans or short strings. This
+    /// is for the client only: it is never part of <see cref="Output"/> and never sent to the model. Bounded by the agent
+    /// (at most 16 keys of at most 64 characters, string values of at most 256 characters; what exceeds a bound is dropped).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyDictionary<string, JsonElement>? Stats { get; init; }
 }
 
 /// <summary>The values of <see cref="ToolEndEvent.Refusal"/>.</summary>

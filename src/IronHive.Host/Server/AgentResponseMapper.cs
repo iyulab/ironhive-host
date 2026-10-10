@@ -27,7 +27,8 @@ public static class AgentResponseMapper
         var hasUsage = false;
         TurnStopReason? stopReason = null;
         var clock = System.Diagnostics.Stopwatch.StartNew();
-        // Outcomes already relayed as they arrived; the final turn record repeats them (built by the same rule).
+        // Outcomes already relayed as they arrived; the final turn record repeats them (built by the same rule). Matched by
+        // CallId when there is one — two records of one call need not be equal by value (Stats is a dictionary).
         var relayed = new List<ToolCallResult>();
 
         await foreach (var chunk in chunks.WithCancellation(ct))
@@ -72,6 +73,7 @@ public static class AgentResponseMapper
                 yield return new ToolEndEvent(arrived.ToolName, arrivedSuccess, arrived.Result, arrived.CallId)
                 {
                     Refusal = arrived.RefusalKind is { } refused ? WireName(refused) : null,
+                    Stats = arrived.Stats,
                 };
             }
 
@@ -82,7 +84,7 @@ public static class AgentResponseMapper
             {
                 foreach (var call in chunk.Turn.ToolCalls)
                 {
-                    if (relayed.Remove(call))
+                    if (RemoveRelayed(relayed, call))
                     {
                         continue;
                     }
@@ -91,6 +93,7 @@ public static class AgentResponseMapper
                         yield return new ToolEndEvent(call.ToolName, success, call.Result, call.CallId)
                         {
                             Refusal = call.RefusalKind is { } refused ? WireName(refused) : null,
+                            Stats = call.Stats,
                         };
                     }
                 }
@@ -119,6 +122,20 @@ public static class AgentResponseMapper
             StopReason = stopReason is { } reason ? WireName(reason) : null,
             DurationMs = clock.ElapsedMilliseconds,
         };
+    }
+
+    private static bool RemoveRelayed(List<ToolCallResult> relayed, ToolCallResult call)
+    {
+        var index = call.CallId is { } id
+            ? relayed.FindIndex(r => r.CallId == id)
+            : relayed.IndexOf(call);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        relayed.RemoveAt(index);
+        return true;
     }
 
     /// <summary>The protocol spelling of a stop reason (snake_case, stable across renames of the enum).</summary>

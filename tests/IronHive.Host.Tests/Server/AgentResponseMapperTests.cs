@@ -200,6 +200,36 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_ToolStats_ReachToolEnd_OnBothPaths_AndAnArrivedCallIsNotRepeated()
+    {
+        // A tool's report of its own work is a client-only fact of the call. The arrived record and the turn's record of the
+        // same call are separate objects whose Stats dictionaries need not be the same instance, so the turn must not
+        // relay the call a second time.
+        static IReadOnlyDictionary<string, System.Text.Json.JsonElement> Stats(int visited) =>
+            new Dictionary<string, System.Text.Json.JsonElement> { ["files_visited"] = System.Text.Json.JsonSerializer.SerializeToElement(visited) };
+        var arrived = new ToolCallResult { CallId = "tc-1", ToolName = "SearchFolder", Arguments = "{}", Result = "3", Success = true, Stats = Stats(40) };
+        var sameCallFromTheTurn = arrived with { Stats = Stats(40) };
+        var onlyInTheTurn = new ToolCallResult { CallId = "tc-2", ToolName = "SearchFolder", Arguments = "{}", Result = "1", Success = true, Stats = Stats(7) };
+        var quiet = new ToolCallResult { CallId = "tc-3", ToolName = "ReadFile", Arguments = "{}", Result = "x", Success = true };
+        sameCallFromTheTurn.Should().NotBe(arrived, "the precondition: value equality does not identify the call");
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ToolResult = arrived },
+            new AgentResponseChunk { Turn = new TurnRecord { Content = "", ToolCalls = [sameCallFromTheTurn, onlyInTheTurn, quiet] } });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var ends = events.OfType<ToolEndEvent>().ToList();
+        ends.Select(e => e.CallId).Should().Equal("tc-1", "tc-2", "tc-3");
+        ends[0].Stats!["files_visited"].GetInt32().Should().Be(40);
+        ends[1].Stats!["files_visited"].GetInt32().Should().Be(7);
+        ends[2].Stats.Should().BeNull();
+        ends.Should().OnlyContain(e => !(e.Output ?? "").Contains("files_visited"), "stats never ride in the output");
+    }
+
+    [Fact]
     public void WireName_EveryToolRefusalKind_HasACode()
     {
         foreach (var kind in Enum.GetValues<IronHive.Agent.Mode.ToolCallRefusalKind>())

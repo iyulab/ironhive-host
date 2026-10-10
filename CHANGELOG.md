@@ -7,13 +7,25 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **`tool_end` carries what the tool reported about its own work.** `ToolEndEvent.Stats` (optional, omitted when empty) holds the
+  values a tool reported through IronHive.Agent's `ToolCallStats` during the call — items visited, bytes read, why it stopped —
+  on both the arrived result and the turn's consolidated calls. They are never in `Output` and never sent to the model.
+- **Rejected MCP plugin entries are logged at start-up.** An entry in `.ironhive/plugins.*` that cannot connect (no `command`/`url`,
+  both without a `type`, an unknown `type`) is a warning naming the entry; an ignored key is an information line. The file may
+  also be the `mcpServers` snippet an MCP server's documentation gives.
+
+### Fixed
+- **A tool call reported as it arrived is not relayed again from the turn record when the two records differ by value.** The
+  server matches them by call id.
+
 ### Changed
 - **The packages from this repository depend on each other at exactly the same version** (`[x.y.z]`), not a floor.
   A consumer that moves one of them while another resolves at an older version now gets restore warning NU1608 naming
   the pair (an error where warnings are errors) — before, the mixed versions restored silently and could fail at run time.
 
 ### Dependencies
-- Re-pinned sibling package(s) `IronHive.Agent` 0.56.0 -> 0.56.1, `IronHive.Agent.Ironbees` 0.56.0 -> 0.56.1, `IronHive.DeepResearch` 0.56.0 -> 0.56.1.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.56.0 -> 0.57.0, `IronHive.Agent.Ironbees` 0.56.0 -> 0.57.0, `IronHive.DeepResearch` 0.56.0 -> 0.57.0.
 
 ## 0.56.0 — 2026-10-10
 

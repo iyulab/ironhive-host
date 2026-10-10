@@ -304,6 +304,18 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             try
             {
                 var config = McpPluginsConfigLoader.LoadFromDefault();
+                foreach (var issue in config.Issues)
+                {
+                    if (issue.Kind == McpConfigIssueKind.Refused)
+                    {
+                        LogMcpPluginEntryRefused(_logger, issue.Entry ?? "(document)", issue.Message);
+                    }
+                    else
+                    {
+                        LogMcpPluginEntryIgnored(_logger, issue.Entry ?? "(document)", issue.Message);
+                    }
+                }
+
                 if (config.Plugins.Count > 0)
                 {
                     await _mcpPluginManager.LoadFromConfigAsync(config, cancellationToken: cancellationToken);
@@ -335,6 +347,14 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to load MCP plugins from configuration")]
     private static partial void LogMcpPluginLoadFailed(ILogger? logger, Exception ex);
+
+    // The entry name and the problem come from the operator's own plugins file and the reader's diagnostic about it -
+    // configuration, not anything a sender or a model wrote. A refused URL is never echoed (McpPluginsConfigLoader).
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MCP plugin entry '{Entry}' was not loaded: {Problem}")]
+    private static partial void LogMcpPluginEntryRefused(ILogger? logger, string entry, string problem);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "MCP plugin entry '{Entry}': {Problem}")]
+    private static partial void LogMcpPluginEntryIgnored(ILogger? logger, string entry, string problem);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get tools from MCP plugins")]
     private static partial void LogMcpToolsFailed(ILogger? logger, Exception ex);
