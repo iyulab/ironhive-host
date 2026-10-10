@@ -8,6 +8,7 @@ on:
       - 'tests/**'
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
+      - 'Directory.Build.targets'
       - '*.slnx'
       - '.github/workflows/ci.yml'
   pull_request:
