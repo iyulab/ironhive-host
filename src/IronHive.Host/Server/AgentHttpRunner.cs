@@ -330,8 +330,11 @@ public sealed partial class AgentHttpRunner : IDisposable
         StreamReader reader,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        while (!ct.IsCancellationRequested)
+        while (true)
         {
+            // A cancel between two lines throws, as one during a read does: ending the stream would read as a closed
+            // connection and the caller would log a reconnect (or report the inbox lost) before seeing the cancel.
+            ct.ThrowIfCancellationRequested();
             var line = await reader.ReadLineAsync(ct);
             if (line is null)
             {

@@ -643,6 +643,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         // Create a linked token source for per-request cancellation
         using var requestCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
+        // cancellation-ends-loop: Ctrl+C quits the interactive session, like typing 'exit'
         while (!cancellationToken.IsCancellationRequested)
         {
             string prompt;
