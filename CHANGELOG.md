@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.56.0 — 2026-10-10
 
 ### Removed
 - **Breaking: the `IronHive.Host.Exceptions` namespace is gone.** `IronHiveException`, `ConfigurationException`,
@@ -26,6 +26,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - Re-pinned sibling package(s) `TokenMeter` 0.8.0 -> 0.9.0.
 - Re-pinned sibling package(s) `TokenMeter` 0.9.0 -> 0.10.0.
 - Re-pinned sibling package(s) `TokenMeter` 0.10.0 -> 0.11.0.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.26.0 -> 0.27.0, `IronHive.Abstractions` 0.60.0 -> 0.61.0, `IronHive.Agent` 0.55.1 -> 0.56.0, `IronHive.Agent.Ironbees` 0.55.1 -> 0.56.0, `IronHive.Core` 0.60.0 -> 0.61.0, `IronHive.DeepResearch` 0.55.1 -> 0.56.0, `IronHive.Extensions.AI` 0.60.0 -> 0.61.0, `IronHive.Providers.Anthropic` 0.60.0 -> 0.61.0, `IronHive.Providers.GoogleAI` 0.60.0 -> 0.61.0, `IronHive.Providers.OpenAI` 0.60.0 -> 0.61.0, `IronHive.Providers.OpenAI.Compatible` 0.60.0 -> 0.61.0.
 
 ## 0.55.0 — 2026-10-09
 
