@@ -21,6 +21,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   caller's token does — a single run exits 130 (`cancelled`), a server stops reading and ends the turn in progress; a second
   Ctrl+C ends the process as before.
 
+### Dependencies
+- Re-pinned sibling package(s) `Ironbees.Core` 0.25.0 -> 0.26.0, `IronHive.Abstractions` 0.59.1 -> 0.60.0, `IronHive.Core` 0.59.1 -> 0.60.0, `IronHive.Extensions.AI` 0.59.1 -> 0.60.0, `IronHive.Providers.Anthropic` 0.59.1 -> 0.60.0, `IronHive.Providers.GoogleAI` 0.59.1 -> 0.60.0, `IronHive.Providers.OpenAI` 0.59.1 -> 0.60.0, `IronHive.Providers.OpenAI.Compatible` 0.59.1 -> 0.60.0.
+
 ## 0.55.0 — 2026-10-09
 
 ### Added
