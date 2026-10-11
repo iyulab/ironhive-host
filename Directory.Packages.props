@@ -31,7 +31,7 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Generator" Version="0.115.1" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.116.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
     <PackageVersion Include="IronHive.Agent" Version="0.57.0" />
     <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.57.0" />
