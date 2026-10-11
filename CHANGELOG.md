@@ -27,8 +27,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - **The packages from this repository depend on each other at exactly the same version** (`[x.y.z]`), not a floor.
-  A consumer that moves one of them while another resolves at an older version now gets restore warning NU1608 naming
+  A consumer that moves one of them while a family member it depends on resolves at an older version now gets restore warning NU1608 naming
   the pair (an error where warnings are errors) — before, the mixed versions restored silently and could fail at run time.
+  A member that reaches you only through another package's floor is not covered: pin every member you load and move them together.
 
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Agent` 0.56.0 -> 0.57.0, `IronHive.Agent.Ironbees` 0.56.0 -> 0.57.0, `IronHive.DeepResearch` 0.56.0 -> 0.57.0.
