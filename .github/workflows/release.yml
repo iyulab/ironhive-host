@@ -166,10 +166,11 @@ jobs:
             PRERELEASE_FLAG="--prerelease"
           fi
 
-          gh release create "v$VERSION" \
-            --repo ${{ env.RELEASE_REPO }} \
-            --title "IronHive CLI v$VERSION" \
-            --notes "## IronHive CLI v$VERSION
+          # Release notes = this version's CHANGELOG.md section. Every iyulab publish workflow carries this awk program
+          # verbatim; change it in all of them or in none. The install instructions follow it.
+          awk -v v="$VERSION" '/^## /{if(p)exit;h=$0;sub(/^## +\[?v?/,"",h);c=substr(h,length(v)+1,1);if(index(h,v)==1&&(c==""||c=="]"||c==" "||c=="\t")){p=1;next}}p&&(n||$0!~/^[ \t]*$/){l[++n]=$0}END{while(n&&(l[n]~/^[ \t]*$/||l[n]~/^---+$/))n--;for(i=1;i<=n;i++)print l[i]}' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then echo "::error::CHANGELOG.md has no section for $VERSION"; exit 1; fi
+          cat >> release-notes.md <<EOF
 
           ### Installation
 
@@ -180,7 +181,7 @@ jobs:
 
           **Windows (x64)**
           \`\`\`powershell
-          Invoke-WebRequest -Uri \"https://github.com/${{ env.RELEASE_REPO }}/releases/download/v$VERSION/ironhive-$VERSION-win-x64.zip\" -OutFile ironhive.zip
+          Invoke-WebRequest -Uri "https://github.com/${{ env.RELEASE_REPO }}/releases/download/v$VERSION/ironhive-$VERSION-win-x64.zip" -OutFile ironhive.zip
           Expand-Archive ironhive.zip -DestinationPath .
           \`\`\`
 
@@ -209,7 +210,12 @@ jobs:
           \`\`\`bash
           dotnet tool update -g IronHive.Cli
           \`\`\`
-          " \
+          EOF
+
+          gh release create "v$VERSION" \
+            --repo ${{ env.RELEASE_REPO }} \
+            --title "IronHive CLI v$VERSION" \
+            --notes-file release-notes.md \
             $PRERELEASE_FLAG \
             ironhive-*.zip \
             ironhive-*.tar.gz \
