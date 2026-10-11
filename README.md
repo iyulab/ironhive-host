@@ -574,6 +574,30 @@ each is a rejection, never a pass. Session rules of your own (trust lists, "alre
 `IHumanApprovalService` that decorates the bridge. `ironhive run --server` does this for you; in an interactive CLI
 session the terminal answers.
 
+**Resuming a session in a host of your own.** `run --server --session-id <ID>` restores the conversation when the same id
+starts again. A host of your own (its own `AgentServerRunner` or `AgentHttpRunner` around an `IAgentLoop`) does the same
+with three calls: open the session by its id, restore it into the loop, and pass each turn's stream through a
+`SessionTurnRecorder`, which writes the turn as it runs. Tool calls and their results are written too, so a restarted agent
+remembers what its tools returned, not only the text.
+
+```csharp
+var session = await sessions.OpenSessionAsync(sessionId, projectPath, model, ct);   // loads it, or creates it under that id
+await loop.InitializeHistoryAsync(await sessions.RestoreContextAsync(session, ct), ct);
+var recorder = new SessionTurnRecorder(sessions, session);
+
+// each turn
+await foreach (var chunk in recorder.RecordAsync(prompt, loop.RunStreamingAsync(prompt, ct), ct))
+{
+    // map the chunk to ServerEvents as usual
+}
+```
+
+A session id is letters, digits, `-` and `_` (at most 128), because it names the session's file. A turn that stops
+mid-way keeps what it wrote, with `SessionTurnRecorder.InterruptedMarker` after its text; continuations go through
+`RecordContinuationAsync`. Use this when the agent should own the conversation. When a client keeps the conversation
+itself, it passes its messages to `InitializeHistoryAsync` instead; see IronHive.Agent's README, «A host that keeps the
+conversation itself».
+
 **A wait outlives the process.** A human may answer hours later, after the server restarted. With a recorded session
 (`run --server --session-id <ID>` records every turn), each asked call is written to the session before its request is
 sent — the call and the request (`approval_wait` in the transcript) — and settled when answered (`approval_closed`). A

@@ -7,6 +7,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Documentation
+- **The README says how a host of your own resumes a session**: `OpenSessionAsync` with the session id, `RestoreContextAsync`
+  into the loop, and `SessionTurnRecorder.RecordAsync` around each turn's stream. Tool calls and results are restored too.
+  These are the same pieces `run --server --session-id` uses; before, the README described the recorder only for approvals.
+
 ### Changed
 - **The CLI resolves a turn's tool names against the loop's own catalog** (`IAgentLoop.Tools`, IronHive.Agent 0.58.0) instead of a copy its loop factory kept. No behaviour change. In the tool package's internals, `CreatedAgentLoop` drops `Tools` and `CreateWithToolsAsync` is now `CreateWithPipelineAsync`.
 
