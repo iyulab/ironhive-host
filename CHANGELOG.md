@@ -14,6 +14,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Changed
 - **The CLI resolves a turn's tool names against the loop's own catalog** (`IAgentLoop.Tools`, IronHive.Agent 0.58.0) instead of a copy its loop factory kept. No behaviour change. In the tool package's internals, `CreatedAgentLoop` drops `Tools` and `CreateWithToolsAsync` is now `CreateWithPipelineAsync`.
+- **The nuget.org «Release Notes» of every package link to the GitHub release of its version**, whose notes are this CHANGELOG's section for that version.
 
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.115.1 -> 0.116.0.
