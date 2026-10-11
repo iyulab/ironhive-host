@@ -13,6 +13,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   These are the same pieces `run --server --session-id` uses; before, the README described the recorder only for approvals.
 
 ### Changed
+- **The runners put the selected items in front of a message too.** `AgentServerRunner` and `AgentHttpRunner` prefixed each
+  `user_message` with `[WorkingPath: …]` from the last `context_update` and dropped its `selected_items`. They now add
+  `[Selected: a, b]` after the working path when the update named items (and either line alone when only one is set). A host
+  that built this prefix itself and left `SkipContextEnrichment` off would now get the items twice: set it, or drop your own
+  builder.
+- **The protocol's plan events say what `stepIndex` is**: the step's 1-based number, its position in the last
+  `plan_created`'s `stepDescriptions` plus one (the planner in IronHive.Agent numbers steps by position).
 - **The CLI resolves a turn's tool names against the loop's own catalog** (`IAgentLoop.Tools`, IronHive.Agent 0.58.0) instead of a copy its loop factory kept. No behaviour change. In the tool package's internals, `CreatedAgentLoop` drops `Tools` and `CreateWithToolsAsync` is now `CreateWithPipelineAsync`.
 - **The nuget.org «Release Notes» of every package link to the GitHub release of its version**, whose notes are this CHANGELOG's section for that version.
 

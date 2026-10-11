@@ -40,7 +40,7 @@ public partial class AgentServerRunner
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly HitlBridge? _hitl;
 
-    private string? _workingPath;
+    private ContextUpdateRequest? _context;
 
     /// <summary>
     /// Optional callback invoked when a context update is received.
@@ -55,7 +55,7 @@ public partial class AgentServerRunner
     public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
 
     /// <summary>
-    /// When true, <see cref="BuildContextualContent"/> becomes a pass-through.
+    /// When true, context enrichment (<c>[WorkingPath: …]</c> and <c>[Selected: …]</c> before each message) is off.
     /// Set this when an external orchestrator handles context injection itself.
     /// </summary>
     public bool SkipContextEnrichment { get; set; }
@@ -186,7 +186,7 @@ public partial class AgentServerRunner
 
                 if (request is ContextUpdateRequest ctx)
                 {
-                    _workingPath = ctx.WorkingPath;
+                    _context = ctx;
                     OnContextUpdate?.Invoke(ctx);
                     continue;
                 }
@@ -221,19 +221,7 @@ public partial class AgentServerRunner
     }
 
     private string BuildContextualContent(string userContent)
-    {
-        if (SkipContextEnrichment || _workingPath is null)
-        {
-            return userContent;
-        }
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture,
-            $"[WorkingPath: {_workingPath}]");
-        sb.AppendLine();
-        sb.Append(userContent);
-        return sb.ToString();
-    }
+        => SkipContextEnrichment ? userContent : ContextEnrichment.Apply(_context, userContent);
 
     private async Task HandleTurnAsync(
         Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)

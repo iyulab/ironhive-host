@@ -337,10 +337,28 @@ public sealed record FallbackServerEvent(
     int Attempt = 0,
     int MaxAttempts = 0) : ServerEvent;
 
+/// <summary>A plan was made for the turn. <paramref name="StepDescriptions"/> lists its steps in order.</summary>
+/// <param name="PlanId">Identifies the plan in the step events that follow.</param>
+/// <param name="StepCount">The number of steps.</param>
+/// <param name="StepDescriptions">Each step's description, in plan order; step <c>n</c> is at position <c>n - 1</c>.</param>
 public record PlanCreatedServerEvent(string PlanId, int StepCount, string[] StepDescriptions) : ServerEvent;
 
+/// <summary>A plan step started.</summary>
+/// <param name="PlanId">The plan, as in <see cref="PlanCreatedServerEvent"/>.</param>
+/// <param name="StepIndex">The step's 1-based number (<c>PlanStep.Index</c>): its position in the last
+/// <see cref="PlanCreatedServerEvent.StepDescriptions"/> plus one. Unique within the plan.</param>
+/// <param name="Description">The step's description.</param>
 public record PlanStepStartedServerEvent(string PlanId, int StepIndex, string Description) : ServerEvent;
 
+/// <summary>A plan step finished.</summary>
+/// <param name="PlanId">The plan, as in <see cref="PlanCreatedServerEvent"/>.</param>
+/// <param name="StepIndex">The step's 1-based number, as in <see cref="PlanStepStartedServerEvent.StepIndex"/>.</param>
+/// <param name="Success">Whether the step succeeded.</param>
+/// <param name="Summary">A short account of the step's result, when there is one.</param>
 public record PlanStepCompletedServerEvent(string PlanId, int StepIndex, bool Success, string? Summary) : ServerEvent;
 
+/// <summary>The plan finished.</summary>
+/// <param name="PlanId">The plan, as in <see cref="PlanCreatedServerEvent"/>.</param>
+/// <param name="Success">Whether the plan succeeded.</param>
+/// <param name="Summary">A short account of the run.</param>
 public record PlanCompletedServerEvent(string PlanId, bool Success, string Summary) : ServerEvent;

@@ -618,7 +618,7 @@ a wait older than `approval.timeoutSeconds` resumes as a denial without asking. 
 | Type | Discriminator | Key fields |
 |------|---------------|-----------|
 | `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions` — see below) |
-| `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` |
+| `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` — the runners put the last update in front of each later `user_message`: `[WorkingPath: …]` and `[Selected: a, b]` (set `SkipContextEnrichment` to leave the message as sent) |
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?`, `Id?` (the request being answered), `ModifiedArguments?`, `AlwaysApprove?` |
 | `CancelRequest` | `cancel` | — |
 | `ShutdownRequest` | `shutdown` | — |
@@ -635,7 +635,8 @@ a wait older than `approval.timeoutSeconds` resumes as a denial without asking. 
 
 `IronHive.Host.Protocol` also declares `agent_selected` (`AgentSelectedEvent`), `plan_created`, `plan_step_started`,
 `plan_step_completed` and `plan_completed` (`Plan*ServerEvent`). No runner emits them today — they are reserved; a client
-may accept them but should not wait for them.
+may accept them but should not wait for them. In the plan step events, `stepIndex` is the step's 1-based number: its position in the
+last `plan_created`'s `stepDescriptions` plus one.
 
 **Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
 the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |

@@ -210,6 +210,53 @@ public class AgentServerRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_ContextUpdateWithSelectedItems_MessageCarriesThemAfterTheWorkingPath()
+    {
+        var received = new List<string>();
+        var runner = CreateRunner(content =>
+        {
+            received.Add(content);
+            return EmptyEvents();
+        });
+
+        var input = BuildInput(
+            """{"type":"context_update","working_path":"/home/user","selected_items":["a.txt","b.txt"]}""",
+            """{"type":"user_message","content":"summarize these"}""",
+            """{"type":"context_update","working_path":"/home/user"}""",
+            """{"type":"user_message","content":"list files"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        received.Should().HaveCount(2);
+        received[0].Should().Be(string.Join(Environment.NewLine, "[WorkingPath: /home/user]", "[Selected: a.txt, b.txt]", "", "summarize these"));
+        received[1].Should().NotContain("[Selected:"); // the later update carried no items
+        received[1].Should().StartWith("[WorkingPath: /home/user]");
+    }
+
+    [Fact]
+    public async Task RunAsync_SelectedItemsWithoutWorkingPath_MessageCarriesTheItems()
+    {
+        string? receivedContent = null;
+        var runner = CreateRunner(content =>
+        {
+            receivedContent = content;
+            return EmptyEvents();
+        });
+
+        var input = BuildInput(
+            """{"type":"context_update","selected_items":["report.pdf"]}""",
+            """{"type":"user_message","content":"open it"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        receivedContent.Should().Be(string.Join(Environment.NewLine, "[Selected: report.pdf]", "", "open it"));
+    }
+
+    [Fact]
     public async Task RunAsync_NoContext_MessageIsUnprefixed()
     {
         string? receivedContent = null;

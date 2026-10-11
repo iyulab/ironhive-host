@@ -55,7 +55,7 @@ public sealed partial class AgentHttpRunner : IDisposable
     private readonly ILogger<AgentHttpRunner> _logger;
 
     private TurnQueue? _turns;
-    private string? _workingPath;
+    private ContextUpdateRequest? _context;
     private string? _lastEventId;
     private bool _receivedSinceConnect;
     private readonly HitlBridge? _hitl;
@@ -66,7 +66,7 @@ public sealed partial class AgentHttpRunner : IDisposable
     public Action<ContextUpdateRequest>? OnContextUpdate { get; set; }
 
     /// <summary>
-    /// When true, <see cref="BuildContextualContent"/> becomes a pass-through.
+    /// When true, context enrichment (<c>[WorkingPath: …]</c> and <c>[Selected: …]</c> before each message) is off.
     /// Set this when an external orchestrator handles context injection itself.
     /// </summary>
     public bool SkipContextEnrichment { get; set; }
@@ -302,7 +302,7 @@ public sealed partial class AgentHttpRunner : IDisposable
 
             if (serverRequest is ContextUpdateRequest ctx)
             {
-                _workingPath = ctx.WorkingPath;
+                _context = ctx;
                 OnContextUpdate?.Invoke(ctx);
                 continue;
             }
@@ -315,9 +315,9 @@ public sealed partial class AgentHttpRunner : IDisposable
 
             if (serverRequest is UserMessageRequest msg)
             {
-                var contextualMsg = SkipContextEnrichment || _workingPath is null
+                var contextualMsg = SkipContextEnrichment
                     ? msg
-                    : msg with { Content = BuildContextualContent(msg.Content) };
+                    : msg with { Content = ContextEnrichment.Apply(_context, msg.Content) };
 
                 _turns?.Enqueue(token => HandleTurnAsync(t => _processMessage(contextualMsg, t), token));
             }
@@ -371,16 +371,6 @@ public sealed partial class AgentHttpRunner : IDisposable
                 yield return parsed;
             }
         }
-    }
-
-    private string BuildContextualContent(string userContent)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture,
-            $"[WorkingPath: {_workingPath}]");
-        sb.AppendLine();
-        sb.Append(userContent);
-        return sb.ToString();
     }
 
     private async Task HandleTurnAsync(Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, CancellationToken ct)
