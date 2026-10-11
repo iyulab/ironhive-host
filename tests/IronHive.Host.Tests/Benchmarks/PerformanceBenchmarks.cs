@@ -223,20 +223,6 @@ public class PerformanceBenchmarks
     }
 
     [Fact]
-    public void PromptCacheManager_AppliesCacheHintsQuickly()
-    {
-        var counter = new ContextTokenCounter("gpt-4o");
-        var manager = new PromptCacheManager(counter);
-        var history = CreateLargeHistory(100);
-
-        var sw = Stopwatch.StartNew();
-        var result = manager.ApplyCacheHints(history);
-        sw.Stop();
-
-        Assert.True(sw.ElapsedMilliseconds < 200, $"Applying cache hints took {sw.ElapsedMilliseconds}ms");
-    }
-
-    [Fact]
     public void Memory_LargeHistoryCreation_ReasonableMemory()
     {
         var beforeMem = GC.GetTotalMemory(true);

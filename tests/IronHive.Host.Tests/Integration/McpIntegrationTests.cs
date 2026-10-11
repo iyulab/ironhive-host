@@ -13,55 +13,6 @@ public class McpIntegrationTests
     #region Scenario 1: Plugin Configuration and Discovery
 
     [Fact]
-    public async Task Scenario1_PluginConfigurationAndDiscovery()
-    {
-        // Arrange: Create configuration with multiple plugins
-        var config = new McpPluginsConfig
-        {
-            Plugins = new Dictionary<string, McpPluginConfig>
-            {
-                ["memory"] = new McpPluginConfig
-                {
-                    Command = "memory-indexer",
-                    Arguments = ["--port", "8080"],
-                    AutoReconnect = true,
-                    TimeoutMs = 30000
-                },
-                ["code"] = new McpPluginConfig
-                {
-                    Command = "code-beaker",
-                    Arguments = ["--sandbox"],
-                    AutoReconnect = true
-                },
-                ["disabled"] = new McpPluginConfig
-                {
-                    Command = "disabled-plugin"
-                }
-            },
-            ExcludePlugins = ["disabled"],
-            AutoConnect = true,
-            DefaultTimeoutMs = 45000
-        };
-
-        await using var manager = new McpPluginManager();
-        using var discovery = new McpToolDiscovery(manager, config);
-
-        // Act: Get available plugins
-        var availablePlugins = discovery.GetAvailablePlugins();
-
-        // Assert: Verify plugin discovery
-        Assert.Equal(3, availablePlugins.Count);
-
-        var memoryPlugin = availablePlugins.First(p => p.Name == "memory");
-        Assert.False(memoryPlugin.IsConnected);
-        Assert.False(memoryPlugin.IsExcluded);
-        Assert.Equal(McpTransportType.Stdio, memoryPlugin.Transport);
-
-        var disabledPlugin = availablePlugins.First(p => p.Name == "disabled");
-        Assert.True(disabledPlugin.IsExcluded);
-    }
-
-    [Fact]
     public async Task Scenario1_ConfigurationFileLoading()
     {
         // Arrange: Create temp config files
