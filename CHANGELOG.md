@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.58.0 — 2026-10-12
 
 ### Documentation
 - **The README says how a host of your own resumes a session**: `OpenSessionAsync` with the session id, `RestoreContextAsync`
