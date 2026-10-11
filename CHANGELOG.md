@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.115.1 -> 0.116.0.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.61.0 -> 0.62.0, `IronHive.Core` 0.61.0 -> 0.62.0, `IronHive.Extensions.AI` 0.61.0 -> 0.62.0, `IronHive.Providers.Anthropic` 0.61.0 -> 0.62.0, `IronHive.Providers.GoogleAI` 0.61.0 -> 0.62.0, `IronHive.Providers.OpenAI` 0.61.0 -> 0.62.0, `IronHive.Providers.OpenAI.Compatible` 0.61.0 -> 0.62.0.
 
 ## 0.57.0 — 2026-10-11
 
