@@ -31,7 +31,7 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Generator" Version="0.117.1" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.118.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
     <PackageVersion Include="IronHive.Agent" Version="0.60.0" />
     <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.60.0" />
@@ -52,7 +52,7 @@
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.7.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
     <!-- TokenMeter (model catalog & cost calculation) -->
-    <PackageVersion Include="TokenMeter" Version="0.11.0" />
+    <PackageVersion Include="TokenMeter" Version="0.12.0" />
     <!-- Testing (xUnit v3 on Microsoft.Testing.Platform) -->
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.6.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.0" />
