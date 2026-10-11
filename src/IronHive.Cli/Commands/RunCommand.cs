@@ -344,7 +344,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     private async Task<int> RunServerModeAsync(Settings settings, CancellationToken ct)
     {
-        var created = await _factory.CreateWithToolsAsync(new AgentLoopFactoryOptions
+        var created = await _factory.CreateWithPipelineAsync(new AgentLoopFactoryOptions
         {
             Provider = settings.Provider,
             Model = settings.Model
@@ -403,7 +403,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // Per-turn options become the loop's override for this turn only; a request without
                 // them runs on the loop's configuration. Unknown tool names throw here and reach the
                 // client as an ErrorEvent (the runner turns exceptions into one) — never a silent drop.
-                var overrideOptions = TurnOptionsMapper.ToChatOptions(msg.Options, created.Tools);
+                var overrideOptions = TurnOptionsMapper.ToChatOptions(msg.Options, created.Loop.Tools);
 
                 var turn = agentLoop.RunStreamingAsync(msg.Content, overrideOptions, token);
                 if (recorder is not null)
@@ -428,7 +428,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             {
                 var bridge = _hitlBridge;
                 runner.ResumeTurn = token => SuspendedTurnResumer
-                    .ResumeAsync(agentLoop, pending, bridge, recorder, created.Tools, created.Pipeline, token)
+                    .ResumeAsync(agentLoop, pending, bridge, recorder, created.Loop.Tools, created.Pipeline, token)
                     .ToServerEvents(executionLog, token);
             }
             await runner.RunAsync(ct);

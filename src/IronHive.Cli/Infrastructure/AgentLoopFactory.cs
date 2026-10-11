@@ -130,10 +130,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
     /// <inheritdoc />
     public async Task<IAgentLoop> CreateAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default)
-        => (await CreateWithToolsAsync(options, cancellationToken)).Loop;
+        => (await CreateWithPipelineAsync(options, cancellationToken)).Loop;
 
     /// <inheritdoc />
-    public async Task<CreatedAgentLoop> CreateWithToolsAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default)
+    public async Task<CreatedAgentLoop> CreateWithPipelineAsync(AgentLoopFactoryOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -222,7 +222,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             chatClient, _turnManager, agentOptions, options.ThinkingOptions, contextManager: contextManager,
             toolRetriever: _toolRetrieval?.Enabled == true ? new IronHive.Agent.Context.KeywordToolRetriever() : null,
             errorRecovery: _errorRecovery, usageLimiter: usageLimiter);
-        return new CreatedAgentLoop(loop, tools.AsReadOnly())
+        return new CreatedAgentLoop(loop)
         {
             Pipeline = chatClient.GetService<IronHive.Agent.Invocation.ToolInvocationPipeline>(),
         };

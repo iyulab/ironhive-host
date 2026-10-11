@@ -142,10 +142,10 @@ public sealed class DelegationWiringTests : IDisposable
         var loops = new AgentLoopFactory(sessionFactory, services.BuildServiceProvider().GetRequiredService<IThinkingTurnManager>(),
             delegation: Config(), delegationClients: FactoryReturning(new ScriptedChatClient(call: null)));
 
-        var created = await loops.CreateWithToolsAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
+        var created = await loops.CreateWithPipelineAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
 
-        created.Tools.Should().Contain(t => t.Name == "researcher");
-        created.Tools.Should().Contain(t => t.Name == "ReadFile", "the session keeps its own tools");
+        created.Loop.Tools.Should().Contain(t => t.Name == "researcher");
+        created.Loop.Tools.Should().Contain(t => t.Name == "ReadFile", "the session keeps its own tools");
     }
 
     [Fact]

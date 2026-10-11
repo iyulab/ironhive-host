@@ -37,9 +37,9 @@ public class SkillsAndPermissionWiringTests : IDisposable
     {
         var loader = Loader(withSkill: true);
 
-        var created = await Factory(skills: loader).CreateWithToolsAsync(new AgentLoopFactoryOptions { Model = "gpt-4o" }, TestContext.Current.CancellationToken);
+        var created = await Factory(skills: loader).CreateWithPipelineAsync(new AgentLoopFactoryOptions { Model = "gpt-4o" }, TestContext.Current.CancellationToken);
 
-        created.Tools.OfType<AIFunction>().Select(f => f.Name).Should().ContainSingle(n => n == SkillsLoader.LoadToolName);
+        created.Loop.Tools.OfType<AIFunction>().Select(f => f.Name).Should().ContainSingle(n => n == SkillsLoader.LoadToolName);
     }
 
     [Fact]
@@ -47,9 +47,9 @@ public class SkillsAndPermissionWiringTests : IDisposable
     {
         var loader = Loader(withSkill: false);
 
-        var created = await Factory(skills: loader).CreateWithToolsAsync(new AgentLoopFactoryOptions { Model = "gpt-4o" }, TestContext.Current.CancellationToken);
+        var created = await Factory(skills: loader).CreateWithPipelineAsync(new AgentLoopFactoryOptions { Model = "gpt-4o" }, TestContext.Current.CancellationToken);
 
-        created.Tools.OfType<AIFunction>().Select(f => f.Name).Should().NotContain(SkillsLoader.LoadToolName);
+        created.Loop.Tools.OfType<AIFunction>().Select(f => f.Name).Should().NotContain(SkillsLoader.LoadToolName);
     }
 
     [Fact]
@@ -60,9 +60,9 @@ public class SkillsAndPermissionWiringTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(_dir, "outside.txt"), "s3cr3t", TestContext.Current.CancellationToken);
         var options = new FileToolOptions { AllowedRoots = [inside] };
 
-        var created = await Factory(fileToolOptions: options).CreateWithToolsAsync(
+        var created = await Factory(fileToolOptions: options).CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = inside }, TestContext.Current.CancellationToken);
-        var readFile = (AIFunction)created.Tools.Single(t => (t as AIFunction)?.Name == "ReadFile");
+        var readFile = (AIFunction)created.Loop.Tools.Single(t => (t as AIFunction)?.Name == "ReadFile");
         var result = (await readFile.InvokeAsync(new AIFunctionArguments(new Dictionary<string, object?> { ["path"] = "../outside.txt" }), TestContext.Current.CancellationToken))!.ToString()!;
 
         result.Should().NotContain("s3cr3t");
@@ -89,7 +89,7 @@ public class SkillsAndPermissionWiringTests : IDisposable
         var permissions = PermissionConfig.CreateDefault();
         permissions.WorkingDirectory = rulesDir;
 
-        var act = () => Factory(permissions: permissions).CreateWithToolsAsync(
+        var act = () => Factory(permissions: permissions).CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = toolsDir }, TestContext.Current.CancellationToken);
 
         var ex = await act.Should().ThrowAsync<InvalidOperationException>();
@@ -104,7 +104,7 @@ public class SkillsAndPermissionWiringTests : IDisposable
         var permissions = PermissionConfig.CreateDefault();
         permissions.WorkingDirectory = dir + Path.DirectorySeparatorChar;
 
-        var created = await Factory(permissions: permissions).CreateWithToolsAsync(
+        var created = await Factory(permissions: permissions).CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = dir }, TestContext.Current.CancellationToken);
 
         created.Loop.Should().NotBeNull();
@@ -113,7 +113,7 @@ public class SkillsAndPermissionWiringTests : IDisposable
     [Fact]
     public async Task PermissionsWithoutAWorkingDirectory_AreNotJudged()
     {
-        var created = await Factory(permissions: PermissionConfig.CreateDefault()).CreateWithToolsAsync(
+        var created = await Factory(permissions: PermissionConfig.CreateDefault()).CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = _dir }, TestContext.Current.CancellationToken);
 
         created.Loop.Should().NotBeNull();

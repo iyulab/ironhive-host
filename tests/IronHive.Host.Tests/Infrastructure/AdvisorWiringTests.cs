@@ -50,10 +50,10 @@ public sealed class AdvisorWiringTests : IDisposable
         var loops = new AgentLoopFactory(factory, Substitute.For<IThinkingTurnManager>(),
             advisor: new AdvisorConfig { Provider = "anthropic", Model = "strong-model" });
 
-        var created = await loops.CreateWithToolsAsync(
+        var created = await loops.CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
 
-        created.Tools.Select(t => t.Name).Should().Contain("advisor");
+        created.Loop.Tools.Select(t => t.Name).Should().Contain("advisor");
         await factory.Received(1).CreateAsync("anthropic", "strong-model", Arg.Any<CancellationToken>());
     }
 
@@ -64,9 +64,9 @@ public sealed class AdvisorWiringTests : IDisposable
         factory.CreateAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(Substitute.For<IChatClient>());
         var loops = new AgentLoopFactory(factory, Substitute.For<IThinkingTurnManager>(), advisor: new AdvisorConfig());
 
-        var created = await loops.CreateWithToolsAsync(
+        var created = await loops.CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
 
-        created.Tools.Select(t => t.Name).Should().NotContain("advisor");
+        created.Loop.Tools.Select(t => t.Name).Should().NotContain("advisor");
     }
 }

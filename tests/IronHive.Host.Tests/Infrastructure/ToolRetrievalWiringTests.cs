@@ -60,11 +60,11 @@ public sealed class ToolRetrievalWiringTests : IDisposable
         var (factory, toolCounts) = RecordingFactory();
         var loops = new AgentLoopFactory(factory, TurnManager());
 
-        var created = await loops.CreateWithToolsAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
+        var created = await loops.CreateWithPipelineAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
         await created.Loop.RunAsync("read the file notes.txt", TestContext.Current.CancellationToken);
 
-        toolCounts.Should().ContainSingle().Which.Should().Be(created.Tools.Count);
-        created.Tools.Count.Should().BeGreaterThan(3, "the built-in tool set is what retrieval narrows");
+        toolCounts.Should().ContainSingle().Which.Should().Be(created.Loop.Tools.Count);
+        created.Loop.Tools.Count.Should().BeGreaterThan(3, "the built-in tool set is what retrieval narrows");
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
         var loops = new AgentLoopFactory(factory, TurnManager(),
             toolRetrieval: new ToolRetrievalHostConfig { Enabled = true, MaxTools = 2, MinRelevanceScore = 0f });
 
-        var created = await loops.CreateWithToolsAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
+        var created = await loops.CreateWithPipelineAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
         await created.Loop.RunAsync("read the file notes.txt", TestContext.Current.CancellationToken);
 
         toolCounts.Should().ContainSingle().Which.Should().BeInRange(1, 2);
@@ -87,7 +87,7 @@ public sealed class ToolRetrievalWiringTests : IDisposable
         var loops = new AgentLoopFactory(factory, TurnManager(),
             toolRetrieval: new ToolRetrievalHostConfig { Enabled = true, MaxTools = 2, MinRelevanceScore = 0f, StickyToolLimit = 40 });
 
-        var created = await loops.CreateWithToolsAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
+        var created = await loops.CreateWithPipelineAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
         await created.Loop.RunAsync("read the file notes.txt", TestContext.Current.CancellationToken);
         await created.Loop.RunAsync("run a shell command that lists processes", TestContext.Current.CancellationToken);
 
