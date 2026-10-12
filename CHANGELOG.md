@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.59.0 — Unreleased
 
 ### Added
 - **A runner handler can take the context and receive the user's text as sent.** `AgentServerRunner` and `AgentHttpRunner`
