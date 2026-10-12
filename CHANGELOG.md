@@ -7,6 +7,19 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **A runner handler can take the context and receive the user's text as sent.** `AgentServerRunner` and `AgentHttpRunner`
+  have a constructor whose handler is `(UserMessageRequest, ContextUpdateRequest?, CancellationToken)`. It gets the last
+  `context_update` read before the message (null before any), and the runner puts nothing in front of the content. A host
+  can then check the user's own words (input rules, a classifier) before the working path and selected items go in.
+- **`ContextEnrichment.Apply(ContextUpdateRequest?, string)` is public**, so such a handler applies the runners' own
+  `[WorkingPath: …]` / `[Selected: a, b]` format instead of keeping a copy of it.
+
+### Removed
+- **Breaking: `SkipContextEnrichment` is gone from both runners.** Migration: construct the runner with a handler that takes
+  the context, and leave the context out (or apply it with `ContextEnrichment.Apply` where you choose). The existing
+  two-argument handler still receives the enriched message, as before.
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.62.0 -> 0.63.0, `IronHive.Core` 0.62.0 -> 0.63.0, `IronHive.Extensions.AI` 0.62.0 -> 0.63.0, `IronHive.Providers.Anthropic` 0.62.0 -> 0.63.0, `IronHive.Providers.GoogleAI` 0.62.0 -> 0.63.0, `IronHive.Providers.OpenAI` 0.62.0 -> 0.63.0, `IronHive.Providers.OpenAI.Compatible` 0.62.0 -> 0.63.0.
 

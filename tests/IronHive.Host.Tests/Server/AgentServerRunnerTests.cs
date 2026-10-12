@@ -470,26 +470,66 @@ public class AgentServerRunnerTests
         received!.WorkingPath.Should().Be("/docs");
     }
 
+    // A handler that takes the context gets the user's own text and the context in effect when the message arrived:
+    // the second message's context is the one read before it, not the one read while the first turn was still running.
     [Fact]
-    public async Task RunAsync_SkipContextEnrichment_MessageIsUnprefixed()
+    public async Task RunAsync_ContextHandler_ReceivesRawContentAndTheContextOfItsArrival()
     {
-        string? receivedContent = null;
-        var runner = CreateRunner(content =>
-        {
-            receivedContent = content;
-            return EmptyEvents();
-        });
-        runner.SkipContextEnrichment = true;
+        var received = new List<(string Content, string? WorkingPath, string? Selected)>();
+        var runner = new AgentServerRunner(
+            (msg, context, ct) => Record(msg, context, ct),
+            Substitute.For<ILogger<AgentServerRunner>>(),
+            JsonOpts);
 
         var input = BuildInput(
-            """{"type":"context_update","working_path":"/home/user"}""",
-            """{"type":"user_message","content":"raw message"}""",
+            """{"type":"context_update","working_path":"/a"}""",
+            """{"type":"user_message","content":"one"}""",
+            """{"type":"context_update","working_path":"/b","selected_items":["x.txt"]}""",
+            """{"type":"user_message","content":"two"}""",
+            """{"type":"context_update","working_path":"/c"}""",
             """{"type":"shutdown"}""");
         using var output = new StringWriter();
 
         await runner.RunAsync(input, output, CancellationToken.None);
 
-        receivedContent.Should().Be("raw message");
+        received.Should().Equal(("one", "/a", null), ("two", "/b", "x.txt"));
+
+        async IAsyncEnumerable<ServerEvent> Record(
+            UserMessageRequest msg, ContextUpdateRequest? context, [EnumeratorCancellation] CancellationToken ct)
+        {
+            lock (received)
+            {
+                received.Add((msg.Content, context?.WorkingPath, context?.SelectedItems is { } items ? string.Join(",", items) : null));
+            }
+
+            if (msg.Content == "one")
+            {
+                await Task.Delay(200, ct);
+            }
+
+            yield return new TextDeltaEvent(msg.Content);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_ContextHandler_BeforeAnyContextUpdate_ReceivesNull()
+    {
+        ContextUpdateRequest? received = new("/sentinel");
+        var runner = new AgentServerRunner(
+            (_, context, ct) =>
+            {
+                received = context;
+                return EmptyEvents(ct);
+            },
+            Substitute.For<ILogger<AgentServerRunner>>(),
+            JsonOpts);
+
+        var input = BuildInput("""{"type":"user_message","content":"hi"}""", """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        received.Should().BeNull();
     }
 
     // ── Cancel ────────────────────────────────────────────────────────

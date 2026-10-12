@@ -104,6 +104,34 @@ public class AgentHttpRunnerTests
             && e.Contains("\"code\":\"timeout\"", StringComparison.Ordinal));
     }
 
+    // A handler that takes the context gets the message as sent and the context read before it.
+    [Fact]
+    public async Task ContextHandler_ReceivesRawContentAndTheContext()
+    {
+        var host = new FakeHost(Inbox(
+            """data: {"type":"context_update","working_path":"/work","selected_items":["a.txt"]}""",
+            """data: {"type":"user_message","content":"hello"}""",
+            """data: {"type":"shutdown"}"""));
+        string? content = null;
+        ContextUpdateRequest? received = null;
+        using var runner = new AgentHttpRunner(
+            "http://agent-host.test", "s1",
+            (msg, context, _) =>
+            {
+                content = msg.Content;
+                received = context;
+                return AsyncEnumerable.Empty<ServerEvent>();
+            },
+            NullLogger<AgentHttpRunner>.Instance, httpHandler: host);
+
+        await runner.RunAsync(TestContext.Current.CancellationToken);
+
+        content.Should().Be("hello");
+        received!.WorkingPath.Should().Be("/work");
+        ContextEnrichment.Apply(received, content!).Should().Be(
+            string.Join(Environment.NewLine, "[WorkingPath: /work]", "[Selected: a.txt]", "", "hello"));
+    }
+
     // A turn a previous process left waiting for approval resumes before the inbox's messages, once
     [Fact]
     public async Task ResumeTurn_RunsBeforeInboxMessages_AndOnlyOnce()

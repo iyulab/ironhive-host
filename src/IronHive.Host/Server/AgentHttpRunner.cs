@@ -48,7 +48,7 @@ public sealed partial class AgentHttpRunner : IDisposable
     [LoggerMessage(Level = LogLevel.Debug, Message = "Received request type {RequestType}")]
     private partial void LogRequestReceived(string requestType);
 
-    private readonly Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
+    private readonly Func<UserMessageRequest, ContextUpdateRequest?, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
     private readonly HttpClient _http;
     private readonly string _sessionId;
     private readonly JsonSerializerOptions _jsonOptions;
@@ -64,12 +64,6 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// Optional callback invoked when a context update is received.
     /// </summary>
     public Action<ContextUpdateRequest>? OnContextUpdate { get; set; }
-
-    /// <summary>
-    /// When true, context enrichment (<c>[WorkingPath: …]</c> and <c>[Selected: …]</c> before each message) is off.
-    /// Set this when an external orchestrator handles context injection itself.
-    /// </summary>
-    public bool SkipContextEnrichment { get; set; }
 
     /// <summary>
     /// A turn to run before any inbox message - the turn a previous process left waiting for approval
@@ -112,7 +106,9 @@ public sealed partial class AgentHttpRunner : IDisposable
 
     /// <param name="hostUrl">Base URL of the host, e.g. "http://localhost:5100".</param>
     /// <param name="sessionId">Session ID to connect to.</param>
-    /// <param name="processMessage">Processes a user message and yields server events.</param>
+    /// <param name="processMessage">Processes a user message and yields server events. The message arrives with the last
+    /// <see cref="ContextUpdateRequest"/> in front of its content (<see cref="ContextEnrichment"/>); to receive the user's
+    /// text and the context apart, use the constructor whose handler takes the context.</param>
     /// <param name="logger">Logger instance.</param>
     /// <param name="jsonOptions">Custom JSON options. Defaults to snake_case.</param>
     /// <param name="typeInfoModifiers">
@@ -128,6 +124,33 @@ public sealed partial class AgentHttpRunner : IDisposable
         string hostUrl,
         string sessionId,
         Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
+        ILogger<AgentHttpRunner> logger,
+        JsonSerializerOptions? jsonOptions = null,
+        Action<JsonTypeInfo>[]? typeInfoModifiers = null,
+        HitlBridge? hitlBridge = null,
+        HttpMessageHandler? httpHandler = null)
+        : this(hostUrl, sessionId, AgentServerRunner.Enriching(processMessage), logger, jsonOptions, typeInfoModifiers,
+            hitlBridge, httpHandler)
+    {
+    }
+
+    /// <param name="hostUrl">Base URL of the host, e.g. "http://localhost:5100".</param>
+    /// <param name="sessionId">Session ID to connect to.</param>
+    /// <param name="processMessage">Processes a user message and yields server events. It receives the message as sent
+    /// and the last <see cref="ContextUpdateRequest"/> read before it (null before any), and the runner puts nothing in
+    /// front of the content: the handler can check the user's own text, then apply the context with
+    /// <see cref="ContextEnrichment.Apply"/> or not at all.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="jsonOptions">Custom JSON options. Defaults to snake_case.</param>
+    /// <param name="typeInfoModifiers">Optional modifiers applied to the polymorphic type resolver (see the other
+    /// constructor).</param>
+    /// <param name="hitlBridge">The approver the agent's gate asks (see the other constructor).</param>
+    /// <param name="httpHandler">Message handler for the connection to the host. Null uses the default handler. The
+    /// runner disposes it.</param>
+    public AgentHttpRunner(
+        string hostUrl,
+        string sessionId,
+        Func<UserMessageRequest, ContextUpdateRequest?, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
         ILogger<AgentHttpRunner> logger,
         JsonSerializerOptions? jsonOptions = null,
         Action<JsonTypeInfo>[]? typeInfoModifiers = null,
@@ -315,11 +338,9 @@ public sealed partial class AgentHttpRunner : IDisposable
 
             if (serverRequest is UserMessageRequest msg)
             {
-                var contextualMsg = SkipContextEnrichment
-                    ? msg
-                    : msg with { Content = ContextEnrichment.Apply(_context, msg.Content) };
-
-                _turns?.Enqueue(token => HandleTurnAsync(t => _processMessage(contextualMsg, t), token));
+                // The context in effect when the message arrived, not when its turn starts.
+                var context = _context;
+                _turns?.Enqueue(token => HandleTurnAsync(t => _processMessage(msg, context, t), token));
             }
         }
 

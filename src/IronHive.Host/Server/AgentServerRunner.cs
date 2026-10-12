@@ -35,7 +35,7 @@ public partial class AgentServerRunner
         AllowOutOfOrderMetadataProperties = true,
     };
 
-    private readonly Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
+    private readonly Func<UserMessageRequest, ContextUpdateRequest?, CancellationToken, IAsyncEnumerable<ServerEvent>> _processMessage;
     private readonly ILogger<AgentServerRunner> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly HitlBridge? _hitl;
@@ -55,12 +55,6 @@ public partial class AgentServerRunner
     public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
 
     /// <summary>
-    /// When true, context enrichment (<c>[WorkingPath: …]</c> and <c>[Selected: …]</c> before each message) is off.
-    /// Set this when an external orchestrator handles context injection itself.
-    /// </summary>
-    public bool SkipContextEnrichment { get; set; }
-
-    /// <summary>
     /// Classifies a failed turn for <see cref="ErrorEvent.Code"/>. Defaults to an <see cref="ErrorRecoveryService"/> with its
     /// built-in HTTP status reader; pass the application's own (with the provider gateways' failure readers) so the wire
     /// and error recovery read a failure the same way.
@@ -73,7 +67,9 @@ public partial class AgentServerRunner
 
     private IErrorRecoveryService _errorClassifier = new ErrorRecoveryService();
 
-    /// <param name="processMessage">Processes a user message and yields server events.</param>
+    /// <param name="processMessage">Processes a user message and yields server events. The message arrives with the last
+    /// <see cref="ContextUpdateRequest"/> in front of its content (<see cref="ContextEnrichment"/>); to receive the user's
+    /// text and the context apart, use the constructor whose handler takes the context.</param>
     /// <param name="logger">Logger instance.</param>
     /// <param name="jsonOptions">Custom JSON options. Defaults to snake_case.</param>
     /// <param name="typeInfoModifiers">
@@ -92,7 +88,27 @@ public partial class AgentServerRunner
         JsonSerializerOptions? jsonOptions = null,
         Action<JsonTypeInfo>[]? typeInfoModifiers = null,
         HitlBridge? hitlBridge = null)
+        : this(Enriching(processMessage), logger, jsonOptions, typeInfoModifiers, hitlBridge)
     {
+    }
+
+    /// <param name="processMessage">Processes a user message and yields server events. It receives the message as sent
+    /// and the last <see cref="ContextUpdateRequest"/> read before it (null before any), and the runner puts nothing in
+    /// front of the content: the handler can check the user's own text, then apply the context with
+    /// <see cref="ContextEnrichment.Apply"/> or not at all.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="jsonOptions">Custom JSON options. Defaults to snake_case.</param>
+    /// <param name="typeInfoModifiers">Optional modifiers applied to the polymorphic type resolver (see the other
+    /// constructor).</param>
+    /// <param name="hitlBridge">The approver the agent's gate asks (see the other constructor).</param>
+    public AgentServerRunner(
+        Func<UserMessageRequest, ContextUpdateRequest?, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage,
+        ILogger<AgentServerRunner> logger,
+        JsonSerializerOptions? jsonOptions = null,
+        Action<JsonTypeInfo>[]? typeInfoModifiers = null,
+        HitlBridge? hitlBridge = null)
+    {
+        ArgumentNullException.ThrowIfNull(processMessage);
         _processMessage = processMessage;
         _logger = logger;
         _jsonOptions = ApplyModifiers(jsonOptions ?? DefaultJsonOpts, typeInfoModifiers);
@@ -199,10 +215,10 @@ public partial class AgentServerRunner
 
                 if (request is UserMessageRequest msg)
                 {
-                    // The working path in effect when the message arrived. Turns run one at a time, each ending with
+                    // The context in effect when the message arrived. Turns run one at a time, each ending with
                     // its TurnEndEvent before the next starts. HandleMessageAsync never throws.
-                    var contextual = msg with { Content = BuildContextualContent(msg.Content) };
-                    turns.Enqueue(token => HandleTurnAsync(t => _processMessage(contextual, t), output, writeLock, token));
+                    var context = _context;
+                    turns.Enqueue(token => HandleTurnAsync(t => _processMessage(msg, context, t), output, writeLock, token));
                 }
             }
         }
@@ -220,8 +236,13 @@ public partial class AgentServerRunner
         }
     }
 
-    private string BuildContextualContent(string userContent)
-        => SkipContextEnrichment ? userContent : ContextEnrichment.Apply(_context, userContent);
+    /// <summary>A handler that receives the message with the context already in front of its content.</summary>
+    internal static Func<UserMessageRequest, ContextUpdateRequest?, CancellationToken, IAsyncEnumerable<ServerEvent>> Enriching(
+        Func<UserMessageRequest, CancellationToken, IAsyncEnumerable<ServerEvent>> processMessage)
+    {
+        ArgumentNullException.ThrowIfNull(processMessage);
+        return (msg, context, ct) => processMessage(msg with { Content = ContextEnrichment.Apply(context, msg.Content) }, ct);
+    }
 
     private async Task HandleTurnAsync(
         Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)

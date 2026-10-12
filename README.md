@@ -525,6 +525,28 @@ var httpRunner = new AgentHttpRunner("http://localhost:5100", sessionId, Process
 await httpRunner.RunAsync(ct);
 ```
 
+With that handler shape the runner puts the last `context_update` in front of each message (`[WorkingPath: …]`,
+`[Selected: a, b]`). A handler that also takes the context receives the user's text as sent and the context in effect when
+the message arrived (null before any), and the runner adds nothing. Use it to check the user's own words before the context
+goes in, then apply the runner's format with `ContextEnrichment.Apply`, or leave the context out:
+
+```csharp
+async IAsyncEnumerable<ServerEvent> ProcessWithContext(
+    UserMessageRequest msg,
+    ContextUpdateRequest? context,
+    [EnumeratorCancellation] CancellationToken token)
+{
+    // check msg.Content here: it holds only what the user typed
+    var input = ContextEnrichment.Apply(context, msg.Content);
+    await foreach (var evt in agentLoop.RunStreamingAsync(input, token).ToServerEvents(executionLog, token))
+    {
+        yield return evt;
+    }
+}
+
+var runner = new AgentServerRunner(ProcessWithContext, logger, hitlBridge: hitlBridge);
+```
+
 **AgentHttpRunner** expects these host endpoints:
 
 | Endpoint | Method | Purpose |
@@ -618,7 +640,7 @@ a wait older than `approval.timeoutSeconds` resumes as a denial without asking. 
 | Type | Discriminator | Key fields |
 |------|---------------|-----------|
 | `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions` — see below) |
-| `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` — the runners put the last update in front of each later `user_message`: `[WorkingPath: …]` and `[Selected: a, b]` (set `SkipContextEnrichment` to leave the message as sent) |
+| `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` — the runners put the last update in front of each later `user_message`: `[WorkingPath: …]` and `[Selected: a, b]` (a handler that takes the context gets the message as sent — see [AgentServerRunner](#agentserverrunner--agenthttprunner)) |
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?`, `Id?` (the request being answered), `ModifiedArguments?`, `AlwaysApprove?` |
 | `CancelRequest` | `cancel` | — |
 | `ShutdownRequest` | `shutdown` | — |
