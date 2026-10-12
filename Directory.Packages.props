@@ -31,18 +31,18 @@
     <!-- .env support -->
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />
     <!-- LMSupply packages (local AI inference fallback) -->
-    <PackageVersion Include="LMSupply.Generator" Version="0.119.0" />
+    <PackageVersion Include="LMSupply.Generator" Version="0.120.0" />
     <!-- IronHive.Agent (reusable agent layer, from ironhive-agent repo) -->
     <PackageVersion Include="IronHive.Agent" Version="0.60.2" />
     <PackageVersion Include="IronHive.Agent.Ironbees" Version="0.60.2" />
     <!-- IronHive (LLM abstraction) -->
-    <PackageVersion Include="IronHive.Abstractions" Version="0.64.0" />
-    <PackageVersion Include="IronHive.Core" Version="0.64.0" />
-    <PackageVersion Include="IronHive.Extensions.AI" Version="0.64.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.64.0" />
-    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.64.0" />
-    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.64.0" />
-    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.64.0" />
+    <PackageVersion Include="IronHive.Abstractions" Version="0.65.0" />
+    <PackageVersion Include="IronHive.Core" Version="0.65.0" />
+    <PackageVersion Include="IronHive.Extensions.AI" Version="0.65.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI" Version="0.65.0" />
+    <PackageVersion Include="IronHive.Providers.Anthropic" Version="0.65.0" />
+    <PackageVersion Include="IronHive.Providers.GoogleAI" Version="0.65.0" />
+    <PackageVersion Include="IronHive.Providers.OpenAI.Compatible" Version="0.65.0" />
     <!-- WebLookup (web search) -->
     <PackageVersion Include="WebLookup" Version="0.3.0" />
     <!-- IronHive.DeepResearch (deep research agent) -->
@@ -62,6 +62,6 @@
     <PackageVersion Include="coverlet.MTP" Version="10.0.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
-    <PackageVersion Include="Iyu.Conventions.Testing" Version="0.9.0" />
+    <PackageVersion Include="Iyu.Conventions.Testing" Version="0.10.0" />
   </ItemGroup>
 </Project>
