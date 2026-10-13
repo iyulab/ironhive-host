@@ -13,6 +13,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   prints the full document — the text streamed so far, `tool_calls` and the `calls` list — with `error` set; a call that
   started and never reported back has `outcome: "unfinished"`. A turn that ended carries `"error": null`. The run is
   streamed to get there; what a completed run reports is unchanged.
+- **A tool call a local model writes as text is run instead of ending the turn.** When a model behind an
+  OpenAI-compatible server (GPUStack, llama-server, vLLM) emits its call in its template's markup and the server's parser
+  misses it — Hermes / Qwen `<tool_call>{json}</tool_call>`, Qwen3-Coder `<function=…><parameter=…>` — the reply used to
+  end the turn as `completed` with the work undone. The CLI and `run --server` pipeline now has IronHive.Agent's
+  `UseTextToolCallRecovery()` directly under the function invocation: a complete block that names an offered tool becomes
+  that call, which goes through the same loop guards and permission gate as any other. Delegated agents (their own tool
+  loop) are not covered.
 
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.118.0 -> 0.119.0.

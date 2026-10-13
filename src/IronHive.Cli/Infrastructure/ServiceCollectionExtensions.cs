@@ -58,6 +58,9 @@ public static class ServiceCollectionExtensions
                 client.MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest;
                 client.MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest;
             })
+            // Directly under the function-invoking client: a call a local model wrote as text (its server's parser
+            // missed it) becomes the call that client runs, instead of a reply that ends the turn as completed.
+            .UseTextToolCallRecovery()
             .Build();
 
     /// <summary>

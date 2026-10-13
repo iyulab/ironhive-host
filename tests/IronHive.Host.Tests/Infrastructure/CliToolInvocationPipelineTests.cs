@@ -151,6 +151,81 @@ public class CliToolInvocationPipelineTests
             .Should().BeOfType<ToolCallRefusal>().Which.Kind.Should().Be(ToolCallRefusalKind.RepeatedCall);
     }
 
+    private const string TextWrittenCall =
+        "Saving it.\n<tool_call>\n<function=write_file>\n<parameter=path>\na.txt\n</parameter>\n</function>\n</tool_call>";
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DecoratedClient_ACallTheModelWroteAsText_RunsThroughTheGate_LikeAStructuredCall(bool streaming)
+    {
+        // A local model's server sometimes leaves the call in the reply text; the turn used to end there as completed.
+        string? written = null;
+        var tool = AIFunctionFactory.Create((string path) => { written = path; return "ok"; }, "write_file");
+        var filter = FilterWith(PermissionAction.Allow);
+        var inner = new TextThenDoneChatClient(TextWrittenCall);
+        var client = Decorate(inner, filter);
+        var options = new ChatOptions { Tools = [tool] };
+
+        if (streaming)
+        {
+            await foreach (var _ in client.GetStreamingResponseAsync("save", options, TestContext.Current.CancellationToken))
+            {
+            }
+        }
+        else
+        {
+            await client.GetResponseAsync("save", options, TestContext.Current.CancellationToken);
+        }
+
+        written.Should().Be("a.txt");
+        filter.Received(1).Evaluate("write_file", Arg.Any<IDictionary<string, object?>?>());
+        inner.Requests.Should().Be(2, "the model is asked again with the tool's result, as after any call");
+    }
+
+    [Fact]
+    public async Task DecoratedClient_ACallWrittenAsText_IsRefusedByTheGate_LikeAStructuredCall()
+    {
+        var ran = false;
+        var tool = AIFunctionFactory.Create((string path) => { ran = true; return "ok"; }, "write_file");
+        var client = Decorate(new TextThenDoneChatClient(TextWrittenCall), FilterWith(PermissionAction.Deny));
+
+        await client.GetResponseAsync("save", new ChatOptions { Tools = [tool] }, TestContext.Current.CancellationToken);
+
+        ran.Should().BeFalse("recovering the call does not bypass the permission rules");
+    }
+
+    /// <summary>Answers the first request with <paramref name="text"/> and every later one with «done».</summary>
+    private sealed class TextThenDoneChatClient(string text) : IChatClient
+    {
+        public int Requests { get; private set; }
+
+        public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            Requests++;
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, Requests == 1 ? text : "done")));
+        }
+
+        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var response = await GetResponseAsync(messages, options, cancellationToken);
+            // In small pieces, as a server streams: the markup arrives split.
+            foreach (var piece in response.Text.Chunk(7))
+            {
+                yield return new ChatResponseUpdate(ChatRole.Assistant, new string(piece));
+            }
+        }
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
+    }
+
     private static IChatClient Decorate(IChatClient inner, IToolCallPolicy filter) =>
         CliServices.DecorateChatClient(
             inner, new ChatBehaviorConfig(), CliServices.CreateToolInvocationPipeline(filter, approvalService: null, loggerFactory: null));

@@ -289,7 +289,9 @@ to 300 characters (a tool's own result is not included). A run cut short — `--
 prints the same document with `error` set and `stop_reason` `"timeout"` | `"cancelled"` | `"error"`, holding the work done
 before the cut: the text streamed so far and every call that started, a call that never reported back as `unfinished`.
 `error` is `null` on a turn that ended. A prompt that is missing, or a failure before the command runs, prints only
-`{ "error": "…", "stop_reason": "error", "duration_ms": … }`. Log output goes to stderr. A non-interactive
+`{ "error": "…", "stop_reason": "error", "duration_ms": … }`. A call a local model writes as text (its server's tool
+parser missed it — `<tool_call>…</tool_call>` or `<function=…>`) is run like a structured call, through the same guards and
+permission rules, instead of ending the turn. Log output goes to stderr. A non-interactive
 run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in
 `.ironhive/permissions.yaml` (`default_action: allow`) when the run is meant to act unattended.
 
