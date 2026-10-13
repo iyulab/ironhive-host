@@ -195,6 +195,39 @@ public class CliToolInvocationPipelineTests
         ran.Should().BeFalse("recovering the call does not bypass the permission rules");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DecoratedClient_UnderToolModeNone_ACallWrittenAsText_IsNotRun_AndOnlyTheProseIsTheAnswer(bool streaming)
+    {
+        // A turn sent with toolMode "none" (a last «answer now» round): the model writes a call anyway.
+        var ran = false;
+        var tool = AIFunctionFactory.Create((string path) => { ran = true; return "ok"; }, "write_file");
+        var inner = new TextThenDoneChatClient(TextWrittenCall);
+        var client = Decorate(inner, FilterWith(PermissionAction.Allow));
+        var options = new ChatOptions { Tools = [tool], ToolMode = ChatToolMode.None };
+
+        ChatResponse response;
+        if (streaming)
+        {
+            var updates = new List<ChatResponseUpdate>();
+            await foreach (var update in client.GetStreamingResponseAsync("answer now", options, TestContext.Current.CancellationToken))
+            {
+                updates.Add(update);
+            }
+
+            response = updates.ToChatResponse();
+        }
+        else
+        {
+            response = await client.GetResponseAsync("answer now", options, TestContext.Current.CancellationToken);
+        }
+
+        ran.Should().BeFalse("the turn allowed no call");
+        inner.Requests.Should().Be(1, "no call was made, so the turn ends on this round");
+        response.Text.Should().Be("Saving it.");
+    }
+
     /// <summary>Answers the first request with <paramref name="text"/> and every later one with «done».</summary>
     private sealed class TextThenDoneChatClient(string text) : IChatClient
     {

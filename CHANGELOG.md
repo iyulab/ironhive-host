@@ -5,7 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.60.1 — Unreleased
+
+### Fixed
+- **A turn that allows no tool call no longer runs one the model wrote as text.** With `toolMode: "none"` (or
+  `ChatToolMode.None` in-process) the tools are still listed, and when a local model wrote a call in its reply text the
+  text-call recovery turned it into a call that ran on the round meant to end the turn. Now no call is made and the answer
+  is the text before the call markup; a reply that ends inside a call block also no longer shows the markup (IronHive.Agent
+  0.62.0).
 
 ### Dependencies
 - Re-pinned sibling package(s) `TokenMeter` 0.13.0 -> 0.13.1.
