@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - Re-pinned sibling package(s) `TokenMeter` 0.13.0 -> 0.13.1.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.61.0 -> 0.62.0, `IronHive.Agent.Ironbees` 0.61.0 -> 0.62.0, `IronHive.DeepResearch` 0.61.0 -> 0.62.0.
 
 ## 0.60.0 — 2026-10-13
 
