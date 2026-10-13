@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AwesomeAssertions;
 using IronHive.Agent.Loop;
@@ -18,14 +19,51 @@ public sealed class RunCommandOutcomeTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static AgentResponse Response(TurnStopReason reason, params ToolCallResult[] calls) => new()
+    private static readonly TokenUsage Usage = new() { InputTokens = 120, OutputTokens = 30 };
+
+    /// <summary>The final chunk of a turn that ended for <paramref name="reason"/> — what the loop always emits last.</summary>
+    private static AgentResponseChunk Final(TurnStopReason reason, params ToolCallResult[] calls) => new()
     {
-        Content = "answer",
-        HasTextOutput = true,
-        StopReason = reason,
-        ToolCalls = calls,
-        Usage = new TokenUsage { InputTokens = 120, OutputTokens = 30 },
+        Usage = Usage,
+        Turn = new TurnRecord { Content = "answer", StopReason = reason, ToolCalls = calls, Usage = Usage },
     };
+
+    /// <summary>The loop streams <paramref name="chunks"/> for the prompt <c>task</c>, honouring the run's token between chunks.</summary>
+    private static void Streams(IAgentLoop loop, params AgentResponseChunk[] chunks) =>
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call => Replay(chunks, call.ArgAt<CancellationToken>(1)));
+
+    private static async IAsyncEnumerable<AgentResponseChunk> Replay(
+        IEnumerable<AgentResponseChunk> chunks, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        foreach (var chunk in chunks)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Yield();
+            yield return chunk;
+        }
+    }
+
+    /// <summary>A loop that streams <paramref name="before"/>, then stalls until the run's token is cancelled.</summary>
+    private static void StallsAfter(IAgentLoop loop, params AgentResponseChunk[] before) =>
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call => Stall(before, call.ArgAt<CancellationToken>(1)));
+
+    private static async IAsyncEnumerable<AgentResponseChunk> Stall(
+        IEnumerable<AgentResponseChunk> before, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        foreach (var chunk in before)
+        {
+            yield return chunk;
+        }
+
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        yield break;
+    }
+
+    private static AgentResponseChunk Started(string id, string tool, string arguments) =>
+        new() { ToolCallDelta = new ToolCallChunk { Id = id, NameDelta = tool, ArgumentsDelta = arguments } };
+
+    private static AgentResponseChunk Finished(string id, string tool, bool success) =>
+        new() { ToolResult = new ToolCallResult { CallId = id, ToolName = tool, Arguments = "{}", Result = "r", Success = success } };
 
     private static ToolCallResult Call(bool? success, ToolCallRefusalKind? refusal = null) => new()
     {
@@ -62,7 +100,7 @@ public sealed class RunCommandOutcomeTests
     public async Task TheExitCodeAndStopReason_SayHowTheTurnEnded(TurnStopReason reason, int exit, string text)
     {
         var (command, loop, _) = Command();
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(Response(reason));
+        Streams(loop, Final(reason));
 
         var (code, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true });
 
@@ -77,7 +115,7 @@ public sealed class RunCommandOutcomeTests
     public async Task ToolCalls_AreCounted_RefusalsApartFromFailures()
     {
         var (command, loop, _) = Command();
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(Response(TurnStopReason.Completed,
+        Streams(loop, Final(TurnStopReason.Completed,
             Call(true), Call(false, ToolCallRefusalKind.ApprovalUnavailable), Call(false, ToolCallRefusalKind.Denied), Call(false)));
 
         var (_, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true });
@@ -92,7 +130,7 @@ public sealed class RunCommandOutcomeTests
     {
         var (command, loop, _) = Command();
         var longArguments = "{\"content\":\"" + new string('x', 1000) + "\"}";
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(Response(TurnStopReason.ToolTerminated,
+        Streams(loop, Final(TurnStopReason.ToolTerminated,
             Call(true) with { ToolName = "describe_image", Arguments = "{\"path\":\"a.jpg\"}", Result = "a beach" },
             Call(false) with { Arguments = longArguments, Result = "disk full" },
             Call(false, ToolCallRefusalKind.RepeatedCall) with { ToolName = "describe_image", Result = "'describe_image' already ran 3 times" }));
@@ -114,11 +152,10 @@ public sealed class RunCommandOutcomeTests
     {
         var (command, loop, _) = Command();
         using var caller = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(call =>
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call =>
         {
             caller.Cancel();
-            call.ArgAt<CancellationToken>(1).ThrowIfCancellationRequested();
-            return Task.FromResult(Response(TurnStopReason.Completed));
+            return Replay([Final(TurnStopReason.Completed)], call.ArgAt<CancellationToken>(1));
         });
 
         using var stdout = new StringWriter();
@@ -134,17 +171,84 @@ public sealed class RunCommandOutcomeTests
     public async Task ARunPastItsTimeout_StopsWithTimeout_AndExitCode2()
     {
         var (command, loop, _) = Command();
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(async call =>
-        {
-            await Task.Delay(Timeout.Infinite, call.ArgAt<CancellationToken>(1));
-            return Response(TurnStopReason.Completed);
-        });
+        StallsAfter(loop);
+
 
         var (code, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, TimeoutSeconds = 1 });
 
         code.Should().Be(2);
         json.GetProperty("stop_reason").GetString().Should().Be("timeout");
         json.GetProperty("duration_ms").GetInt64().Should().BeGreaterThanOrEqualTo(900);
+    }
+
+    [Fact]
+    public async Task ARunPastItsTimeout_ReportsTheWorkItDidBeforeTheCut()
+    {
+        // Two calls finish, a third starts and never reports back, then the model stalls past the timeout. Before, the
+        // document held only the error — every step taken before the cut was lost.
+        var (command, loop, _) = Command();
+        StallsAfter(loop,
+            new AgentResponseChunk { TextDelta = "Reading the files. " },
+            Started("c1", "read_file", "{\"path\":\"a.txt\"}"),
+            Finished("c1", "read_file", success: true),
+            Started("c2", "run_command", "{\"command\":\"make\"}"),
+            Finished("c2", "run_command", success: false),
+            new AgentResponseChunk { TextDelta = "Now writing the fix." },
+            Started("c3", "write_file", "{\"path\":\"b.txt\"}"));
+
+        var (code, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, TimeoutSeconds = 1 });
+
+        code.Should().Be(2);
+        json.GetProperty("stop_reason").GetString().Should().Be("timeout");
+        json.GetProperty("error").GetString().Should().Contain("did not finish");
+        json.GetProperty("content").GetString().Should().Be("Reading the files. Now writing the fix.");
+        json.GetProperty("tool_calls").GetInt32().Should().Be(3);
+        json.GetProperty("failed_tool_calls").GetInt32().Should().Be(1);
+        var calls = json.GetProperty("calls").EnumerateArray().ToList();
+        calls.Select(c => c.GetProperty("tool").GetString()).Should().Equal("read_file", "run_command", "write_file");
+        calls.Select(c => c.GetProperty("outcome").GetString()).Should().Equal("ok", "failed", "unfinished");
+        calls[2].GetProperty("arguments").GetString().Should().Be("{\"path\":\"b.txt\"}");
+    }
+
+    [Fact]
+    public async Task ARunTheCallerCancels_AlsoReportsTheWorkItDid()
+    {
+        var (command, loop, _) = Command();
+        using var caller = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call => CancelAfterOneCall(caller, call.ArgAt<CancellationToken>(1)));
+
+        using var stdout = new StringWriter();
+        var code = await command.RunOnceAsync(new RunCommand.Settings { PromptOption = "task", Json = true }, stdout, caller.Token);
+        var json = JsonDocument.Parse(stdout.ToString()).RootElement;
+
+        code.Should().Be(130);
+        json.GetProperty("stop_reason").GetString().Should().Be("cancelled");
+        json.GetProperty("calls").EnumerateArray().Single().GetProperty("outcome").GetString().Should().Be("ok");
+
+        static async IAsyncEnumerable<AgentResponseChunk> CancelAfterOneCall(
+            CancellationTokenSource caller, [EnumeratorCancellation] CancellationToken token)
+        {
+            yield return Started("c1", "read_file", "{}");
+            yield return Finished("c1", "read_file", success: true);
+            await caller.CancelAsync();
+            token.ThrowIfCancellationRequested();
+        }
+    }
+
+    [Fact]
+    public async Task ACompletedTurn_ReportsTheFinalRecord_NotTheStreamedPieces()
+    {
+        // The final chunk's record is the authority: an observer's addendum rides on it, after the model's text.
+        var (command, loop, _) = Command();
+        Streams(loop,
+            new AgentResponseChunk { TextDelta = "partial text the record supersedes" },
+            Final(TurnStopReason.Completed, Call(true)) with { Addendum = "note" });
+
+        var (_, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true });
+
+        json.GetProperty("content").GetString().Should().Be("answer\n\nnote");
+        json.GetProperty("error").ValueKind.Should().Be(JsonValueKind.Null);
+        json.GetProperty("tool_calls").GetInt32().Should().Be(1);
     }
 
     [Fact]
@@ -167,10 +271,10 @@ public sealed class RunCommandOutcomeTests
     {
         var (command, loop, config) = Command();
         int? capWhenCreated = null;
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(_ =>
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call =>
         {
             capWhenCreated = config.ChatBehavior.MaximumIterationsPerRequest;
-            return Response(TurnStopReason.Completed);
+            return Replay([Final(TurnStopReason.Completed)], call.ArgAt<CancellationToken>(1));
         });
 
         await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, MaxIterations = 40 });
@@ -184,10 +288,10 @@ public sealed class RunCommandOutcomeTests
     {
         var (command, loop, config) = Command();
         int? limitWhenRun = null;
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(_ =>
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call =>
         {
             limitWhenRun = config.ChatBehavior.ToolCallTimeoutSeconds;
-            return Response(TurnStopReason.Completed);
+            return Replay([Final(TurnStopReason.Completed)], call.ArgAt<CancellationToken>(1));
         });
 
         await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, ToolTimeoutSeconds = 45 });
@@ -207,10 +311,10 @@ public sealed class RunCommandOutcomeTests
     {
         var (command, loop, config) = Command();
         int? capWhenRun = null;
-        loop.RunAsync("task", Arg.Any<CancellationToken>()).Returns(_ =>
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(call =>
         {
             capWhenRun = config.ChatBehavior.MaxOutputTokens;
-            return Response(TurnStopReason.Completed);
+            return Replay([Final(TurnStopReason.Completed)], call.ArgAt<CancellationToken>(1));
         });
 
         await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true, MaxOutputTokens = 16384 });

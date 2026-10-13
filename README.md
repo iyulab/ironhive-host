@@ -284,9 +284,12 @@ reading the answer:
 
 `refused_tool_calls` counts calls the permission rules or a guard refused (the tool did not run, or its result was
 withheld); `failed_tool_calls` counts tools that ran and failed. `calls` lists every call in order — `outcome` is `ok`,
-`failed`, `refused` or `unknown`, a refusal carries its `refusal_kind` and message, and `arguments` is cut to 300
-characters (a tool's own result is not included). A failure, timeout or cancellation prints
-`{ "error": "…", "stop_reason": "error" | "timeout" | "cancelled", "duration_ms": … }`. Log output goes to stderr. A non-interactive
+`failed`, `refused`, `unknown` or `unfinished`, a refusal carries its `refusal_kind` and message, and `arguments` is cut
+to 300 characters (a tool's own result is not included). A run cut short — `--timeout`, a cancellation or an error —
+prints the same document with `error` set and `stop_reason` `"timeout"` | `"cancelled"` | `"error"`, holding the work done
+before the cut: the text streamed so far and every call that started, a call that never reported back as `unfinished`.
+`error` is `null` on a turn that ended. A prompt that is missing, or a failure before the command runs, prints only
+`{ "error": "…", "stop_reason": "error", "duration_ms": … }`. Log output goes to stderr. A non-interactive
 run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in
 `.ironhive/permissions.yaml` (`default_action: allow`) when the run is meant to act unattended.
 

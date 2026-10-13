@@ -235,6 +235,9 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         var clock = Stopwatch.StartNew();
         IAgentLoop? agentLoop = null;
+        // The turn is streamed so a run cut short still reports what it did: without it a timeout left only «it did not
+        // finish», and half a benchmark's runs could not be read.
+        var progress = new RunProgress();
 
         try
         {
@@ -246,7 +249,14 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 Model = settings.Model
             }, linked.Token);
 
-            var response = await agentLoop.RunAsync(prompt, linked.Token);
+            await foreach (var chunk in agentLoop.RunStreamingAsync(prompt, linked.Token))
+            {
+                progress.Add(chunk);
+            }
+
+            var response = progress.Completed
+                ?? throw new InvalidOperationException("The turn ended without its final record.");
+            var stopReason = response.StopReason ?? TurnStopReason.Completed;
             clock.Stop();
 
             if (settings.Json)
@@ -276,9 +286,9 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                     await stdout.WriteLineAsync($"Tokens: {response.Usage.InputTokens} in / {response.Usage.OutputTokens} out / {response.Usage.TotalTokens} total");
                 }
 
-                if (response.StopReason != TurnStopReason.Completed)
+                if (stopReason != TurnStopReason.Completed)
                 {
-                    await Console.Error.WriteLineAsync($"Stopped: {RunOutcome.ReasonOf(response.StopReason)}");
+                    await Console.Error.WriteLineAsync($"Stopped: {RunOutcome.ReasonOf(stopReason)}");
                 }
             }
 
@@ -288,14 +298,14 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 await HandleAutoCommitAsync(settings, prompt);
             }
 
-            return RunOutcome.ExitCodeFor(response.StopReason);
+            return RunOutcome.ExitCodeFor(stopReason);
         }
         catch (OperationCanceledException) when (timeout?.IsCancellationRequested == true && !cancellationToken.IsCancellationRequested)
         {
             var message = $"The run did not finish within {settings.TimeoutSeconds} s.";
             if (settings.Json)
             {
-                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.Timeout, message, clock.ElapsedMilliseconds));
+                await stdout.WriteLineAsync(RunOutcome.CutShortJson(RunOutcome.Timeout, message, progress.SoFar(), clock.ElapsedMilliseconds, settings.ShowThinking));
             }
             else
             {
@@ -310,7 +320,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             const string message = "The run was cancelled.";
             if (settings.Json)
             {
-                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.CancelledReason, message, clock.ElapsedMilliseconds));
+                await stdout.WriteLineAsync(RunOutcome.CutShortJson(RunOutcome.CancelledReason, message, progress.SoFar(), clock.ElapsedMilliseconds, settings.ShowThinking));
             }
             else
             {
@@ -323,7 +333,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         {
             if (settings.Json)
             {
-                await stdout.WriteLineAsync(RunOutcome.FailureJson(RunOutcome.ErrorReason, ex.Message, clock.ElapsedMilliseconds));
+                await stdout.WriteLineAsync(RunOutcome.CutShortJson(RunOutcome.ErrorReason, ex.Message, progress.SoFar(), clock.ElapsedMilliseconds, settings.ShowThinking));
             }
             else
             {

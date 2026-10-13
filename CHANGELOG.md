@@ -7,6 +7,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **`ironhive run --json` keeps the work a run did when it is cut short.** A run past `--timeout`, cancelled, or failed
+  mid-turn used to print only `{ error, stop_reason, duration_ms }`, so nothing it did before the cut could be read. It now
+  prints the full document — the text streamed so far, `tool_calls` and the `calls` list — with `error` set; a call that
+  started and never reported back has `outcome: "unfinished"`. A turn that ended carries `"error": null`. The run is
+  streamed to get there; what a completed run reports is unchanged.
+
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.118.0 -> 0.119.0.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.64.0 -> 0.65.0, `IronHive.Core` 0.64.0 -> 0.65.0, `IronHive.Extensions.AI` 0.64.0 -> 0.65.0, `IronHive.Providers.Anthropic` 0.64.0 -> 0.65.0, `IronHive.Providers.GoogleAI` 0.64.0 -> 0.65.0, `IronHive.Providers.OpenAI` 0.64.0 -> 0.65.0, `IronHive.Providers.OpenAI.Compatible` 0.64.0 -> 0.65.0, `Iyu.Conventions.Testing` 0.9.0 -> 0.10.0, `LMSupply.Generator` 0.119.0 -> 0.120.0.

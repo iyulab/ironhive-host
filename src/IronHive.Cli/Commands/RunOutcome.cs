@@ -49,37 +49,54 @@ internal static class RunOutcome
     };
 
     /// <summary>The <c>--json</c> document of a turn that ended.</summary>
-    public static string Json(AgentResponse response, long durationMs, bool showThinking) => JsonSerializer.Serialize(new
+    public static string Json(RunReport report, long durationMs, bool showThinking)
+        => Document(error: null, ReasonOf(report.StopReason ?? TurnStopReason.Completed), report, durationMs, showThinking);
+
+    /// <summary>
+    /// The <c>--json</c> document of a turn cut short — by <c>--timeout</c>, the caller or an error — with the work it did
+    /// before it was cut: the text streamed so far and every call that started, a call that never reported back as
+    /// <c>unfinished</c>. Without it a timed-out run is only «it did not finish», and nothing it did can be read.
+    /// </summary>
+    public static string CutShortJson(string stopReason, string error, RunReport soFar, long durationMs, bool showThinking)
+        => Document(error, stopReason, soFar, durationMs, showThinking);
+
+    private static string Document(string? error, string stopReason, RunReport report, long durationMs, bool showThinking)
     {
-        content = response.Content,
-        stop_reason = ReasonOf(response.StopReason),
-        duration_ms = durationMs,
-        tool_calls = response.ToolCalls.Count,
-        refused_tool_calls = response.ToolCalls.Count(c => c.RefusalKind is not null),
-        failed_tool_calls = response.ToolCalls.Count(c => c.Success == false && c.RefusalKind is null),
-        // In call order, so a reader can see which call a guard refused and what it said — a `tool_terminated` run is
-        // otherwise only a count. Arguments are cut to CallTextLimit (a write's content can be the whole file); a tool's
-        // own result is left out, a refusal's message kept.
-        calls = response.ToolCalls.Select(c => new
+        var unfinished = report.Unfinished ?? [];
+        var calls = report.ToolCalls;
+        return JsonSerializer.Serialize(new
         {
-            tool = c.ToolName,
-            outcome = OutcomeOf(c),
-            refusal_kind = c.RefusalKind is { } kind ? JsonNamingPolicy.SnakeCaseLower.ConvertName(kind.ToString()) : null,
-            arguments = Cut(c.Arguments),
-            refusal = c.RefusalKind is not null ? Cut(c.Result) : null,
-        }),
-        thinking = showThinking && response.ThinkingContent is not null ? new
-        {
-            content = response.ThinkingContent.Content,
-            token_count = response.ThinkingContent.TokenCount
-        } : null,
-        usage = response.Usage is not null ? new
-        {
-            input_tokens = response.Usage.InputTokens,
-            output_tokens = response.Usage.OutputTokens,
-            total_tokens = response.Usage.TotalTokens
-        } : null
-    }, JsonOptions);
+            error,
+            content = report.Content,
+            stop_reason = stopReason,
+            duration_ms = durationMs,
+            tool_calls = calls.Count,
+            refused_tool_calls = calls.Count(c => c.RefusalKind is not null),
+            failed_tool_calls = calls.Count(c => c.Success == false && c.RefusalKind is null),
+            // In call order, so a reader can see which call a guard refused and what it said — a `tool_terminated` run is
+            // otherwise only a count. Arguments are cut to CallTextLimit (a write's content can be the whole file); a tool's
+            // own result is left out, a refusal's message kept.
+            calls = calls.Select(c => new
+            {
+                tool = c.ToolName,
+                outcome = c.CallId is { } id && unfinished.Contains(id) ? "unfinished" : OutcomeOf(c),
+                refusal_kind = c.RefusalKind is { } kind ? JsonNamingPolicy.SnakeCaseLower.ConvertName(kind.ToString()) : null,
+                arguments = Cut(c.Arguments),
+                refusal = c.RefusalKind is not null ? Cut(c.Result) : null,
+            }),
+            thinking = showThinking && report.ThinkingContent is not null ? new
+            {
+                content = report.ThinkingContent.Content,
+                token_count = report.ThinkingContent.TokenCount
+            } : null,
+            usage = report.Usage is not null ? new
+            {
+                input_tokens = report.Usage.InputTokens,
+                output_tokens = report.Usage.OutputTokens,
+                total_tokens = report.Usage.TotalTokens
+            } : null
+        }, JsonOptions);
+    }
 
     /// <summary><c>ok</c>, <c>failed</c>, <c>refused</c>, or <c>unknown</c> when the invoker did not report one.</summary>
     private static string OutcomeOf(ToolCallResult call) =>
