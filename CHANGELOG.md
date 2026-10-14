@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - Re-pinned sibling package(s) `Ironbees.Core` 0.28.1 -> 0.29.0.
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.120.0 -> 0.121.0.
 
 ## 0.60.1 — 2026-10-14
 
