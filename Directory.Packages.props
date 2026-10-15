@@ -4,10 +4,10 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Microsoft.Extensions.AI (latest: 10.2.0) -->
+    <!-- Microsoft.Extensions.AI -->
     <PackageVersion Include="Ironbees.Core" Version="0.29.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.1" />
     <!-- OpenAI SDK -->
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
