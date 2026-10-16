@@ -253,19 +253,16 @@ public partial class AgentServerRunner
 
             // A turn waiting for an approval the session keeps is suspended, not denied: a server started again with the
             // same session offers the request again and finishes it. The messages queued behind it are not run.
-            if (ShouldSuspend(_hitl))
-            {
-                _suspending = true;
-                turns.SuspendCurrent();
-            }
-            else
-            {
-                // Nothing keeps the wait: deny it now instead of holding the stop until the approval timeout
-                _hitl?.RejectWaitsInTurn(StoppedReason);
-            }
+            // Nothing keeps the wait without a session: it is denied now instead of holding the stop until the approval
+            // timeout. A wait that begins while the remaining turns run is treated the same way.
+            StopWaits(_hitl, turns, () => _suspending = true);
 
             // Run the turns already received so each one's TurnEndEvent is written.
             await turns.DisposeAsync();
+            if (_hitl is not null)
+            {
+                _hitl.WaitStarted = null;
+            }
 
             // Let the reader exit when it can: an asynchronous reader stops on the cancellation, a synchronous one
             // blocked on a line cannot be interrupted and ends with the next line or the end of the input.
@@ -327,6 +324,34 @@ public partial class AgentServerRunner
 
     /// <summary>What the model reads for a call whose approval request was open when the server stopped.</summary>
     internal const string StoppedReason = "the server stopped before the approval request was answered";
+
+    /// <summary>
+    /// What a stopping runner does with approval waits, now and for each one that begins while its remaining turns run:
+    /// with a session it suspends the waiting turn (and drops the turns behind it), without one it denies the wait.
+    /// </summary>
+    internal static void StopWaits(HitlBridge? bridge, TurnQueue turns, Action markSuspending)
+    {
+        if (bridge is null)
+        {
+            return;
+        }
+
+        void Stop()
+        {
+            if (ShouldSuspend(bridge))
+            {
+                markSuspending();
+                turns.SuspendCurrent();
+            }
+            else
+            {
+                bridge.RejectWaitsInTurn(StoppedReason);
+            }
+        }
+
+        bridge.WaitStarted = Stop;
+        Stop();
+    }
 
     /// <summary>True when the server stops while a turn waits for an approval that a restarted host can offer again.</summary>
     internal static bool ShouldSuspend(HitlBridge? bridge) => bridge is { WaitLog: not null, HasWaitInTurn: true };

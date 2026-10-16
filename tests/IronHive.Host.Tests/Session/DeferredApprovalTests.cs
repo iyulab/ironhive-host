@@ -347,6 +347,23 @@ public sealed class DeferredApprovalTests : IDisposable
         _written.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task AWaitThatBeginsAfterTheInputEnded_IsDeniedAtOnce_WithoutASession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var p = await StartAsync(deferAfter: null, TimeSpan.FromMinutes(5), recorded: false, ct);
+        var input = new LineInput();
+        var output = new LineOutput();
+        input.Enqueue("""{"type":"user_message","content":"note: buy milk"}""");
+        input.Complete(); // the end of the input is read before the turn asks
+
+        await Runner(p).RunAsync(input, output, ct).WaitAsync(TimeSpan.FromSeconds(10), ct);
+
+        _written.Should().BeEmpty();
+        var seen = new List<ServerEvent>();
+        (await NextAsync<ToolEndEvent>(output, seen, ct)).Output.Should().Contain("server stopped");
+    }
+
     private sealed class LineInput : TextReader
     {
         private readonly Channel<string?> _channel = Channel.CreateUnbounded<string?>();

@@ -282,17 +282,13 @@ public sealed partial class AgentHttpRunner : IDisposable
         finally
         {
             // A turn waiting for an approval the session keeps is suspended, not denied (see AgentServerRunner)
-            if (AgentServerRunner.ShouldSuspend(_hitl))
-            {
-                _suspending = true;
-                _turns.SuspendCurrent();
-            }
-            else
-            {
-                _hitl?.RejectWaitsInTurn(AgentServerRunner.StoppedReason);
-            }
+            AgentServerRunner.StopWaits(_hitl, _turns, () => _suspending = true);
 
             await _turns.DisposeAsync();
+            if (_hitl is not null)
+            {
+                _hitl.WaitStarted = null;
+            }
             _turns = null;
         }
     }

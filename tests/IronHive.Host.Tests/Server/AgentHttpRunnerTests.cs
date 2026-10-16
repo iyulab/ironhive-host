@@ -3,6 +3,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using AwesomeAssertions;
+using IronHive.Agent.Mode;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -147,6 +148,57 @@ public class AgentHttpRunnerTests
 
         messages.Should().Equal("resumed", "first");
         runner.ResumeTurn.Should().BeNull("a second run must not offer the settled waits again");
+    }
+
+    // A shutdown that arrives while (or before) a turn waits for approval: a session that keeps the wait suspends the
+    // turn; without one the wait is denied at once. Either way the runner stops promptly, not at the approval timeout.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Shutdown_WhileATurnWaitsForApproval_SuspendsWithASession_OrDeniesAtOnce(bool recorded)
+    {
+        var host = new FakeHost(Inbox(
+            """data: {"type":"user_message","content":"write it"}""",
+            """data: {"type":"shutdown"}"""));
+        using var bridge = new HitlBridge(TimeSpan.FromMinutes(5));
+        if (recorded)
+        {
+            bridge.WaitLog = new MemoryWaitLog();
+        }
+
+        ApprovalResult? heard = null;
+        async IAsyncEnumerable<ServerEvent> Ask(UserMessageRequest msg, [EnumeratorCancellation] CancellationToken ct)
+        {
+            heard = await bridge.RequestApprovalAsync(new ApprovalRequest
+            {
+                ToolName = "write_file",
+                CallId = "call-1",
+                RiskAssessment = RiskAssessment.Risky(RiskLevel.Medium, "writes", "Allow?"),
+            }, ct);
+            yield return new TurnEndEvent();
+        }
+
+        using var runner = new AgentHttpRunner("http://agent-host.test", "s1", Ask, NullLogger<AgentHttpRunner>.Instance, httpHandler: host, hitlBridge: bridge);
+
+        await runner.RunAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        if (recorded)
+        {
+            heard.Should().BeNull("the turn was cancelled inside the wait");
+            host.PostedEvents.Should().Contain(e => e.Contains("\"stop_reason\":\"suspended\"", StringComparison.Ordinal));
+        }
+        else
+        {
+            heard!.Approved.Should().BeFalse();
+            heard.RejectionReason.Should().Contain("server stopped");
+        }
+    }
+
+    private sealed class MemoryWaitLog : IApprovalWaitLog
+    {
+        public Task WaitingAsync(ApprovalRequest request, HitlRequestEvent sent, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SettledAsync(string requestId, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private static async IAsyncEnumerable<ServerEvent> Resumed(

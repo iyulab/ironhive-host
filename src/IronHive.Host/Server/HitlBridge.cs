@@ -99,6 +99,18 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
     internal void RejectWaitsInTurn(string reason) => RejectAllPending(reason);
 
     /// <summary>
+    /// Called each time a request starts waiting inside its turn (after it is sent) - how a stopping runner hears about a
+    /// wait that begins after it stopped reading, and suspends or denies it like the ones already waiting.
+    /// </summary>
+    internal Action? WaitStarted
+    {
+        get => Volatile.Read(ref _waitStarted);
+        set => Volatile.Write(ref _waitStarted, value);
+    }
+
+    private Action? _waitStarted;
+
+    /// <summary>
     /// Attaches the transport that sends events to the client. Returns a handle that detaches it; requests still waiting
     /// when it is detached are rejected.
     /// </summary>
@@ -223,6 +235,7 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             await using var registration = linked.Token.Register(() => waiter.TrySetCanceled(linked.Token));
 
             await publish(ToEvent(wait), cancellationToken);
+            WaitStarted?.Invoke();
 
             try
             {
@@ -322,6 +335,7 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             }
 
             await publish(sent, cancellationToken);
+            WaitStarted?.Invoke();
 
             HitlResponseRequest response;
             try
