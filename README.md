@@ -450,6 +450,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 |----------|---------|-------|
 | `MaximumIterationsPerRequest` | 10 | Lower (5–7) for small 4K-window models; raise (15–20) for large-context models |
 | `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back tool errors; rarely hit in the CLI, where argument errors become recovery hints and the same error three times in a row ends the turn first |
+| `RetrieveToolResults` | false | Offers `retrieve_tool_result`: a tool result that was masked or shortened is kept, and its placeholder tells the model to read it back by id instead of repeating the call (which a tool with side effects cannot). Read-only for planning mode and approval rules |
 | `ToolCallTimeoutSeconds` | none | Longest one tool call may run. Past it the call is stopped and the model reads which tool ran out of time; the same slow call three times in a row ends the turn. An approval prompt in front of the call is not timed. `run --tool-timeout <SECONDS>` overrides it for one run |
 
 ```yaml
@@ -461,6 +462,7 @@ chatBehavior:
                                       # none turns thinking off; the other levels are requests a server may hold loosely
   maximumConsecutiveErrorsPerRequest: 3
   toolCallTimeoutSeconds: 60          # stop a tool call (a huge folder walk, a hung request) after a minute; unset = no limit
+  retrieveToolResults: true           # masked/shortened tool results can be read back by id (retrieve_tool_result)
 ```
 
 ### Context Compaction
@@ -474,7 +476,7 @@ important tool outputs) instead of silently overflowing.
 - Model-aware — the context window is sized from the active model
 - Embedded consumers can set `options.Compaction` on `AddIronHive(...)`; manual loop builders can wire it
   via `HostContextManagerFactory.Create(compactionConfig, modelName)` and pass the result to `AgentLoop`/`ThinkingAgentLoop`
-- Tool results: `enableToolResultCompaction` (default on, results over `maxToolResultChars` = 30,000 keep head and tail) and `enableObservationMasking` (default on, results older than `observationMaskingProtectedTurns` = 3 user turns become placeholders; `observationMaskingProtectedTokens` also masks, inside one turn, the results past a token budget measured from the newest back — the newest round always stays whole, and a placeholder names the call so the model can call it again). Only what is sent is reduced; history keeps full results
+- Tool results: `enableToolResultCompaction` (default on, results over `maxToolResultChars` = 30,000 keep head and tail) and `enableObservationMasking` (default on, results older than `observationMaskingProtectedTurns` = 3 user turns become placeholders; `observationMaskingProtectedTokens` also masks, inside one turn, the results past a token budget measured from the newest back — the newest round always stays whole, and a placeholder names the call so the model can call it again — or, with `chatBehavior.retrieveToolResults`, the id to read it back with `retrieve_tool_result`). Only what is sent is reduced; history keeps full results
 - Complements (does not replace) `TokenBudgetChatClient`, which remains the hard backstop against per-request overflow — installed by the CLI and `run --server`; `AddIronHive` embedders add it by wrapping their client (below)
 
 ### TokenBudgetChatClient

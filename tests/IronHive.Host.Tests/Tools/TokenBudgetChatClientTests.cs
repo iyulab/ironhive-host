@@ -50,8 +50,9 @@ public class TokenBudgetChatClientTests
         var inner = new RecordingStubChatClient([
             new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("should-not-appear")] }
         ]);
-        // 4096-token budget × 0.8 = 3276.8 tokens. Latin text is ~4 chars per token: need > 13107 chars to trip.
-        var huge = new string('x', 20000);
+        // 4096-token budget × 0.8 = 3276.8 tokens. Latin letters count ~7 per token (the o200k-fitted ratio of the agent's
+        // counter): need > 22,938 letters to trip.
+        var huge = new string('x', 30000);
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 4096, threshold: 0.8);
 
         var collected = new List<ChatResponseUpdate>();
@@ -93,13 +94,13 @@ public class TokenBudgetChatClientTests
     public async Task ContextSizeProvider_OverridesDefault_AndIsRespected()
     {
         // Inner exposes IContextSizeProvider with 1024 tokens. 1024 × 0.8 = 819 token estimate.
-        // Latin text is ~4 chars per token: need > 3276 chars.
+        // Latin letters count ~7 per token: need > 5,734 letters.
         var inner = new RecordingStubChatClient(
             [new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("inner")] }],
             contextSize: 1024);
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 99999, threshold: 0.8);
 
-        var medium = new string('x', 5000); // exceeds 1024 × 0.8 budget but well under 99999 default
+        var medium = new string('x', 8000); // exceeds 1024 × 0.8 budget but well under 99999 default
         var collected = new List<ChatResponseUpdate>();
         await foreach (var update in client.GetStreamingResponseAsync(MessageOf(medium), cancellationToken: TestContext.Current.CancellationToken))
         {
@@ -130,15 +131,15 @@ public class TokenBudgetChatClientTests
     [Fact]
     public async Task CountsAllMessages_NotJustLastOne()
     {
-        // Budget 1024 × 0.8 = 819 tokens. Two messages × 2000 chars → 4000 chars total → ~1000 tokens > budget.
+        // Budget 1024 × 0.8 = 819 tokens. Two messages × 4000 letters → ~1,143 tokens > budget; either alone (~571) is under it.
         var inner = new RecordingStubChatClient(
             [new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("inner")] }]);
         var client = new TokenBudgetChatClient(inner, defaultMaxContextTokens: 1024, threshold: 0.8);
 
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.User, new string('x', 2000)),
-            new(ChatRole.Assistant, new string('y', 2000))
+            new(ChatRole.User, new string('x', 4000)),
+            new(ChatRole.Assistant, new string('y', 4000))
         };
 
         var collected = new List<ChatResponseUpdate>();

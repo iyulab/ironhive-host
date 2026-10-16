@@ -403,6 +403,14 @@ public class ChatBehaviorConfig
     /// run is timed — an approval prompt in front of it is not. Null (the default): no limit. Must be positive when set.
     /// </summary>
     public int? ToolCallTimeoutSeconds { get; set; }
+
+    /// <summary>
+    /// Whether the loop offers <c>retrieve_tool_result</c> (IronHive.Agent <c>CompactedResultTool</c>): the context manager
+    /// then keeps the original of every tool result it masks or shortens, and the placeholder tells the model to read it
+    /// back by id instead of repeating the call — which a tool with side effects cannot. Default <c>false</c>: no tool,
+    /// nothing kept, placeholders ask for the same call again.
+    /// </summary>
+    public bool RetrieveToolResults { get; set; }
 }
 
 /// <summary>

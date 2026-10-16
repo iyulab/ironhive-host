@@ -114,7 +114,7 @@ public class HostCompactionWiringTests
     {
         // Unclamped, the 40k protect budget exceeds an 8k window and compaction can never fire.
         var manager = HostContextManagerFactory.Create(new HostCompactionConfig { MaxContextTokens = 8_192 }, "some-local-model");
-        var history = Enumerable.Range(0, 20).Select(i => new ChatMessage(ChatRole.User, new string('w', 2_000))).ToList();
+        var history = Enumerable.Range(0, 20).Select(i => new ChatMessage(ChatRole.User, new string('w', 3_500))).ToList(); // ~10k tokens at 7 letters per token
 
         manager.ShouldCompact(history).Should().BeTrue();
     }

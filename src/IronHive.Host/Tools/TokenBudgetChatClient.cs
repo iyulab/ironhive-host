@@ -23,8 +23,8 @@ namespace IronHive.Host.Tools;
 /// </para>
 /// <para>
 /// <b>What this does:</b> Estimates total message tokens with the agent's
-/// <see cref="ContextTokenCounter"/> (per script: about four characters per token
-/// for Latin text, one to one and a half for Korean, Japanese and Chinese). When the estimate
+/// <see cref="ContextTokenCounter"/> (IndexThinking's ratios fitted to o200k, per character class: about seven Latin
+/// letters per token, one to one and a half Korean, Japanese and Chinese characters; tool calls and results included). When the estimate
 /// exceeds <c>maxContextTokens × threshold</c>, emits a single
 /// <see cref="ChatResponseUpdate"/> carrying a graceful explanation and
 /// <see cref="ChatFinishReason.Length"/>, then yields no further updates and

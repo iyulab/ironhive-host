@@ -14,10 +14,11 @@ using HostCompactionConfig = IronHive.Agent.Context.CompactionConfig;
 namespace IronHive.Host.Tests.Context;
 
 /// <summary>
-/// The history summarizer is opt-in: with one, a compaction asks it for the summary of the dropped messages; without one
-/// (the default) the dropped messages become an omission note and no model is called.
+/// The context options the host wires into its loops: the history summarizer is opt-in (with one, a compaction asks it for
+/// the summary of the dropped messages; without one — the default — they become an omission note and no model is called),
+/// and so is the tool that reads back a masked or shortened tool result.
 /// </summary>
-public class HistorySummaryWiringTests
+public class LoopContextWiringTests
 {
     private static List<ChatMessage> LongHistory()
     {
@@ -91,13 +92,25 @@ public class HistorySummaryWiringTests
         await plain.DidNotReceive().CreateAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RetrieveToolResults_OffersTheRetrieveTool_OnlyWhenOn(bool on)
+    {
+        var loop = await CreateLoopAsync(Substitute.For<IChatClientFactory>(), new HistorySummaryConfig(),
+            new ChatBehaviorConfig { RetrieveToolResults = on });
+
+        loop.Tools.Any(t => t.Name == IronHive.Agent.Context.CompactedResultTool.ToolName).Should().Be(on);
+    }
+
     [Fact]
     public void TheSection_LoadsFromConfigYaml()
     {
         ConfigurationManager.FindUnknownKeys("historySummary:\n  provider: gpustack\n  model: small-model\n").Should().BeEmpty();
     }
 
-    private static async Task CreateLoopAsync(IChatClientFactory plain, HistorySummaryConfig historySummary)
+    private static async Task<IAgentLoop> CreateLoopAsync(
+        IChatClientFactory plain, HistorySummaryConfig historySummary, ChatBehaviorConfig? chatBehavior = null)
     {
         var session = Substitute.For<IChatClient>();
         var sessionFactory = Substitute.For<IChatClientFactory>();
@@ -106,8 +119,8 @@ public class HistorySummaryWiringTests
         services.AddIndexThinkingAgents();
         services.AddIndexThinkingInMemoryStorage();
         var loops = new AgentLoopFactory(sessionFactory, services.BuildServiceProvider().GetRequiredService<IThinkingTurnManager>(),
-            plainClients: plain, historySummary: historySummary);
+            plainClients: plain, historySummary: historySummary, chatBehavior: chatBehavior);
 
-        await loops.CreateAsync(new AgentLoopFactoryOptions { WorkingDirectory = Path.GetTempPath() }, TestContext.Current.CancellationToken);
+        return await loops.CreateAsync(new AgentLoopFactoryOptions { WorkingDirectory = Path.GetTempPath() }, TestContext.Current.CancellationToken);
     }
 }

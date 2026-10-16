@@ -23,6 +23,18 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   default) keeps the deterministic compaction with no model call. Library: `IronHiveOptions.HistorySummarizer` for
   `AddIronHive`, and `HostContextManagerFactory.Create(…, summarizer)`.
 
+- **A masked or shortened tool result can be read back: `chatBehavior.retrieveToolResults`.** When on, CLI and
+  `run --server` loops offer `retrieve_tool_result` (IronHive.Agent `CompactedResultTool`): the placeholder of a result
+  compaction hid names an id, and the model reads the original back instead of repeating the call — which a tool with side
+  effects cannot. Off by default (no tool, placeholders unchanged). Needs IronHive.Agent 0.64.0.
+
+### Changed
+- **The token budget guard counts the way IronHive.Agent 0.64.0 does.** `TokenBudgetChatClient` (installed by the CLI and
+  `run --server`) estimates with the agent's `ContextTokenCounter`, which now uses IndexThinking's ratios fitted to o200k:
+  Latin text counts about seven letters per token instead of four, Korean about a quarter more than before, and tool calls
+  and results are counted in full. For English-heavy histories the guard trips later — at a size closer to what the server
+  actually counts — and for Korean ones earlier.
+
 ### Fixed
 - **`ironhive doctor` no longer reports an unreachable endpoint as reachable.** A provider whose model-list request fails
   falls back to its static catalog (or the configured model), and doctor counted that list as a reachable endpoint; it now

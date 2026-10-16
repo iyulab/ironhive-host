@@ -198,6 +198,19 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             }
         }
 
+        // Wire context compaction from host config so long sessions compact history
+        // instead of overflowing. Without this the loop's ContextManager stays null and
+        // CompactionConfig is inert. Model-aware so the context window matches the active model.
+        var contextManager = HostContextManagerFactory.Create(
+            _compactionConfig, options.Model, InstructionContributorsFor(workingDirectory),
+            await CreateHistorySummarizerAsync(cancellationToken));
+
+        // The tool that reads back a masked or shortened result is bound to this loop's manager.
+        if (_chatBehavior.RetrieveToolResults)
+        {
+            tools.Add(IronHive.Agent.Context.CompactedResultTool.Create(contextManager));
+        }
+
         var agentOptions = new IronHive.Agent.Loop.AgentOptions
         {
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,
@@ -213,13 +226,6 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             ModelId = modelId,
             ToolRetrievalOptions = ToolRetrievalOptionsFrom(_toolRetrieval),
         };
-
-        // Wire context compaction from host config so long sessions compact history
-        // instead of overflowing. Without this the loop's ContextManager stays null and
-        // CompactionConfig is inert. Model-aware so the context window matches the active model.
-        var contextManager = HostContextManagerFactory.Create(
-            _compactionConfig, options.Model, InstructionContributorsFor(workingDirectory),
-            await CreateHistorySummarizerAsync(cancellationToken));
 
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
