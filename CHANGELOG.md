@@ -34,6 +34,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - `Microsoft.Extensions.AI` / `.Abstractions` 10.10.x -> 10.11.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.121.0 -> 0.122.0.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.65.1 -> 0.66.0, `IronHive.Core` 0.65.1 -> 0.66.0, `IronHive.Extensions.AI` 0.65.1 -> 0.66.0, `IronHive.Providers.Anthropic` 0.65.1 -> 0.66.0, `IronHive.Providers.GoogleAI` 0.65.1 -> 0.66.0, `IronHive.Providers.OpenAI` 0.65.1 -> 0.66.0, `IronHive.Providers.OpenAI.Compatible` 0.65.1 -> 0.66.0.
+- Re-pinned sibling package(s) `Cronex.Net` 0.7.0 -> 0.7.1, `Cronex.Net.Hosting` 0.7.0 -> 0.7.1, `IronHive.Abstractions` 0.66.0 -> 0.66.1, `IronHive.Core` 0.66.0 -> 0.66.1, `IronHive.Extensions.AI` 0.66.0 -> 0.66.1, `IronHive.Providers.Anthropic` 0.66.0 -> 0.66.1, `IronHive.Providers.GoogleAI` 0.66.0 -> 0.66.1, `IronHive.Providers.OpenAI` 0.66.0 -> 0.66.1, `IronHive.Providers.OpenAI.Compatible` 0.66.0 -> 0.66.1, `LMSupply.Generator` 0.122.0 -> 0.123.0.
 
 ## 0.60.1 — 2026-10-14
 
