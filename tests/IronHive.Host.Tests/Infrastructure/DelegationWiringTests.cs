@@ -140,7 +140,7 @@ public sealed class DelegationWiringTests : IDisposable
         services.AddIndexThinkingAgents();
         services.AddIndexThinkingInMemoryStorage();
         var loops = new AgentLoopFactory(sessionFactory, services.BuildServiceProvider().GetRequiredService<IThinkingTurnManager>(),
-            delegation: Config(), delegationClients: FactoryReturning(new ScriptedChatClient(call: null)));
+            delegation: Config(), plainClients: FactoryReturning(new ScriptedChatClient(call: null)));
 
         var created = await loops.CreateWithPipelineAsync(new AgentLoopFactoryOptions { WorkingDirectory = _root }, TestContext.Current.CancellationToken);
 

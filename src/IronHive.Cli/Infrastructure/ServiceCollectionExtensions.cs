@@ -220,8 +220,9 @@ public static class ServiceCollectionExtensions
                 agentsMd: config.AgentsMd,
                 toolRetrieval: config.ToolRetrieval,
                 delegation: config.Delegation,
-                delegationClients: config.Delegation.Agents.Count > 0 ? sp.GetRequiredService<DelegationClients>().Factory : null,
-                chatBehavior: config.ChatBehavior);
+                plainClients: sp.GetRequiredService<PlainChatClients>().Factory,
+                chatBehavior: config.ChatBehavior,
+                historySummary: config.HistorySummary);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.
@@ -730,14 +731,16 @@ public static class ServiceCollectionExtensions
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
         });
 
-        // Plain provider clients for delegated agents: no tool pipeline (the agent runtime runs their tools through the
-        // session's pipeline itself) and no usage limiter (the delegation tools charge the session budget per run).
+        // Plain provider clients for delegated agents and the history summarizer: no tool pipeline (the agent runtime runs
+        // delegated tools through the session's pipeline itself; a summary request has none), no usage limiter (the
+        // delegation tools charge the session budget per run) and no token budget guard (a summary is requested exactly
+        // when the history is near the window).
         services.AddSingleton(sp =>
         {
             var lmSupply = sp.GetRequiredService<LMSupplyChatClientProvider>();
             providersDict["lmsupply"] = lmSupply;
             providersDict["local"] = lmSupply;
-            return new DelegationClients(new ChatClientFactory(
+            return new PlainChatClients(new ChatClientFactory(
                 providersDict, sp.GetRequiredService<IChatClientProvider>(), static inner => inner));
         });
     }

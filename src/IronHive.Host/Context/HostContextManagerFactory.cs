@@ -28,11 +28,16 @@ public static class HostContextManagerFactory
     /// Sections added after the system prompt on every turn (see <see cref="ISystemInstructionContributor"/>);
     /// <c>null</c> for none.
     /// </param>
+    /// <param name="summarizer">
+    /// Writes the summary of the messages a compaction drops; <c>null</c> (the default) replaces them with an omission
+    /// note instead, with no model call.
+    /// </param>
     /// <returns>A configured <see cref="ContextManager"/> ready to inject into an agent loop.</returns>
     public static ContextManager Create(
         CompactionConfig? compaction,
         string? modelName,
-        IEnumerable<ISystemInstructionContributor>? instructionContributors = null)
+        IEnumerable<ISystemInstructionContributor>? instructionContributors = null,
+        Microsoft.Extensions.AI.IChatClient? summarizer = null)
     {
         var config = compaction ?? new CompactionConfig();
 
@@ -40,7 +45,7 @@ public static class HostContextManagerFactory
         // compactor it selects (anchored / token-based / threshold, budgets clamped to the window), TargetRatio and
         // CompactOnOverflow, and the per-request reductions. A hand-assembled copy of it here once dropped the first four.
         var manager = ContextManager.ForModel(
-            string.IsNullOrWhiteSpace(modelName) ? DefaultModelName : modelName, config);
+            string.IsNullOrWhiteSpace(modelName) ? DefaultModelName : modelName, config, summarizer);
         foreach (var contributor in instructionContributors ?? [])
         {
             manager.AddInstructionContributor(contributor);

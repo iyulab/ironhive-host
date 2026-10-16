@@ -86,7 +86,8 @@ public static class IronHiveServiceCollectionExtensions
                 // Instruction contributors the embedder registered add their sections after the system prompt.
                 var contextManager = HostContextManagerFactory.Create(
                     options.Compaction, options.DefaultModel,
-                    sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>());
+                    sp.GetServices<IronHive.Agent.Context.ISystemInstructionContributor>(),
+                    options.HistorySummarizer);
                 return new AgentLoop(chatClient, agentOptions, contextManager: contextManager,
                     errorRecovery: sp.GetService<IErrorRecoveryService>(), usageLimiter: sp.GetService<IUsageLimiter>());
             });
@@ -264,6 +265,12 @@ public class IronHiveOptions
     /// instead of overflowing. Defaults to token-based compaction enabled.
     /// </summary>
     public CompactionConfig Compaction { get; set; } = new();
+
+    /// <summary>
+    /// A chat client that writes the summary of the older messages a compaction drops. <c>null</c> (the default): they
+    /// are replaced by an omission note, with no model call. A plain provider client fits — the request carries no tools.
+    /// </summary>
+    public IChatClient? HistorySummarizer { get; set; }
 
     /// <summary>
     /// Uses a pre-configured IChatClient.

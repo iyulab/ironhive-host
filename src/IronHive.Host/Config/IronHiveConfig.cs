@@ -123,6 +123,12 @@ public class IronHiveConfig
     public AdvisorConfig Advisor { get; set; } = new();
 
     /// <summary>
+    /// The model that writes a summary of the older messages when compaction drops them. Off until
+    /// <see cref="HistorySummaryConfig.Model"/> is set: compaction then replaces them with an omission note.
+    /// </summary>
+    public HistorySummaryConfig HistorySummary { get; set; } = new();
+
+    /// <summary>
     /// Agent Skills (<c>SKILL.md</c> bundles) the host's loops may use. Off until <see cref="SkillsHostConfig.Roots"/>
     /// names at least one directory.
     /// </summary>
@@ -219,6 +225,20 @@ public class AdvisorConfig
 
     /// <summary>How many times one session may consult the advisor. Default 5.</summary>
     public int MaxCalls { get; set; } = 5;
+}
+
+/// <summary>
+/// The history summarizer: when compaction drops older messages, this model writes a summary of them (tool calls and
+/// results included) that stays in the conversation. Set <see cref="Model"/> to turn it on; unset (the default) keeps
+/// the deterministic compaction, which replaces them with an omission note and costs no model call.
+/// </summary>
+public class HistorySummaryConfig
+{
+    /// <summary>Provider of the summary model (e.g. <c>gpustack</c>). Unset uses the default provider.</summary>
+    public string? Provider { get; set; }
+
+    /// <summary>The summary model. Compaction calls it only when this is set — one call per compaction.</summary>
+    public string? Model { get; set; }
 }
 
 /// <summary>

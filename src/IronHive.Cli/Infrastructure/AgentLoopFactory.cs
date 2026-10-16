@@ -43,7 +43,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly ToolRetrievalHostConfig? _toolRetrieval;
     private readonly ChatBehaviorConfig _chatBehavior;
     private readonly DelegationHostConfig? _delegation;
-    private readonly IChatClientFactory? _delegationClients;
+    private readonly IChatClientFactory? _plainClients;
+    private readonly HistorySummaryConfig? _historySummary;
     private int _mcpPluginsLoaded;
 
     private const string DefaultSystemPrompt = """
@@ -96,12 +97,14 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         AgentsMdHostConfig? agentsMd = null,
         ToolRetrievalHostConfig? toolRetrieval = null,
         DelegationHostConfig? delegation = null,
-        IChatClientFactory? delegationClients = null,
-        ChatBehaviorConfig? chatBehavior = null)
+        IChatClientFactory? plainClients = null,
+        ChatBehaviorConfig? chatBehavior = null,
+        HistorySummaryConfig? historySummary = null)
     {
         _chatBehavior = chatBehavior ?? new ChatBehaviorConfig();
         _delegation = delegation;
-        _delegationClients = delegationClients;
+        _plainClients = plainClients;
+        _historySummary = historySummary;
         _budget = budget;
         _agentsMd = agentsMd;
         _toolRetrieval = toolRetrieval;
@@ -184,7 +187,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // pipeline and spends this session's budget; its clients are plain provider clients (see DelegationWiring).
         if (_delegation is { Agents.Count: > 0 })
         {
-            var delegationClients = _delegationClients ?? throw new InvalidOperationException(
+            var delegationClients = _plainClients ?? throw new InvalidOperationException(
                 "Delegation is configured, but the factory was given no plain chat client factory for delegated agents.");
             var sessionTools = tools;
             foreach (var delegationTool in await Delegation.DelegationWiring.CreateToolsAsync(
@@ -215,7 +218,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         // instead of overflowing. Without this the loop's ContextManager stays null and
         // CompactionConfig is inert. Model-aware so the context window matches the active model.
         var contextManager = HostContextManagerFactory.Create(
-            _compactionConfig, options.Model, InstructionContributorsFor(workingDirectory));
+            _compactionConfig, options.Model, InstructionContributorsFor(workingDirectory),
+            await CreateHistorySummarizerAsync(cancellationToken));
 
         // Create ThinkingAgentLoop with IndexThinking support
         var loop = new ThinkingAgentLoop(
@@ -226,6 +230,25 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         {
             Pipeline = chatClient.GetService<IronHive.Agent.Invocation.ToolInvocationPipeline>(),
         };
+    }
+
+    /// <summary>
+    /// The configured history summarizer, or <c>null</c> when <c>historySummary.model</c> is unset. A plain provider
+    /// client: the summary request carries no tools, and the token budget guard must not refuse it — it is sent exactly
+    /// when the history is near the window.
+    /// </summary>
+    private async Task<IChatClient?> CreateHistorySummarizerAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_historySummary?.Model))
+        {
+            return null;
+        }
+
+        var clients = _plainClients ?? throw new InvalidOperationException(
+            "historySummary.model is set, but the factory was given no plain chat client factory for the summarizer.");
+        return _historySummary.Provider is not null
+            ? await clients.CreateAsync(_historySummary.Provider, _historySummary.Model, cancellationToken)
+            : await clients.CreateAsync(_historySummary.Model, cancellationToken);
     }
 
     /// <summary>The library options for the configured section, or <c>null</c> when tool retrieval is off.</summary>

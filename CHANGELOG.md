@@ -17,6 +17,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   `streamIdleTimeoutSeconds` work as on the other blocks. The `openai` provider still speaks the Responses API. README
   lists which wire API each provider speaks and the order in which the default provider is chosen.
 
+- **Compaction can summarize instead of omit: `historySummary`.** With `historySummary: { provider, model }` set, the
+  messages a compaction drops are summarized by that model (tool calls and results included) instead of being replaced by
+  an omission note — one model call per compaction, sent as a plain request (no tools, no token budget guard). Unset (the
+  default) keeps the deterministic compaction with no model call. Library: `IronHiveOptions.HistorySummarizer` for
+  `AddIronHive`, and `HostContextManagerFactory.Create(…, summarizer)`.
+
 ### Fixed
 - **`ironhive doctor` no longer reports an unreachable endpoint as reachable.** A provider whose model-list request fails
   falls back to its static catalog (or the configured model), and doctor counted that list as a reachable endpoint; it now

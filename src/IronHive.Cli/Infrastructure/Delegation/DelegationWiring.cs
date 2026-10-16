@@ -116,5 +116,8 @@ internal static class DelegationWiring
     }
 }
 
-/// <summary>The plain provider-client factory for delegated agents (see <see cref="DelegationWiring"/>).</summary>
-internal sealed record DelegationClients(IChatClientFactory Factory);
+/// <summary>
+/// The plain provider-client factory — no tool pipeline, usage limiter or token budget guard — for delegated agents (see
+/// <see cref="DelegationWiring"/>) and the history summarizer.
+/// </summary>
+internal sealed record PlainChatClients(IChatClientFactory Factory);
