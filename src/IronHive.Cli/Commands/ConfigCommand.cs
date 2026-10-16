@@ -84,6 +84,12 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         AddConfigRow(table, "lmstudio", "endpoint", _config.LMStudio.Endpoint);
         AddConfigRow(table, "lmstudio", "model", _config.LMStudio.Model);
 
+        // Generic OpenAI-compatible (Chat Completions) configuration
+        AddConfigRow(table, "openaiCompatible", "endpoint", _config.OpenAICompatible.Endpoint);
+        AddSecretRow(table, "openaiCompatible", "apiKey", _config.OpenAICompatible.ApiKey);
+        AddConfigRow(table, "openaiCompatible", "model", _config.OpenAICompatible.Model);
+        AddStatusRow(table, "openaiCompatible", "configured", _config.OpenAICompatible.IsConfigured);
+
         // LMSupply configuration
         AddBoolRow(table, "lmsupply", "enabled", _config.LMSupply.Enabled);
         AddConfigRow(table, "lmsupply", "generatorModel", _config.LMSupply.GeneratorModel);

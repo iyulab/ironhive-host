@@ -176,6 +176,28 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void Load_OpenAICompatibleFromEnv_LoadsWithoutAKey()
+    {
+        Environment.SetEnvironmentVariable("OPENAI_COMPATIBLE_ENDPOINT", "http://gateway.local:8000/v1");
+        Environment.SetEnvironmentVariable("OPENAI_COMPATIBLE_MODEL", "gw-model");
+
+        try
+        {
+            var config = _manager.Load(forceReload: true);
+
+            Assert.Equal("http://gateway.local:8000/v1", config.OpenAICompatible.Endpoint);
+            Assert.Equal("gw-model", config.OpenAICompatible.Model);
+            Assert.Null(config.OpenAICompatible.ApiKey);
+            Assert.True(config.OpenAICompatible.IsConfigured);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("OPENAI_COMPATIBLE_ENDPOINT", null);
+            Environment.SetEnvironmentVariable("OPENAI_COMPATIBLE_MODEL", null);
+        }
+    }
+
+    [Fact]
     public void Load_EnvironmentVariablesOverrideFileConfig_FullSurface()
     {
         using var tmp = new TempConfigDirs();

@@ -109,6 +109,7 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
             ("xai", _config.Xai.IsConfigured, _config.Xai.Model),
             ("ollama", _config.Ollama.IsConfigured, _config.Ollama.Model),
             ("lmstudio", _config.LMStudio.IsConfigured, _config.LMStudio.Model),
+            ("openaiCompatible", _config.OpenAICompatible.IsConfigured, _config.OpenAICompatible.Model),
             ("lmsupply", _config.LMSupply.Enabled, _config.LMSupply.GeneratorModel)
         };
 
@@ -159,7 +160,8 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
                _config.GoogleAI.IsConfigured ||
                _config.Xai.IsConfigured ||
                _config.Ollama.IsConfigured ||
-               _config.LMStudio.IsConfigured;
+               _config.LMStudio.IsConfigured ||
+               _config.OpenAICompatible.IsConfigured;
     }
 
     private bool HasModelSpecified()
@@ -218,7 +220,14 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
             try
             {
                 var models = await _clientFactory.GetAvailableModelsAsync(providerName, cancellationToken);
-                if (models.Count > 0)
+                // A provider whose model-list request fails falls back to its static catalog (or just the configured model),
+                // so a list made only of Static entries means the endpoint did not answer — not that it is reachable.
+                if (models.Count > 0 && models.All(m => m.Source == IronHive.Agent.Providers.ModelSource.Static))
+                {
+                    PrintCheck(false, $"{providerName} - model list unavailable (endpoint unreachable, or it serves no /models)", isWarning: true);
+                    recommendations.Add($"Check {providerName} endpoint and API key");
+                }
+                else if (models.Count > 0)
                 {
                     PrintCheck(true, $"{providerName} - reachable ({models.Count} models)");
                 }

@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Added
+- **A provider for any OpenAI-compatible Chat Completions server: `openaiCompatible`.** An organization's model gateway,
+  vLLM, llama-server or a cloud provider's compatible endpoint is configured by function rather than as a product:
+  `openaiCompatible: { endpoint, model, apiKey }` or `OPENAI_COMPATIBLE_ENDPOINT` / `OPENAI_COMPATIBLE_MODEL` /
+  `OPENAI_COMPATIBLE_API_KEY`, chosen with `--provider openaiCompatible` (alias `openai-compatible`). Requests go to
+  `{endpoint}/chat/completions` with the endpoint as given (no `/v1` appended), and the key is optional — with none, no
+  `Authorization` header is sent, for servers that need none or sit behind a proxy that adds it. `carryToolImages` and
+  `streamIdleTimeoutSeconds` work as on the other blocks. The `openai` provider still speaks the Responses API. README
+  lists which wire API each provider speaks and the order in which the default provider is chosen.
+
+### Fixed
+- **`ironhive doctor` no longer reports an unreachable endpoint as reachable.** A provider whose model-list request fails
+  falls back to its static catalog (or the configured model), and doctor counted that list as a reachable endpoint; it now
+  reports «model list unavailable» with the recommendation to check the endpoint and key.
+
 ## 0.61.0 — 2026-10-16
 
 ### Added

@@ -529,6 +529,20 @@ public static class ServiceCollectionExtensions
         StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "lmstudio"),
     };
 
+    /// <summary>
+    /// The provider config the CLI's generic OpenAI-compatible registration uses: Chat Completions at the configured
+    /// endpoint taken as given (no <c>/v1</c> appended — a compatible endpoint may live under another version path), the
+    /// key only when one is set (no <c>Authorization</c> header otherwise).
+    /// </summary>
+    internal static OpenAICompatibleConfig CreateOpenAICompatibleConfig(CliConfig.OpenAICompatibleHostConfig configured) => new()
+    {
+        BaseUrl = configured.Endpoint!.TrimEnd('/'),
+        Path = string.Empty,
+        ApiKey = string.IsNullOrWhiteSpace(configured.ApiKey) ? null : configured.ApiKey,
+        CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+        StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "openaiCompatible"),
+    };
+
     private static void RegisterProviders(IServiceCollection services, IronHiveConfig config)
     {
         // ironhive 0.8.0 removed the keyed provider registry (HiveServiceBuilder/IHiveService.Providers).
@@ -550,6 +564,17 @@ public static class ServiceCollectionExtensions
             var generator = new OpenAICompatibleMessageGenerator(gpuStackConfig.ToOpenAICompatible());
             var finder = new OpenAIModelFinder(gpuStackConfig.ToOpenAI());
             providersDict["gpustack"] = new IronhiveChatClientProvider(generator, "gpustack", config.GpuStack.Model!, finder);
+        }
+
+        // Generic OpenAI-compatible Chat Completions endpoint (an organization's gateway, vLLM, llama-server):
+        // named for the wire API rather than a product, the key optional.
+        if (config.OpenAICompatible.IsConfigured)
+        {
+            var compatibleConfig = CreateOpenAICompatibleConfig(config.OpenAICompatible);
+            var generator = new OpenAICompatibleMessageGenerator(compatibleConfig);
+            var finder = new OpenAIModelFinder(compatibleConfig.ToOpenAI());
+            providersDict["openaiCompatible"] = new IronhiveChatClientProvider(generator, "openaiCompatible", config.OpenAICompatible.Model!, finder);
+            providersDict["openai-compatible"] = providersDict["openaiCompatible"]; // Alias
         }
 
         // 2. OpenAI (first-party; default Responses surface)
@@ -618,9 +643,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LMSupplyChatClientProvider>(sp =>
             new LMSupplyChatClientProvider(lmSupplyConfig, sp.GetService<ILogger<LMSupplyChatClientProvider>>()));
 
-        // Determine default provider (priority: GpuStack > OpenAI > Anthropic > GoogleAI > Xai > Ollama > LMStudio)
+        // Determine default provider (priority: GpuStack > OpenAICompatible > OpenAI > Anthropic > GoogleAI > Xai > Ollama > LMStudio).
+        // --provider overrides it; README «Providers» lists the order.
         IChatClientProvider? defaultProvider = null;
-        foreach (var providerName in new[] { "gpustack", "openai", "anthropic", "google", "xai", "ollama", "lmstudio" })
+        foreach (var providerName in new[] { "gpustack", "openaiCompatible", "openai", "anthropic", "google", "xai", "ollama", "lmstudio" })
         {
             if (providersDict.TryGetValue(providerName, out var provider))
             {
@@ -652,6 +678,7 @@ public static class ServiceCollectionExtensions
                 "  - ANTHROPIC_API_KEY and ANTHROPIC_MODEL\n" +
                 "  - GOOGLE_API_KEY and GOOGLE_MODEL\n" +
                 "  - GPUSTACK_ENDPOINT, GPUSTACK_API_KEY, and GPUSTACK_MODEL\n" +
+                "  - OPENAI_COMPATIBLE_ENDPOINT and OPENAI_COMPATIBLE_MODEL (any Chat Completions server; key optional)\n" +
                 "\n" +
                 "Or use '/model local' for local inference.\n" +
                 "\n" +

@@ -56,6 +56,14 @@ public class IronHiveConfig
     public LMStudioConfig LMStudio { get; set; } = new();
 
     /// <summary>
+    /// Any server that speaks the OpenAI Chat Completions API — an organization's model gateway, vLLM, llama-server, a
+    /// cloud provider's compatible endpoint. Provider name <c>openaiCompatible</c>. The <c>openai</c> provider speaks
+    /// the Responses API instead.
+    /// </summary>
+    [YamlMember(Alias = "openaiCompatible")]
+    public OpenAICompatibleHostConfig OpenAICompatible { get; set; } = new();
+
+    /// <summary>
     /// Permission configuration for pattern-based allow/deny/ask rules.
     /// </summary>
     public PermissionConfig Permissions { get; set; } = PermissionConfig.CreateDefault();
@@ -623,6 +631,44 @@ public class LMStudioConfig
     /// Gets whether LMStudio is configured and enabled.
     /// </summary>
     public bool IsConfigured => Enabled && !string.IsNullOrEmpty(Endpoint);
+}
+
+/// <summary>
+/// A server that speaks the OpenAI Chat Completions API (<c>POST {endpoint}/chat/completions</c>), named for the wire API
+/// rather than a product: an organization's model gateway, vLLM, llama-server, a cloud provider's compatible endpoint.
+/// </summary>
+public class OpenAICompatibleHostConfig
+{
+    /// <summary>
+    /// Base URL including the API version path, e.g. <c>http://gateway:8000/v1</c>; requests go to
+    /// <c>{endpoint}/chat/completions</c>.
+    /// </summary>
+    public string? Endpoint { get; set; }
+
+    /// <summary>
+    /// Optional. Sent as <c>Authorization: Bearer</c> when set. Leave it unset for a server that needs no key, or when a
+    /// proxy in front of the server adds the credential.
+    /// </summary>
+    public string? ApiKey { get; set; }
+
+    /// <summary>Model name the server serves.</summary>
+    public string? Model { get; set; }
+
+    /// <summary>
+    /// Whether an image a tool returns (an MCP tool drawing a chart, a screenshot) is sent to the model in a user message
+    /// after the tool results. Chat Completions tool messages hold text only; without this the image is replaced by a
+    /// note. Turn it on for a vision model. Unset = off.
+    /// </summary>
+    public bool? CarryToolImages { get; set; }
+
+    /// <summary>
+    /// How long a streaming response may stay silent — before its first event and between events — before the request
+    /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit.
+    /// </summary>
+    public int? StreamIdleTimeoutSeconds { get; set; }
+
+    /// <summary>Gets whether the endpoint and model are set (the key is optional).</summary>
+    public bool IsConfigured => !string.IsNullOrEmpty(Endpoint) && !string.IsNullOrEmpty(Model);
 }
 
 /// <summary>

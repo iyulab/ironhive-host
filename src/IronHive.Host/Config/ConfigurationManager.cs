@@ -361,7 +361,7 @@ public class ConfigurationManager
     private static bool HasAnyApiProvider(IronHiveConfig config) =>
         config.GpuStack.IsConfigured || config.OpenAI.IsConfigured || config.Anthropic.IsConfigured ||
         config.GoogleAI.IsConfigured || config.Xai.IsConfigured ||
-        config.Ollama.IsConfigured || config.LMStudio.IsConfigured;
+        config.Ollama.IsConfigured || config.LMStudio.IsConfigured || config.OpenAICompatible.IsConfigured;
 
     private static void ApplyEnvironmentVariables(IronHiveConfig config)
     {
@@ -492,6 +492,25 @@ public class ConfigurationManager
         if (!string.IsNullOrEmpty(lmStudioEnabled))
         {
             config.LMStudio.Enabled = bool.TryParse(lmStudioEnabled, out var lmStudioEnabledValue) && lmStudioEnabledValue;
+        }
+
+        // Generic OpenAI-compatible Chat Completions endpoint from environment
+        var compatibleEndpoint = Environment.GetEnvironmentVariable("OPENAI_COMPATIBLE_ENDPOINT");
+        if (!string.IsNullOrEmpty(compatibleEndpoint))
+        {
+            config.OpenAICompatible.Endpoint = compatibleEndpoint;
+        }
+
+        var compatibleApiKey = Environment.GetEnvironmentVariable("OPENAI_COMPATIBLE_API_KEY");
+        if (!string.IsNullOrEmpty(compatibleApiKey))
+        {
+            config.OpenAICompatible.ApiKey = compatibleApiKey;
+        }
+
+        var compatibleModel = Environment.GetEnvironmentVariable("OPENAI_COMPATIBLE_MODEL");
+        if (!string.IsNullOrEmpty(compatibleModel))
+        {
+            config.OpenAICompatible.Model = compatibleModel;
         }
     }
 

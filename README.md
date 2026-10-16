@@ -305,7 +305,29 @@ export GPUSTACK_MODEL=gpt-4o-mini
 
 # Or OpenAI
 export OPENAI_API_KEY=sk-xxx
+
+# Or any OpenAI-compatible Chat Completions server (a model gateway, vLLM, llama-server) — the key is optional
+export OPENAI_COMPATIBLE_ENDPOINT=http://gateway:8000/v1
+export OPENAI_COMPATIBLE_MODEL=my-model
 ```
+
+#### Providers and the wire API each speaks
+
+| Provider (`--provider`) | Wire API | Request path | Key |
+|---|---|---|---|
+| `openai` | OpenAI **Responses** API | `{endpoint}/responses` | required |
+| `openaiCompatible` (alias `openai-compatible`) | OpenAI **Chat Completions** | `{endpoint}/chat/completions` — the endpoint as given | optional — no `Authorization` header when unset |
+| `gpustack` | Chat Completions | `{host}/v1-openai/chat/completions` (GPUStack's own path) | required |
+| `xai` | Chat Completions | `{endpoint}/v1/chat/completions` (`/v1` not repeated) | required |
+| `ollama` | Chat Completions | `{endpoint}/v1/chat/completions` (`/v1` not repeated) | none |
+| `lmstudio` | Chat Completions — a preset for LM Studio's default endpoint (`http://localhost:1234/v1`) | `{endpoint}/v1/chat/completions` (`/v1` not repeated) | not configurable (a fixed placeholder is sent) |
+| `anthropic` · `google` | the vendor's own API | — | required |
+| `lmsupply` (alias `local`) | in-process local inference | — | — |
+
+For a server that is not one of the named products — an organization's gateway, vLLM, llama-server, a cloud provider's
+compatible endpoint — use `openaiCompatible`. When several providers are configured, the default is the first configured
+in this order: `gpustack`, `openaiCompatible`, `openai`, `anthropic`, `google`, `xai`, `ollama`, `lmstudio` (then
+`lmsupply`); a provider block in `~/.ironhive/config.yaml` counts as configured, so pass `--provider` to choose another.
 
 ## Configuration
 
@@ -321,6 +343,7 @@ Configuration is merged in order (later overrides earlier):
    - `XAI_API_KEY`, `XAI_MODEL`, `XAI_ENDPOINT`
    - `OLLAMA_ENDPOINT`, `OLLAMA_MODEL`, `OLLAMA_ENABLED`
    - `LMSTUDIO_ENDPOINT`, `LMSTUDIO_MODEL`, `LMSTUDIO_ENABLED`
+   - `OPENAI_COMPATIBLE_ENDPOINT`, `OPENAI_COMPATIBLE_MODEL`, `OPENAI_COMPATIBLE_API_KEY` (optional)
    - `LMSUPPLY_ENABLED`
 4. **.env file**: Project root `.env`
 
@@ -330,7 +353,7 @@ Configuration is merged in order (later overrides earlier):
 
 The loader accepts these top-level keys in `config.yaml`. Acronym provider sections use **lowercase** keys; unknown top-level keys are ignored with a logged warning.
 
-Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `ollama`, `lmstudio`) also takes `streamIdleTimeoutSeconds` — how long a streaming answer may stay silent, before its first token and between tokens, before the request ends with a «stream idle timeout». Unset = no limit (default); zero or negative is refused, naming the key, when that provider is set up. Unlike a whole-request deadline it tells a slow answer that is still flowing from a dead stream: for a local server on slow hardware, set it above the prompt-evaluation time before the first token (e.g. `ironhive set lmstudio.streamIdleTimeoutSeconds 300`).
+Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai`, `xai`, `ollama`, `lmstudio`, `openaiCompatible`) also takes `streamIdleTimeoutSeconds` — how long a streaming answer may stay silent, before its first token and between tokens, before the request ends with a «stream idle timeout». Unset = no limit (default); zero or negative is refused, naming the key, when that provider is set up. Unlike a whole-request deadline it tells a slow answer that is still flowing from a dead stream: for a local server on slow hardware, set it above the prompt-evaluation time before the first token (e.g. `ironhive set lmstudio.streamIdleTimeoutSeconds 300`).
 
 | Key | Notes |
 |-----|-------|
@@ -341,6 +364,7 @@ Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai
 | `xai` | |
 | `ollama` | `enabled`, `endpoint` (default `http://localhost:11434`, with or without `/v1`), `model`; `carryToolImages` (default off) — see `lmstudio`. Served through Ollama's OpenAI-compatible `/v1` surface; no key |
 | `lmstudio` | lowercase (acronym); `carryToolImages` (default off) — an image a tool returns (an MCP tool drawing a chart) is sent to the model in a user message after the tool results. These endpoints speak Chat Completions, whose tool messages hold text only, so without it the image is replaced by a note; turn it on for a vision model (llama-server with `--mmproj`, LM Studio, vLLM) |
+| `openaiCompatible` | `endpoint` (with the version path, e.g. `http://gateway:8000/v1`), `model`, `apiKey` (optional — leave it unset when the server needs none or a proxy adds it); `carryToolImages` (default off) — see `lmstudio` |
 | `lmsupply` | lowercase (acronym) |
 | `permissions` | |
 | `compaction` | |

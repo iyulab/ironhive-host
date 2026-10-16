@@ -47,7 +47,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         public string? Model { get; init; }
 
         [CommandOption("--provider <PROVIDER>")]
-        [Description("Provider (openai, ollama, gpustack)")]
+        [Description("Provider (gpustack, openaiCompatible, openai, anthropic, google, xai, ollama, lmstudio, lmsupply)")]
         public string? Provider { get; init; }
 
         [CommandOption("--show-tokens")]

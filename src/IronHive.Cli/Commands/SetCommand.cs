@@ -90,6 +90,7 @@ public class SetCommand : Command<SetCommand.Settings>
             ["gpuStack"] = ["endpoint", "apiKey", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["ollama"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
+            ["openaiCompatible"] = ["endpoint", "apiKey", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
             ["lmsupply"] = ["enabled", "generatorModel", "maxContextLength"]
         };
 

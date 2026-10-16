@@ -158,6 +158,7 @@ public class ModelsCommand : AsyncCommand<ModelsCommand.Settings>
         return provider.ToLowerInvariant() switch
         {
             "gpustack" => 0,
+            "openaicompatible" or "openai-compatible" => 5,
             "openai" => 1,
             "anthropic" or "claude" => 2,
             "google" or "gemini" => 3,

@@ -59,7 +59,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         public string? Model { get; init; }
 
         [CommandOption("--provider <PROVIDER>")]
-        [Description("Provider (gpustack, lmsupply)")]
+        [Description("Provider (gpustack, openaiCompatible, openai, anthropic, google, xai, ollama, lmstudio, lmsupply)")]
         public string? Provider { get; init; }
 
         [CommandOption("--json")]
