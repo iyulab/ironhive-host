@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Changed
+- **`ironhive doctor` and `ironhive models` list providers in the order the default provider is chosen** (gpustack,
+  openaiCompatible, openai, anthropic, google, xai, ollama, lmstudio, then lmsupply). The CLI now keeps that list in one
+  place, so the registration, the default choice, doctor and models cannot disagree about which providers exist.
+
 ## 0.62.0 — 2026-10-17
 
 ### Added
