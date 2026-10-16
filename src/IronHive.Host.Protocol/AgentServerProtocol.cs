@@ -176,6 +176,13 @@ public static class ToolRefusalCodes
 
     /// <summary>The tool ran past its time limit and was stopped; it produced no result.</summary>
     public const string TimedOut = "timed_out";
+
+    /// <summary>
+    /// The call waits for an approval that did not come in time, so the turn went on without it: the tool has not run, its
+    /// <see cref="HitlRequestEvent"/> is still open, and when it is answered (or expires) a later turn opens with another
+    /// <see cref="ToolEndEvent"/> for the same <see cref="ToolEndEvent.CallId"/> carrying the outcome.
+    /// </summary>
+    public const string AwaitingApproval = "awaiting_approval";
 }
 
 /// <summary>
@@ -261,6 +268,13 @@ public static class StopReasons
 
     /// <summary>The client cancelled the turn (<see cref="CancelRequest"/>).</summary>
     public const string Cancelled = "cancelled";
+
+    /// <summary>
+    /// The server stopped (a <see cref="ShutdownRequest"/> or the end of the input) while the turn waited for an approval:
+    /// the wait is kept in the session, and a server started again with the same session offers it again and finishes the
+    /// turn.
+    /// </summary>
+    public const string Suspended = "suspended";
 }
 
 /// <summary>
@@ -321,6 +335,12 @@ public static class ErrorCodes
 
     /// <summary>A request line could not be read; it was skipped and the server kept running.</summary>
     public const string UnreadableRequest = "unreadable_request";
+
+    /// <summary>
+    /// The server stopped before this message's turn started, while an earlier turn was suspended
+    /// (<see cref="StopReasons.Suspended"/>); nothing of the message was recorded. Send it again once the server runs.
+    /// </summary>
+    public const string NotProcessed = "not_processed";
 }
 
 /// <summary>

@@ -73,6 +73,16 @@ public sealed partial class AgentHttpRunner : IDisposable
     public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
 
     /// <summary>
+    /// Opens the turn a deferred approval's answer (or expiry) asks for (<see cref="HitlBridge.DeferAfter"/>) - typically
+    /// <see cref="Session.DeferredApprovalTurn.RunAsync"/>. The turn queues behind the others. Without it the bridge never
+    /// defers: a request waits inside its turn.
+    /// </summary>
+    public Func<DeferredApproval, CancellationToken, IAsyncEnumerable<ServerEvent>>? DeferredAnswerTurn { get; set; }
+
+    // Set when the runner stops while a turn waits for an approval the session keeps: that turn ends as suspended
+    private volatile bool _suspending;
+
+    /// <summary>
     /// Delay before the first reconnect after the inbox stream ends without a shutdown request or cannot be reached.
     /// Each further consecutive attempt doubles it, up to <see cref="MaxReconnectDelay"/>. Default: 1 second.
     /// </summary>
@@ -184,7 +194,11 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// <see cref="MaxReconnectAttempts"/> consecutive reconnects failed.</exception>
     public async Task RunAsync(CancellationToken ct = default)
     {
-        using var hitlAttachment = _hitl?.Attach(PostEventAsync);
+        _suspending = false;
+        var deferredTurn = DeferredAnswerTurn;
+        using var hitlAttachment = _hitl?.Attach(
+            PostEventAsync,
+            deferredTurn is null ? null : answer => _turns?.Enqueue(token => HandleTurnAsync(t => deferredTurn(answer, t), token)));
         await PostReadyAsync(ct);
         await ProcessInboxAsync(ct);
     }
@@ -219,6 +233,12 @@ public sealed partial class AgentHttpRunner : IDisposable
         {
             ResumeTurn = null;
             _turns.Enqueue(token => HandleTurnAsync(resume, token));
+        }
+
+        // Deferred requests a previous process left (HitlBridge.RestoreDeferred) are sent again; they hold no turn
+        if (_hitl is not null)
+        {
+            await _hitl.ReofferDeferredAsync(ct);
         }
 
         try
@@ -261,6 +281,17 @@ public sealed partial class AgentHttpRunner : IDisposable
         }
         finally
         {
+            // A turn waiting for an approval the session keeps is suspended, not denied (see AgentServerRunner)
+            if (AgentServerRunner.ShouldSuspend(_hitl))
+            {
+                _suspending = true;
+                _turns.SuspendCurrent();
+            }
+            else
+            {
+                _hitl?.RejectWaitsInTurn(AgentServerRunner.StoppedReason);
+            }
+
             await _turns.DisposeAsync();
             _turns = null;
         }
@@ -340,7 +371,7 @@ public sealed partial class AgentHttpRunner : IDisposable
             {
                 // The context in effect when the message arrived, not when its turn starts.
                 var context = _context;
-                _turns?.Enqueue(token => HandleTurnAsync(t => _processMessage(msg, context, t), token));
+                _turns?.Enqueue(token => HandleTurnAsync(t => _processMessage(msg, context, t), token), PostNotProcessedAsync);
             }
         }
 
@@ -429,8 +460,19 @@ public sealed partial class AgentHttpRunner : IDisposable
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await PostEventAsync(new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? StopReasons.Cancelled : null }, CancellationToken.None);
+                var stopReason = failed || !ct.IsCancellationRequested ? null
+                    : _suspending ? StopReasons.Suspended
+                    : StopReasons.Cancelled;
+                await PostEventAsync(new TurnEndEvent { StopReason = stopReason }, CancellationToken.None);
             }
+        }
+    }
+
+    private async Task PostNotProcessedAsync()
+    {
+        foreach (var evt in AgentServerRunner.NotProcessedEvents())
+        {
+            await PostEventAsync(evt, CancellationToken.None);
         }
     }
 

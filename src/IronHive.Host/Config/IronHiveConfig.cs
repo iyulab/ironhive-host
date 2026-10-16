@@ -143,6 +143,15 @@ public class ApprovalHostConfig
     /// raise it when a person answers from another device or later.
     /// </summary>
     public int TimeoutSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// How long a request may hold its turn before the turn goes on without the call (<c>run --server</c>). Past it the
+    /// call does not run, the model reads that it waits for approval, other messages are answered, and the request stays
+    /// open until <see cref="TimeoutSeconds"/> (counted from when it was sent): its answer opens a turn that runs the call.
+    /// Unset (the default) keeps the request in its turn. Set <see cref="TimeoutSeconds"/> to how long a person may take
+    /// (hours) and this to how long a client should wait inline (seconds).
+    /// </summary>
+    public int? DeferAfterSeconds { get; set; }
 }
 
 /// <summary>

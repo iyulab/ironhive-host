@@ -121,6 +121,16 @@ public sealed class SessionTurnRecorder : IApprovalWaitLog
         }
     }
 
+    /// <summary>
+    /// Writes the "awaiting approval" result of a resumed wait that was deferred instead of answered, without settling its
+    /// request: the answer opens a later turn.
+    /// </summary>
+    public Task WriteDeferredResultAsync(ApprovalWaitEntry wait, string output, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(wait);
+        return _sessions.SaveToolResultAsync(Session, wait.ToolUseId, output, isError: true, cancellationToken);
+    }
+
     /// <inheritdoc />
     async Task IApprovalWaitLog.WaitingAsync(ApprovalRequest request, HitlRequestEvent sent, CancellationToken cancellationToken)
     {

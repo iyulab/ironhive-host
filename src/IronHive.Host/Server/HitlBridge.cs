@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using IronHive.Agent.Mode;
 using IronHive.Host.Protocol;
+using IronHive.Host.Session;
 
 namespace IronHive.Host.Server;
 
@@ -20,9 +21,15 @@ namespace IronHive.Host.Server;
 /// <see cref="HitlResponseRequest.Id"/>. A response without an id resolves the request only when exactly one is waiting.</item>
 /// <item>The wait is registered before the request is published, so an answer can never arrive before anything waits for
 /// it.</item>
+/// <item>A wait need not hold its turn: with <see cref="DeferAfter"/> set and a runner attached that can open a turn for the
+/// answer, a request not answered within that time is deferred - the call does not run, the model is told it waits for
+/// approval (<see cref="ApprovalResult.Defer"/>), and the turn goes on. The answer (or <see cref="Timeout"/>, counted from
+/// the first send) reaches the runner as a <see cref="DeferredApproval"/>, which opens a turn that runs the call
+/// (<see cref="DeferredApprovalTurn"/>).</item>
 /// <item>A wait can outlive the process: with a <see cref="WaitLog"/> each request is logged before it is sent and settled
-/// when answered, and a restarted host offers a logged wait again with <see cref="ReofferAsync"/>. A call whose answer is
-/// already known (<see cref="Preanswer"/>) is answered without asking.</item>
+/// when answered, and a restarted host offers a logged wait again with <see cref="ReofferAsync"/> (a wait inside a turn) or
+/// <see cref="RestoreDeferred"/> (a deferred one). A call whose answer is already known (<see cref="Preanswer"/>) is
+/// answered without asking.</item>
 /// </list>
 /// Session rules a host keeps of its own (trust lists, "already denied in this session") fit as an
 /// <see cref="IHumanApprovalService"/> that decorates this one.
@@ -34,27 +41,47 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
 
     private readonly ConcurrentDictionary<string, TaskCompletionSource<HitlResponseRequest>> _pending = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, HitlResponseRequest> _preanswered = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, DeferredWait> _deferred = new(StringComparer.Ordinal);
     private readonly Func<ApprovalRequest, string, HitlRequestEvent> _format;
     private Func<ServerEvent, CancellationToken, Task>? _publish;
+    private Action<DeferredApproval>? _onDeferredAnswer;
 
     /// <summary>Creates the bridge.</summary>
     /// <param name="timeout">How long a request waits for an answer; <see cref="DefaultTimeout"/> when null.</param>
     /// <param name="format">Builds the event sent for a request (given the request and the id it must carry); the default
     /// sends the tool name, arguments, call id, risk level, the verdict's reason as the action, the primary argument (path,
     /// command, url, query) as the target and the approval prompt as the description.</param>
-    public HitlBridge(TimeSpan? timeout = null, Func<ApprovalRequest, string, HitlRequestEvent>? format = null)
+    /// <param name="deferAfter">How long a request holds its turn before it is deferred (<see cref="DeferAfter"/>); null
+    /// (the default) never defers.</param>
+    public HitlBridge(
+        TimeSpan? timeout = null,
+        Func<ApprovalRequest, string, HitlRequestEvent>? format = null,
+        TimeSpan? deferAfter = null)
     {
         if (timeout is { } t && t <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(timeout), "The approval timeout must be positive.");
         }
 
+        if (deferAfter is { } d && d < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(deferAfter), "The approval defer time cannot be negative.");
+        }
+
         Timeout = timeout ?? DefaultTimeout;
+        DeferAfter = deferAfter;
         _format = format ?? DefaultFormat;
     }
 
     /// <summary>How long a request waits for an answer before it is rejected.</summary>
     public TimeSpan Timeout { get; }
+
+    /// <summary>
+    /// How long a request holds its turn before it is deferred; null never defers. Deferring needs a runner that opens a turn
+    /// for the answer (<see cref="AgentServerRunner.DeferredAnswerTurn"/>); without one the request waits in its turn as if
+    /// this were null. A value at or above <see cref="Timeout"/> never defers.
+    /// </summary>
+    public TimeSpan? DeferAfter { get; }
 
     /// <summary>
     /// Hears each request when it starts waiting and when it is settled; null keeps waits in memory only. A server mode
@@ -65,11 +92,26 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
     /// <summary>True while a runner is attached — requests can reach a client.</summary>
     public bool IsAttached => Volatile.Read(ref _publish) is not null;
 
+    /// <summary>True while a call waits for its answer inside its turn (not deferred).</summary>
+    internal bool HasWaitInTurn => !_pending.IsEmpty;
+
+    /// <summary>Rejects the requests waiting inside their turns now - a server that stops cannot hear their answers.</summary>
+    internal void RejectWaitsInTurn(string reason) => RejectAllPending(reason);
+
     /// <summary>
     /// Attaches the transport that sends events to the client. Returns a handle that detaches it; requests still waiting
     /// when it is detached are rejected.
     /// </summary>
-    public IDisposable Attach(Func<ServerEvent, CancellationToken, Task> publish)
+    public IDisposable Attach(Func<ServerEvent, CancellationToken, Task> publish) => Attach(publish, onDeferredAnswer: null);
+
+    /// <summary>
+    /// Attaches the transport that sends events to the client, and the runner's way to open a turn for a deferred request's
+    /// answer: <paramref name="onDeferredAnswer"/> is called once per deferred request, when it is answered or expires, and
+    /// must not block (it queues the turn). Without it requests are never deferred. Returns a handle that detaches both;
+    /// requests still waiting in their turn are then rejected, and deferred ones are dropped (with a <see cref="WaitLog"/>
+    /// they stay on record for a restarted host).
+    /// </summary>
+    public IDisposable Attach(Func<ServerEvent, CancellationToken, Task> publish, Action<DeferredApproval>? onDeferredAnswer)
     {
         ArgumentNullException.ThrowIfNull(publish);
         if (Interlocked.CompareExchange(ref _publish, publish, null) is not null)
@@ -77,12 +119,14 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             throw new InvalidOperationException("A runner is already attached to this approval bridge.");
         }
 
+        Volatile.Write(ref _onDeferredAnswer, onDeferredAnswer);
         return new Detacher(this, publish);
     }
 
     /// <summary>
     /// Delivers a client's answer. Returns false when it matches no waiting request (an unknown id, or no id while several
-    /// requests wait) — the answer is then dropped and the request keeps waiting.
+    /// requests wait) — the answer is then dropped and the request keeps waiting. A deferred request's answer is handed to
+    /// the runner, which opens a turn for it.
     /// </summary>
     public bool Resolve(HitlResponseRequest response)
     {
@@ -90,16 +134,28 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
 
         if (response.Id is { Length: > 0 } id)
         {
-            return _pending.TryRemove(id, out var waiter) && waiter.TrySetResult(response);
+            if (_pending.TryRemove(id, out var waiter))
+            {
+                return waiter.TrySetResult(response);
+            }
+
+            return _deferred.TryRemove(id, out var deferred) && Complete(deferred, response, expired: false);
         }
 
-        var snapshot = _pending.ToArray();
-        if (snapshot.Length != 1)
+        var waiting = _pending.ToArray();
+        var deferredWaits = _deferred.ToArray();
+        if (waiting.Length + deferredWaits.Length != 1)
         {
             return false;
         }
 
-        return _pending.TryRemove(snapshot[0].Key, out var only) && only.TrySetResult(response);
+        if (waiting.Length == 1)
+        {
+            return _pending.TryRemove(waiting[0].Key, out var only) && only.TrySetResult(response);
+        }
+
+        return _deferred.TryRemove(deferredWaits[0].Key, out var onlyDeferred)
+            && Complete(onlyDeferred, response with { Id = onlyDeferred.Wait.RequestId }, expired: false);
     }
 
     /// <summary>
@@ -129,7 +185,20 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
     /// </summary>
     /// <param name="wait">The logged wait.</param>
     /// <param name="cancellationToken">Cancels the wait; it stays unsettled.</param>
-    public async Task<HitlResponseRequest> ReofferAsync(Session.ApprovalWaitEntry wait, CancellationToken cancellationToken = default)
+    public async Task<HitlResponseRequest> ReofferAsync(ApprovalWaitEntry wait, CancellationToken cancellationToken = default) =>
+        (await ReofferCoreAsync(wait, defer: false, cancellationToken))!;
+
+    /// <summary>
+    /// Like <see cref="ReofferAsync"/>, but a wait not answered within <see cref="DeferAfter"/> is deferred instead of held:
+    /// it returns null, and the answer later reaches the runner as a <see cref="DeferredApproval"/>. Without
+    /// <see cref="DeferAfter"/> or a runner that takes deferred answers it never returns null.
+    /// </summary>
+    /// <param name="wait">The logged wait.</param>
+    /// <param name="cancellationToken">Cancels the wait; it stays unsettled.</param>
+    public Task<HitlResponseRequest?> ReofferOrDeferAsync(ApprovalWaitEntry wait, CancellationToken cancellationToken = default) =>
+        ReofferCoreAsync(wait, defer: true, cancellationToken);
+
+    private async Task<HitlResponseRequest?> ReofferCoreAsync(ApprovalWaitEntry wait, bool defer, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(wait);
 
@@ -153,13 +222,15 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
             await using var registration = linked.Token.Register(() => waiter.TrySetCanceled(linked.Token));
 
-            await publish(
-                new HitlRequestEvent(
-                    wait.RequestId, wait.Action, wait.Target, wait.Description, wait.Tool, wait.Arguments, wait.ToolUseId, wait.Level),
-                cancellationToken);
+            await publish(ToEvent(wait), cancellationToken);
 
             try
             {
+                if (defer && await DeferredAsync(wait, waiter, cancellationToken))
+                {
+                    return null;
+                }
+
                 return await waiter.Task;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -170,6 +241,49 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
         finally
         {
             _pending.TryRemove(wait.RequestId, out _);
+        }
+    }
+
+    /// <summary>
+    /// Registers a deferred wait a previous process logged (<see cref="ApprovalWaitEntry.Deferred"/>): its answer, or its
+    /// <see cref="Timeout"/> counted from the first send, reaches the attached runner as a <see cref="DeferredApproval"/>.
+    /// Call it before attaching; the attached runner sends the request again (<see cref="ReofferDeferredAsync"/>).
+    /// </summary>
+    public void RestoreDeferred(ApprovalWaitEntry wait)
+    {
+        ArgumentNullException.ThrowIfNull(wait);
+        Defer(wait, unsent: true);
+    }
+
+    /// <summary>
+    /// Sends again, with their original ids, the deferred requests registered with <see cref="RestoreDeferred"/> - what a
+    /// runner does right after it attaches, so the client sees what still waits for an answer.
+    /// </summary>
+    public async Task ReofferDeferredAsync(CancellationToken cancellationToken = default)
+    {
+        var publish = Volatile.Read(ref _publish);
+        if (publish is null)
+        {
+            return;
+        }
+
+        foreach (var deferred in _deferred.Values)
+        {
+            if (!deferred.TakeUnsent())
+            {
+                continue;
+            }
+
+            // Its time counts from the first send, by a previous process: it may have run out while nothing was running
+            var remaining = Timeout - (DateTimeOffset.UtcNow - deferred.Wait.Timestamp);
+            if (remaining <= TimeSpan.Zero)
+            {
+                Expire(deferred.Wait.RequestId);
+                continue;
+            }
+
+            await publish(ToEvent(deferred.Wait), cancellationToken);
+            deferred.StartExpiry(remaining, () => Expire(deferred.Wait.RequestId));
         }
     }
 
@@ -201,6 +315,7 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             // Registered above, logged and published here: an answer cannot outrun its wait, and a wait the client can
             // see is already on record.
             var sent = _format(request, id);
+            var sentAt = DateTimeOffset.UtcNow;
             if (WaitLog is { } log)
             {
                 await log.WaitingAsync(request, sent, cancellationToken);
@@ -211,6 +326,12 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             HitlResponseRequest response;
             try
             {
+                if (await DeferredAsync(ToEntry(request, sent, sentAt), waiter, cancellationToken))
+                {
+                    // Not settled: the wait goes on outside the turn, and its answer opens a later one
+                    return ApprovalResult.Defer($"request {id}");
+                }
+
                 response = await waiter.Task;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -236,11 +357,81 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
         }
     }
 
-    /// <summary>Rejects every waiting request; nothing is attached afterwards.</summary>
+    /// <summary>Rejects every waiting request and drops the deferred ones; nothing is attached afterwards.</summary>
     public void Dispose()
     {
         Volatile.Write(ref _publish, null);
+        Volatile.Write(ref _onDeferredAnswer, null);
         RejectAllPending("the approval bridge was shut down");
+        DropDeferred();
+    }
+
+    // Waits for the answer until DeferAfter; when none came and deferring is possible, moves the wait out of the turn.
+    // Returns true when it was deferred. An answer that wins the race is left on the waiter for the caller to read.
+    private async Task<bool> DeferredAsync(
+        ApprovalWaitEntry wait, TaskCompletionSource<HitlResponseRequest> waiter, CancellationToken cancellationToken)
+    {
+        if (DeferAfter is not { } deferAfter || deferAfter >= Timeout - (DateTimeOffset.UtcNow - wait.Timestamp)
+            || Volatile.Read(ref _onDeferredAnswer) is null)
+        {
+            return false;
+        }
+
+        var settled = await Task.WhenAny(waiter.Task, Task.Delay(deferAfter, cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (settled == waiter.Task || !_pending.TryRemove(wait.RequestId, out _))
+        {
+            // Answered (or being answered) in time
+            return false;
+        }
+
+        Defer(wait, unsent: false);
+        return true;
+    }
+
+    private void Defer(ApprovalWaitEntry wait, bool unsent)
+    {
+        var deferred = new DeferredWait(wait, unsent);
+        _deferred[wait.RequestId] = deferred;
+
+        // A restored wait starts its clock when it is sent again (ReofferDeferredAsync), once a runner can take its expiry
+        if (!unsent)
+        {
+            var remaining = Timeout - (DateTimeOffset.UtcNow - wait.Timestamp);
+            deferred.StartExpiry(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, () => Expire(wait.RequestId));
+        }
+    }
+
+    private void Expire(string requestId)
+    {
+        if (_deferred.TryRemove(requestId, out var deferred))
+        {
+            Complete(deferred, new HitlResponseRequest(false, TimedOutReason(), requestId), expired: true);
+        }
+    }
+
+    private bool Complete(DeferredWait deferred, HitlResponseRequest answer, bool expired)
+    {
+        deferred.StopExpiry();
+        if (Volatile.Read(ref _onDeferredAnswer) is not { } onAnswer)
+        {
+            // No runner to open the turn: with a wait log the wait stays unsettled on record, for a restarted host
+            return false;
+        }
+
+        onAnswer(new DeferredApproval(deferred.Wait, answer, expired));
+        return true;
+    }
+
+    private void DropDeferred()
+    {
+        foreach (var id in _deferred.Keys)
+        {
+            if (_deferred.TryRemove(id, out var deferred))
+            {
+                deferred.StopExpiry();
+            }
+        }
     }
 
     private void RejectAllPending(string reason)
@@ -258,6 +449,22 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
 
     private string TimedOutReason() =>
         string.Create(CultureInfo.InvariantCulture, $"no answer to the approval request within {Timeout.TotalSeconds:F0}s");
+
+    private static HitlRequestEvent ToEvent(ApprovalWaitEntry wait) =>
+        new(wait.RequestId, wait.Action, wait.Target, wait.Description, wait.Tool, wait.Arguments, wait.ToolUseId, wait.Level);
+
+    private static ApprovalWaitEntry ToEntry(ApprovalRequest request, HitlRequestEvent sent, DateTimeOffset sentAt) => new()
+    {
+        Timestamp = sentAt,
+        RequestId = sent.Id,
+        ToolUseId = string.IsNullOrEmpty(request.CallId) ? sent.Id : request.CallId,
+        Tool = request.ToolName,
+        Arguments = sent.Arguments,
+        Action = sent.Action,
+        Target = sent.Target,
+        Description = sent.Description,
+        Level = sent.Level,
+    };
 
     private static ApprovalResult ToResult(HitlResponseRequest response)
     {
@@ -308,6 +515,21 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
         return null;
     }
 
+    private sealed class DeferredWait(ApprovalWaitEntry wait, bool unsent)
+    {
+        private int _unsent = unsent ? 1 : 0;
+        private Timer? _expiry;
+
+        public ApprovalWaitEntry Wait { get; } = wait;
+
+        public bool TakeUnsent() => Interlocked.Exchange(ref _unsent, 0) == 1;
+
+        public void StartExpiry(TimeSpan after, Action expire) =>
+            Interlocked.Exchange(ref _expiry, new Timer(_ => expire(), null, after, System.Threading.Timeout.InfiniteTimeSpan))?.Dispose();
+
+        public void StopExpiry() => Interlocked.Exchange(ref _expiry, null)?.Dispose();
+    }
+
     private sealed class Detacher(HitlBridge bridge, Func<ServerEvent, CancellationToken, Task> publish) : IDisposable
     {
         private int _disposed;
@@ -321,8 +543,19 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
 
             if (Interlocked.CompareExchange(ref bridge._publish, null, publish) == publish)
             {
+                Volatile.Write(ref bridge._onDeferredAnswer, null);
                 bridge.RejectAllPending("the client connection closed before answering");
+                bridge.DropDeferred();
             }
         }
     }
 }
+
+/// <summary>
+/// The answer to a deferred approval request (<see cref="HitlBridge.DeferAfter"/>) - or its expiry - handed to the runner,
+/// which opens a turn that runs the call (<see cref="DeferredApprovalTurn"/>).
+/// </summary>
+/// <param name="Wait">The request as sent: its id, the call it is about and the call's arguments.</param>
+/// <param name="Answer">The client's answer; a rejection when <paramref name="Expired"/>.</param>
+/// <param name="Expired">No answer arrived within <see cref="HitlBridge.Timeout"/>, counted from the first send.</param>
+public sealed record DeferredApproval(ApprovalWaitEntry Wait, HitlResponseRequest Answer, bool Expired);

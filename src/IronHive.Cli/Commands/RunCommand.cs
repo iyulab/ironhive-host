@@ -434,12 +434,31 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // The same classifier error recovery uses (with the gateways' failure readers), so ErrorEvent.Code agrees with it.
                 runner.ErrorClassifier = _errorRecovery;
             }
+            if (_hitlBridge is { } hitl)
+            {
+                // A deferred request's answer (or expiry) opens a turn that runs the call; with deferAfterSeconds unset
+                // the bridge never defers and this is never called
+                runner.DeferredAnswerTurn = (answer, token) => DeferredApprovalTurn
+                    .RunAsync(agentLoop, answer, hitl, recorder, created.Loop.Tools, created.Pipeline, token)
+                    .ToServerEvents(executionLog, token);
+            }
             if (pending.Count > 0 && recorder is not null && _hitlBridge is not null)
             {
                 var bridge = _hitlBridge;
-                runner.ResumeTurn = token => SuspendedTurnResumer
-                    .ResumeAsync(agentLoop, pending, bridge, recorder, created.Loop.Tools, created.Pipeline, token)
-                    .ToServerEvents(executionLog, token);
+                // Deferred waits hold no turn: they are sent again and wait for their answer. A wait a turn was holding
+                // when the process stopped resumes that turn.
+                foreach (var deferred in pending.Where(w => w.Deferred))
+                {
+                    bridge.RestoreDeferred(deferred);
+                }
+
+                var inTurn = pending.Where(w => !w.Deferred).ToList();
+                if (inTurn.Count > 0)
+                {
+                    runner.ResumeTurn = token => SuspendedTurnResumer
+                        .ResumeAsync(agentLoop, inTurn, bridge, recorder, created.Loop.Tools, created.Pipeline, token)
+                        .ToServerEvents(executionLog, token);
+                }
             }
             await runner.RunAsync(ct);
 

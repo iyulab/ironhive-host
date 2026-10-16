@@ -87,7 +87,9 @@ public interface ISessionManager
 
     /// <summary>
     /// The approval waits of the session that were never settled - calls a previous process was waiting on when it
-    /// stopped - oldest first.
+    /// stopped - oldest first. A wait whose call already has a result in the transcript is returned with
+    /// <see cref="ApprovalWaitEntry.Deferred"/> set: the turn went on without it, and its answer opens a later turn; an
+    /// implementation of its own must set it the same way, or the resumed wait's result is appended to history twice.
     /// </summary>
     Task<IReadOnlyList<ApprovalWaitEntry>> GetPendingApprovalsAsync(Session session, CancellationToken cancellationToken = default);
 

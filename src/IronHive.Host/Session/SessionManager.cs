@@ -241,7 +241,11 @@ public class SessionManager : ISessionManager
     {
         var entries = await ReadEntriesAsync(session.TranscriptPath);
         var closed = entries.OfType<ApprovalClosedEntry>().Select(e => e.RequestId).ToHashSet(StringComparer.Ordinal);
-        return [.. entries.OfType<ApprovalWaitEntry>().Where(w => !closed.Contains(w.RequestId))];
+        // A deferred wait's call already has its result (the "awaiting approval" one); a wait inside a turn has none yet
+        var answered = entries.OfType<ToolResultEntry>().Select(e => e.ToolUseId).ToHashSet(StringComparer.Ordinal);
+        return [.. entries.OfType<ApprovalWaitEntry>()
+            .Where(w => !closed.Contains(w.RequestId))
+            .Select(w => answered.Contains(w.ToolUseId) ? w with { Deferred = true } : w)];
     }
 
     /// <inheritdoc />

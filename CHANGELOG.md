@@ -5,9 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.61.0 — Unreleased
+
+### Added
+- **An approval wait no longer holds the session: `approval.deferAfterSeconds`.** A request not answered within that time
+  is deferred — the call does not run, its `tool_end` carries `Refusal: awaiting_approval`, the model reads that the call
+  waits for approval, and the turn ends so the next `user_message` is answered. The answer (or `approval.timeoutSeconds`,
+  counted from the first send) opens a turn of the server's own: the call runs once through the session's tool pipeline, a
+  second `tool_end` for the same `CallId` carries the outcome, and the model is told what became of it. With a recorded
+  session a deferred request survives a restart (sent again with its id, holding no turn). Unset (the default) keeps the
+  request in its turn. Library: `HitlBridge(timeout, deferAfter: …)`, `AgentServerRunner.DeferredAnswerTurn` /
+  `AgentHttpRunner.DeferredAnswerTurn` with `DeferredApprovalTurn.RunAsync`, `HitlBridge.RestoreDeferred` /
+  `ReofferOrDeferAsync`, `ApprovalWaitEntry.Deferred`; protocol `ToolRefusalCodes.AwaitingApproval`,
+  `StopReasons.Suspended`, `ErrorCodes.NotProcessed`. Needs IronHive.Agent 0.63.0 (`ApprovalResult.Defer`).
+
+### Changed
+- **Breaking: a server stopped while a turn waits for an approval no longer waits for the approval timeout.** With a
+  recorded session (`--session-id`) the turn ends with `stop_reason: suspended` and the wait stays on record — the next
+  process with the same session offers it again and finishes the turn; messages queued behind it are not run and each gets
+  an `error` with `Code: not_processed`. Without a session the wait is denied at once. Before, a `shutdown` request or the
+  end of the input held the process until `approval.timeoutSeconds` and then closed the wait as a denial. A client that
+  waited for that denial now reads `suspended` (or the denial right away).
 
 ### Dependencies
+- Re-pinned sibling package(s) `IronHive.Agent` 0.62.0 -> 0.63.0, `IronHive.Agent.Ironbees` 0.62.0 -> 0.63.0.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.28.1 -> 0.29.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.120.0 -> 0.121.0.
 - `Microsoft.Extensions.AI` / `.Abstractions` 10.10.x -> 10.11.0.

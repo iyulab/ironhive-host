@@ -55,6 +55,16 @@ public partial class AgentServerRunner
     public Func<CancellationToken, IAsyncEnumerable<ServerEvent>>? ResumeTurn { get; set; }
 
     /// <summary>
+    /// Opens the turn a deferred approval's answer (or expiry) asks for (<see cref="HitlBridge.DeferAfter"/>) - typically
+    /// <see cref="Session.DeferredApprovalTurn.RunAsync"/>. The turn queues behind the others. Without it the bridge never
+    /// defers: a request waits inside its turn.
+    /// </summary>
+    public Func<DeferredApproval, CancellationToken, IAsyncEnumerable<ServerEvent>>? DeferredAnswerTurn { get; set; }
+
+    // Set when the server stops while a turn waits for an approval the session keeps: that turn ends as suspended
+    private volatile bool _suspending;
+
+    /// <summary>
     /// Classifies a failed turn for <see cref="ErrorEvent.Code"/>. Defaults to an <see cref="ErrorRecoveryService"/> with its
     /// built-in HTTP status reader; pass the application's own (with the provider gateways' failure readers) so the wire
     /// and error recovery read a failure the same way.
@@ -163,6 +173,7 @@ public partial class AgentServerRunner
     /// </remarks>
     public async Task RunAsync(TextReader input, TextWriter output, CancellationToken ct)
     {
+        _suspending = false;
         var channel = Channel.CreateBounded<ServerRequest>(capacity: 16);
         using var readerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         // The turn writes its events while an approval request is published from inside a tool call: one line at a time.
@@ -176,13 +187,24 @@ public partial class AgentServerRunner
         // even when another message arrived first.
         var turns = new TurnQueue(ct);
 
-        using var hitlAttachment = _hitl?.Attach((evt, token) => WriteSerializedAsync(output, writeLock, evt, token));
+        var deferredTurn = DeferredAnswerTurn;
+        using var hitlAttachment = _hitl?.Attach(
+            (evt, token) => WriteSerializedAsync(output, writeLock, evt, token),
+            deferredTurn is null
+                ? null
+                : answer => turns.Enqueue(token => HandleTurnAsync(t => deferredTurn(answer, t), output, writeLock, token)));
 
         // A turn a previous process left waiting for approval runs first, once the bridge can reach the client
         if (ResumeTurn is { } resume)
         {
             ResumeTurn = null; // once: the waits it resumes are settled by then
             turns.Enqueue(token => HandleTurnAsync(resume, output, writeLock, token));
+        }
+
+        // Deferred requests a previous process left (HitlBridge.RestoreDeferred) are sent again; they hold no turn
+        if (_hitl is not null)
+        {
+            await _hitl.ReofferDeferredAsync(ct);
         }
 
         try
@@ -218,7 +240,9 @@ public partial class AgentServerRunner
                     // The context in effect when the message arrived. Turns run one at a time, each ending with
                     // its TurnEndEvent before the next starts. HandleMessageAsync never throws.
                     var context = _context;
-                    turns.Enqueue(token => HandleTurnAsync(t => _processMessage(msg, context, t), output, writeLock, token));
+                    turns.Enqueue(
+                        token => HandleTurnAsync(t => _processMessage(msg, context, t), output, writeLock, token),
+                        () => WriteNotProcessedAsync(output, writeLock));
                 }
             }
         }
@@ -226,6 +250,19 @@ public partial class AgentServerRunner
         {
             // Stop background stdin reader.
             await readerCts.CancelAsync();
+
+            // A turn waiting for an approval the session keeps is suspended, not denied: a server started again with the
+            // same session offers the request again and finishes it. The messages queued behind it are not run.
+            if (ShouldSuspend(_hitl))
+            {
+                _suspending = true;
+                turns.SuspendCurrent();
+            }
+            else
+            {
+                // Nothing keeps the wait: deny it now instead of holding the stop until the approval timeout
+                _hitl?.RejectWaitsInTurn(StoppedReason);
+            }
 
             // Run the turns already received so each one's TurnEndEvent is written.
             await turns.DisposeAsync();
@@ -280,8 +317,35 @@ public partial class AgentServerRunner
             // stream before it gets there.
             if (!turnEndSent)
             {
-                await WriteSerializedAsync(output, writeLock, new TurnEndEvent { StopReason = !failed && ct.IsCancellationRequested ? StopReasons.Cancelled : null }, CancellationToken.None);
+                var stopReason = failed || !ct.IsCancellationRequested ? null
+                    : _suspending ? StopReasons.Suspended
+                    : StopReasons.Cancelled;
+                await WriteSerializedAsync(output, writeLock, new TurnEndEvent { StopReason = stopReason }, CancellationToken.None);
             }
+        }
+    }
+
+    /// <summary>What the model reads for a call whose approval request was open when the server stopped.</summary>
+    internal const string StoppedReason = "the server stopped before the approval request was answered";
+
+    /// <summary>True when the server stops while a turn waits for an approval that a restarted host can offer again.</summary>
+    internal static bool ShouldSuspend(HitlBridge? bridge) => bridge is { WaitLog: not null, HasWaitInTurn: true };
+
+    /// <summary>The events a message gets when the server stops before its turn starts, behind a suspended one.</summary>
+    internal static IEnumerable<ServerEvent> NotProcessedEvents() =>
+    [
+        new ErrorEvent("The server stopped before this message was processed; it was not recorded. Send it again once the server runs.")
+        {
+            Code = ErrorCodes.NotProcessed,
+        },
+        new TurnEndEvent(),
+    ];
+
+    private async Task WriteNotProcessedAsync(TextWriter output, SemaphoreSlim writeLock)
+    {
+        foreach (var evt in NotProcessedEvents())
+        {
+            await WriteSerializedAsync(output, writeLock, evt, CancellationToken.None);
         }
     }
 

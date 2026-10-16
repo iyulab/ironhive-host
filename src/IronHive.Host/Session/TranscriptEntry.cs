@@ -201,6 +201,14 @@ public record ApprovalWaitEntry : TranscriptEntry
     /// <summary>The risk level, lower case.</summary>
     [JsonPropertyName("level")]
     public string? Level { get; init; }
+
+    /// <summary>
+    /// The wait was deferred: the turn went on without the call (its result in the transcript says it awaits approval), and
+    /// its answer opens a later turn (<see cref="DeferredApprovalTurn"/>). Not written: <see cref="ISessionManager.GetPendingApprovalsAsync"/>
+    /// sets it for an unsettled wait whose call already has a result.
+    /// </summary>
+    [JsonIgnore]
+    public bool Deferred { get; init; }
 }
 
 /// <summary>
