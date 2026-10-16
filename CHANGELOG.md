@@ -12,6 +12,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   openaiCompatible, openai, anthropic, google, xai, ollama, lmstudio, then lmsupply). The CLI now keeps that list in one
   place, so the registration, the default choice, doctor and models cannot disagree about which providers exist.
 
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Agent` 0.64.0 -> 0.65.0, `IronHive.Agent.Ironbees` 0.64.0 -> 0.65.0, `IronHive.DeepResearch` 0.64.0 -> 0.65.0.
+
 ## 0.62.0 — 2026-10-17
 
 ### Added
