@@ -28,6 +28,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   falls back to its static catalog (or the configured model), and doctor counted that list as a reachable endpoint; it now
   reports «model list unavailable» with the recommendation to check the endpoint and key.
 
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Agent` 0.63.0 -> 0.64.0, `IronHive.Agent.Ironbees` 0.63.0 -> 0.64.0, `IronHive.DeepResearch` 0.63.0 -> 0.64.0.
+
 ## 0.61.0 — 2026-10-16
 
 ### Added
