@@ -358,10 +358,7 @@ public class ConfigurationManager
     /// <summary>
     /// Checks if any API provider is configured.
     /// </summary>
-    private static bool HasAnyApiProvider(IronHiveConfig config) =>
-        config.GpuStack.IsConfigured || config.OpenAI.IsConfigured || config.Anthropic.IsConfigured ||
-        config.GoogleAI.IsConfigured || config.Xai.IsConfigured ||
-        config.Ollama.IsConfigured || config.LMStudio.IsConfigured || config.OpenAICompatible.IsConfigured;
+    private static bool HasAnyApiProvider(IronHiveConfig config) => ProviderBlocks.Configured(config).Any();
 
     private static void ApplyEnvironmentVariables(IronHiveConfig config)
     {

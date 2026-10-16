@@ -19,7 +19,7 @@ public class SetCommandDriftGuardTests
     /// (and mirrored as display labels in <c>ConfigCommand.ShowConfig()</c>), post-fix.
     /// Keep this array in sync with SetCommand.cs's validKeys dictionary keys.
     /// </summary>
-    private static readonly string[] AdvertisedSectionKeys =
+    internal static readonly string[] AdvertisedSectionKeys =
     [
         "openai",
         "anthropic",

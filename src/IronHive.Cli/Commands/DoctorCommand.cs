@@ -100,18 +100,10 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         var configuredCount = 0;
 
         // Check each provider
-        var providers = new (string name, bool configured, string? model)[]
-        {
-            ("gpustack", _config.GpuStack.IsConfigured, _config.GpuStack.Model),
-            ("openai", _config.OpenAI.IsConfigured, _config.OpenAI.Model),
-            ("anthropic", _config.Anthropic.IsConfigured, _config.Anthropic.Model),
-            ("google", _config.GoogleAI.IsConfigured, _config.GoogleAI.Model),
-            ("xai", _config.Xai.IsConfigured, _config.Xai.Model),
-            ("ollama", _config.Ollama.IsConfigured, _config.Ollama.Model),
-            ("lmstudio", _config.LMStudio.IsConfigured, _config.LMStudio.Model),
-            ("openaiCompatible", _config.OpenAICompatible.IsConfigured, _config.OpenAICompatible.Model),
-            ("lmsupply", _config.LMSupply.Enabled, _config.LMSupply.GeneratorModel)
-        };
+        var providers = ProviderBlocks.All
+            .Select(p => (name: p.Name, configured: p.IsConfigured(_config), model: p.Model(_config)))
+            .Append(("lmsupply", _config.LMSupply.Enabled, _config.LMSupply.GeneratorModel))
+            .ToArray();
 
         foreach (var (name, configured, model) in providers)
         {
@@ -152,57 +144,9 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         return (hasErrors, hasWarnings);
     }
 
-    private bool HasAnyRemoteProvider()
-    {
-        return _config.GpuStack.IsConfigured ||
-               _config.OpenAI.IsConfigured ||
-               _config.Anthropic.IsConfigured ||
-               _config.GoogleAI.IsConfigured ||
-               _config.Xai.IsConfigured ||
-               _config.Ollama.IsConfigured ||
-               _config.LMStudio.IsConfigured ||
-               _config.OpenAICompatible.IsConfigured;
-    }
+    private bool HasAnyRemoteProvider() => ProviderBlocks.Configured(_config).Any();
 
-    private bool HasModelSpecified()
-    {
-        if (_config.GpuStack.IsConfigured && string.IsNullOrEmpty(_config.GpuStack.Model))
-        {
-            return false;
-        }
-
-        if (_config.OpenAI.IsConfigured && string.IsNullOrEmpty(_config.OpenAI.Model))
-        {
-            return false;
-        }
-
-        if (_config.Anthropic.IsConfigured && string.IsNullOrEmpty(_config.Anthropic.Model))
-        {
-            return false;
-        }
-
-        if (_config.GoogleAI.IsConfigured && string.IsNullOrEmpty(_config.GoogleAI.Model))
-        {
-            return false;
-        }
-
-        if (_config.Xai.IsConfigured && string.IsNullOrEmpty(_config.Xai.Model))
-        {
-            return false;
-        }
-
-        if (_config.Ollama.IsConfigured && string.IsNullOrEmpty(_config.Ollama.Model))
-        {
-            return false;
-        }
-
-        if (_config.LMStudio.IsConfigured && string.IsNullOrEmpty(_config.LMStudio.Model))
-        {
-            return false;
-        }
-
-        return true;
-    }
+    private bool HasModelSpecified() => ProviderBlocks.Configured(_config).All(p => !string.IsNullOrEmpty(p.Model(_config)));
 
     private async Task<bool> CheckConnectivityAsync(List<string> recommendations, bool verbose, CancellationToken cancellationToken)
     {

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using IronHive.Agent.Providers;
+using IronHive.Host.Config;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -153,22 +154,11 @@ public class ModelsCommand : AsyncCommand<ModelsCommand.Settings>
         return 0;
     }
 
-    private static int GetProviderSortOrder(string provider)
-    {
-        return provider.ToLowerInvariant() switch
-        {
-            "gpustack" => 0,
-            "openaicompatible" or "openai-compatible" => 5,
-            "openai" => 1,
-            "anthropic" or "claude" => 2,
-            "google" or "gemini" => 3,
-            "xai" or "grok" => 4,
-            "ollama" => 6,
-            "lmstudio" => 7,
-            "lmsupply" or "local" => 8,
-            _ => 99
-        };
-    }
+    // Remote providers in default order (ProviderBlocks), then the local one, then anything else.
+    private static int GetProviderSortOrder(string provider) =>
+        ProviderBlocks.Find(provider) is { } block ? ProviderBlocks.All.ToList().IndexOf(block)
+        : provider.Equals("lmsupply", StringComparison.OrdinalIgnoreCase) || provider.Equals("local", StringComparison.OrdinalIgnoreCase) ? ProviderBlocks.All.Count
+        : 99;
 
     private static string FormatNumber(int number)
     {
