@@ -57,6 +57,27 @@ public class HostCompactionWiringTests
         ResultOf(reduced, "c4").Should().HaveLength(2_000);
     }
 
+    [Theory]
+    [InlineData(2_000, false)] // default: one 2,000-character result past the boundary waits for more
+    [InlineData(0, true)]      // masks at every move
+    public void HostContextManagerFactory_Create_AppliesTheMaskingClearThresholdFromConfig(int minimumClearTokens, bool masked)
+    {
+        var manager = HostContextManagerFactory.Create(
+            new HostCompactionConfig
+            {
+                ObservationMaskingProtectedTurns = 1,
+                ObservationMaskingMinimumClearTokens = minimumClearTokens,
+                EnableToolResultCompaction = false,
+            },
+            "gpt-4o");
+        var history = OneTurnReading(1);
+        history.Add(new ChatMessage(ChatRole.User, "Next."));
+
+        var result = ResultOf(manager.ReduceToolResults(history), "c1");
+
+        result.StartsWith("[Masked:", StringComparison.Ordinal).Should().Be(masked);
+    }
+
     [Fact]
     public void HostContextManagerFactory_Create_AppliesToolResultCompactionFromConfig()
     {

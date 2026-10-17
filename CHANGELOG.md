@@ -8,6 +8,10 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## [Unreleased]
 
 ### Changed
+- **Old tool results are masked in batches, so the prompt start — and a provider's prompt cache — stays the same between
+  them** (IronHive.Agent 0.66.0). `compaction: observationMaskingMinimumClearTokens` (default 2,000; 0 = mask at every turn,
+  the previous behaviour) waits until that many tokens of results sit past the protected turns. The anchored compactor also
+  keeps the paths, URLs and IDs the session read, word for word.
 - **`ironhive doctor` and `ironhive models` list providers in the order the default provider is chosen** (gpustack,
   openaiCompatible, openai, anthropic, google, xai, ollama, lmstudio, then lmsupply). The CLI now keeps that list in one
   place, so the registration, the default choice, doctor and models cannot disagree about which providers exist.

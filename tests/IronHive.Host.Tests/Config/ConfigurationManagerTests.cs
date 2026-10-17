@@ -153,6 +153,24 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void Load_MaskingClearThreshold_IsAConfigKey()
+    {
+        var projectConfigDir = Path.Combine(_tempDir, ".ironhive");
+        Directory.CreateDirectory(projectConfigDir);
+        File.WriteAllText(
+            Path.Combine(projectConfigDir, "config.yaml"),
+            """
+            compaction:
+              observationMaskingMinimumClearTokens: 0
+            """);
+
+        var config = _manager.Load(forceReload: true);
+
+        Assert.Equal(0, config.Compaction.ObservationMaskingMinimumClearTokens);
+        Assert.Equal(2_000, new IronHive.Agent.Context.CompactionConfig().ObservationMaskingMinimumClearTokens);
+    }
+
+    [Fact]
     public void Load_GpuStackFromEnv_LoadsCorrectly()
     {
         Environment.SetEnvironmentVariable("GPUSTACK_ENDPOINT", "http://test.local:8080");
