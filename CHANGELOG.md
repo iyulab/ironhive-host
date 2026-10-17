@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## 0.63.0 — 2026-10-17
 
 ### Changed
 - **Old tool results are masked in batches, so the prompt start — and a provider's prompt cache — stays the same between
