@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Agent` 0.66.0 -> 0.67.0, `IronHive.Agent.Ironbees` 0.66.0 -> 0.67.0, `IronHive.DeepResearch` 0.66.0 -> 0.67.0, `LMSupply.Generator` 0.125.0 -> 0.126.0.
+
 ## 0.63.0 — 2026-10-17
 
 ### Changed
