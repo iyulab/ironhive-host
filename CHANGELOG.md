@@ -15,6 +15,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Agent` 0.64.0 -> 0.65.0, `IronHive.Agent.Ironbees` 0.64.0 -> 0.65.0, `IronHive.DeepResearch` 0.64.0 -> 0.65.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.123.0 -> 0.124.0.
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.124.0 -> 0.125.0.
 
 ## 0.62.0 — 2026-10-17
 
