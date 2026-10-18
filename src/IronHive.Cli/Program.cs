@@ -5,6 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
+// Spans go out over OTLP only when the standard OTEL_EXPORTER_OTLP_* environment is set; disposing flushes them at exit
+using var tracing = OtlpTracing.StartFromEnvironment(
+    Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0");
+
 try
 {
     var services = new ServiceCollection();

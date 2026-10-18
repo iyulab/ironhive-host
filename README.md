@@ -28,6 +28,7 @@ expose a generic turn-stream rather than an application-specific wire format.
 - **Resilient tool-calling** — `ResilientArgumentsMiddleware` (a tool invocation pipeline step) and `ResilientFunctionInvoker` (the same behaviour as a plain `FunctionInvoker`) turn tool-call arguments that do not fit the tool into model-actionable recovery hints instead of aborting the stream. Installed by the CLI and `run --server` (after the loop guards and the permission gate); `AddIronHive`/`AddIronHiveWithOpenAI` do not decorate the client, so embedders install it themselves (see [ResilientFunctionInvoker](#resilientfunctioninvoker)).
 - **Advisor** — set `advisor.model` and every CLI / `run --server` session gets an `advisor` tool (the library `AddIronHive` path has no advisor option): the working model can send the conversation so far to a stronger model and read its review (before committing to an approach, when stuck, before declaring done). It appears on the wire as an ordinary `tool_start`/`tool_end`.
 - **Layered configuration** — global → project → environment → `.env`, with automatic migration from legacy `settings.json`.
+- **Traces over OTLP** — set the standard `OTEL_EXPORTER_OTLP_ENDPOINT` (and `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` for HTTP) and the `ironhive` CLI, including `run --server`, exports a span per agent turn (`invoke_agent`, source `IronHive.Agent`) with one child per model call (source `IronHive.Cli`, no message content). Off when the variable is unset or `OTEL_SDK_DISABLED=true`; the `IronHive.Host` library carries no exporter — an embedder adds `IronHive.Agent` to its own tracer provider.
 
 <details>
 <summary><strong>⚠️ 0.16.0 breaking repackage</strong> (upgrading from an older version? read this)</summary>
@@ -345,6 +346,7 @@ Configuration is merged in order (later overrides earlier):
    - `LMSTUDIO_ENDPOINT`, `LMSTUDIO_MODEL`, `LMSTUDIO_ENABLED`
    - `OPENAI_COMPATIBLE_ENDPOINT`, `OPENAI_COMPATIBLE_MODEL`, `OPENAI_COMPATIBLE_API_KEY` (optional)
    - `LMSUPPLY_ENABLED`
+   - the OpenTelemetry exporter's standard `OTEL_*` variables (`OTEL_EXPORTER_OTLP_ENDPOINT` / `_TRACES_ENDPOINT`, `_PROTOCOL`, `_HEADERS`, `OTEL_SERVICE_NAME`, `OTEL_SDK_DISABLED`) — see Features
 4. **.env file**: Project root `.env`
 
 > On first run, a legacy `~/.ironhive/settings.json` (from earlier versions) is automatically migrated to `config.yaml`.

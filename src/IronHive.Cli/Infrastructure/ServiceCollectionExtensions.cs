@@ -61,6 +61,9 @@ public static class ServiceCollectionExtensions
             // Directly under the function-invoking client: a call a local model wrote as text (its server's parser
             // missed it) becomes the call that client runs, instead of a reply that ends the turn as completed.
             .UseTextToolCallRecovery()
+            // One span per model call, under the agent turn's span; message content is not recorded. Exported only when
+            // OTLP is configured (OtlpTracing) — with no listener it costs nothing.
+            .UseOpenTelemetry(sourceName: OtlpTracing.ChatSourceName)
             .Build();
 
     /// <summary>

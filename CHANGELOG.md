@@ -13,6 +13,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   price (a self-hosted model) or the provider reported no usage. `run --server` prices with the same catalog lookup its usage
   budget uses. An embedder mapping a loop's chunks itself passes the price with `ToServerEvents(pricing, …)`
   (`TokenMeter.ModelCatalog.FindModel(modelId)`); `CreatedAgentLoop.ModelId` names the model a host-created loop calls.
+- **The CLI exports traces over OTLP.** With the standard `OTEL_EXPORTER_OTLP_ENDPOINT` set (`OTEL_EXPORTER_OTLP_PROTOCOL` picks
+  `grpc` or `http/protobuf`), `ironhive` — `run --server` included — sends a span per agent turn (source `IronHive.Agent`) with a
+  child per model call (source `IronHive.Cli`, message content not recorded). Nothing is exported when the variable is unset or `OTEL_SDK_DISABLED=true`. The exporter is in the CLI only; the
+  `IronHive.Host` library gains no dependency.
+
+### Dependencies
+- `IronHive.Cli` adds `OpenTelemetry` and `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.20.0.
 
 ## 0.64.0 — 2026-10-18
 
