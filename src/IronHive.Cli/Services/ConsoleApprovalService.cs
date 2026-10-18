@@ -79,11 +79,15 @@ public class ConsoleApprovalService : IHumanApprovalService
             _ => Color.Grey
         };
 
+        // A delegated agent's calls come through this same prompt; say who asked.
+        var askedBy = request.DelegatedBy is { } agent
+            ? Environment.NewLine + $"[bold]Requested by:[/] delegated agent [cyan]{Markup.Escape(agent)}[/]"
+            : string.Empty;
         var panel = new Panel(new Markup($"""
             [bold]Tool:[/] [cyan]{Markup.Escape(request.ToolName)}[/]
             [bold]Risk Level:[/] [{riskColor.ToMarkup()}]{request.RiskAssessment.Level}[/]
             [bold]Reason:[/] {Markup.Escape(request.RiskAssessment.Reason ?? "Unknown")}
-            """))
+            """ + askedBy))
             .Header($"[{riskColor.ToMarkup()}]APPROVAL REQUIRED[/]")
             .Border(BoxBorder.Double)
             .BorderColor(riskColor);

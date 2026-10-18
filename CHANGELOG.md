@@ -7,12 +7,20 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **An approval says which delegated agent asked.** A `delegation:` agent's tool calls go through the session's approval path;
+  the console prompt now shows «Requested by: delegated agent '<name>'», and the server's `hitl_request` carries
+  `delegated_by` (`HitlRequestEvent.DelegatedBy`, omitted for the session's own calls). Read from
+  `ApprovalRequest.DelegatedBy` (IronHive.Agent 0.70.0). **Breaking** for code that constructs `HitlRequestEvent` positionally
+  from a compiled assembly: the record gained a trailing optional parameter — recompile; source is unchanged.
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Agent` 0.66.0 -> 0.67.0, `IronHive.Agent.Ironbees` 0.66.0 -> 0.67.0, `IronHive.DeepResearch` 0.66.0 -> 0.67.0, `LMSupply.Generator` 0.125.0 -> 0.126.0.
 - Re-pinned sibling package(s) `IronHive.Agent` 0.67.0 -> 0.67.1, `IronHive.Agent.Ironbees` 0.67.0 -> 0.67.1, `IronHive.DeepResearch` 0.67.0 -> 0.67.1.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.66.1 -> 0.67.0, `IronHive.Core` 0.66.1 -> 0.67.0, `IronHive.Extensions.AI` 0.66.1 -> 0.67.0, `IronHive.Providers.Anthropic` 0.66.1 -> 0.67.0, `IronHive.Providers.GoogleAI` 0.66.1 -> 0.67.0, `IronHive.Providers.OpenAI` 0.66.1 -> 0.67.0, `IronHive.Providers.OpenAI.Compatible` 0.66.1 -> 0.67.0, `LMSupply.Generator` 0.126.0 -> 0.127.0.
 - Re-pinned sibling package(s) `IronHive.Agent` 0.67.1 -> 0.68.0, `IronHive.Agent.Ironbees` 0.67.1 -> 0.68.0, `IronHive.DeepResearch` 0.67.1 -> 0.68.0.
 - Re-pinned sibling package(s) `IronHive.Agent` 0.68.0 -> 0.69.0, `IronHive.Agent.Ironbees` 0.68.0 -> 0.69.0, `IronHive.DeepResearch` 0.68.0 -> 0.69.0.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.69.0 -> 0.70.0, `IronHive.Agent.Ironbees` 0.69.0 -> 0.70.0, `IronHive.DeepResearch` 0.69.0 -> 0.70.0.
 
 ## 0.63.0 — 2026-10-17
 

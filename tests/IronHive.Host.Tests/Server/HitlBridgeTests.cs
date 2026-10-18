@@ -81,6 +81,30 @@ public class HitlBridgeTests
     }
 
     [Fact]
+    public async Task ADelegatedAgentsCall_NamesTheAgentOnTheWire_AndTheSessionsOwnCallDoesNot()
+    {
+        var (bridge, sent, attachment) = Attached();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var delegated = bridge.RequestApprovalAsync(Request(callId: "call-d") with { DelegatedBy = "research" }, ct);
+        var delegatedEvt = await sent.Reader.ReadAsync(ct);
+        var own = bridge.RequestApprovalAsync(Request(callId: "call-o"), ct);
+        var ownEvt = await sent.Reader.ReadAsync(ct);
+
+        delegatedEvt.DelegatedBy.Should().Be("research");
+        ownEvt.DelegatedBy.Should().BeNull();
+        JsonSerializer.Serialize<ServerEvent>(delegatedEvt, JsonOpts).Should().Contain("\"delegated_by\":\"research\"");
+        JsonSerializer.Serialize<ServerEvent>(ownEvt, JsonOpts).Should().NotContain("delegated_by");
+
+        bridge.Resolve(new HitlResponseRequest(true, Id: delegatedEvt.Id)).Should().BeTrue();
+        bridge.Resolve(new HitlResponseRequest(true, Id: ownEvt.Id)).Should().BeTrue();
+        (await delegated).Approved.Should().BeTrue();
+        (await own).Approved.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task TwoWaitingRequests_AreAnsweredByTheirIds_InEitherOrder()
     {
         var (bridge, sent, attachment) = Attached();

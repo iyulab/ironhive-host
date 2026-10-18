@@ -508,7 +508,8 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             ToolName: request.ToolName,
             Arguments: args is null ? null : JsonSerializer.SerializeToElement(args),
             CallId: request.CallId,
-            Level: request.RiskAssessment.Level.ToString().ToLowerInvariant());
+            Level: request.RiskAssessment.Level.ToString().ToLowerInvariant(),
+            DelegatedBy: request.DelegatedBy);
     }
 
     private static string? FirstArgument(IDictionary<string, object?>? args, params string[] keys)

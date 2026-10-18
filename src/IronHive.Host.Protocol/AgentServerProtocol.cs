@@ -197,6 +197,8 @@ public static class ToolRefusalCodes
 /// <param name="Arguments">The call's arguments.</param>
 /// <param name="CallId">The call's id — the same as the <see cref="ToolStartEvent.CallId"/> of the call it is about.</param>
 /// <param name="Level">Risk level: <c>low</c>, <c>medium</c>, <c>high</c> or <c>critical</c>.</param>
+/// <param name="DelegatedBy">The delegated agent that asked for the call, when it comes from a delegated run (the session's
+/// <c>delegation:</c> agents call their tools through the same approval path); absent for the session's own calls.</param>
 public record HitlRequestEvent(
     string Id,
     string Action,
@@ -205,7 +207,8 @@ public record HitlRequestEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ToolName = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] JsonElement? Arguments = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Level = null) : ServerEvent;
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Level = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DelegatedBy = null) : ServerEvent;
 
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;
 
