@@ -5,6 +5,7 @@ using IronHive.Agent.Loop;
 using IronHive.Host.Context;
 using IronHive.Host.Extensions;
 using IronHive.Host.Tests.Mocks;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -145,9 +146,9 @@ public class HostCompactionWiringTests
     {
         // The CLI builds its chat clients before a loop's ContextManager exists; the loop binds its own manager to the
         // ToolRoundContextChatClient inside function invocation, so every tool round of a turn is reduced.
-        var pipeline = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.CreateToolInvocationPipeline(
+        var pipeline = HostChatPipeline.CreateToolInvocationPipeline(
             Substitute.For<IronHive.Agent.Mode.IToolCallPolicy>(), approvalService: null, loggerFactory: null);
-        var client = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.DecorateChatClient(
+        var client = HostChatPipeline.Decorate(
             Substitute.For<IChatClient>(), new IronHive.Host.Config.ChatBehaviorConfig(), pipeline);
         var roundContext = client.GetService<IronHive.Agent.Context.ToolRoundContextChatClient>();
 

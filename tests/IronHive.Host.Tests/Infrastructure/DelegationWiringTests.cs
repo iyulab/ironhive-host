@@ -10,6 +10,7 @@ using IronHive.Agent.Tracking;
 using IronHive.Cli.Infrastructure;
 using IronHive.Cli.Infrastructure.Delegation;
 using IronHive.Host.Config;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -196,8 +197,8 @@ public sealed class DelegationWiringTests : IDisposable
         (await ((AIFunction)tool).InvokeAsync(new AIFunctionArguments { ["task"] = "write the note" }, TestContext.Current.CancellationToken))?.ToString() ?? "";
 
     private static IChatClient SessionClient(IToolCallPolicy policy, IHumanApprovalService? approval) =>
-        CliServices.DecorateChatClient(new ScriptedChatClient(call: null), new ChatBehaviorConfig(),
-            CliServices.CreateToolInvocationPipeline(policy, approval, loggerFactory: null));
+        HostChatPipeline.Decorate(new ScriptedChatClient(call: null), new ChatBehaviorConfig(),
+            HostChatPipeline.CreateToolInvocationPipeline(policy, approval, loggerFactory: null));
 
     private static IChatClientFactory FactoryReturning(IChatClient client)
     {

@@ -5,6 +5,7 @@ using IronHive.Agent.Providers;
 using IronHive.Agent.Tracking;
 using IronHive.Cli.Infrastructure;
 using IronHive.Host.Config;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 using NSubstitute;
 
@@ -73,13 +74,13 @@ public sealed class BudgetWiringTests : IDisposable
     /// <summary>A chat client factory that hands out clients decorated the way the host's factory decorates them.</summary>
     private static (IChatClientFactory Factory, List<IChatClient> Clients) DecoratingFactory()
     {
-        var pipeline = ServiceCollectionExtensions.CreateToolInvocationPipeline(
+        var pipeline = HostChatPipeline.CreateToolInvocationPipeline(
             Substitute.For<IronHive.Agent.Mode.IToolCallPolicy>(), approvalService: null, loggerFactory: null);
         var clients = new List<IChatClient>();
         var factory = Substitute.For<IChatClientFactory>();
         factory.CreateAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(_ =>
         {
-            var client = ServiceCollectionExtensions.DecorateChatClient(Substitute.For<IChatClient>(), new ChatBehaviorConfig(), pipeline);
+            var client = HostChatPipeline.Decorate(Substitute.For<IChatClient>(), new ChatBehaviorConfig(), pipeline);
             clients.Add(client);
             return client;
         });

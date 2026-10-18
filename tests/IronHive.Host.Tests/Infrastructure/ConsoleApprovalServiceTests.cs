@@ -1,6 +1,7 @@
 using IronHive.Agent.Mode;
 using IronHive.Agent.Permissions;
 using IronHive.Cli.Services;
+using IronHive.Host.Tools;
 
 namespace IronHive.Host.Tests.Infrastructure;
 
@@ -35,7 +36,7 @@ public class ConsoleApprovalServiceTests
     public async Task ThroughTheGate_ANonInteractiveRejection_ReachesTheModelAsAResult_NotAnException()
     {
         var filter = new ToolCallPolicy(PermissionConfig.CreateDefault());
-        var pipeline = IronHive.Cli.Infrastructure.ServiceCollectionExtensions.CreateToolInvocationPipeline(
+        var pipeline = HostChatPipeline.CreateToolInvocationPipeline(
             filter, new ConsoleApprovalService(() => false), loggerFactory: null);
         var ran = false;
         var function = Microsoft.Extensions.AI.AIFunctionFactory.Create((string path, string content) => { ran = true; return "ok"; }, "WriteFile");

@@ -10,6 +10,7 @@ using IronHive.Host.Config;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 using IronHive.Host.Session;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -89,9 +90,9 @@ public sealed class SuspendedApprovalTests : IDisposable
         var policy = Substitute.For<IToolCallPolicy>();
         policy.Evaluate(Arg.Any<string>(), Arg.Any<IDictionary<string, object?>?>())
             .Returns(RiskAssessment.Risky(RiskLevel.Medium, "writes a note", "Allow writing the note?"));
-        var pipeline = ServiceCollectionExtensions.CreateToolInvocationPipeline(policy, bridge, loggerFactory: null);
+        var pipeline = HostChatPipeline.CreateToolInvocationPipeline(policy, bridge, loggerFactory: null);
         var model = new NoteTakingModel();
-        var client = ServiceCollectionExtensions.DecorateChatClient(model, new ChatBehaviorConfig(), pipeline);
+        var client = HostChatPipeline.Decorate(model, new ChatBehaviorConfig(), pipeline);
         var tools = new List<AITool> { AIFunctionFactory.Create((string text) => { _written.Add(text); return "saved " + text; }, "write_note") };
         IAgentLoop loop = new AgentLoop(client, new AgentOptions { Tools = tools });
 

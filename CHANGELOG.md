@@ -8,6 +8,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## Unreleased
 
 ### Added
+- **An embedding host runs model and tool calls as the CLI does: `HostChatPipeline`.** `HostChatPipeline.Decorate(client,
+  chatBehavior, tools, telemetrySourceName?)` wraps a provider's client with the CLI's decorators (function invocation with
+  text tool-call recovery, the per-round context and usage-limit hooks the agent loop binds, the context-window guard), and
+  `HostChatPipeline.CreateToolInvocationPipeline(policy, …)` builds the CLI's tool-call steps; a null policy leaves the
+  approval gate out for an unattended host. The CLI and `run --server` call these two methods, so the composition has one
+  definition.
 - **`turn_end` says what the turn cost.** `TurnEndEvent.CostUsd` prices each model round-trip of the turn at the model's
   TokenMeter catalog rates (cached input at the cache-read rate) and sums them; it is absent when the model has no catalog
   price (a self-hosted model) or the provider reported no usage. `run --server` prices with the same catalog lookup its usage
@@ -17,6 +23,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   `grpc` or `http/protobuf`), `ironhive` — `run --server` included — sends a span per agent turn (source `IronHive.Agent`) with a
   child per model call (source `IronHive.Cli`, message content not recorded). Nothing is exported when the variable is unset or `OTEL_SDK_DISABLED=true`. The exporter is in the CLI only; the
   `IronHive.Host` library gains no dependency.
+
+### Fixed
+- **`TokenBudgetChatClient.GetService` answers for itself.** It answered only `typeof(IChatClient)`, so
+  `client.GetService<TokenBudgetChatClient>()` on a decorated pipeline returned null; it now returns itself for any type it is
+  (unkeyed), as M.E.AI's `DelegatingChatClient` does.
 
 ### Dependencies
 - `IronHive.Cli` adds `OpenTelemetry` and `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.20.0.

@@ -3,6 +3,7 @@ using IronHive.Agent.Loop;
 using IronHive.Agent.Mode;
 using IronHive.Cli.Infrastructure;
 using IronHive.Host.Config;
+using IronHive.Host.Tools;
 using Microsoft.Extensions.AI;
 using NSubstitute;
 
@@ -47,8 +48,8 @@ public sealed class CliPipelineStepLimitTests
         var policy = Substitute.For<IToolCallPolicy>();
         policy.Evaluate(Arg.Any<string>(), Arg.Any<IDictionary<string, object?>?>())
             .Returns(new RiskAssessment { Verdict = IronHive.Agent.Permissions.PermissionAction.Allow });
-        var pipeline = ServiceCollectionExtensions.CreateToolInvocationPipeline(policy, approvalService: null, loggerFactory: null);
-        var client = ServiceCollectionExtensions.DecorateChatClient(
+        var pipeline = HostChatPipeline.CreateToolInvocationPipeline(policy, approvalService: null, loggerFactory: null);
+        var client = HostChatPipeline.Decorate(
             new ToolHappyModel(), new ChatBehaviorConfig { MaximumIterationsPerRequest = 1 }, pipeline);
         var loop = new AgentLoop(client);
         var tools = new ChatOptions { Tools = [AIFunctionFactory.Create((string text) => "noted " + text, "write_note")] };

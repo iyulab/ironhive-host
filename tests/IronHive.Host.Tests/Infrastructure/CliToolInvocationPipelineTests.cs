@@ -25,7 +25,7 @@ public class CliToolInvocationPipelineTests
     [Fact]
     public void Pipeline_RunsTheLoopGuardsBeforeTheGate_AndTheResilientStepLast()
     {
-        var pipeline = CliServices.CreateToolInvocationPipeline(
+        var pipeline = HostChatPipeline.CreateToolInvocationPipeline(
             Substitute.For<IToolCallPolicy>(), approvalService: null, loggerFactory: null);
 
         pipeline.InvocationMiddleware.Select(m => m.GetType()).Should().Equal(
@@ -45,10 +45,10 @@ public class CliToolInvocationPipelineTests
         var options = new ToolInvocationOptions();
         CliServices.ApplyToolCallTimeout(options, new ChatBehaviorConfig { ToolCallTimeoutSeconds = 1 });
         var inner = new ScriptedChatClient(new FunctionCallContent("c1", "search_files", new Dictionary<string, object?> { ["path"] = "C:/" }));
-        var client = CliServices.DecorateChatClient(
+        var client = HostChatPipeline.Decorate(
             inner,
             new ChatBehaviorConfig(),
-            CliServices.CreateToolInvocationPipeline(FilterWith(PermissionAction.Allow), approvalService: null, loggerFactory: null, options: options));
+            HostChatPipeline.CreateToolInvocationPipeline(FilterWith(PermissionAction.Allow), approvalService: null, loggerFactory: null, options: options));
 
         await client.GetResponseAsync("find it", new ChatOptions { Tools = [walk] }, TestContext.Current.CancellationToken);
 
@@ -122,8 +122,8 @@ public class CliToolInvocationPipelineTests
             Exception = new System.Text.Json.JsonException("Unexpected end of data."),
         };
         var inner = new ScriptedChatClient(call);
-        var client = CliServices.DecorateChatClient(
-            inner, new ChatBehaviorConfig(), CliServices.CreateToolInvocationPipeline(filter, approval, loggerFactory: null));
+        var client = HostChatPipeline.Decorate(
+            inner, new ChatBehaviorConfig(), HostChatPipeline.CreateToolInvocationPipeline(filter, approval, loggerFactory: null));
 
         await client.GetResponseAsync("go", new ChatOptions { Tools = [new MissingPathFunction()] }, TestContext.Current.CancellationToken);
 
@@ -260,8 +260,8 @@ public class CliToolInvocationPipelineTests
     }
 
     private static IChatClient Decorate(IChatClient inner, IToolCallPolicy filter) =>
-        CliServices.DecorateChatClient(
-            inner, new ChatBehaviorConfig(), CliServices.CreateToolInvocationPipeline(filter, approvalService: null, loggerFactory: null));
+        HostChatPipeline.Decorate(
+            inner, new ChatBehaviorConfig(), HostChatPipeline.CreateToolInvocationPipeline(filter, approvalService: null, loggerFactory: null));
 
     private static IToolCallPolicy FilterWith(PermissionAction verdict)
     {

@@ -87,6 +87,17 @@ dotnet add package IronHive.Host
 ```
 Build reusable agent hosts (agent loop, tools, session, providers). The CLI below is one consumption surface of this SDK.
 
+To run model and tool calls the way the CLI and `run --server` do, wrap your provider's client with the same composition:
+
+```csharp
+var tools = HostChatPipeline.CreateToolInvocationPipeline(policy, approvalService); // policy: null = no approval gate (unattended)
+IChatClient client = HostChatPipeline.Decorate(providerClient, config.ChatBehavior, tools);  // telemetrySourceName: opt-in spans
+```
+
+`CreateToolInvocationPipeline` gives every tool call the CLI's steps (unparseable arguments, repeated call / result / error
+guards, the approval gate, argument recovery); `Decorate` adds function invocation with text tool-call recovery, per-round
+context compaction and usage-limit hooks the agent loop binds, and the context-window guard.
+
 ## As a CLI (IronHive.Cli)
 
 ```bash

@@ -105,9 +105,12 @@ public sealed class TokenBudgetChatClient : IChatClient
         }
     }
 
+    /// <inheritdoc />
+    /// <remarks>Answers for itself (any type it is, unkeyed — as <see cref="DelegatingChatClient"/> does), then asks the inner client.</remarks>
     public object? GetService(Type serviceType, object? serviceKey = null)
     {
-        if (serviceType == typeof(IChatClient))
+        ArgumentNullException.ThrowIfNull(serviceType);
+        if (serviceKey is null && serviceType.IsInstanceOfType(this))
         {
             return this;
         }
