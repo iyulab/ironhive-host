@@ -11,6 +11,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - Re-pinned sibling package(s) `IronHive.Agent` 0.66.0 -> 0.67.0, `IronHive.Agent.Ironbees` 0.66.0 -> 0.67.0, `IronHive.DeepResearch` 0.66.0 -> 0.67.0, `LMSupply.Generator` 0.125.0 -> 0.126.0.
 - Re-pinned sibling package(s) `IronHive.Agent` 0.67.0 -> 0.67.1, `IronHive.Agent.Ironbees` 0.67.0 -> 0.67.1, `IronHive.DeepResearch` 0.67.0 -> 0.67.1.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.66.1 -> 0.67.0, `IronHive.Core` 0.66.1 -> 0.67.0, `IronHive.Extensions.AI` 0.66.1 -> 0.67.0, `IronHive.Providers.Anthropic` 0.66.1 -> 0.67.0, `IronHive.Providers.GoogleAI` 0.66.1 -> 0.67.0, `IronHive.Providers.OpenAI` 0.66.1 -> 0.67.0, `IronHive.Providers.OpenAI.Compatible` 0.66.1 -> 0.67.0, `LMSupply.Generator` 0.126.0 -> 0.127.0.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.67.1 -> 0.68.0, `IronHive.Agent.Ironbees` 0.67.1 -> 0.68.0, `IronHive.DeepResearch` 0.67.1 -> 0.68.0.
 
 ## 0.63.0 — 2026-10-17
 
