@@ -24,4 +24,10 @@ public sealed record CreatedAgentLoop(IAgentLoop Loop)
     /// call itself - a call a previous process left waiting for approval - runs it through this.
     /// </summary>
     public IronHive.Agent.Invocation.ToolInvocationPipeline? Pipeline { get; init; }
+
+    /// <summary>
+    /// The model the loop calls: the requested model, else the chat client's default; null when neither is known. Usage
+    /// is priced by it (<c>TokenMeter.ModelCatalog</c>).
+    /// </summary>
+    public string? ModelId { get; init; }
 }

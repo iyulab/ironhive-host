@@ -314,6 +314,49 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_WithPricing_TurnEndCarriesEachRoundTripPricedAndSummed()
+    {
+        var pricing = new TokenMeter.ModelInfo
+        {
+            ModelId = "priced-model",
+            InputPricePerMillion = 2m,
+            OutputPricePerMillion = 10m,
+            CacheReadPricePerMillion = 0.5m,
+        };
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { Usage = new TokenUsage { InputTokens = 1000, OutputTokens = 100, CachedInputTokens = 400 } },
+            new AgentResponseChunk { Usage = new TokenUsage { InputTokens = 2000, OutputTokens = 50 } });
+
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(pricing, ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        // (600 x 2 + 400 x 0.5 + 100 x 10) / 1M + (2000 x 2 + 50 x 10) / 1M
+        events.OfType<TurnEndEvent>().Single().CostUsd.Should().Be(0.0069m);
+    }
+
+    [Fact]
+    public async Task ToServerEvents_WithoutPricingOrPrices_TurnEndHasNoCost()
+    {
+        var unpriced = new TokenMeter.ModelInfo { ModelId = "local-model" };
+        foreach (var pricing in new[] { null, unpriced })
+        {
+            var chunks = ToAsyncEnumerable(new AgentResponseChunk { Usage = new TokenUsage { InputTokens = 100, OutputTokens = 20 } });
+            var events = new List<ServerEvent>();
+            await foreach (var evt in chunks.ToServerEvents(pricing, ct: TestContext.Current.CancellationToken))
+            {
+                events.Add(evt);
+            }
+
+            var end = events.OfType<TurnEndEvent>().Single();
+            end.InputTokens.Should().Be(100);
+            end.CostUsd.Should().BeNull();
+        }
+    }
+
+    [Fact]
     public async Task ToServerEvents_SingleChunkWithUsage_TurnEndEventCarriesThatUsage()
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk

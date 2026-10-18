@@ -235,6 +235,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         return new CreatedAgentLoop(loop)
         {
             Pipeline = chatClient.GetService<IronHive.Agent.Invocation.ToolInvocationPipeline>(),
+            ModelId = modelId,
         };
     }
 

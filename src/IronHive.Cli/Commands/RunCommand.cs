@@ -360,6 +360,8 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             Model = settings.Model
         }, ct);
         var agentLoop = created.Loop;
+        // turn_end's cost: the same catalog lookup the loop's usage budget prices with
+        var pricing = string.IsNullOrEmpty(created.ModelId) ? null : TokenMeter.ModelCatalog.FindModel(created.ModelId);
 
         McpHealthCheckService? healthCheck = null;
         try
@@ -421,7 +423,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                     turn = recorder.RecordAsync(msg.Content, turn, token);
                 }
 
-                await foreach (var evt in turn.ToServerEvents(executionLog, token))
+                await foreach (var evt in turn.ToServerEvents(pricing, executionLog, token))
                 {
                     yield return evt;
                 }
@@ -440,7 +442,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // the bridge never defers and this is never called
                 runner.DeferredAnswerTurn = (answer, token) => DeferredApprovalTurn
                     .RunAsync(agentLoop, answer, hitl, recorder, created.Loop.Tools, created.Pipeline, token)
-                    .ToServerEvents(executionLog, token);
+                    .ToServerEvents(pricing, executionLog, token);
             }
             if (pending.Count > 0 && recorder is not null && _hitlBridge is not null)
             {
@@ -457,7 +459,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 {
                     runner.ResumeTurn = token => SuspendedTurnResumer
                         .ResumeAsync(agentLoop, inTurn, bridge, recorder, created.Loop.Tools, created.Pipeline, token)
-                        .ToServerEvents(executionLog, token);
+                        .ToServerEvents(pricing, executionLog, token);
                 }
             }
             await runner.RunAsync(ct);

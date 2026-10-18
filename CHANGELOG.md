@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Added
+- **`turn_end` says what the turn cost.** `TurnEndEvent.CostUsd` prices each model round-trip of the turn at the model's
+  TokenMeter catalog rates (cached input at the cache-read rate) and sums them; it is absent when the model has no catalog
+  price (a self-hosted model) or the provider reported no usage. `run --server` prices with the same catalog lookup its usage
+  budget uses. An embedder mapping a loop's chunks itself passes the price with `ToServerEvents(pricing, …)`
+  (`TokenMeter.ModelCatalog.FindModel(modelId)`); `CreatedAgentLoop.ModelId` names the model a host-created loop calls.
+
 ## 0.64.0 — 2026-10-18
 
 ### Added

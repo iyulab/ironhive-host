@@ -246,6 +246,13 @@ public record TurnEndEvent(long? InputTokens = null, long? OutputTokens = null) 
     /// <summary>Wall-clock time of the turn in milliseconds, from its first event to this one; null when unknown.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? DurationMs { get; init; }
+
+    /// <summary>
+    /// The turn's cost in US dollars, each model round-trip priced at the model's catalog rates (cached input at the
+    /// cache-read rate); null when the model has no price in the catalog or the provider reported no usage.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CostUsd { get; init; }
 }
 
 /// <summary>The values of <see cref="TurnEndEvent.StopReason"/>.</summary>

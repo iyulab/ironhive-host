@@ -16,14 +16,32 @@ public static class AgentResponseMapper
     /// Transforms an async stream of agent response chunks into server events.
     /// If a logger is provided, tool calls are recorded automatically.
     /// </summary>
+    public static IAsyncEnumerable<ServerEvent> ToServerEvents(
+        this IAsyncEnumerable<AgentResponseChunk> chunks,
+        IExecutionLogger? logger = null,
+        CancellationToken ct = default)
+        => chunks.ToServerEvents(pricing: null, logger, ct);
+
+    /// <summary>
+    /// Transforms an async stream of agent response chunks into server events, pricing the turn's usage at
+    /// <paramref name="pricing"/>'s rates (<see cref="TurnEndEvent.CostUsd"/>). If a logger is provided, tool calls are
+    /// recorded automatically.
+    /// </summary>
+    /// <param name="chunks">The turn's chunks.</param>
+    /// <param name="pricing">The model's catalog entry (<c>TokenMeter.ModelCatalog.FindModel</c>); null leaves the cost
+    /// unknown.</param>
+    /// <param name="logger">Records tool calls when set.</param>
+    /// <param name="ct">Cancels the enumeration.</param>
     public static async IAsyncEnumerable<ServerEvent> ToServerEvents(
         this IAsyncEnumerable<AgentResponseChunk> chunks,
+        TokenMeter.ModelInfo? pricing,
         IExecutionLogger? logger = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         long inputTokens = 0;
         long outputTokens = 0;
         long cachedInputTokens = 0;
+        decimal? cost = pricing is null ? null : 0m;
         var hasUsage = false;
         TurnStopReason? stopReason = null;
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -107,6 +125,8 @@ public static class AgentResponseMapper
                 outputTokens += chunk.Usage.OutputTokens;
                 cachedInputTokens += chunk.Usage.CachedInputTokens;
                 hasUsage = true;
+                // Priced per round-trip: a long-context tier is decided by one request's prompt, not the turn's sum
+                cost = cost is { } sum && chunk.Usage.CostAt(pricing) is { } roundCost ? sum + roundCost : null;
             }
 
             if (chunk.Turn is not null)
@@ -121,6 +141,7 @@ public static class AgentResponseMapper
             CachedInputTokens = hasUsage && cachedInputTokens > 0 ? cachedInputTokens : null,
             StopReason = stopReason is { } reason ? WireName(reason) : null,
             DurationMs = clock.ElapsedMilliseconds,
+            CostUsd = hasUsage ? cost : null,
         };
     }
 
