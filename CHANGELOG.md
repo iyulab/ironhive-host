@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.65.0 — 2026-10-19
 
 ### Added
 - **An embedding host runs model and tool calls as the CLI does: `HostChatPipeline`.** `HostChatPipeline.Decorate(client,
@@ -31,6 +31,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - `IronHive.Cli` adds `OpenTelemetry` and `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.20.0.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.70.0 -> 0.70.1, `IronHive.Agent.Ironbees` 0.70.0 -> 0.70.1, `IronHive.DeepResearch` 0.70.0 -> 0.70.1, `LMSupply.Generator` 0.127.0 -> 0.128.0.
 
 ## 0.64.0 — 2026-10-18
 
