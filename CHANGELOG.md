@@ -22,6 +22,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - .NET runtime packages 10.0.12 -> 10.0.13 (the 10.0 servicing band; `Microsoft.Extensions.*` and their siblings move together).
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.128.0 -> 0.129.0.
 
 ## 0.65.0 — 2026-10-19
 
