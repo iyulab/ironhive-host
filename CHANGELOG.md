@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [0.65.1] - Unreleased
+## [0.66.0] - Unreleased
 
 ### Fixed
 - **A model whose server does not report its context window is no longer cut off after a few tool results.** The token
@@ -15,9 +15,10 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   exhausted …]» and stop reason `output_limit`, with most of the real window unused. With no reported window there is now
   no budget and the server enforces its own; a provider that reports its window (the local LMSupply provider) is guarded as
   before. `TokenBudgetChatClient`'s `defaultMaxContextTokens` now defaults to 0 (unknown).
-- **The token budget guard answers the same way whether the call streams or not.** `GetResponseAsync` (the agent loop's
-  `RunAsync` path) was never guarded; over budget it now returns the same explanation with finish reason `Length` without
-  calling the model, as the streaming call does.
+- **Breaking — the token budget guard answers the same way whether the call streams or not.** `GetResponseAsync` (the agent
+  loop's `RunAsync` path) was never guarded; over budget it now returns the same explanation with finish reason `Length`
+  without calling the model, as the streaming call does — where the model's server used to fail the call. Migration: a caller
+  that caught that failure on a local model reads `FinishReason == Length` instead.
 
 ### Dependencies
 - .NET runtime packages 10.0.12 -> 10.0.13 (the 10.0 servicing band; `Microsoft.Extensions.*` and their siblings move together).
