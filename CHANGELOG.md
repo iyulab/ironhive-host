@@ -5,7 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## [0.65.1] - Unreleased
+
+### Fixed
+- **A model whose server does not report its context window is no longer cut off after a few tool results.** The token
+  budget guard (`TokenBudgetChatClient`) assumed a 4,096-token window for such a provider — every remote OpenAI-compatible
+  server (`gpustack`, `openaiCompatible`, …) — and since the agent counts tool calls and results in full (IronHive.Agent
+  0.64.0), a run reached that budget within a handful of tool calls and ended with «[partial response: token budget
+  exhausted …]» and stop reason `output_limit`, with most of the real window unused. With no reported window there is now
+  no budget and the server enforces its own; a provider that reports its window (the local LMSupply provider) is guarded as
+  before. `TokenBudgetChatClient`'s `defaultMaxContextTokens` now defaults to 0 (unknown).
 
 ### Dependencies
 - .NET runtime packages 10.0.12 -> 10.0.13 (the 10.0 servicing band; `Microsoft.Extensions.*` and their siblings move together).

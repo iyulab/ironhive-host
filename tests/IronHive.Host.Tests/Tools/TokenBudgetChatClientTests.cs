@@ -44,6 +44,26 @@ public class TokenBudgetChatClientTests
         text.Should().Be("hello world");
     }
 
+    // A provider that does not report its window (a remote OpenAI-compatible server): the guard has no budget to apply, so a
+    // long history goes to the model. It used to assume 4096 tokens and cut a remote model's turn after a few tool results.
+    [Fact]
+    public async Task UnknownWindow_PassesALongHistoryThrough()
+    {
+        var inner = new RecordingStubChatClient([
+            new ChatResponseUpdate { Role = ChatRole.Assistant, Contents = [new TextContent("answer")] }
+        ]);
+        var client = new TokenBudgetChatClient(inner);
+
+        var collected = new List<ChatResponseUpdate>();
+        await foreach (var update in client.GetStreamingResponseAsync(MessageOf(new string('x', 60000)), cancellationToken: TestContext.Current.CancellationToken))
+        {
+            collected.Add(update);
+        }
+
+        inner.CallCount.Should().Be(1, because: "with no known window there is nothing to guard against");
+        collected.Should().ContainSingle().Which.Text.Should().Be("answer");
+    }
+
     [Fact]
     public async Task OverThreshold_EmitsGracefulText_DoesNotCallInner()
     {

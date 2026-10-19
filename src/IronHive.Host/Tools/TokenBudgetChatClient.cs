@@ -34,7 +34,10 @@ namespace IronHive.Host.Tools;
 /// <para>
 /// <b>Context window discovery:</b> If the inner exposes
 /// <see cref="IContextSizeProvider"/> via <c>GetService</c>, that value is
-/// used; otherwise the constructor's <c>defaultMaxContextTokens</c> applies.
+/// used; otherwise the constructor's <c>defaultMaxContextTokens</c> applies. With neither (the default
+/// <c>defaultMaxContextTokens</c> is 0 — a remote server that does not report its window) there is no budget and every
+/// call goes through: the window is the server's to enforce. Assuming a 4,096-token window there cut a remote model's
+/// turn after a few tool results.
 /// </para>
 /// </remarks>
 public sealed class TokenBudgetChatClient : IChatClient
@@ -50,13 +53,13 @@ public sealed class TokenBudgetChatClient : IChatClient
 
     public TokenBudgetChatClient(
         IChatClient inner,
-        int defaultMaxContextTokens = 4096,
+        int defaultMaxContextTokens = 0,
         double threshold = 0.8)
     {
         ArgumentNullException.ThrowIfNull(inner);
-        if (defaultMaxContextTokens <= 0)
+        if (defaultMaxContextTokens < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(defaultMaxContextTokens), "must be positive");
+            throw new ArgumentOutOfRangeException(nameof(defaultMaxContextTokens), "must be zero (unknown) or positive");
         }
         if (threshold is <= 0 or > 1)
         {
@@ -85,10 +88,8 @@ public sealed class TokenBudgetChatClient : IChatClient
     {
         var messageList = messages as IList<ChatMessage> ?? messages.ToList();
         var maxTokens = ResolveMaxContextTokens();
-        var estimatedTokens = EstimateTokens(messageList);
-        var budgetTokens = (long)(maxTokens * _threshold);
 
-        if (estimatedTokens > budgetTokens)
+        if (maxTokens > 0 && EstimateTokens(messageList) > (long)(maxTokens * _threshold))
         {
             yield return new ChatResponseUpdate
             {
