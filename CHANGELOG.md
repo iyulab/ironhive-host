@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [0.66.0] - Unreleased
+## [Unreleased]
 
 ### Fixed
 - **A model whose server does not report its context window is no longer cut off after a few tool results.** The token
