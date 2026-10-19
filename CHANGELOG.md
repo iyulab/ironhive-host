@@ -15,6 +15,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   exhausted …]» and stop reason `output_limit`, with most of the real window unused. With no reported window there is now
   no budget and the server enforces its own; a provider that reports its window (the local LMSupply provider) is guarded as
   before. `TokenBudgetChatClient`'s `defaultMaxContextTokens` now defaults to 0 (unknown).
+- **The token budget guard answers the same way whether the call streams or not.** `GetResponseAsync` (the agent loop's
+  `RunAsync` path) was never guarded; over budget it now returns the same explanation with finish reason `Length` without
+  calling the model, as the streaming call does.
 
 ### Dependencies
 - .NET runtime packages 10.0.12 -> 10.0.13 (the 10.0 servicing band; `Microsoft.Extensions.*` and their siblings move together).

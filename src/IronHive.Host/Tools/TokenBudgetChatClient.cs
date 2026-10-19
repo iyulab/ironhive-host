@@ -71,14 +71,26 @@ public sealed class TokenBudgetChatClient : IChatClient
         _threshold = threshold;
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Guarded like the streaming call (the agent loop's <c>RunAsync</c> comes here): over budget, the answer is the same
+    /// explanation with <see cref="ChatFinishReason.Length"/> and the inner client is not called.
+    /// </remarks>
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        // Non-streaming path: budget guard does not apply (no streaming
-        // accumulator history to bound). Forward as-is.
-        return _inner.GetResponseAsync(messages, options, cancellationToken);
+        var messageList = messages as IList<ChatMessage> ?? messages.ToList();
+        if (OverBudget(messageList))
+        {
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, PartialResponseText))
+            {
+                FinishReason = ChatFinishReason.Length
+            });
+        }
+
+        return _inner.GetResponseAsync(messageList, options, cancellationToken);
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -87,9 +99,7 @@ public sealed class TokenBudgetChatClient : IChatClient
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messageList = messages as IList<ChatMessage> ?? messages.ToList();
-        var maxTokens = ResolveMaxContextTokens();
-
-        if (maxTokens > 0 && EstimateTokens(messageList) > (long)(maxTokens * _threshold))
+        if (OverBudget(messageList))
         {
             yield return new ChatResponseUpdate
             {
@@ -121,6 +131,13 @@ public sealed class TokenBudgetChatClient : IChatClient
     public void Dispose()
     {
         _inner.Dispose();
+    }
+
+    /// <summary>Whether the history is over the budget — never, when the window is unknown.</summary>
+    private bool OverBudget(IList<ChatMessage> messages)
+    {
+        var maxTokens = ResolveMaxContextTokens();
+        return maxTokens > 0 && EstimateTokens(messages) > (long)(maxTokens * _threshold);
     }
 
     private int ResolveMaxContextTokens()

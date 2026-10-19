@@ -64,6 +64,33 @@ public class TokenBudgetChatClientTests
         collected.Should().ContainSingle().Which.Text.Should().Be("answer");
     }
 
+    // The same guard on the non-streaming call: the agent loop's RunAsync takes this path, so a client must not answer one
+    // way when streamed and another when not.
+    [Fact]
+    public async Task NonStreaming_OverThreshold_AnswersTheSameGracefulText_DoesNotCallInner()
+    {
+        var inner = new RecordingStubChatClient([], contextSize: 1024);
+        var client = new TokenBudgetChatClient(inner);
+
+        var response = await client.GetResponseAsync(MessageOf(new string('x', 30000)), cancellationToken: TestContext.Current.CancellationToken);
+
+        inner.CallCount.Should().Be(0);
+        response.FinishReason.Should().Be(ChatFinishReason.Length);
+        response.Text.Should().StartWith("[partial response: token budget exhausted");
+    }
+
+    [Fact]
+    public async Task NonStreaming_UnknownWindow_CallsInner()
+    {
+        var inner = new RecordingStubChatClient([], contextSize: null);
+        var client = new TokenBudgetChatClient(inner);
+
+        var response = await client.GetResponseAsync(MessageOf(new string('x', 60000)), cancellationToken: TestContext.Current.CancellationToken);
+
+        inner.CallCount.Should().Be(1);
+        response.Text.Should().Be("non-streaming answer");
+    }
+
     [Fact]
     public async Task OverThreshold_EmitsGracefulText_DoesNotCallInner()
     {
@@ -218,8 +245,11 @@ public class TokenBudgetChatClientTests
         public Task<ChatResponse> GetResponseAsync(
             IEnumerable<ChatMessage> messages,
             ChatOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("streaming only");
+            CancellationToken cancellationToken = default)
+        {
+            _callCount++;
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "non-streaming answer")));
+        }
 
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> messages,
