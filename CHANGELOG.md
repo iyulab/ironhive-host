@@ -42,6 +42,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.128.0 -> 0.129.0.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.67.0 -> 0.68.0, `IronHive.Core` 0.67.0 -> 0.68.0, `IronHive.Extensions.AI` 0.67.0 -> 0.68.0, `IronHive.Providers.Anthropic` 0.67.0 -> 0.68.0, `IronHive.Providers.GoogleAI` 0.67.0 -> 0.68.0, `IronHive.Providers.OpenAI` 0.67.0 -> 0.68.0, `IronHive.Providers.OpenAI.Compatible` 0.67.0 -> 0.68.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.129.0 -> 0.131.0.
+- Re-pinned sibling package(s) `TokenMeter` 0.13.1 -> 0.14.0.
 
 ## 0.65.0 — 2026-10-19
 
