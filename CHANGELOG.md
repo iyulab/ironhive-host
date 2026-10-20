@@ -8,6 +8,10 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## [Unreleased]
 
 ### Changed
+- **Breaking** — **MCP tools are judged by the `mcp_tools` permission rules** (IronHive.Agent 0.71.0). MCP tools keep the names
+  their servers give them, so an `mcp_tools` rule never matched them and every MCP tool fell to `tools` / the default action; the
+  CLI's policy now asks the MCP plugin manager which names a connected server listed. Migration: a rule written under `tools`
+  for an MCP tool (the workaround) no longer applies — move it to `mcp_tools` (`mcpTools` in `config.yaml`).
 - **Breaking** — **the `gpustack` provider calls GPUStack's standard `/v1/chat/completions`** (IronHive 0.68.0), not `/v1-openai/`. GPUStack
   answers both the same; the same configuration now also reaches an OpenAI-compatible gateway in front of GPUStack. A GPUStack 0.x
   server with nothing at `/v1/`: use the `openaiCompatible` provider with `{host}/v1-openai`.

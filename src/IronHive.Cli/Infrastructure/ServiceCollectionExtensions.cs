@@ -75,6 +75,13 @@ public static class ServiceCollectionExtensions
                 MaxContextLength = configured.MaxContextLength
             };
 
+    /// <summary>
+    /// The tool-call permission policy. MCP tools keep the names their servers give them, so the <c>mcp_tools</c> rules
+    /// find them through the plugin manager's <see cref="IMcpPluginManager.IsMcpTool"/>.
+    /// </summary>
+    internal static ToolCallPolicy CreateToolCallPolicy(IronHive.Agent.Permissions.PermissionConfig permissions, IMcpPluginManager? mcp) =>
+        mcp is null ? new ToolCallPolicy(permissions) : new ToolCallPolicy(permissions, mcp.IsMcpTool);
+
     public static IServiceCollection AddIronHiveServices(this IServiceCollection services)
     {
         // Load configuration (config.yaml, 4-scope merge; migrate legacy settings.json once)
@@ -181,7 +188,7 @@ public static class ServiceCollectionExtensions
             return new ModeToolFilter(ironHiveConfig.Permissions);
         });
         services.AddSingleton<IToolCallPolicy>(sp =>
-            new ToolCallPolicy(sp.GetRequiredService<IronHiveConfig>().Permissions));
+            CreateToolCallPolicy(sp.GetRequiredService<IronHiveConfig>().Permissions, sp.GetService<IMcpPluginManager>()));
         // The terminal answers approvals, except while `run --server` has a client attached to the bridge.
         services.AddSingleton<HitlBridge>(sp =>
         {
