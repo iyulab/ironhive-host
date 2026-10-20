@@ -8,6 +8,12 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## [Unreleased]
 
 ### Fixed
+- **`ironhive get` says which file it read.** It reads the global `config.yaml` only, so a key set in the project's
+  `.ironhive/config.yaml` read «Key not found» although it was in effect; the message now names the global file and, when a
+  project file exists, says its settings still apply.
+- **`compaction.maxContextTokens` sets the token budget guard's window too, for a provider that reports none.** The CLI
+  passed it only to compaction, so a gateway model's window could not be given to the guard. `HostChatPipeline.Decorate`
+  gains an overload taking the declared window (`declaredContextWindow`; 0 = none — then the server enforces its window).
 - **The README shows `.ironhive/permissions.yaml` in the shape the loader reads** — the rules under a top-level `permissions:`
   section (it listed the keys as if they sat at the top level, which the loader refuses), with a minimal «allow these tools,
   deny the rest» example for unattended runs.

@@ -47,7 +47,14 @@ public class GetCommand : Command<GetCommand.Settings>
                 return 1;
             }
 
-            AnsiConsole.MarkupLine($"[yellow]Key not found:[/] {Markup.Escape(settings.Key)}");
+            // get reads the global file only (set and unset write it); a key set in the project's file is still in effect.
+            AnsiConsole.MarkupLine($"[yellow]Key not found:[/] {Markup.Escape(settings.Key)} in {Markup.Escape(_configManager.GlobalConfigPath)}");
+            if (File.Exists(_configManager.ProjectConfigPath))
+            {
+                AnsiConsole.MarkupLine(
+                    $"[dim]get reads the global file only; settings in {Markup.Escape(_configManager.ProjectConfigPath)} still apply.[/]");
+            }
+
             return 1;
         }
 

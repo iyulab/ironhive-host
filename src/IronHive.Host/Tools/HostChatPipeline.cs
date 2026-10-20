@@ -33,13 +33,28 @@ public static class HostChatPipeline
         IChatClient inner,
         ChatBehaviorConfig behavior,
         ToolInvocationPipeline toolInvocationPipeline,
-        string? telemetrySourceName = null)
+        string? telemetrySourceName = null) =>
+        Decorate(inner, behavior, toolInvocationPipeline, telemetrySourceName, declaredContextWindow: 0);
+
+    /// <summary>
+    /// <see cref="Decorate(IChatClient, ChatBehaviorConfig, ToolInvocationPipeline, string?)"/>, with the context window the
+    /// user declared for the model (<c>compaction.maxContextTokens</c> in the CLI): the token budget guard uses it when the
+    /// provider reports no window of its own (a remote OpenAI-compatible server or gateway). 0 = none declared — then the
+    /// guard has no budget and the server enforces its window.
+    /// </summary>
+    public static IChatClient Decorate(
+        IChatClient inner,
+        ChatBehaviorConfig behavior,
+        ToolInvocationPipeline toolInvocationPipeline,
+        string? telemetrySourceName,
+        int declaredContextWindow)
     {
         ArgumentNullException.ThrowIfNull(inner);
         ArgumentNullException.ThrowIfNull(behavior);
         ArgumentNullException.ThrowIfNull(toolInvocationPipeline);
+        ArgumentOutOfRangeException.ThrowIfNegative(declaredContextWindow);
 
-        var builder = new ToolRoundContextChatClient(new UsageLimitChatClient(new TokenBudgetChatClient(inner)))
+        var builder = new ToolRoundContextChatClient(new UsageLimitChatClient(new TokenBudgetChatClient(inner, declaredContextWindow)))
             .AsBuilder()
             .UseToolInvocationPipeline(toolInvocationPipeline, client =>
             {

@@ -26,6 +26,27 @@ public sealed class HostChatPipelineTests
             typeof(RepeatedErrorGuardMiddleware), typeof(ResilientArgumentsMiddleware));
     }
 
+    // compaction.maxContextTokens: the window a user declares for a model whose provider reports none (a gateway). The
+    // budget guard uses it; with none declared it has no budget and the server enforces its window.
+    [Theory]
+    [InlineData(1000, false)]
+    [InlineData(0, true)]
+    public async Task TheBudgetGuard_UsesTheDeclaredWindow_WhenTheProviderReportsNone(int declaredContextWindow, bool reachesTheModel)
+    {
+        var inner = Substitute.For<IChatClient>();
+        inner.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse(new ChatMessage(ChatRole.Assistant, "answer")));
+        var client = HostChatPipeline.Decorate(inner, new ChatBehaviorConfig(), HostChatPipeline.CreateToolInvocationPipeline(policy: null),
+            telemetrySourceName: null, declaredContextWindow);
+
+        var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, new string('x', 60000))],
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        await inner.Received(reachesTheModel ? 1 : 0).GetResponseAsync(
+            Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions?>(), Arg.Any<CancellationToken>());
+        response.FinishReason.Should().Be(reachesTheModel ? null : ChatFinishReason.Length);
+    }
+
     [Fact]
     public void TheDecoratedClient_CarriesTheCliDecorators_AndTelemetryOnlyWhenNamed()
     {

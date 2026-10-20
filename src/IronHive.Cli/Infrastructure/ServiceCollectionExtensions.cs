@@ -649,7 +649,10 @@ public static class ServiceCollectionExtensions
             IChatClient ClientDecorator(IChatClient inner)
             {
                 ApplyToolCallTimeout(toolInvocationOptions, config.ChatBehavior);
-                return HostChatPipeline.Decorate(inner, config.ChatBehavior, toolInvocationPipeline, OtlpTracing.ChatSourceName);
+                // compaction.maxContextTokens is the window the user declared for a model nothing else knows: the budget
+                // guard uses it too when the provider reports none.
+                return HostChatPipeline.Decorate(inner, config.ChatBehavior, toolInvocationPipeline, OtlpTracing.ChatSourceName,
+                    config.Compaction.MaxContextTokens ?? 0);
             }
 
             return new ChatClientFactory(providersDict, primary, ClientDecorator);
