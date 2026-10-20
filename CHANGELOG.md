@@ -7,6 +7,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## [Unreleased]
 
+### Changed
+- **The `gpustack` provider calls GPUStack's standard `/v1/chat/completions`** (IronHive 0.68.0), not `/v1-openai/`. GPUStack
+  answers both the same; the same configuration now also reaches an OpenAI-compatible gateway in front of GPUStack. A GPUStack 0.x
+  server with nothing at `/v1/`: use the `openaiCompatible` provider with `{host}/v1-openai`.
+
 ### Fixed
 - **`ironhive get` says which file it read.** It reads the global `config.yaml` only, so a key set in the project's
   `.ironhive/config.yaml` read «Key not found» although it was in effect; the message now names the global file and, when a

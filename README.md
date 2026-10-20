@@ -338,7 +338,7 @@ export OPENAI_COMPATIBLE_MODEL=my-model
 |---|---|---|---|
 | `openai` | OpenAI **Responses** API | `{endpoint}/responses` | required |
 | `openaiCompatible` (alias `openai-compatible`) | OpenAI **Chat Completions** | `{endpoint}/chat/completions` — the endpoint as given | optional — no `Authorization` header when unset |
-| `gpustack` | Chat Completions | `{host}/v1-openai/chat/completions` (GPUStack's own path) | required |
+| `gpustack` | Chat Completions | `{host}/v1/chat/completions` (a configured `/v1` or `/v1-openai` is not repeated; for a GPUStack 0.x server with nothing at `/v1/`, use `openaiCompatible` with `{host}/v1-openai`) | required |
 | `xai` | Chat Completions | `{endpoint}/v1/chat/completions` (`/v1` not repeated) | required |
 | `ollama` | Chat Completions | `{endpoint}/v1/chat/completions` (`/v1` not repeated) | none |
 | `lmstudio` | Chat Completions — a preset for LM Studio's default endpoint (`http://localhost:1234/v1`) | `{endpoint}/v1/chat/completions` (`/v1` not repeated) | not configurable (a fixed placeholder is sent) |

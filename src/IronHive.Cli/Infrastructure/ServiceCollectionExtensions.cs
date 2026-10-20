@@ -218,9 +218,10 @@ public static class ServiceCollectionExtensions
 
     /// <summary>
     /// Strips a trailing OpenAI-style API path segment so a provider config that appends its own
-    /// path does not produce a doubled one. <c>GpuStackConfig</c> appends <c>/v1-openai/</c>
+    /// path does not produce a doubled one. <c>GpuStackConfig</c> appends its path (<c>/v1/</c>)
     /// unconditionally (unlike <c>OpenAICompatibleConfig</c>, whose append is idempotent), so an
-    /// operator who configured the full URL would otherwise get <c>/v1-openai/v1-openai/</c>.
+    /// operator who configured the full URL would otherwise get <c>/v1/v1/</c>; the older <c>/v1-openai</c>
+    /// is stripped too, so a URL written for it reaches the same server.
     /// </summary>
     internal static string StripApiPath(string endpoint)
     {
@@ -492,7 +493,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     internal static Dictionary<string, Func<IChatClientProvider>> ProviderFactories(IronHiveConfig config) => new(StringComparer.OrdinalIgnoreCase)
     {
-        // GPUStack serves Chat Completions under its own /v1-openai/ path, which GpuStackConfig owns; the model finder uses
+        // GPUStack's API path (/v1/) is GpuStackConfig's to append; the model finder uses
         // the OpenAI-shaped view it derives.
         ["gpustack"] = () =>
         {
