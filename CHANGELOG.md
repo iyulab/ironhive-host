@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Dependencies
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.131.0 -> 0.132.0, `TokenMeter` 0.14.0 -> 0.15.0.
+
 ## 0.66.0 — 2026-10-20
 
 ### Changed
