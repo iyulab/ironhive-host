@@ -8,6 +8,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## [Unreleased]
 
 ### Fixed
+- **The README shows `.ironhive/permissions.yaml` in the shape the loader reads** — the rules under a top-level `permissions:`
+  section (it listed the keys as if they sat at the top level, which the loader refuses), with a minimal «allow these tools,
+  deny the rest» example for unattended runs.
 - **A model whose server does not report its context window is no longer cut off after a few tool results.** The token
   budget guard (`TokenBudgetChatClient`) assumed a 4,096-token window for such a provider — every remote OpenAI-compatible
   server (`gpustack`, `openaiCompatible`, …) — and since the agent counts tool calls and results in full (IronHive.Agent

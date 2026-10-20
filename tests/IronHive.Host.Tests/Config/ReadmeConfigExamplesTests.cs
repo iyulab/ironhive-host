@@ -25,6 +25,33 @@ public partial class ReadmeConfigExamplesTests
         }
     }
 
+    /// <summary>
+    /// A block fenced <c>```yaml permissions.yaml</c> is a permissions file example: it has to load as one (the loader refuses a
+    /// file whose rules are not under <c>permissions:</c>, the shape the README once described).
+    /// </summary>
+    [Fact]
+    public void ReadmePermissionsExamples_LoadAsPermissionFiles()
+    {
+        var readme = File.ReadAllText(FindReadme());
+        var blocks = PermissionsBlock().Matches(readme).Select(m => m.Groups[1].Value).ToList();
+
+        blocks.Should().NotBeEmpty("the README shows a permissions.yaml example");
+        foreach (var block in blocks)
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"readme-permissions-{Guid.NewGuid():N}.yaml");
+            File.WriteAllText(path, block);
+            try
+            {
+                var load = () => IronHive.Agent.Permissions.PermissionConfigLoader.LoadFromYaml(path);
+                load.Should().NotThrow($"README permissions example:\n{block}");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     private static string FindReadme()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
@@ -40,4 +67,7 @@ public partial class ReadmeConfigExamplesTests
 
     [GeneratedRegex(@"```yaml\r?\n(.*?)```", RegexOptions.Singleline)]
     private static partial Regex YamlBlock();
+
+    [GeneratedRegex(@"```yaml permissions\.yaml\r?\n(.*?)```", RegexOptions.Singleline)]
+    private static partial Regex PermissionsBlock();
 }
