@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## 0.66.0 — 2026-10-20
 
 ### Changed
 - **Breaking** — **MCP tools are judged by the `mcp_tools` permission rules** (IronHive.Agent 0.71.0). MCP tools keep the names
