@@ -13,6 +13,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   server with nothing at `/v1/`: use the `openaiCompatible` provider with `{host}/v1-openai`.
 
 ### Fixed
+- **A server that stops while a recorded session's turn is about to wait for approval suspends that turn instead of
+  denying it.** The stop checked «no wait yet» and then denied every wait; a wait that registered between the two was denied
+  («the server stopped before the approval request was answered») where a restarted host should have offered it again.
 - **`ironhive get` says which file it read.** It reads the global `config.yaml` only, so a key set in the project's
   `.ironhive/config.yaml` read «Key not found» although it was in effect; the message now names the global file and, when a
   project file exists, says its settings still apply.

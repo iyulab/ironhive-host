@@ -338,23 +338,23 @@ public partial class AgentServerRunner
 
         void Stop()
         {
-            if (ShouldSuspend(bridge))
+            if (bridge.WaitLog is null)
+            {
+                bridge.RejectWaitsInTurn(StoppedReason);
+            }
+            else if (bridge.HasWaitInTurn)
             {
                 markSuspending();
                 turns.SuspendCurrent();
             }
-            else
-            {
-                bridge.RejectWaitsInTurn(StoppedReason);
-            }
+            // With a session nothing is denied: a wait that registers after the check above announces itself through
+            // WaitStarted and suspends then. Checking «no wait» and then denying «every wait» raced a wait registering in
+            // between - it was denied instead of suspended (host CI, 2026-10-20, a 2-vCPU runner).
         }
 
         bridge.WaitStarted = Stop;
         Stop();
     }
-
-    /// <summary>True when the server stops while a turn waits for an approval that a restarted host can offer again.</summary>
-    internal static bool ShouldSuspend(HitlBridge? bridge) => bridge is { WaitLog: not null, HasWaitInTurn: true };
 
     /// <summary>The events a message gets when the server stops before its turn starts, behind a suspended one.</summary>
     internal static IEnumerable<ServerEvent> NotProcessedEvents() =>
