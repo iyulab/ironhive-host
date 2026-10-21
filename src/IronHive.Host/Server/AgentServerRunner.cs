@@ -134,17 +134,17 @@ public partial class AgentServerRunner
             return baseOptions;
         }
 
+        // The modifiers wrap the resolver the options already have. Combining a second resolver behind it does not work:
+        // the first resolver that answers for a type wins, so once the options carry one — a source-generated context, or
+        // the reflection resolver STJ installs on first use of any options instance — the modifiers never ran.
         var opts = new JsonSerializerOptions(baseOptions);
-        var resolver = new DefaultJsonTypeInfoResolver();
+        var resolver = opts.TypeInfoResolver ?? new DefaultJsonTypeInfoResolver();
         foreach (var modifier in modifiers)
         {
-            resolver.Modifiers.Add(modifier);
+            resolver = resolver.WithAddedModifier(modifier);
         }
 
-        opts.TypeInfoResolver = opts.TypeInfoResolver is null
-            ? resolver
-            : JsonTypeInfoResolver.Combine(opts.TypeInfoResolver, resolver);
-
+        opts.TypeInfoResolver = resolver;
         return opts;
     }
 

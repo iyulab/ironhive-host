@@ -612,12 +612,24 @@ var runner = new AgentServerRunner(ProcessWithContext, logger, hitlBridge: hitlB
 | `/api/agent/{id}/inbox` | GET (SSE) | Receive `ServerRequest` commands |
 | `/api/agent/{id}/events` | POST | Deliver `ServerEvent` batches |
 
-Both runners support `typeInfoModifiers` to extend polymorphic type registrations without mutating the base `JsonSerializerOptions`:
+Both runners take `typeInfoModifiers`, which is how a host adds event types of its own to the `ServerEvent` stream (the built-in
+set is fixed by `[JsonDerivedType]`; without a modifier, serializing an unknown subtype throws `NotSupportedException`):
 
 ```csharp
-var runner = new AgentServerRunner(ProcessMessage, logger,
-    typeInfoModifiers: [ApplyCustomPolymorphismOverrides]);
+public sealed record CitationEvent(string Source, int Page) : ServerEvent;
+
+static void AddAppEvents(JsonTypeInfo info)
+{
+    if (info.Type == typeof(ServerEvent))
+        info.PolymorphismOptions!.DerivedTypes.Add(new JsonDerivedType(typeof(CitationEvent), "citation"));
+}
+
+var runner = new AgentServerRunner(ProcessMessage, logger, typeInfoModifiers: [AddAppEvents]);
+// writes {"type":"citation","source":"guide.pdf","page":3} next to the built-in events
 ```
+
+A reader — or a host that relays the stream on a wire of its own — uses the same modifier in its own options:
+`new JsonSerializerOptions { TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { AddAppEvents } } }`.
 
 `AgentHttpRunner` additionally exposes `PublishEvent` for out-of-band event delivery (e.g. provider fallback notices).
 

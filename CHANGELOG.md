@@ -14,6 +14,14 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   overflow, a defect) is `"run"`. `null` when the run did not stop with an error. A script or benchmark harness no longer has
   to read the `error` message to tell an unreachable model from a failed run.
 
+### Fixed
+- **`typeInfoModifiers` on `AgentServerRunner` / `AgentHttpRunner` take effect when the JSON options already carry a resolver.**
+  The modifiers were combined behind the options' resolver, and the first resolver that answers for a type wins — so with a
+  source-generated context, or with options that had been used once (the runner's own defaults after any earlier serialization
+  in the process), they never ran: an event type a host had registered was written as an `error` event (`Runtime type … is not
+  supported by polymorphic type 'ServerEvent'`). They now wrap the existing resolver. The README shows a complete modifier that
+  adds an event type of your own to the stream.
+
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.131.0 -> 0.132.0, `TokenMeter` 0.14.0 -> 0.15.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.132.0 -> 0.133.0.
