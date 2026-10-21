@@ -7,6 +7,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **`ironhive run --json` says whose failure an error was: `error_kind` is `"provider"` or `"run"`.** `"provider"` covers no
+  response (connection, TLS, a body cut short), a 5xx / 408 / 429 status, a rate limit or billing refusal and an error the
+  server sent inside the stream — running again later can succeed; everything else (configuration, another 4xx, a context
+  overflow, a defect) is `"run"`. `null` when the run did not stop with an error. A script or benchmark harness no longer has
+  to read the `error` message to tell an unreachable model from a failed run.
+
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.131.0 -> 0.132.0, `TokenMeter` 0.14.0 -> 0.15.0.
 

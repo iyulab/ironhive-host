@@ -300,8 +300,11 @@ withheld); `failed_tool_calls` counts tools that ran and failed. `calls` lists e
 to 300 characters (a tool's own result is not included). A run cut short — `--timeout`, a cancellation or an error —
 prints the same document with `error` set and `stop_reason` `"timeout"` | `"cancelled"` | `"error"`, holding the work done
 before the cut: the text streamed so far and every call that started, a call that never reported back as `unfinished`.
-`error` is `null` on a turn that ended. A prompt that is missing, or a failure before the command runs, prints only
-`{ "error": "…", "stop_reason": "error", "duration_ms": … }`. A call a local model writes as text (its server's tool
+`error` is `null` on a turn that ended. With `stop_reason` `"error"`, `error_kind` says whose failure it was: `"provider"`
+(no response — connection, TLS, a body cut short — a 5xx, 408 or 429, a rate limit or billing refusal, an error sent inside
+the stream; running again later can succeed) or `"run"` (configuration, another 4xx, a context overflow, a defect); it is
+`null` otherwise. A prompt that is missing, or a failure before the command runs, prints only
+`{ "error": "…", "error_kind": "run", "stop_reason": "error", "duration_ms": … }`. A call a local model writes as text (its server's tool
 parser missed it — `<tool_call>…</tool_call>` or `<function=…>`) is run like a structured call, through the same guards and
 permission rules, instead of ending the turn. Log output goes to stderr. A non-interactive
 run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in

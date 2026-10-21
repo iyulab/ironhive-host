@@ -333,7 +333,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         {
             if (settings.Json)
             {
-                await stdout.WriteLineAsync(RunOutcome.CutShortJson(RunOutcome.ErrorReason, ex.Message, progress.SoFar(), clock.ElapsedMilliseconds, settings.ShowThinking));
+                await stdout.WriteLineAsync(RunOutcome.ErrorJson(ex, progress.SoFar(), clock.ElapsedMilliseconds, settings.ShowThinking));
             }
             else
             {

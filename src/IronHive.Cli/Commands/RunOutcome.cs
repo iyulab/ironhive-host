@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text.Json;
+using IronHive.Abstractions.Exceptions;
 using IronHive.Agent.Loop;
 
 namespace IronHive.Cli.Commands;
@@ -32,6 +34,19 @@ internal static class RunOutcome
     /// <summary>The <c>stop_reason</c> value of a run that failed with an error.</summary>
     public const string ErrorReason = "error";
 
+    /// <summary>
+    /// The <c>error_kind</c> of an error the model provider caused: no response (connection, TLS, a body cut short), a server
+    /// error status (5xx, 408), a rate limit or billing refusal, or an error the server sent inside the stream. Running the
+    /// same prompt again later can succeed — a harness counts such a run as the environment's failure, not the agent's.
+    /// </summary>
+    public const string ProviderErrorKind = "provider";
+
+    /// <summary>
+    /// The <c>error_kind</c> of every other error: the run itself failed (configuration, a request the provider refused for
+    /// what it asked — other 4xx — a context overflow, a defect).
+    /// </summary>
+    public const string RunErrorKind = "run";
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     /// <summary>How much of a call's arguments, and of a refusal's message, the <c>calls</c> list keeps.</summary>
@@ -50,7 +65,34 @@ internal static class RunOutcome
 
     /// <summary>The <c>--json</c> document of a turn that ended.</summary>
     public static string Json(RunReport report, long durationMs, bool showThinking)
-        => Document(error: null, ReasonOf(report.StopReason ?? TurnStopReason.Completed), report, durationMs, showThinking);
+        => Document(error: null, errorKind: null, ReasonOf(report.StopReason ?? TurnStopReason.Completed), report, durationMs, showThinking);
+
+    /// <summary>
+    /// <see cref="ProviderErrorKind"/> when <paramref name="error"/> (or an exception it wraps) is the provider's failure,
+    /// otherwise <see cref="RunErrorKind"/>.
+    /// </summary>
+    public static string ErrorKindOf(Exception error)
+    {
+        for (var current = error; current is not null; current = current.InnerException)
+        {
+            switch (current)
+            {
+                case AggregateException aggregate:
+                    return aggregate.InnerExceptions.Any(e => ErrorKindOf(e) == ProviderErrorKind) ? ProviderErrorKind : RunErrorKind;
+                case ContextOverflowException:
+                    return RunErrorKind;
+                case RateLimitException or BillingException or ProviderResponseException or HttpIOException:
+                    return ProviderErrorKind;
+                case HttpRequestException http:
+                    // No status = no response (connection, TLS); a 4xx other than 408/429 refused what the run asked.
+                    return http.StatusCode is not { } status || (int)status >= 500 || status is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
+                        ? ProviderErrorKind
+                        : RunErrorKind;
+            }
+        }
+
+        return RunErrorKind;
+    }
 
     /// <summary>
     /// The <c>--json</c> document of a turn cut short — by <c>--timeout</c>, the caller or an error — with the work it did
@@ -58,15 +100,20 @@ internal static class RunOutcome
     /// <c>unfinished</c>. Without it a timed-out run is only «it did not finish», and nothing it did can be read.
     /// </summary>
     public static string CutShortJson(string stopReason, string error, RunReport soFar, long durationMs, bool showThinking)
-        => Document(error, stopReason, soFar, durationMs, showThinking);
+        => Document(error, errorKind: null, stopReason, soFar, durationMs, showThinking);
 
-    private static string Document(string? error, string stopReason, RunReport report, long durationMs, bool showThinking)
+    /// <summary>The <c>--json</c> document of a turn an error cut short, with its <c>error_kind</c>.</summary>
+    public static string ErrorJson(Exception error, RunReport soFar, long durationMs, bool showThinking)
+        => Document(error.Message, ErrorKindOf(error), ErrorReason, soFar, durationMs, showThinking);
+
+    private static string Document(string? error, string? errorKind, string stopReason, RunReport report, long durationMs, bool showThinking)
     {
         var unfinished = report.Unfinished ?? [];
         var calls = report.ToolCalls;
         return JsonSerializer.Serialize(new
         {
             error,
+            error_kind = errorKind,
             content = report.Content,
             stop_reason = stopReason,
             duration_ms = durationMs,
@@ -108,6 +155,7 @@ internal static class RunOutcome
     public static string FailureJson(string stopReason, string error, long durationMs) => JsonSerializer.Serialize(new
     {
         error,
+        error_kind = stopReason == ErrorReason ? RunErrorKind : null,
         stop_reason = stopReason,
         duration_ms = durationMs,
     }, JsonOptions);

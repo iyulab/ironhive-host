@@ -1,6 +1,8 @@
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AwesomeAssertions;
+using IronHive.Abstractions.Exceptions;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mode;
 using IronHive.Cli.Commands;
@@ -264,6 +266,56 @@ public sealed class RunCommandOutcomeTests
         code.Should().Be(1);
         json.GetProperty("stop_reason").GetString().Should().Be("error");
         json.GetProperty("error").GetString().Should().Contain("No provider configured");
+        json.GetProperty("error_kind").GetString().Should().Be(RunOutcome.RunErrorKind, "a configuration error is the run's, not the provider's");
+    }
+
+    public static TheoryData<Exception, string> Errors() => new()
+    {
+        { new HttpRequestException("The SSL connection could not be established, see inner exception."), RunOutcome.ProviderErrorKind },
+        { new HttpIOException(HttpRequestError.ResponseEnded, "The response ended prematurely."), RunOutcome.ProviderErrorKind },
+        { new ProviderHttpException("Chat completion request failed with status 530 (<none>).", (HttpStatusCode)530), RunOutcome.ProviderErrorKind },
+        { new ProviderHttpException("busy", HttpStatusCode.TooManyRequests), RunOutcome.ProviderErrorKind },
+        { new RateLimitException("slow down"), RunOutcome.ProviderErrorKind },
+        { new ProviderResponseException("the model crashed"), RunOutcome.ProviderErrorKind },
+        { new InvalidOperationException("a step failed", new HttpRequestException("Connection reset by peer")), RunOutcome.ProviderErrorKind },
+        { new ProviderHttpException("invalid request", HttpStatusCode.BadRequest), RunOutcome.RunErrorKind },
+        { new ContextOverflowException("request exceeds the context size"), RunOutcome.RunErrorKind },
+        { new InvalidOperationException("a defect"), RunOutcome.RunErrorKind },
+    };
+
+    [Theory]
+    [MemberData(nameof(Errors))]
+    public async Task AnError_SaysWhetherTheProviderOrTheRunFailed(Exception error, string kind)
+    {
+        // A benchmark harness counts a provider failure as the environment's, not the agent's — it needs the class, and the
+        // message alone ("The SSL connection could not be established") is prose.
+        var (command, loop, _) = Command();
+        loop.RunStreamingAsync("task", Arg.Any<CancellationToken>()).Returns(_ => Throws(error));
+
+        var (code, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true });
+
+        code.Should().Be(1);
+        json.GetProperty("stop_reason").GetString().Should().Be("error");
+        json.GetProperty("error").GetString().Should().Be(error.Message);
+        json.GetProperty("error_kind").GetString().Should().Be(kind);
+
+        static async IAsyncEnumerable<AgentResponseChunk> Throws(Exception error)
+        {
+            await Task.Yield();
+            yield return new AgentResponseChunk { TextDelta = "started" };
+            throw error;
+        }
+    }
+
+    [Fact]
+    public async Task ACompletedOrTimedOutRun_HasNoErrorKind()
+    {
+        var (command, loop, _) = Command();
+        Streams(loop, Final(TurnStopReason.Completed));
+
+        var (_, json) = await RunJsonAsync(command, new RunCommand.Settings { PromptOption = "task", Json = true });
+
+        json.GetProperty("error_kind").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
