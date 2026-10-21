@@ -25,6 +25,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.131.0 -> 0.132.0, `TokenMeter` 0.14.0 -> 0.15.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.132.0 -> 0.133.0.
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.133.0 -> 0.134.0.
 
 ## 0.66.0 — 2026-10-20
 
