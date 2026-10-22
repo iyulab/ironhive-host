@@ -1,4 +1,5 @@
 using IronHive.Host.Providers;
+using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using NSubstitute;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
@@ -16,7 +17,7 @@ namespace IronHive.Host.Tests.Providers;
 /// <see cref="ChatOptions.Instructions"/> must be injected into the LMSupply prompt as a leading
 /// System message instead of being silently discarded.
 /// </summary>
-public class LMSupplyChatClientInstructionsTests
+public class LocalChatClientInstructionsContractTests
 {
     private static ITextGenerator BuildStubGenerator(out List<List<LmChatMessage>> capturedMessages)
     {
@@ -46,7 +47,7 @@ public class LMSupplyChatClientInstructionsTests
     public async Task GetResponseAsync_WithInstructions_PrependsSystemMessage()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { Instructions = "You are a terse assistant." };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
@@ -62,7 +63,7 @@ public class LMSupplyChatClientInstructionsTests
     public async Task GetResponseAsync_WithoutInstructions_DoesNotInjectSystem()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions();
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
@@ -77,7 +78,7 @@ public class LMSupplyChatClientInstructionsTests
     public async Task GetResponseAsync_NullOptions_DoesNotInjectSystem()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options: null, cancellationToken: TestContext.Current.CancellationToken);
 
@@ -91,7 +92,7 @@ public class LMSupplyChatClientInstructionsTests
     public async Task GetResponseAsync_InstructionsAndExplicitSystem_BothEmitted()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { Instructions = "Persona prompt" };
         var messages = new[]
         {

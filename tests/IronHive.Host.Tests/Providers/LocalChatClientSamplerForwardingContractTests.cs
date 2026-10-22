@@ -1,7 +1,7 @@
 using IronHive.Host.Providers;
+using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using NSubstitute;
-using AdditionalPropertiesDictionary = Microsoft.Extensions.AI.AdditionalPropertiesDictionary;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using ChatOptions = Microsoft.Extensions.AI.ChatOptions;
 using ChatRole = Microsoft.Extensions.AI.ChatRole;
@@ -19,7 +19,7 @@ namespace IronHive.Host.Tests.Providers;
 /// probe alternate decoding parameters from the chat-pipeline boundary
 /// without having to bypass M.E.AI.
 /// </summary>
-public class LMSupplyChatClientSamplerForwardingTests
+public class LocalChatClientSamplerForwardingContractTests
 {
     private static ITextGenerator BuildStubGenerator(out List<LmGenerationOptions?> capturedOptions)
     {
@@ -54,7 +54,7 @@ public class LMSupplyChatClientSamplerForwardingTests
             "read_page", "Reads one open tab's text.", schema.RootElement.Clone());
         var function = Microsoft.Extensions.AI.AIFunctionFactory.Create((string tab) => "tabs", "list_tabs");
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
 
         await client.GetResponseAsync(
             new[] { new ChatMessage(ChatRole.User, "Hi") },
@@ -70,7 +70,7 @@ public class LMSupplyChatClientSamplerForwardingTests
     public async Task GetResponseAsync_ForwardsTopPAndTopK()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { TopP = 0.95f, TopK = 40 };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
@@ -86,7 +86,7 @@ public class LMSupplyChatClientSamplerForwardingTests
     public async Task GetResponseAsync_ForwardsFrequencyAndPresencePenalties()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { FrequencyPenalty = 0.3f, PresencePenalty = 0.5f };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
@@ -100,7 +100,7 @@ public class LMSupplyChatClientSamplerForwardingTests
     public async Task GetResponseAsync_ForwardsSeedAndStopSequences()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions
         {
             Seed = 42,
@@ -121,33 +121,34 @@ public class LMSupplyChatClientSamplerForwardingTests
     public async Task GetResponseAsync_ForwardsTemperatureAndMaxTokens()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { Temperature = 0.7f, MaxOutputTokens = 256 };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
 
         var sent = captured[0]!;
         Assert.Equal(0.7f, sent.Temperature);
-        Assert.Equal(256, sent.MaxTokens);
+        Assert.Equal(256, sent.MaxNewTokens);
     }
 
     [Fact]
-    public async Task GetResponseAsync_NullOptions_DoesNotPopulateGenOptions()
+    public async Task GetResponseAsync_NullOptions_SendsLmDefaults()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options: null, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Single(captured);
-        Assert.Null(captured[0]);
+        var sent = Assert.Single(captured)!;
+        Assert.Null(sent.MaxNewTokens);
+        Assert.Null(sent.Tools);
     }
 
     [Fact]
     public async Task GetResponseAsync_UnsetSamplerProperties_LeaveLmDefaults()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { Temperature = 0.7f };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
@@ -164,89 +165,17 @@ public class LMSupplyChatClientSamplerForwardingTests
         Assert.Null(sent.StopSequences);
     }
 
-    // ---------------------------------------------------------------
-    // AdditionalProperties opt-in plumbing (cli 0.10.7) — RepetitionPenalty
-    // and MinP are llama.cpp / hf-tgi family sampler params with no standard
-    // M.E.AI surface, so cli forwards them via the AdditionalProperties bag
-    // using snake_case keys ("repetition_penalty", "min_p") that match
-    // lm-supply native property names.
-    // ---------------------------------------------------------------
-
+    // RepetitionPenalty and MinP have no standard M.E.AI name; LMSupply's chat client takes them from
+    // ChatOptions.RawRepresentationFactory returning its GenerationOptions, with the standard options applied over them.
     [Fact]
-    public async Task GetResponseAsync_ForwardsRepetitionPenaltyFromAdditionalProperties()
+    public async Task GetResponseAsync_TakesRepetitionPenaltyAndMinPFromTheRawRepresentation()
     {
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions
         {
-            AdditionalProperties = new AdditionalPropertiesDictionary
-            {
-                ["repetition_penalty"] = 1.0f
-            }
-        };
-
-        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
-
-        var sent = captured[0]!;
-        Assert.Equal(1.0f, sent.RepetitionPenalty);
-    }
-
-    [Fact]
-    public async Task GetResponseAsync_ForwardsMinPFromAdditionalProperties()
-    {
-        var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
-        var options = new ChatOptions
-        {
-            AdditionalProperties = new AdditionalPropertiesDictionary
-            {
-                ["min_p"] = 0.0f
-            }
-        };
-
-        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
-
-        var sent = captured[0]!;
-        Assert.Equal(0.0f, sent.MinP);
-    }
-
-    [Fact]
-    public async Task GetResponseAsync_AcceptsRepetitionPenaltyAsDouble()
-    {
-        // JSON deserialization typically yields double, not float;
-        // helper must coerce safely.
-        var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
-        var options = new ChatOptions
-        {
-            AdditionalProperties = new AdditionalPropertiesDictionary
-            {
-                ["repetition_penalty"] = 1.0d,
-                ["min_p"] = 0.02d
-            }
-        };
-
-        await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
-
-        var sent = captured[0]!;
-        Assert.Equal(1.0f, sent.RepetitionPenalty);
-        Assert.Equal(0.02f, sent.MinP, precision: 4);
-    }
-
-    [Fact]
-    public async Task GetResponseAsync_ForwardsBothRepetitionPenaltyAndMinPJointly()
-    {
-        // Joint coverage: independent forwarding is exercised above, but the
-        // typical caller sets both keys in a single ChatOptions call.
-        var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
-        var options = new ChatOptions
-        {
-            AdditionalProperties = new AdditionalPropertiesDictionary
-            {
-                ["repetition_penalty"] = 1.0f,
-                ["min_p"] = 0.0f
-            }
+            Temperature = 0.3f,
+            RawRepresentationFactory = _ => new LmGenerationOptions { RepetitionPenalty = 1.0f, MinP = 0.0f },
         };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);
@@ -254,16 +183,15 @@ public class LMSupplyChatClientSamplerForwardingTests
         var sent = captured[0]!;
         Assert.Equal(1.0f, sent.RepetitionPenalty);
         Assert.Equal(0.0f, sent.MinP);
+        Assert.Equal(0.3f, sent.Temperature);
     }
 
     [Fact]
-    public async Task GetResponseAsync_EmptyAdditionalProperties_LeaveLmDefaults()
+    public async Task GetResponseAsync_NoRawRepresentation_LeavesLmDefaults()
     {
-        // When the bag is absent or empty the cli must not overwrite
-        // lm-supply native defaults (RepetitionPenalty=1.1, MinP=0.05),
-        // so existing consumers see no behavior change from cli 0.10.6.
+        // Without a raw representation the lm-supply defaults (RepetitionPenalty=1.1, MinP=0.05) stand.
         var generator = BuildStubGenerator(out var captured);
-        var client = new LMSupplyChatClient(generator);
+        var client = generator.AsChatClient();
         var options = new ChatOptions { Temperature = 0.7f };
 
         await client.GetResponseAsync(new[] { new ChatMessage(ChatRole.User, "Hi") }, options, TestContext.Current.CancellationToken);

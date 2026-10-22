@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using AwesomeAssertions;
 using IronHive.Host.Providers;
+using LMSupply.Generator;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
 using NSubstitute;
@@ -19,7 +20,7 @@ namespace IronHive.Host.Tests.Providers;
 /// The backend's token count must reach <see cref="ChatResponse.Usage"/> on both paths — the non-streaming
 /// result carries it, and the streaming path carries it on the final chunk (as <see cref="UsageContent"/>).
 /// </summary>
-public class LMSupplyChatClientUsageTests
+public class LocalChatClientUsageContractTests
 {
     private static readonly LmChatTokenUsage Usage = new() { PromptTokens = 12, CompletionTokens = 480, TotalTokens = 492 };
 
@@ -30,7 +31,7 @@ public class LMSupplyChatClientUsageTests
         generator.ModelId.Returns("test:stub");
         generator.GenerateChatWithToolsAsync(Arg.Any<IEnumerable<LmChatMessage>>(), Arg.Any<LmGenerationOptions?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new LmChatCompletionResult { Content = "ok", FinishReason = "stop", Usage = Usage }));
-        using var client = new LMSupplyChatClient(generator);
+        using var client = generator.AsChatClient();
 
         var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "hi")], cancellationToken: TestContext.Current.CancellationToken);
 
@@ -44,7 +45,7 @@ public class LMSupplyChatClientUsageTests
     [Fact]
     public async Task Streaming_final_chunk_usage_reaches_the_response()
     {
-        using var client = new LMSupplyChatClient(StreamingGenerator(
+        using var client = Client(StreamingGenerator(
             new LmChatStreamChunk { Text = "ok" },
             new LmChatStreamChunk { FinishReason = "stop", Usage = Usage }));
 
@@ -67,8 +68,8 @@ public class LMSupplyChatClientUsageTests
         generator.ModelId.Returns("test:stub");
         generator.GenerateChatWithToolsAsync(Arg.Any<IEnumerable<LmChatMessage>>(), Arg.Any<LmGenerationOptions?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new LmChatCompletionResult { Content = "ok", FinishReason = "stop", Usage = Usage, Timings = timings }));
-        using var nonStreaming = new LMSupplyChatClient(generator);
-        using var streaming = new LMSupplyChatClient(StreamingGenerator(
+        using var nonStreaming = generator.AsChatClient();
+        using var streaming = Client(StreamingGenerator(
             new LmChatStreamChunk { Text = "ok" },
             new LmChatStreamChunk { FinishReason = "stop", Usage = Usage, Timings = timings }));
 
@@ -83,7 +84,7 @@ public class LMSupplyChatClientUsageTests
     [Fact]
     public async Task Without_server_timings_the_cached_count_is_unknown_not_zero()
     {
-        using var client = new LMSupplyChatClient(StreamingGenerator(
+        using var client = Client(StreamingGenerator(
             new LmChatStreamChunk { Text = "ok" },
             new LmChatStreamChunk { FinishReason = "stop", Usage = Usage }));
 
@@ -95,7 +96,7 @@ public class LMSupplyChatClientUsageTests
     [Fact]
     public async Task Streaming_without_backend_usage_reports_none()
     {
-        using var client = new LMSupplyChatClient(StreamingGenerator(
+        using var client = Client(StreamingGenerator(
             new LmChatStreamChunk { Text = "ok" },
             new LmChatStreamChunk { FinishReason = "stop" }));
 
@@ -105,7 +106,7 @@ public class LMSupplyChatClientUsageTests
         updates[^1].Contents.Should().BeEmpty();
     }
 
-    private static async Task<List<ChatResponseUpdate>> Collect(LMSupplyChatClient client)
+    private static async Task<List<ChatResponseUpdate>> Collect(LocalChatClient client)
     {
         var updates = new List<ChatResponseUpdate>();
         await foreach (var u in client.GetStreamingResponseAsync([new ChatMessage(ChatRole.User, "hi")], cancellationToken: TestContext.Current.CancellationToken))
@@ -114,6 +115,8 @@ public class LMSupplyChatClientUsageTests
         }
         return updates;
     }
+
+    private static LocalChatClient Client(ITextGenerator generator) => generator.AsChatClient();
 
     private static ITextGenerator StreamingGenerator(params LmChatStreamChunk[] chunks)
     {

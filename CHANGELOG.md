@@ -14,6 +14,18 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   overflow, a defect) is `"run"`. `null` when the run did not stop with an error. A script or benchmark harness no longer has
   to read the `error` message to tell an unreachable model from a failed run.
 
+### Changed
+- **Breaking: the local LMSupply provider runs on LMSupply's own chat client** (`generator.AsChatClient()`, LMSupply.Generator
+  0.135.0+). The public `LMSupplyChatClient` is removed; the provider still answers the model's context window to the token
+  budget. Behaviour is the same (roles, `Instructions`, tools, streaming, usage), with three differences.
+  - `MaxOutputTokens` now caps the generated tokens (`MaxNewTokens`) rather than prompt plus output.
+  - A call without `ChatOptions` sends LMSupply's default options instead of none.
+  - The repetition penalty and min-p no longer come from `ChatOptions.AdditionalProperties` (`repetition_penalty`, `min_p`).
+
+  Migration: `new LMSupplyChatClient(generator)` → `generator.AsChatClient()` (`using LMSupply.Generator;`). For the two sampler
+  values, set `ChatOptions.RawRepresentationFactory = _ => new GenerationOptions { RepetitionPenalty = …, MinP = … }`
+  (`LMSupply.Generator.Models`); the standard options are applied over it.
+
 ### Fixed
 - **`typeInfoModifiers` on `AgentServerRunner` / `AgentHttpRunner` take effect when the JSON options already carry a resolver.**
   The modifiers were combined behind the options' resolver, and the first resolver that answers for a type wins — so with a
