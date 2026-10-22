@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.67.0 — 2026-10-23
 
 ### Added
 - **A transient provider failure on one model call no longer ends the turn.** The chat pipeline tries a model call again once
@@ -43,6 +43,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.132.0 -> 0.133.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.133.0 -> 0.134.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.134.0 -> 0.136.0.
+- Re-pinned sibling package(s) `Ironbees.Core` 0.29.1 -> 0.30.0, `IronHive.Abstractions` 0.68.0 -> 0.69.0, `IronHive.Agent` 0.72.0-r186.1 -> 0.72.0, `IronHive.Agent.Ironbees` 0.72.0-r186.1 -> 0.72.0, `IronHive.Core` 0.68.0 -> 0.69.0, `IronHive.DeepResearch` 0.72.0-r186.1 -> 0.72.0, `IronHive.Extensions.AI` 0.68.0 -> 0.69.0, `IronHive.Providers.Anthropic` 0.68.0 -> 0.69.0, `IronHive.Providers.GoogleAI` 0.68.0 -> 0.69.0, `IronHive.Providers.OpenAI` 0.68.0 -> 0.69.0, `IronHive.Providers.OpenAI.Compatible` 0.68.0 -> 0.69.0.
 
 ## 0.66.0 — 2026-10-20
 
