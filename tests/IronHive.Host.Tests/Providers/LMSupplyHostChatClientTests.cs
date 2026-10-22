@@ -3,6 +3,9 @@ using IronHive.Host.Tools;
 using LMSupply.Generator.Abstractions;
 using Microsoft.Extensions.AI;
 using NSubstitute;
+using LmChatCompletionResult = LMSupply.Generator.Models.ChatCompletionResult;
+using LmChatMessage = LMSupply.Generator.Models.ChatMessage;
+using LmGenerationOptions = LMSupply.Generator.Models.GenerationOptions;
 
 namespace IronHive.Host.Tests.Providers;
 
@@ -44,5 +47,42 @@ public class LMSupplyHostChatClientTests
         Assert.Same(model, client.GetService(typeof(IGeneratorModel)));
         client.Dispose();
         _ = model.DidNotReceive().DisposeAsync().AsTask();
+    }
+
+    // The CLI sends the id it configured (an alias) as ChatOptions.ModelId; LMSupply's client answers only to the model's
+    // own id. Measured: the published-set E2E's adapter fact failed with «This client answers with model 'Gemma 4 E4B
+    // Instruct'; the request names 'gguf:gemma4-default'».
+    [Fact]
+    public async Task A_request_naming_the_id_the_model_was_loaded_under_reaches_the_model()
+    {
+        var model = Answering("Gemma 4 E4B Instruct");
+        using var client = new LMSupplyHostChatClient(model, loadedAs: "gguf:gemma4-default");
+
+        var response = await client.GetResponseAsync(
+            [new ChatMessage(ChatRole.User, "Hi")], new ChatOptions { ModelId = "gguf:gemma4-default" },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal("ok", response.Text);
+    }
+
+    [Fact]
+    public async Task A_request_naming_another_model_is_still_refused()
+    {
+        var model = Answering("Gemma 4 E4B Instruct");
+        using var client = new LMSupplyHostChatClient(model, loadedAs: "gguf:gemma4-default");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => client.GetResponseAsync(
+            [new ChatMessage(ChatRole.User, "Hi")], new ChatOptions { ModelId = "gguf:some-other-model" },
+            TestContext.Current.CancellationToken));
+    }
+
+    private static IGeneratorModel Answering(string modelId)
+    {
+        var model = Substitute.For<IGeneratorModel>();
+        model.ModelId.Returns(modelId);
+        model.GenerateChatWithToolsAsync(
+                Arg.Any<IEnumerable<LmChatMessage>>(), Arg.Any<LmGenerationOptions?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new LmChatCompletionResult { Content = "ok", FinishReason = "stop" }));
+        return model;
     }
 }

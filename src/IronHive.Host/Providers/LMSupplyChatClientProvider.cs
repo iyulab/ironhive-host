@@ -70,7 +70,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 
         var maxContext = GetEffectiveMaxContextLength();
         var generator = await BuildGeneratorAsync(modelId, maxContext, cancellationToken);
-        var client = new LMSupplyHostChatClient(generator);
+        var client = new LMSupplyHostChatClient(generator, modelId);
         var result = (generator, client);
 
         // Try to add to cache, but if another thread beat us, dispose and use theirs
@@ -131,7 +131,7 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 
             var maxContext = GetEffectiveMaxContextLength();
             var generator = await BuildGeneratorAsync(modelId, maxContext, cancellationToken);
-            var chatClient = new LMSupplyHostChatClient(generator);
+            var chatClient = new LMSupplyHostChatClient(generator, modelId);
 
             _clientCache[modelId] = (generator, chatClient);
             _initialized = true;
@@ -280,18 +280,50 @@ public sealed class LMSupplyChatClientProvider : IChatClientProvider, IDisposabl
 }
 
 /// <summary>
-/// The chat client the provider hands out: LMSupply's own <c>generator.AsChatClient()</c>, plus the one thing only this
-/// host can answer — the model's context window as an <see cref="IContextSizeProvider"/>, so a wrapping
-/// <see cref="TokenBudgetChatClient"/> sizes its budget to the loaded GGUF context instead of a default.
+/// The chat client the provider hands out: LMSupply's own <c>generator.AsChatClient()</c>, plus what only this host knows —
+/// the model's context window as an <see cref="IContextSizeProvider"/> (a wrapping <see cref="TokenBudgetChatClient"/> sizes
+/// its budget to the loaded GGUF context), and the id the provider loaded the model under.
 /// </summary>
-/// <remarks>Disposing it does not dispose the generator; the provider owns the generator.</remarks>
-internal sealed class LMSupplyHostChatClient(IGeneratorModel generator) : DelegatingChatClient(generator.AsChatClient())
+/// <remarks>
+/// <para>
+/// The provider loads a model by the id the host configured — usually an alias such as <c>gguf:gemma4-default</c> — and the
+/// agent loop sends that same id as <see cref="ChatOptions.ModelId"/>. LMSupply's client answers only to the model's own id
+/// (<see cref="ITextGenerator.ModelId"/>) and rejects any other, so a request naming the id this client was loaded under is
+/// passed on naming the model itself. A request naming another model still reaches LMSupply as it is and is refused there.
+/// </para>
+/// <para>Disposing it does not dispose the generator; the provider owns the generator.</para>
+/// </remarks>
+internal sealed class LMSupplyHostChatClient(IGeneratorModel generator, string? loadedAs = null)
+    : DelegatingChatClient(generator.AsChatClient())
 {
+    /// <inheritdoc />
+    public override Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default) =>
+        base.GetResponseAsync(messages, ForThisModel(options), cancellationToken);
+
+    /// <inheritdoc />
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default) =>
+        base.GetStreamingResponseAsync(messages, ForThisModel(options), cancellationToken);
+
     /// <inheritdoc />
     public override object? GetService(Type serviceType, object? serviceKey = null) =>
         serviceKey is null && serviceType == typeof(IContextSizeProvider) && generator.MaxContextLength > 0
             ? new ContextSize(generator.MaxContextLength)
             : base.GetService(serviceType, serviceKey);
+
+    private ChatOptions? ForThisModel(ChatOptions? options)
+    {
+        if (options?.ModelId is not { } requested || loadedAs is null
+            || !string.Equals(requested, loadedAs, StringComparison.OrdinalIgnoreCase))
+        {
+            return options;
+        }
+
+        var forModel = options.Clone();
+        forModel.ModelId = generator.ModelId;
+        return forModel;
+    }
 
     private sealed class ContextSize(int maxContextTokens) : IContextSizeProvider
     {

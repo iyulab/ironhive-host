@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Fixed
+- **A local LMSupply model configured by an alias answers again.** In 0.67.0 every request through the LMSupply provider failed
+  with «This client answers with model '…'; the request names 'gguf:…'» when the model was configured by an alias, because the
+  agent sends the configured id as `ChatOptions.ModelId` and LMSupply's chat client accepts only the model's own id. The provider
+  now passes a request naming the id it loaded the model under on to the model as the model's own id. A request naming another
+  model is still refused.
+
 ## 0.67.0 — 2026-10-23
 
 ### Added
