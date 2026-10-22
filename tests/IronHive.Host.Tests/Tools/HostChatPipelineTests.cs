@@ -19,10 +19,10 @@ public sealed class HostChatPipelineTests
         var unattended = HostChatPipeline.CreateToolInvocationPipeline(policy: null);
 
         gated.InvocationMiddleware.Select(m => m.GetType()).Should().Equal(
-            typeof(ArgumentParseFailureMiddleware), typeof(RepeatedCallGuardMiddleware), typeof(RepeatedResultGuardMiddleware),
+            typeof(InvalidArgumentsMiddleware), typeof(RepeatedCallGuardMiddleware), typeof(RepeatedResultGuardMiddleware),
             typeof(RepeatedErrorGuardMiddleware), typeof(ApprovalGateMiddleware), typeof(ResilientArgumentsMiddleware));
         unattended.InvocationMiddleware.Select(m => m.GetType()).Should().Equal(
-            typeof(ArgumentParseFailureMiddleware), typeof(RepeatedCallGuardMiddleware), typeof(RepeatedResultGuardMiddleware),
+            typeof(InvalidArgumentsMiddleware), typeof(RepeatedCallGuardMiddleware), typeof(RepeatedResultGuardMiddleware),
             typeof(RepeatedErrorGuardMiddleware), typeof(ResilientArgumentsMiddleware));
     }
 

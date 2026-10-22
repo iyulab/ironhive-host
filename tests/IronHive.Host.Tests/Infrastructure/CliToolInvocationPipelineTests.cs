@@ -29,7 +29,7 @@ public class CliToolInvocationPipelineTests
             Substitute.For<IToolCallPolicy>(), approvalService: null, loggerFactory: null);
 
         pipeline.InvocationMiddleware.Select(m => m.GetType()).Should().Equal(
-            typeof(ArgumentParseFailureMiddleware),
+            typeof(InvalidArgumentsMiddleware),
             typeof(RepeatedCallGuardMiddleware),
             typeof(RepeatedResultGuardMiddleware),
             typeof(RepeatedErrorGuardMiddleware),

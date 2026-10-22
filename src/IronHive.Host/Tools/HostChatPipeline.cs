@@ -78,7 +78,7 @@ public static class HostChatPipeline
     /// <summary>
     /// The steps every tool call goes through, outermost first:
     /// <list type="number">
-    /// <item><see cref="ArgumentParseFailureMiddleware"/> — a call whose arguments could not be parsed is not run.</item>
+    /// <item><see cref="InvalidArgumentsMiddleware"/> — a call whose arguments could not be parsed is not run.</item>
     /// <item><see cref="RepeatedCallGuardMiddleware"/> — the same call after three successful runs in a row is not run.</item>
     /// <item><see cref="RepeatedResultGuardMiddleware"/> — the same result on a third separate visit ends the turn with the cause.</item>
     /// <item><see cref="RepeatedErrorGuardMiddleware"/> — the same error three times in a row ends the turn with a result.</item>
@@ -108,7 +108,7 @@ public static class HostChatPipeline
         options ??= new ToolInvocationOptions();
         List<IToolInvocationMiddleware> steps =
         [
-            new ArgumentParseFailureMiddleware(options, loggerFactory?.CreateLogger<ArgumentParseFailureMiddleware>()),
+            new InvalidArgumentsMiddleware(options, loggerFactory?.CreateLogger<InvalidArgumentsMiddleware>()),
             new RepeatedCallGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedCallGuardMiddleware>()),
             new RepeatedResultGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedResultGuardMiddleware>()),
             new RepeatedErrorGuardMiddleware(options, loggerFactory?.CreateLogger<RepeatedErrorGuardMiddleware>()),

@@ -21,12 +21,12 @@ namespace IronHive.Host.Tools;
 /// the same empty arguments is refused after that guard's limit rather than looping until the iteration cap.
 /// </para>
 /// <para>
-/// <b>Relation to <see cref="ArgumentParseFailureMiddleware"/>:</b> the two handle different failures and never the
-/// same call. <see cref="ArgumentParseFailureMiddleware"/> acts before the tool runs, when the model's arguments text
+/// <b>Relation to <see cref="InvalidArgumentsMiddleware"/>:</b> the two handle different failures and never the
+/// same call. <see cref="InvalidArgumentsMiddleware"/> acts before the tool runs, when the model's arguments text
 /// could not be parsed at all (<see cref="FunctionCallContent.Exception"/> is set), and refuses the call. This step acts
 /// when the arguments were parsed but do not fit the tool's parameters, which is only discovered when the tool is
 /// invoked. Placed after it, this step never sees an unparseable call; without it (or with
-/// <see cref="ToolInvocationOptions.RefuseUnparseableArguments"/> off, or under a plain <c>UseFunctionInvocation</c>
+/// <see cref="ToolInvocationOptions.RefuseInvalidArguments"/> off, or under a plain <c>UseFunctionInvocation</c>
 /// client), such a call reaches the tool with empty or partial arguments and this step answers the marshaller's error.
 /// </para>
 /// <para>

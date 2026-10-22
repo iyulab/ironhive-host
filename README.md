@@ -531,7 +531,7 @@ With `IronHive.Agent`'s tool invocation pipeline, add `ResilientArgumentsMiddlew
 ```csharp
 var pipeline = new ToolInvocationPipeline(
 [
-    new ArgumentParseFailureMiddleware(),          // unparseable arguments: refused before the tool runs
+    new InvalidArgumentsMiddleware(),          // unparseable arguments: refused before the tool runs
     new RepeatedCallGuardMiddleware(),
     new RepeatedErrorGuardMiddleware(),
     new ApprovalGateMiddleware(modeToolFilter, approvalService),
@@ -554,7 +554,7 @@ var client = innerClient
     .Build();
 ```
 
-When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the step returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern. It does not overlap with `ArgumentParseFailureMiddleware`: that step refuses a call whose arguments text could not be parsed at all, before the tool runs; this one answers arguments that were parsed but do not fit the tool's parameters, which only shows when the tool is invoked. Behind a `RepeatedCallGuardMiddleware`, a model that keeps sending the same empty arguments is refused after three directives.
+When the model sends a tool call with a missing required parameter, instead of throwing and aborting, the step returns a numbered recovery directive telling the model exactly what is missing, where to find the value, and explicitly forbidding the empty-args retry pattern. It does not overlap with `InvalidArgumentsMiddleware`: that step refuses a call whose arguments text could not be parsed at all, before the tool runs; this one answers arguments that were parsed but do not fit the tool's parameters, which only shows when the tool is invoked. Behind a `RepeatedCallGuardMiddleware`, a model that keeps sending the same empty arguments is refused after three directives.
 
 ### AgentServerRunner / AgentHttpRunner
 
