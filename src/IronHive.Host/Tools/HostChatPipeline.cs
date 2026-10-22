@@ -78,7 +78,7 @@ public static class HostChatPipeline
     /// <summary>
     /// The steps every tool call goes through, outermost first:
     /// <list type="number">
-    /// <item><see cref="InvalidArgumentsMiddleware"/> — a call whose arguments could not be parsed is not run.</item>
+    /// <item><see cref="InvalidArgumentsMiddleware"/> — a call whose arguments could not be parsed, or that leaves out a required one, is not run.</item>
     /// <item><see cref="RepeatedCallGuardMiddleware"/> — the same call after three successful runs in a row is not run.</item>
     /// <item><see cref="RepeatedResultGuardMiddleware"/> — the same result on a third separate visit ends the turn with the cause.</item>
     /// <item><see cref="RepeatedErrorGuardMiddleware"/> — the same error three times in a row ends the turn with a result.</item>

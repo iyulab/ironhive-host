@@ -531,7 +531,7 @@ With `IronHive.Agent`'s tool invocation pipeline, add `ResilientArgumentsMiddlew
 ```csharp
 var pipeline = new ToolInvocationPipeline(
 [
-    new InvalidArgumentsMiddleware(),          // unparseable arguments: refused before the tool runs
+    new InvalidArgumentsMiddleware(),          // unparseable or missing required arguments: refused before the tool runs
     new RepeatedCallGuardMiddleware(),
     new RepeatedErrorGuardMiddleware(),
     new ApprovalGateMiddleware(modeToolFilter, approvalService),

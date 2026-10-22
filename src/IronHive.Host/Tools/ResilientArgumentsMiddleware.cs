@@ -21,13 +21,12 @@ namespace IronHive.Host.Tools;
 /// the same empty arguments is refused after that guard's limit rather than looping until the iteration cap.
 /// </para>
 /// <para>
-/// <b>Relation to <see cref="InvalidArgumentsMiddleware"/>:</b> the two handle different failures and never the
-/// same call. <see cref="InvalidArgumentsMiddleware"/> acts before the tool runs, when the model's arguments text
-/// could not be parsed at all (<see cref="FunctionCallContent.Exception"/> is set), and refuses the call. This step acts
-/// when the arguments were parsed but do not fit the tool's parameters, which is only discovered when the tool is
-/// invoked. Placed after it, this step never sees an unparseable call; without it (or with
-/// <see cref="ToolInvocationOptions.RefuseInvalidArguments"/> off, or under a plain <c>UseFunctionInvocation</c>
-/// client), such a call reaches the tool with empty or partial arguments and this step answers the marshaller's error.
+/// <b>Relation to <see cref="InvalidArgumentsMiddleware"/>:</b> that step acts first, before the permission gate. It
+/// refuses a call whose arguments text could not be parsed (<see cref="FunctionCallContent.Exception"/> is set) or that
+/// leaves out a parameter the tool's schema marks required. Behind it, this step sees only what the schema check cannot:
+/// a value that does not convert to the parameter's type. With <see cref="ToolInvocationOptions.RefuseInvalidArguments"/>
+/// off, or under a plain <c>UseFunctionInvocation</c> client, a call with missing arguments also reaches the tool, and
+/// this step answers the marshaller's error with the directive.
 /// </para>
 /// <para>
 /// <b>Placement:</b> register it last, so it sits directly around the tool. It catches what the rest of the pipeline
