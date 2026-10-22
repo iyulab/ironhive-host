@@ -162,7 +162,7 @@ public static class ToolRefusalCodes
     /// <summary>The tool ran, and a result guard withheld its result from the model.</summary>
     public const string ResultWithheld = "result_withheld";
 
-    /// <summary>The call's arguments could not be parsed, so the tool did not run.</summary>
+    /// <summary>The call's arguments could not be parsed, or left out a required parameter, so the tool did not run.</summary>
     public const string InvalidArguments = "invalid_arguments";
 
     /// <summary>The same call already succeeded several times in a row, so it was not run again.</summary>

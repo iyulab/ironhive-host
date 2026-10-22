@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Fixed
+- **`ToolRefusalCodes.InvalidArguments` documents both causes** — arguments that did not parse, or a required parameter left
+  out (the second since IronHive.Agent 0.72.0). Documentation only; the code value is unchanged.
+
 ## 0.67.1 — 2026-10-23
 
 ### Fixed
