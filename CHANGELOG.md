@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.67.1 — 2026-10-23
 
 ### Fixed
 - **A local LMSupply model configured by an alias answers again.** In 0.67.0 every request through the LMSupply provider failed
