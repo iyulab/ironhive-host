@@ -8,6 +8,10 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## Unreleased
 
 ### Added
+- **A transient provider failure on one model call no longer ends the turn.** The chat pipeline tries a model call again once
+  when it fails before any of it reached the caller with a 502/504 from the gateway, a refused or reset connection, or a
+  response stream that ended before it began (`TransientRetryChatClient`, around the provider client). A failure after part of a
+  streamed answer was shown, and any refusal, still ends the turn as before.
 - **`ironhive run --json` says whose failure an error was: `error_kind` is `"provider"` or `"run"`.** `"provider"` covers no
   response (connection, TLS, a body cut short), a 5xx / 408 / 429 status, a rate limit or billing refusal and an error the
   server sent inside the stream — running again later can succeed; everything else (configuration, another 4xx, a context

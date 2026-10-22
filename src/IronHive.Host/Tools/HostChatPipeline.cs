@@ -54,7 +54,10 @@ public static class HostChatPipeline
         ArgumentNullException.ThrowIfNull(toolInvocationPipeline);
         ArgumentOutOfRangeException.ThrowIfNegative(declaredContextWindow);
 
-        var builder = new ToolRoundContextChatClient(new UsageLimitChatClient(new TokenBudgetChatClient(inner, declaredContextWindow)))
+        // Innermost, around the provider: one model call that fails for a transient reason (a 502 from the gateway, a refused
+        // or reset connection) before any of it reached the caller is tried again, so a blip on one call of a long turn does
+        // not end the turn and lose its tool work.
+        var builder = new ToolRoundContextChatClient(new UsageLimitChatClient(new TokenBudgetChatClient(new TransientRetryChatClient(inner), declaredContextWindow)))
             .AsBuilder()
             .UseToolInvocationPipeline(toolInvocationPipeline, client =>
             {
