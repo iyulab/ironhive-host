@@ -8,6 +8,7 @@ using IronHive.Agent.Permissions;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using NSubstitute;
 
 namespace IronHive.Host.Tests.Server;
@@ -240,6 +241,182 @@ public class HitlBridgeTests
             nameof(ToolStartEvent), nameof(HitlRequestEvent), nameof(ToolEndEvent), nameof(TurnEndEvent));
         events.OfType<ToolEndEvent>().Single().Success.Should().Be(approve);
         bridge.IsAttached.Should().BeFalse("the runner detaches when it stops");
+    }
+
+    // ── MCP URL-mode elicitation ──────────────────────────────────────
+
+    private static ElicitRequestParams UrlElicitation() => new()
+    {
+        Mode = "url",
+        Message = "This action needs approval before it runs.",
+        ElicitationId = "apr_1",
+        Url = "https://approvals.example.test/apr_1",
+    };
+
+    private static (HitlBridge Bridge, Channel<ServerEvent> Sent, IDisposable Attachment) AttachedAnyEvent(TimeSpan? timeout = null)
+    {
+        var bridge = new HitlBridge(timeout);
+        var sent = Channel.CreateUnbounded<ServerEvent>();
+        var attachment = bridge.Attach((evt, _) =>
+        {
+            sent.Writer.TryWrite(evt);
+            return Task.CompletedTask;
+        });
+        return (bridge, sent, attachment);
+    }
+
+    [Theory]
+    [InlineData("accept")]
+    [InlineData("decline")]
+    [InlineData("cancel")]
+    public async Task Elicitation_TheEventCarriesTheServersRequest_AndTheMatchingAnswerIsReturned(string action)
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.ElicitAsync("payments", UrlElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        evt.Plugin.Should().Be("payments");
+        evt.Mode.Should().Be("url");
+        evt.Message.Should().Be("This action needs approval before it runs.");
+        evt.Url.Should().Be("https://approvals.example.test/apr_1");
+        evt.ElicitationId.Should().Be("apr_1");
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest(action, evt.Id)).Should().BeTrue();
+        (await pending).Action.Should().Be(action);
+    }
+
+    [Fact]
+    public async Task Elicitation_AnAnswerWithoutId_ResolvesTheOnlyWait_AndAnUnknownActionIsDropped()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.ElicitAsync("payments", UrlElicitation(), ct).AsTask();
+        await sent.Reader.ReadAsync(ct);
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("approve")).Should().BeFalse("not an elicitation action");
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept")).Should().BeTrue();
+        (await pending).Action.Should().Be("accept");
+    }
+
+    [Fact]
+    public async Task Elicitation_WithNoClientAttached_IsCancelledWithoutAsking()
+    {
+        using var bridge = new HitlBridge();
+
+        var result = await bridge.ElicitAsync("payments", UrlElicitation(), TestContext.Current.CancellationToken);
+
+        result.Action.Should().Be("cancel");
+    }
+
+    [Fact]
+    public async Task Elicitation_NotUrlMode_IsDeclined()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+
+        var result = await bridge.ElicitAsync("forms", new ElicitRequestParams { Mode = "form", Message = "Your name?" },
+            TestContext.Current.CancellationToken);
+
+        result.Action.Should().Be("decline");
+        sent.Reader.TryRead(out var none).Should().BeFalse("nothing is sent for a mode the host does not advertise");
+    }
+
+    [Fact]
+    public async Task Elicitation_NotAnsweredInTime_IsCancelled()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent(TimeSpan.FromMilliseconds(200));
+        using var _ = bridge;
+        using var __ = attachment;
+
+        var result = await bridge.ElicitAsync("payments", UrlElicitation(), TestContext.Current.CancellationToken);
+
+        result.Action.Should().Be("cancel");
+    }
+
+    [Fact]
+    public async Task Elicitation_DetachingTheClient_CancelsWhatIsStillWaiting()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var b = bridge;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.ElicitAsync("payments", UrlElicitation(), ct).AsTask();
+        await sent.Reader.ReadAsync(ct);
+        attachment.Dispose();
+
+        (await pending).Action.Should().Be("cancel");
+    }
+
+    [Fact]
+    public async Task Elicitation_CancellingTheTurn_CancelsTheWait()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+        using var turn = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
+        var pending = bridge.ElicitAsync("payments", UrlElicitation(), turn.Token).AsTask();
+        await sent.Reader.ReadAsync(TestContext.Current.CancellationToken);
+        await turn.CancelAsync();
+
+        await FluentActions.Awaiting(() => pending).Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task StdioRunner_AnElicitation_IsSentAsALine_AndTheClientsAnswerLine_CompletesTheCall()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var bridge = new HitlBridge(TimeSpan.FromSeconds(30));
+
+        async IAsyncEnumerable<ServerEvent> Process(UserMessageRequest msg, [EnumeratorCancellation] CancellationToken token)
+        {
+            yield return new ToolStartEvent("send_payment", CallId: "call-9");
+            var answer = await bridge.ElicitAsync("payments", UrlElicitation(), token);
+            yield return new ToolEndEvent("send_payment", answer.Action == "accept", answer.Action, "call-9");
+            yield return new TurnEndEvent();
+        }
+
+        var input = new LineInput();
+        var output = new LineOutput();
+        var runner = new AgentServerRunner(Process, Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts, hitlBridge: bridge);
+        var run = runner.RunAsync(input, output, ct);
+
+        input.Enqueue("""{"type":"user_message","content":"pay it"}""");
+        var events = new List<ServerEvent>();
+        ElicitationRequestEvent? request = null;
+        while (request is null)
+        {
+            var line = await output.Lines.ReadAsync(ct);
+            var evt = JsonSerializer.Deserialize<ServerEvent>(line, JsonOpts)!;
+            events.Add(evt);
+            if (evt is ElicitationRequestEvent elicitation)
+            {
+                request = elicitation;
+                line.Should().Contain("\"type\":\"elicitation_request\"").And.Contain("\"url\":\"https://approvals.example.test/apr_1\"");
+            }
+        }
+
+        input.Enqueue($$"""{"type":"elicitation_response","id":"{{request.Id}}","action":"accept"}""");
+
+        while (events[^1] is not TurnEndEvent)
+        {
+            events.Add(JsonSerializer.Deserialize<ServerEvent>(await output.Lines.ReadAsync(ct), JsonOpts)!);
+        }
+
+        input.Complete();
+        await run;
+
+        events.Select(e => e.GetType().Name).Should().Equal(
+            nameof(ToolStartEvent), nameof(ElicitationRequestEvent), nameof(ToolEndEvent), nameof(TurnEndEvent));
+        events.OfType<ToolEndEvent>().Single().Success.Should().BeTrue();
     }
 
     private sealed class LineInput : TextReader

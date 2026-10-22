@@ -168,6 +168,7 @@ public static class AgentResponseMapper
         TurnStopReason.ToolTerminated => StopReasons.ToolTerminated,
         TurnStopReason.AwaitingHostTools => StopReasons.AwaitingHostTools,
         TurnStopReason.StepLimit => StopReasons.StepLimit,
+        TurnStopReason.WrappedUp => StopReasons.WrappedUp,
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "A stop reason without a wire name."),
     };
 

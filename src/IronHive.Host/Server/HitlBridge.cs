@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
+using IronHive.Agent.Mcp;
 using IronHive.Agent.Mode;
 using IronHive.Host.Protocol;
 using IronHive.Host.Session;
+using ModelContextProtocol.Protocol;
 
 namespace IronHive.Host.Server;
 
@@ -33,8 +35,15 @@ namespace IronHive.Host.Server;
 /// </list>
 /// Session rules a host keeps of its own (trust lists, "already denied in this session") fit as an
 /// <see cref="IHumanApprovalService"/> that decorates this one.
+/// <para>
+/// The bridge also carries an MCP server's URL-mode elicitation (<see cref="IMcpElicitationHandler"/>): an
+/// <see cref="ElicitationRequestEvent"/> goes to the client and the call waits for the matching
+/// <see cref="ElicitationResponseRequest"/> (<see cref="ResolveElicitation"/>). That wait always stays inside its turn — the
+/// MCP client holds the retry in-process — and ends as <c>cancel</c> after <see cref="Timeout"/>, when no runner is attached,
+/// when the runner detaches, or when the server stops.
+/// </para>
 /// </remarks>
-public sealed class HitlBridge : IHumanApprovalService, IDisposable
+public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, IDisposable
 {
     /// <summary>The default time a request waits for an answer before it is rejected.</summary>
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
@@ -42,6 +51,7 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
     private readonly ConcurrentDictionary<string, TaskCompletionSource<HitlResponseRequest>> _pending = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, HitlResponseRequest> _preanswered = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DeferredWait> _deferred = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _elicitations = new(StringComparer.Ordinal);
     private readonly Func<ApprovalRequest, string, HitlRequestEvent> _format;
     private Func<ServerEvent, CancellationToken, Task>? _publish;
     private Action<DeferredApproval>? _onDeferredAnswer;
@@ -168,6 +178,80 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
 
         return _deferred.TryRemove(deferredWaits[0].Key, out var onlyDeferred)
             && Complete(onlyDeferred, response with { Id = onlyDeferred.Wait.RequestId }, expired: false);
+    }
+
+    /// <summary>
+    /// Delivers a client's answer to an <see cref="ElicitationRequestEvent"/>. Returns false when it matches no waiting request
+    /// (an unknown id, or no id while several wait) or its action is not one of <see cref="ElicitationActions"/> — the answer
+    /// is then dropped and the request keeps waiting.
+    /// </summary>
+    public bool ResolveElicitation(ElicitationResponseRequest response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (response.Action is not (ElicitationActions.Accept or ElicitationActions.Decline or ElicitationActions.Cancel))
+        {
+            return false;
+        }
+
+        if (response.Id is { Length: > 0 } id)
+        {
+            return _elicitations.TryRemove(id, out var waiter) && waiter.TrySetResult(response.Action);
+        }
+
+        var waiting = _elicitations.ToArray();
+        return waiting.Length == 1
+            && _elicitations.TryRemove(waiting[0].Key, out var only)
+            && only.TrySetResult(response.Action);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Sends an <see cref="ElicitationRequestEvent"/> and waits inside the turn for its <see cref="ElicitationResponseRequest"/>.
+    /// Answers <c>cancel</c> without asking when no runner is attached, and after <see cref="Timeout"/>; a request that is not
+    /// URL mode is answered <c>decline</c> (only URL mode is advertised). Cancelling the turn cancels the wait.
+    /// </remarks>
+    public async ValueTask<ElicitResult> ElicitAsync(string pluginName, ElicitRequestParams request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!string.Equals(request.Mode, "url", StringComparison.Ordinal))
+        {
+            return new ElicitResult { Action = ElicitationActions.Decline };
+        }
+
+        var publish = Volatile.Read(ref _publish);
+        if (publish is null)
+        {
+            return new ElicitResult { Action = ElicitationActions.Cancel };
+        }
+
+        var id = Guid.NewGuid().ToString("N");
+        var waiter = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _elicitations[id] = waiter;
+        try
+        {
+            using var timeoutCts = new CancellationTokenSource(Timeout);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+            await using var registration = linked.Token.Register(() => waiter.TrySetCanceled(linked.Token));
+
+            // Registered above, published here: an answer cannot outrun its wait.
+            await publish(
+                new ElicitationRequestEvent(id, pluginName, "url", request.Message ?? string.Empty, request.Url, request.ElicitationId),
+                cancellationToken);
+
+            try
+            {
+                return new ElicitResult { Action = await waiter.Task };
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return new ElicitResult { Action = ElicitationActions.Cancel };
+            }
+        }
+        finally
+        {
+            _elicitations.TryRemove(id, out _);
+        }
     }
 
     /// <summary>
@@ -455,6 +539,15 @@ public sealed class HitlBridge : IHumanApprovalService, IDisposable
             if (_pending.TryRemove(id, out var waiter))
             {
                 waiter.TrySetResult(new HitlResponseRequest(false, reason, id));
+            }
+        }
+
+        // An elicitation cannot outlive the wait that holds it (the MCP client retries in-process): it ends as cancel.
+        foreach (var id in _elicitations.Keys)
+        {
+            if (_elicitations.TryRemove(id, out var elicitation))
+            {
+                elicitation.TrySetResult(ElicitationActions.Cancel);
             }
         }
     }

@@ -124,10 +124,14 @@ public static class ServiceCollectionExtensions
         RegisterDeepResearch(services, config);
 
         // Register MCP plugin manager for external tool integration
+        // An MCP server that needs a person before a call can finish (URL-mode elicitation) asks the client on the wire while
+        // `run --server` has one attached, otherwise the terminal.
+        services.AddSingleton<Services.ConsoleElicitationHandler>();
+        services.AddSingleton<IMcpElicitationHandler, Services.HostElicitationHandler>();
         services.AddSingleton<IMcpPluginManager>(sp =>
         {
             var logger = sp.GetService<ILogger<McpPluginManager>>();
-            return new McpPluginManager(logger);
+            return new McpPluginManager(sp.GetRequiredService<IMcpElicitationHandler>(), logger);
         });
 
         // Register IndexThinking services

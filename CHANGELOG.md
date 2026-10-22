@@ -7,6 +7,19 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## [Unreleased]
 
+### Added
+- **An MCP server that needs a person before a tool call can finish now asks one, instead of the call failing.** A server that
+  answers `tools/call` with `input_required` (a URL-mode elicitation and a `requestState`) or sends `elicitation/create`
+  reaches a person: the terminal shows the server's message and link and asks «Done» / «Decline»; `run --server` sends an
+  `elicitation_request` event (`id`, `plugin`, `mode`, `message`, `url`, `elicitation_id`) and waits for the client's
+  `elicitation_response` (`id`, `action`: `accept` · `decline` · `cancel`). On `accept` the same call is sent again with the
+  server's state and completes. The wait stays inside the turn and ends as `cancel` after `approval.timeoutSeconds`, when no
+  client is attached, or when the client disconnects; a form-mode request is declined. `HitlBridge` implements the agent's
+  `IMcpElicitationHandler` for hosts that embed the runners (`ResolveElicitation` delivers the client's answer).
+- **`wrapped_up` stop reason.** A turn the agent closed at its step limit with a wrap-up request
+  (`AgentOptions.WrapUpAtStepLimit`) ends with `stop_reason` `wrapped_up` (`StopReasons.WrappedUp`); `ironhive run` exits 2 for
+  it, as for `step_limit`.
+
 ### Fixed
 - **`ToolRefusalCodes.InvalidArguments` documents both causes** — arguments that did not parse, or a required parameter left
   out (the second since IronHive.Agent 0.72.0). Documentation only; the code value is unchanged.

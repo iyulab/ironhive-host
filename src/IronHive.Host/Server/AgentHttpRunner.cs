@@ -363,6 +363,12 @@ public sealed partial class AgentHttpRunner : IDisposable
                 continue;
             }
 
+            if (serverRequest is ElicitationResponseRequest elicitation)
+            {
+                _hitl?.ResolveElicitation(elicitation);
+                continue;
+            }
+
             if (serverRequest is UserMessageRequest msg)
             {
                 // The context in effect when the message arrived, not when its turn starts.

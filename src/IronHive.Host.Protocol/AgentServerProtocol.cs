@@ -11,6 +11,7 @@ namespace IronHive.Host.Protocol;
 [JsonDerivedType(typeof(ShutdownRequest), "shutdown")]
 [JsonDerivedType(typeof(ContextUpdateRequest), "context_update")]
 [JsonDerivedType(typeof(CancelRequest), "cancel")]
+[JsonDerivedType(typeof(ElicitationResponseRequest), "elicitation_response")]
 public abstract record ServerRequest;
 
 /// <summary>
@@ -70,6 +71,30 @@ public record HitlResponseRequest(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Dictionary<string, JsonElement>? ModifiedArguments = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool AlwaysApprove = false) : ServerRequest;
 
+/// <summary>
+/// A client's answer to an <see cref="ElicitationRequestEvent"/>.
+/// </summary>
+/// <param name="Action"><c>accept</c> (the person finished at the URL — the tool call is sent again and completes),
+/// <c>decline</c> (the person refused) or <c>cancel</c> (dismissed without a choice). <see cref="ElicitationActions"/>.</param>
+/// <param name="Id">The <see cref="ElicitationRequestEvent.Id"/> being answered. Without it the answer resolves the request
+/// only when exactly one is waiting.</param>
+public record ElicitationResponseRequest(
+    string Action,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Id = null) : ServerRequest;
+
+/// <summary>The <see cref="ElicitationResponseRequest.Action"/> values (MCP elicitation result actions).</summary>
+public static class ElicitationActions
+{
+    /// <summary>The person finished what the URL asked; the server is asked again and the tool call completes.</summary>
+    public const string Accept = "accept";
+
+    /// <summary>The person refused; the server hears a decline and the model reads a refusal.</summary>
+    public const string Decline = "decline";
+
+    /// <summary>Dismissed without a choice (or not answered in time); the server hears a cancel.</summary>
+    public const string Cancel = "cancel";
+}
+
 public record ShutdownRequest() : ServerRequest;
 
 public record ContextUpdateRequest(string? WorkingPath, string[]? SelectedItems = null) : ServerRequest;
@@ -98,6 +123,7 @@ public record CancelRequest() : ServerRequest;
 [JsonDerivedType(typeof(PlanStepCompletedServerEvent), "plan_step_completed")]
 [JsonDerivedType(typeof(PlanCompletedServerEvent), "plan_completed")]
 [JsonDerivedType(typeof(FallbackServerEvent), "fallback")]
+[JsonDerivedType(typeof(ElicitationRequestEvent), "elicitation_request")]
 public abstract record ServerEvent;
 
 public record SessionStartedEvent(string SessionId) : ServerEvent;
@@ -210,6 +236,26 @@ public record HitlRequestEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Level = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DelegatedBy = null) : ServerEvent;
 
+/// <summary>
+/// An MCP server needs a person before a tool call can finish (URL-mode elicitation — the server answered the call with
+/// <c>input_required</c>, or sent <c>elicitation/create</c>): show <see cref="Message"/> and <see cref="Url"/> to the person
+/// and answer with an <see cref="ElicitationResponseRequest"/> carrying this <see cref="Id"/>. The call waits inside its turn;
+/// without an answer within the approval timeout it ends as <c>cancel</c>.
+/// </summary>
+/// <param name="Id">The host's id for this request — echo it in the answer.</param>
+/// <param name="Plugin">The MCP server asking (its name in the configuration).</param>
+/// <param name="Mode">Always <c>url</c> (the only mode the host advertises).</param>
+/// <param name="Message">The server's message for the person.</param>
+/// <param name="Url">Where the person completes the step (approve, pay, sign in).</param>
+/// <param name="ElicitationId">The server's own id for the request, when it gave one.</param>
+public record ElicitationRequestEvent(
+    string Id,
+    string Plugin,
+    string Mode,
+    string Message,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Url = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ElicitationId = null) : ServerEvent;
+
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;
 
 /// <summary>
@@ -275,6 +321,12 @@ public static class StopReasons
 
     /// <summary>The turn reached its step limit.</summary>
     public const string StepLimit = "step_limit";
+
+    /// <summary>
+    /// The turn reached its step limit and was closed by a wrap-up request (the agent's <c>WrapUpAtStepLimit</c>): the
+    /// model answered once more with only the finishing tools offered.
+    /// </summary>
+    public const string WrappedUp = "wrapped_up";
 
     /// <summary>The client cancelled the turn (<see cref="CancelRequest"/>).</summary>
     public const string Cancelled = "cancelled";

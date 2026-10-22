@@ -96,6 +96,7 @@ public sealed class RunCommandOutcomeTests
     [Theory]
     [InlineData(TurnStopReason.Completed, 0, "completed")]
     [InlineData(TurnStopReason.StepLimit, 2, "step_limit")]
+    [InlineData(TurnStopReason.WrappedUp, 2, "wrapped_up")]
     [InlineData(TurnStopReason.OutputLimit, 2, "output_limit")]
     [InlineData(TurnStopReason.ToolTerminated, 2, "tool_terminated")]
     [InlineData(TurnStopReason.ContentFilter, 3, "content_filter")]

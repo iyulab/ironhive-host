@@ -235,6 +235,12 @@ public partial class AgentServerRunner
                     continue;
                 }
 
+                if (request is ElicitationResponseRequest elicitation)
+                {
+                    _hitl?.ResolveElicitation(elicitation);
+                    continue;
+                }
+
                 if (request is UserMessageRequest msg)
                 {
                     // The context in effect when the message arrived. Turns run one at a time, each ending with
