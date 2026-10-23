@@ -24,6 +24,10 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **`ToolRefusalCodes.InvalidArguments` documents both causes** — arguments that did not parse, or a required parameter left
   out (the second since IronHive.Agent 0.72.0). Documentation only; the code value is unchanged.
 
+### Dependencies
+- `IronHive.Agent` / `.Ironbees` / `IronHive.DeepResearch` 0.72.0 -> 0.73.0 (MCP elicitation handler, wrap-up at the step limit).
+- `ModelContextProtocol` 2.2.0 -> 2.3.0, `Microsoft.Extensions.AI.OpenAI` 10.10.1 -> 10.11.0, `OpenTelemetry` / `.Exporter.OpenTelemetryProtocol` 1.20.0 -> 1.20.1. Test tooling: xunit.v3 4.0.2, MTP HangDump 2.5.1, coverlet.MTP 10.1.0, `Microsoft.Extensions.TimeProvider.Testing` 10.11.0.
+
 ## 0.67.1 — 2026-10-23
 
 ### Fixed
