@@ -17,6 +17,11 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   Migration: a task whose commands call the same provider with the host's key lists that variable under
   `shell.environment.passthrough`.
 
+### Dependencies
+- `IronHive.Agent` / `.Ironbees` / `IronHive.DeepResearch` 0.73.0 -> 0.74.0: a turn whose provider call fails after a tool ran is no
+  longer sent again from the start (the tools would run twice) — the per-call retry this host already installs still retries a failed
+  model call inside the turn; a call the model made at the step limit to a wrap-up finishing tool runs.
+
 ## 0.68.0 — 2026-10-23
 
 ### Added
