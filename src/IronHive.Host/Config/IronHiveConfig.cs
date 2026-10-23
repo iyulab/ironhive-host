@@ -145,6 +145,55 @@ public class IronHiveConfig
     /// (<c>run --server</c>).
     /// </summary>
     public ApprovalHostConfig Approval { get; set; } = new();
+
+    /// <summary>
+    /// What the commands the model runs through the shell tool may see of the host's environment. By default the provider
+    /// API keys the host reads (<see cref="ConfigurationManager.ProviderCredentialVariables"/>) are removed.
+    /// </summary>
+    public ShellHostConfig Shell { get; set; } = new();
+}
+
+/// <summary>
+/// The shell tool — the <c>shell</c> section of <c>config.yaml</c>.
+/// </summary>
+public class ShellHostConfig
+{
+    /// <summary>The environment of the commands the model runs.</summary>
+    public ShellEnvironmentHostConfig Environment { get; set; } = new();
+
+    /// <summary>
+    /// The shell tool options these settings stand for: the provider API keys the host reads, plus
+    /// <see cref="ShellEnvironmentHostConfig.Remove"/>, minus <see cref="ShellEnvironmentHostConfig.Passthrough"/>.
+    /// </summary>
+    public IronHive.Agent.Tools.ShellToolOptions ToToolOptions()
+    {
+        // Environment variable names compare the way the operating system compares them.
+        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var remove = new HashSet<string>(ConfigurationManager.ProviderCredentialVariables, comparer);
+        remove.UnionWith(Environment.Remove.Where(name => !string.IsNullOrWhiteSpace(name)));
+        remove.ExceptWith(Environment.Passthrough);
+        return new IronHive.Agent.Tools.ShellToolOptions { RemoveEnvironmentVariables = [.. remove] };
+    }
+}
+
+/// <summary>
+/// The <c>shell.environment</c> section: which of the host's environment variables the commands the model runs do not see.
+/// </summary>
+/// <remarks>
+/// A command such as <c>env</c> prints its environment into the tool result, where it reaches the model, its transcript
+/// and the logs. Removing a variable hides its value from the command; it does not confine the command, which can still
+/// read any file the host can.
+/// </remarks>
+public class ShellEnvironmentHostConfig
+{
+    /// <summary>More variables to remove, beyond the provider API keys the host reads (a database password, a token).</summary>
+    public List<string> Remove { get; set; } = [];
+
+    /// <summary>
+    /// Provider API keys the commands should still see — for a task that calls the same provider itself. A name listed
+    /// here is kept even if <see cref="Remove"/> lists it too.
+    /// </summary>
+    public List<string> Passthrough { get; set; } = [];
 }
 
 /// <summary>

@@ -360,6 +360,21 @@ public class ConfigurationManager
     /// </summary>
     private static bool HasAnyApiProvider(IronHiveConfig config) => ProviderBlocks.Configured(config).Any();
 
+    /// <summary>
+    /// The environment variables the host reads provider API keys from. The shell tool removes them from the commands the
+    /// model runs unless <see cref="ShellEnvironmentHostConfig.Passthrough"/> keeps one.
+    /// </summary>
+    public static IReadOnlyList<string> ProviderCredentialVariables { get; } =
+    [
+        "GPUSTACK_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLEAI_API_KEY",
+        "GOOGLE_API_KEY",
+        "XAI_API_KEY",
+        "OPENAI_COMPATIBLE_API_KEY",
+    ];
+
     private static void ApplyEnvironmentVariables(IronHiveConfig config)
     {
         // GpuStack from environment

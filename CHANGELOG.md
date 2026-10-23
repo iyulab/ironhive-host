@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Changed
+- **Breaking: the commands the model runs through the shell tool no longer see the provider API keys the host reads.**
+  `GPUSTACK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLEAI_API_KEY`, `GOOGLE_API_KEY`, `XAI_API_KEY` and
+  `OPENAI_COMPATIBLE_API_KEY` are removed from every `ExecuteCommand` environment, so `env` or `printenv` no longer prints them
+  into the tool result (and from there into the transcript and the logs). Everything else is still inherited. New `shell`
+  section in `config.yaml`: `environment.remove` hides more variables, `environment.passthrough` keeps a listed one
+  (`ShellHostConfig`, `ConfigurationManager.ProviderCredentialVariables`; `BuiltInTools.GetAll` takes the shell tool options).
+  Migration: a task whose commands call the same provider with the host's key lists that variable under
+  `shell.environment.passthrough`.
+
 ## 0.68.0 — 2026-10-23
 
 ### Added

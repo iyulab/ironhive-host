@@ -175,7 +175,8 @@ public static class ServiceCollectionExtensions
                 delegation: config.Delegation,
                 plainClients: sp.GetRequiredService<PlainChatClients>().Factory,
                 chatBehavior: config.ChatBehavior,
-                historySummary: config.HistorySummary);
+                historySummary: config.HistorySummary,
+                shell: config.Shell);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.

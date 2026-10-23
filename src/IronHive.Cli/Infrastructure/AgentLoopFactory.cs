@@ -37,6 +37,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly AdvisorConfig? _advisor;
     private readonly SkillsLoader? _skills;
     private readonly FileToolOptions? _fileToolOptions;
+    private readonly IronHive.Agent.Tools.ShellToolOptions _shellToolOptions;
     private readonly PermissionConfig? _permissions;
     private readonly UsageLimitsConfig? _budget;
     private readonly AgentsMdHostConfig? _agentsMd;
@@ -99,8 +100,11 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         DelegationHostConfig? delegation = null,
         IChatClientFactory? plainClients = null,
         ChatBehaviorConfig? chatBehavior = null,
-        HistorySummaryConfig? historySummary = null)
+        HistorySummaryConfig? historySummary = null,
+        ShellHostConfig? shell = null)
     {
+        // The shell tool's commands do not see the provider API keys this host reads unless the config keeps them.
+        _shellToolOptions = (shell ?? new ShellHostConfig()).ToToolOptions();
         _chatBehavior = chatBehavior ?? new ChatBehaviorConfig();
         _delegation = delegation;
         _plainClients = plainClients;
@@ -152,7 +156,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         EnsurePermissionsJudgeTheToolsDirectory(workingDirectory);
 
         // Create agent options with built-in tools (with oops versioning and web search support)
-        var tools = BuiltInTools.GetAll(workingDirectory, _oopsService, _webSearchTool, _deepResearchTool, _fileToolOptions);
+        var tools = BuiltInTools.GetAll(workingDirectory, _oopsService, _webSearchTool, _deepResearchTool, _fileToolOptions, _shellToolOptions);
 
         // Agent Skills: the metadata reaches the instructions through the loader's contributor (registered
         // in the container); the bodies need this tool.
