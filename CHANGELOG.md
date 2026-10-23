@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## 0.68.0 — 2026-10-23
 
 ### Added
 - **An MCP server that needs a person before a tool call can finish now asks one, instead of the call failing.** A server that
