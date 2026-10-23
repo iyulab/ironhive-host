@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.69.0 — 2026-10-23
 
 ### Changed
 - **Breaking: the commands the model runs through the shell tool no longer see the provider API keys the host reads.**
