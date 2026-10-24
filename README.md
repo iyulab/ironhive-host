@@ -387,9 +387,9 @@ Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai
 | `anthropic` | |
 | `googleai` | lowercase (acronym) |
 | `xai` | |
-| `ollama` | `enabled`, `endpoint` (default `http://localhost:11434`, with or without `/v1`), `model`; `carryToolImages` (default off) — see `lmstudio`. Served through Ollama's OpenAI-compatible `/v1` surface; no key |
-| `lmstudio` | lowercase (acronym); `carryToolImages` (default off) — an image a tool returns (an MCP tool drawing a chart) is sent to the model in a user message after the tool results. These endpoints speak Chat Completions, whose tool messages hold text only, so without it the image is replaced by a note; turn it on for a vision model (llama-server with `--mmproj`, LM Studio, vLLM) |
-| `openaiCompatible` | `endpoint` (with the version path, e.g. `http://gateway:8000/v1`), `model`, `apiKey` (optional — leave it unset when the server needs none or a proxy adds it); `carryToolImages` (default off) — see `lmstudio` |
+| `ollama` | `enabled`, `endpoint` (default `http://localhost:11434`, with or without `/v1`), `model`; `carryToolImages`, `instructionsAsSystemMessage` (default off) — see `lmstudio`. Served through Ollama's OpenAI-compatible `/v1` surface; no key |
+| `lmstudio` | lowercase (acronym); `carryToolImages` (default off) — an image a tool returns (an MCP tool drawing a chart) is sent to the model in a user message after the tool results. These endpoints speak Chat Completions, whose tool messages hold text only, so without it the image is replaced by a note; turn it on for a vision model (llama-server with `--mmproj`, LM Studio, vLLM); `instructionsAsSystemMessage` (default off) — a turn's own instructions go in a second system message after the agent's prompt instead of at its end, so a server whose chat template renders tools inside the first system turn (Qwen 2.5/3, Llama 3.x) keeps the tools in its prefix cache when only the instructions change; leave it off for Gemma 3, the DeepSeek-R1 distills and gpt-oss, whose templates reject or drop a second system message |
+| `openaiCompatible` | `endpoint` (with the version path, e.g. `http://gateway:8000/v1`), `model`, `apiKey` (optional — leave it unset when the server needs none or a proxy adds it); `carryToolImages`, `instructionsAsSystemMessage` (default off) — see `lmstudio` |
 | `lmsupply` | lowercase (acronym) |
 | `permissions` | |
 | `compaction` | |

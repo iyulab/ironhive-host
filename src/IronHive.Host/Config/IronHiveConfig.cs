@@ -374,6 +374,7 @@ public class GpuStackConfig
     /// </summary>
     public bool? CarryToolImages { get; set; }
 
+
     /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request
     /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
@@ -655,6 +656,15 @@ public class OllamaConfig
     public bool? CarryToolImages { get; set; }
 
     /// <summary>
+    /// Whether a turn's own instructions are sent as a second system message after the agent's system prompt instead of
+    /// at its end. Both keep the prompt cacheable when only the instructions change; a second message also keeps the
+    /// tool definitions cached on chat templates that render tools inside the first system turn (Qwen 2.5/3, Llama 3.x).
+    /// Leave it off for templates that reject or drop a second system message (Gemma 3, the DeepSeek-R1 distills,
+    /// gpt-oss). Unset = off.
+    /// </summary>
+    public bool? InstructionsAsSystemMessage { get; set; }
+
+    /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request
     /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
     /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
@@ -697,6 +707,15 @@ public class LMStudioConfig
     public bool? CarryToolImages { get; set; }
 
     /// <summary>
+    /// Whether a turn's own instructions are sent as a second system message after the agent's system prompt instead of
+    /// at its end. Both keep the prompt cacheable when only the instructions change; a second message also keeps the
+    /// tool definitions cached on chat templates that render tools inside the first system turn (Qwen 2.5/3, Llama 3.x).
+    /// Leave it off for templates that reject or drop a second system message (Gemma 3, the DeepSeek-R1 distills,
+    /// gpt-oss). Unset = off.
+    /// </summary>
+    public bool? InstructionsAsSystemMessage { get; set; }
+
+    /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request
     /// ends with a «stream idle timeout». Seconds; must be positive. Unset = no limit. Unlike a whole-request deadline it
     /// tells a slow stream (a long answer still flowing) from a dead one, so for a local server on slow hardware set it
@@ -737,6 +756,15 @@ public class OpenAICompatibleHostConfig
     /// note. Turn it on for a vision model. Unset = off.
     /// </summary>
     public bool? CarryToolImages { get; set; }
+
+    /// <summary>
+    /// Whether a turn's own instructions are sent as a second system message after the agent's system prompt instead of
+    /// at its end. Both keep the prompt cacheable when only the instructions change; a second message also keeps the
+    /// tool definitions cached on chat templates that render tools inside the first system turn (Qwen 2.5/3, Llama 3.x).
+    /// Leave it off for templates that reject or drop a second system message (Gemma 3, the DeepSeek-R1 distills,
+    /// gpt-oss). Unset = off.
+    /// </summary>
+    public bool? InstructionsAsSystemMessage { get; set; }
 
     /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request

@@ -7,6 +7,22 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **`instructionsAsSystemMessage` on `lmstudio`, `ollama` and `openaiCompatible`** (default off): a turn's own instructions go
+  in a second system message after the agent's prompt instead of at its end, so a server whose chat template renders tools
+  inside the first system turn (Qwen 2.5/3, Llama 3.x) keeps the tools cached when only the instructions change. Leave it off
+  for Gemma 3, the DeepSeek-R1 distills and gpt-oss, whose templates reject or drop a second system message.
+
+### Fixed
+- **The agent's system prompt reaches the model when the turn also carries AGENTS.md, skill sections, a scratchpad or a compaction
+  summary.** Those blocks travel as further system messages, and the provider path (IronHive 0.70.0's `AsChatClient()`) kept only the
+  last one, so the model saw the block instead of the prompt. Now every block follows the prompt.
+
+### Changed
+- **Breaking: a turn's own instructions (`TurnOptions.Instructions`) come after the agent's system prompt instead of before it**
+  (IronHive 0.70.0). The prompt stays the leading text, so a provider's prefix cache keeps it when only the instructions change.
+  Migration: text that must frame the prompt belongs in the prompt.
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.69.0 -> 0.70.0, `IronHive.Core` 0.69.0 -> 0.70.0, `IronHive.Extensions.AI` 0.69.0 -> 0.70.0, `IronHive.Providers.Anthropic` 0.69.0 -> 0.70.0, `IronHive.Providers.GoogleAI` 0.69.0 -> 0.70.0, `IronHive.Providers.OpenAI` 0.69.0 -> 0.70.0, `IronHive.Providers.OpenAI.Compatible` 0.69.0 -> 0.70.0.
 
