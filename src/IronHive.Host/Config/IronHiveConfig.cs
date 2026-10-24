@@ -1,6 +1,7 @@
 using IronHive.Agent.Context;
 using IronHive.Agent.Permissions;
 using IronHive.Agent.Tracking;
+using IronHive.Providers.OpenAI.Compatible;
 using YamlDotNet.Serialization;
 
 namespace IronHive.Host.Config;
@@ -374,6 +375,15 @@ public class GpuStackConfig
     /// </summary>
     public bool? CarryToolImages { get; set; }
 
+    /// <summary>
+    /// Where a turn's own instructions go (<c>systemAppend</c> · <c>separateSystemMessage</c> · <c>leadingUserTurn</c>).
+    /// Every placement keeps the agent's prompt cacheable when only the instructions change. On a chat template that
+    /// renders tools inside the system turn, <c>leadingUserTurn</c> (every template) or <c>separateSystemMessage</c>
+    /// (Qwen 2.5/3, Llama 3.x — not Gemma 3, the DeepSeek-R1 distills or gpt-oss, which reject or drop a second system
+    /// message) keeps the tool definitions cached too. Unset = <c>systemAppend</c>.
+    /// </summary>
+    public InstructionsPlacement? InstructionsPlacement { get; set; }
+
 
     /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request
@@ -656,13 +666,13 @@ public class OllamaConfig
     public bool? CarryToolImages { get; set; }
 
     /// <summary>
-    /// Whether a turn's own instructions are sent as a second system message after the agent's system prompt instead of
-    /// at its end. Both keep the prompt cacheable when only the instructions change; a second message also keeps the
-    /// tool definitions cached on chat templates that render tools inside the first system turn (Qwen 2.5/3, Llama 3.x).
-    /// Leave it off for templates that reject or drop a second system message (Gemma 3, the DeepSeek-R1 distills,
-    /// gpt-oss). Unset = off.
+    /// Where a turn's own instructions go (<c>systemAppend</c> · <c>separateSystemMessage</c> · <c>leadingUserTurn</c>).
+    /// Every placement keeps the agent's prompt cacheable when only the instructions change. On a chat template that
+    /// renders tools inside the system turn, <c>leadingUserTurn</c> (every template) or <c>separateSystemMessage</c>
+    /// (Qwen 2.5/3, Llama 3.x — not Gemma 3, the DeepSeek-R1 distills or gpt-oss, which reject or drop a second system
+    /// message) keeps the tool definitions cached too. Unset = <c>systemAppend</c>.
     /// </summary>
-    public bool? InstructionsAsSystemMessage { get; set; }
+    public InstructionsPlacement? InstructionsPlacement { get; set; }
 
     /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request
@@ -707,13 +717,13 @@ public class LMStudioConfig
     public bool? CarryToolImages { get; set; }
 
     /// <summary>
-    /// Whether a turn's own instructions are sent as a second system message after the agent's system prompt instead of
-    /// at its end. Both keep the prompt cacheable when only the instructions change; a second message also keeps the
-    /// tool definitions cached on chat templates that render tools inside the first system turn (Qwen 2.5/3, Llama 3.x).
-    /// Leave it off for templates that reject or drop a second system message (Gemma 3, the DeepSeek-R1 distills,
-    /// gpt-oss). Unset = off.
+    /// Where a turn's own instructions go (<c>systemAppend</c> · <c>separateSystemMessage</c> · <c>leadingUserTurn</c>).
+    /// Every placement keeps the agent's prompt cacheable when only the instructions change. On a chat template that
+    /// renders tools inside the system turn, <c>leadingUserTurn</c> (every template) or <c>separateSystemMessage</c>
+    /// (Qwen 2.5/3, Llama 3.x — not Gemma 3, the DeepSeek-R1 distills or gpt-oss, which reject or drop a second system
+    /// message) keeps the tool definitions cached too. Unset = <c>systemAppend</c>.
     /// </summary>
-    public bool? InstructionsAsSystemMessage { get; set; }
+    public InstructionsPlacement? InstructionsPlacement { get; set; }
 
     /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request
@@ -758,13 +768,13 @@ public class OpenAICompatibleHostConfig
     public bool? CarryToolImages { get; set; }
 
     /// <summary>
-    /// Whether a turn's own instructions are sent as a second system message after the agent's system prompt instead of
-    /// at its end. Both keep the prompt cacheable when only the instructions change; a second message also keeps the
-    /// tool definitions cached on chat templates that render tools inside the first system turn (Qwen 2.5/3, Llama 3.x).
-    /// Leave it off for templates that reject or drop a second system message (Gemma 3, the DeepSeek-R1 distills,
-    /// gpt-oss). Unset = off.
+    /// Where a turn's own instructions go (<c>systemAppend</c> · <c>separateSystemMessage</c> · <c>leadingUserTurn</c>).
+    /// Every placement keeps the agent's prompt cacheable when only the instructions change. On a chat template that
+    /// renders tools inside the system turn, <c>leadingUserTurn</c> (every template) or <c>separateSystemMessage</c>
+    /// (Qwen 2.5/3, Llama 3.x — not Gemma 3, the DeepSeek-R1 distills or gpt-oss, which reject or drop a second system
+    /// message) keeps the tool definitions cached too. Unset = <c>systemAppend</c>.
     /// </summary>
-    public bool? InstructionsAsSystemMessage { get; set; }
+    public InstructionsPlacement? InstructionsPlacement { get; set; }
 
     /// <summary>
     /// How long a streaming response may stay silent — before its first event and between events — before the request

@@ -443,6 +443,21 @@ public class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
+    public void InstructionsPlacement_IsReadByItsCamelCaseName_FromTheGlobalAndTheProjectFile()
+    {
+        using var tmp = new TempConfigDirs();
+        var mgr = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath);
+        mgr.SetValue("gpuStack.instructionsPlacement", "leadingUserTurn");
+        tmp.WriteProject("lmstudio:\n  instructionsPlacement: separateSystemMessage\n");
+
+        var loaded = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
+
+        loaded.GpuStack.InstructionsPlacement.Should().Be(IronHive.Providers.OpenAI.Compatible.InstructionsPlacement.LeadingUserTurn);
+        loaded.LMStudio.InstructionsPlacement.Should().Be(IronHive.Providers.OpenAI.Compatible.InstructionsPlacement.SeparateSystemMessage);
+        loaded.Ollama.InstructionsPlacement.Should().BeNull("unset stays unset — the provider default applies");
+    }
+
+    [Fact]
     public void StreamIdleTimeoutSeconds_EveryWiredProviderBlock_LoadsFromSet_AndAProjectScopeOverridesOnlyWhatItNames()
     {
         using var tmp = new TempConfigDirs();

@@ -462,6 +462,7 @@ public static class ServiceCollectionExtensions
         BaseUrl = StripApiPath(configured.Endpoint!),
         ApiKey = configured.ApiKey!,
         CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
+        InstructionsPlacement = configured.InstructionsPlacement ?? InstructionsPlacement.SystemAppend,
         StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "gpuStack"),
     };
 
@@ -473,7 +474,7 @@ public static class ServiceCollectionExtensions
     {
         BaseUrl = configured.Endpoint.TrimEnd('/'),
         CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
-        InstructionsAsSeparateSystemMessage = configured.InstructionsAsSystemMessage ?? false,
+        InstructionsPlacement = configured.InstructionsPlacement ?? InstructionsPlacement.SystemAppend,
         StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "ollama"),
     };
 
@@ -483,7 +484,7 @@ public static class ServiceCollectionExtensions
         BaseUrl = configured.Endpoint.TrimEnd('/'),
         ApiKey = "lm-studio",
         CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
-        InstructionsAsSeparateSystemMessage = configured.InstructionsAsSystemMessage ?? false,
+        InstructionsPlacement = configured.InstructionsPlacement ?? InstructionsPlacement.SystemAppend,
         StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "lmstudio"),
     };
 
@@ -498,7 +499,7 @@ public static class ServiceCollectionExtensions
         Path = string.Empty,
         ApiKey = string.IsNullOrWhiteSpace(configured.ApiKey) ? null : configured.ApiKey,
         CarryImageToolResultsAsUserMessage = configured.CarryToolImages ?? false,
-        InstructionsAsSeparateSystemMessage = configured.InstructionsAsSystemMessage ?? false,
+        InstructionsPlacement = configured.InstructionsPlacement ?? InstructionsPlacement.SystemAppend,
         StreamIdleTimeout = StreamIdleTimeout(configured.StreamIdleTimeoutSeconds, "openaiCompatible"),
     };
 

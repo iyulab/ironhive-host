@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## 0.71.0 — Unreleased
+
+### Changed
+- **Breaking: `instructionsAsSystemMessage` (true/false) is now `instructionsPlacement`** on `lmstudio`, `ollama` and
+  `openaiCompatible`, and `gpuStack` gains it: `systemAppend` (default) · `separateSystemMessage` · `leadingUserTurn`.
+  `leadingUserTurn` puts a turn's own instructions at the head of its last user message, so the prompt, the tools and the
+  earlier turns stay in a local server's prefix cache on every chat template (Gemma 3, the DeepSeek-R1 distills and gpt-oss
+  included). Migration: `instructionsAsSystemMessage: true` → `instructionsPlacement: separateSystemMessage`. `ironhive set`
+  accepts the key on all four.
+
+### Dependencies
+- IronHive 0.70.0 -> 0.71.0 (`InstructionsPlacement`).
+
 ## 0.70.0 — 2026-10-24
 
 ### Added

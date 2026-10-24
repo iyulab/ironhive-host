@@ -87,10 +87,10 @@ public class SetCommand : Command<SetCommand.Settings>
             ["anthropic"] = ["apiKey", "model", "streamIdleTimeoutSeconds"],
             ["googleai"] = ["apiKey", "model", "streamIdleTimeoutSeconds"],
             ["xai"] = ["apiKey", "model", "endpoint", "streamIdleTimeoutSeconds"],
-            ["gpuStack"] = ["endpoint", "apiKey", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
-            ["ollama"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
-            ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
-            ["openaiCompatible"] = ["endpoint", "apiKey", "model", "carryToolImages", "streamIdleTimeoutSeconds"],
+            ["gpuStack"] = ["endpoint", "apiKey", "model", "carryToolImages", "instructionsPlacement", "streamIdleTimeoutSeconds"],
+            ["ollama"] = ["enabled", "endpoint", "model", "carryToolImages", "instructionsPlacement", "streamIdleTimeoutSeconds"],
+            ["lmstudio"] = ["enabled", "endpoint", "model", "carryToolImages", "instructionsPlacement", "streamIdleTimeoutSeconds"],
+            ["openaiCompatible"] = ["endpoint", "apiKey", "model", "carryToolImages", "instructionsPlacement", "streamIdleTimeoutSeconds"],
             ["lmsupply"] = ["enabled", "generatorModel", "maxContextLength"]
         };
 
