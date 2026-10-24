@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.Extensions.AI -->
-    <PackageVersion Include="Ironbees.Core" Version="0.30.0" />
+    <PackageVersion Include="Ironbees.Core" Version="0.30.1" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
@@ -55,7 +55,7 @@
     <PackageVersion Include="Cronex.Net.Hosting" Version="0.7.1" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
     <!-- TokenMeter (model catalog & cost calculation) -->
-    <PackageVersion Include="TokenMeter" Version="0.15.0" />
+    <PackageVersion Include="TokenMeter" Version="0.16.0" />
     <!-- Testing (xUnit v3 on Microsoft.Testing.Platform) -->
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
