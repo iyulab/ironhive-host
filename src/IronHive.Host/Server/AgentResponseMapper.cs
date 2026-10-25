@@ -185,6 +185,7 @@ public static class AgentResponseMapper
         ToolCallRefusalKind.RepeatedResult => ToolRefusalCodes.RepeatedResult,
         ToolCallRefusalKind.TimedOut => ToolRefusalCodes.TimedOut,
         ToolCallRefusalKind.AwaitingApproval => ToolRefusalCodes.AwaitingApproval,
+        ToolCallRefusalKind.UnknownTool => ToolRefusalCodes.UnknownTool,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "A tool refusal without a wire name."),
     };
 }

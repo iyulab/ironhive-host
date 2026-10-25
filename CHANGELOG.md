@@ -7,7 +7,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **`tool_end` says when a call named a tool the turn did not offer**: `Refusal: unknown_tool` (`ToolRefusalCodes.UnknownTool`). With
+  IronHive.Agent 0.76.0 such calls go through the loop guards, so a model that keeps calling a missing tool is stopped with
+  `repeated_error` instead of looping to the step limit (the server would otherwise have thrown on the new refusal kind).
+
 ### Dependencies
+- `IronHive.Agent` / `IronHive.Agent.Ironbees` / `IronHive.DeepResearch` 0.75.0 -> 0.76.0.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.30.0 -> 0.30.1, `TokenMeter` 0.15.0 -> 0.16.0.
 
 ## 0.71.0 — 2026-10-24

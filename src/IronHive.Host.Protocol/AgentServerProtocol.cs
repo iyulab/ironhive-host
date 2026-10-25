@@ -209,6 +209,12 @@ public static class ToolRefusalCodes
     /// <see cref="ToolEndEvent"/> for the same <see cref="ToolEndEvent.CallId"/> carrying the outcome.
     /// </summary>
     public const string AwaitingApproval = "awaiting_approval";
+
+    /// <summary>
+    /// The call named a tool the turn did not offer; the model read «not found». A model that keeps calling it is stopped
+    /// by the repeated-error guard (<see cref="RepeatedError"/>).
+    /// </summary>
+    public const string UnknownTool = "unknown_tool";
 }
 
 /// <summary>
