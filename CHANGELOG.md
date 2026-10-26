@@ -15,6 +15,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Dependencies
 - `IronHive.Agent` / `IronHive.Agent.Ironbees` / `IronHive.DeepResearch` 0.75.0 -> 0.76.0.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.30.0 -> 0.30.1, `TokenMeter` 0.15.0 -> 0.16.0.
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.136.0 -> 0.137.0. LMSupply 0.137.0 changes the token estimate it falls back to when a local server reports no usage: Korean text now counts about 2.5x more tokens than before, English slightly fewer, digits more.
 
 ## 0.71.0 — 2026-10-24
 
