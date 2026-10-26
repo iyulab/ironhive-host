@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.72.0 — 2026-10-26
 
 ### Added
 - **`run --server` connects an MCP server that was not ready at start, or that restarted, by itself, and offers its tools to the running
