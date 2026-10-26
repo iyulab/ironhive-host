@@ -8,7 +8,7 @@ namespace IronHive.Agent.Mcp;
 /// Cronex trigger handler that checks connected MCP plugin health and reports failures
 /// back to the owning <see cref="McpHealthCheckService"/>.
 /// </summary>
-internal sealed class McpHealthCheckHandler : ICronexHandler
+internal sealed partial class McpHealthCheckHandler : ICronexHandler
 {
     private readonly McpHealthCheckService _owner;
     private readonly IMcpPluginManager _pluginManager;
@@ -35,7 +35,14 @@ internal sealed class McpHealthCheckHandler : ICronexHandler
                 _logger?.LogWarning("MCP plugin '{PluginName}' health check failed", pluginName);
 #pragma warning restore CA1848
                 _owner.RaisePluginUnhealthy(pluginName);
+
+                // Failed attempts are recorded by the manager (PendingPlugins) and retried by the reconnect trigger.
+                var reconnected = await _pluginManager.ReconnectAsync(pluginName, cancellationToken);
+                LogReconnectAttempt(_logger, pluginName, reconnected);
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "MCP plugin '{PluginName}' was found unhealthy; reconnected: {Reconnected}")]
+    private static partial void LogReconnectAttempt(ILogger? logger, string pluginName, bool reconnected);
 }

@@ -30,6 +30,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly WebSearchTool? _webSearchTool;
     private readonly DeepResearchTool? _deepResearchTool;
     private readonly IMcpPluginManager? _mcpPluginManager;
+    private readonly McpToolSynchronizer? _mcpTools;
     private readonly ILogger<AgentLoopFactory>? _logger;
     private readonly CompactionConfig? _compactionConfig;
     private readonly IErrorRecoveryService? _errorRecovery;
@@ -122,6 +123,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _webSearchTool = webSearchTool;
         _deepResearchTool = deepResearchTool;
         _mcpPluginManager = mcpPluginManager;
+        _mcpTools = mcpPluginManager is null ? null : new McpToolSynchronizer(mcpPluginManager, logger);
         _logger = logger;
         _compactionConfig = compactionConfig;
         _errorRecovery = errorRecovery;
@@ -156,7 +158,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         EnsurePermissionsJudgeTheToolsDirectory(workingDirectory);
 
         // Create agent options with built-in tools (with oops versioning and web search support)
-        var tools = BuiltInTools.GetAll(workingDirectory, _oopsService, _webSearchTool, _deepResearchTool, _fileToolOptions, _shellToolOptions);
+        // A list the loop reads every turn and that tools can be added to while it runs: an MCP server that connects after the
+        // loop was built (McpToolSynchronizer) has its tools offered from the next turn on.
+        var tools = new IronHive.Agent.Tools.LiveToolList(
+            BuiltInTools.GetAll(workingDirectory, _oopsService, _webSearchTool, _deepResearchTool, _fileToolOptions, _shellToolOptions));
 
         // Agent Skills: the metadata reaches the instructions through the loader's contributor (registered
         // in the container); the bodies need this tool.
@@ -325,7 +330,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     /// Loads MCP plugins from configuration and adds their tools to the tool list.
     /// Plugin loading is resilient — connection failures are logged but don't block agent creation.
     /// </summary>
-    private async Task LoadMcpToolsAsync(IList<AITool> tools, CancellationToken cancellationToken)
+    private async Task LoadMcpToolsAsync(IronHive.Agent.Tools.LiveToolList tools, CancellationToken cancellationToken)
     {
         if (_mcpPluginManager is null)
         {
@@ -361,22 +366,29 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             }
         }
 
-        // Add tools from connected plugins
-        if (_mcpPluginManager.ConnectedPlugins.Count > 0)
+        // Add tools from connected plugins, one plugin at a time: the synchronizer must know which tools belong to which plugin
+        // to replace them when that plugin connects again. A plugin whose listing fails does not hide the others.
+        var byPlugin = new Dictionary<string, IReadOnlyList<AITool>>(StringComparer.Ordinal);
+        foreach (var plugin in _mcpPluginManager.ConnectedPlugins.OrderBy(name => name, StringComparer.Ordinal))
         {
             try
             {
-                var mcpTools = await _mcpPluginManager.GetToolsAsync(cancellationToken);
-                foreach (var tool in mcpTools)
+                var pluginTools = await _mcpPluginManager.GetToolsAsync(plugin, cancellationToken);
+                foreach (var tool in pluginTools)
                 {
                     tools.Add(tool);
                 }
+
+                byPlugin[plugin] = pluginTools;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 LogMcpToolsFailed(_logger, ex);
             }
         }
+
+        // Followed even when no plugin is connected yet: those that failed at start are connected later (PendingPlugins).
+        _mcpTools?.Track(tools, byPlugin);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to load MCP plugins from configuration")]

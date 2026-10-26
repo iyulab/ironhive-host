@@ -401,10 +401,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             Directory.CreateDirectory(logDir);
             executionLog.Initialize(Path.Combine(logDir, $"{sessionId}.execlog.jsonl"));
 
-            // Start MCP health check if plugins are connected
-            if (_pluginManager is not null && _pluginManager.ConnectedPlugins.Count > 0)
+            // Keep the plugins connected: check the ones that are, and try the ones that could not be (a server that was not
+            // ready when the engine started has no connected plugin at all).
+            if (McpHealthCheckService.IsNeeded(_pluginManager))
             {
-                healthCheck = new McpHealthCheckService(_pluginManager);
+                healthCheck = new McpHealthCheckService(_pluginManager!);
                 await healthCheck.StartAsync(ct);
             }
 

@@ -8,12 +8,19 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## Unreleased
 
 ### Added
+- **`run --server` connects an MCP server that was not ready at start, or that restarted, by itself, and offers its tools to the running
+  session.** A server that failed `initialize` at start used to stay unconnected until the process ended, its tools answering «Requested function
+  … not found». Now it is tried again every 30 s on a growing wait (5 s up to 5 min), its tools join the loop's list from the next turn, a
+  plugin found unhealthy by the 5-minute check is replaced by a new connection (its tools are swapped, not duplicated), and one that
+  disconnects has its tools taken out. A plugin entry with `autoReconnect: false` is left alone (the key was read from `plugins.json` before but
+  did nothing). `McpHealthCheckService` takes a `reconnectExpression` (default `@every 30s`); `McpToolSynchronizer` keeps the tool lists in
+  step; the loop's tool list is a `LiveToolList`.
 - **`tool_end` says when a call named a tool the turn did not offer**: `Refusal: unknown_tool` (`ToolRefusalCodes.UnknownTool`). With
   IronHive.Agent 0.76.0 such calls go through the loop guards, so a model that keeps calling a missing tool is stopped with
   `repeated_error` instead of looping to the step limit (the server would otherwise have thrown on the new refusal kind).
 
 ### Dependencies
-- `IronHive.Agent` / `IronHive.Agent.Ironbees` / `IronHive.DeepResearch` 0.75.0 -> 0.76.0.
+- `IronHive.Agent` / `IronHive.Agent.Ironbees` / `IronHive.DeepResearch` 0.75.0 -> 0.77.0.
 - Re-pinned sibling package(s) `Ironbees.Core` 0.30.0 -> 0.30.1, `TokenMeter` 0.15.0 -> 0.16.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.136.0 -> 0.137.0. LMSupply 0.137.0 changes the token estimate it falls back to when a local server reports no usage: Korean text now counts about 2.5x more tokens than before, English slightly fewer, digits more.
 - Re-pinned third-party packages: 8 .NET servicing pins (Microsoft.Extensions) 10.0.13 -> 10.0.14 (the 10.0.14 security servicing release); `Spectre.Console` 0.55.2 -> 0.57.2; `Spectre.Console.Cli` 0.55.0 -> 0.57.2.
