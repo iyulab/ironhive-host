@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Added
+- **`run --server` writes one line on standard error for each MCP plugin attempt that fails and each plugin that connects**
+  (`ironhive: MCP plugin 'name' is not connected: <reason>` / `... connected`), so an operator can see that a server is still not attached.
+  Until now the CLI said nothing: the state was visible only on the server's own side.
+
 ## 0.72.0 — 2026-10-26
 
 ### Added

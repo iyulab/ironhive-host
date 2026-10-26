@@ -354,6 +354,12 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     private async Task<int> RunServerModeAsync(Settings settings, CancellationToken ct)
     {
+        // Before the loop is built: a server that is not ready at start fails inside that call, and the engine may run for days.
+        if (_pluginManager is not null)
+        {
+            McpDiagnostics.Attach(_pluginManager, Console.Error);
+        }
+
         var created = await _factory.CreateWithPipelineAsync(new AgentLoopFactoryOptions
         {
             Provider = settings.Provider,
