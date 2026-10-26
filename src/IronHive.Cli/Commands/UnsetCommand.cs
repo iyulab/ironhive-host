@@ -25,7 +25,7 @@ public class UnsetCommand : Command<UnsetCommand.Settings>
         public string Key { get; init; } = string.Empty;
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(settings.Key))
         {

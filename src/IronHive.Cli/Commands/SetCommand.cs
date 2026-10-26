@@ -29,7 +29,7 @@ public class SetCommand : Command<SetCommand.Settings>
         public string Value { get; init; } = string.Empty;
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(settings.Key))
         {

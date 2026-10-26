@@ -144,7 +144,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Ctrl+C cancels the run the way a caller's token does (a single run exits 130, a server stops and ends its turn)
         // instead of killing the process mid-write; a second Ctrl+C still ends the process — the interactive command's

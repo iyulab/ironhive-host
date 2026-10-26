@@ -26,7 +26,7 @@ public class ConfigCommand : Command<ConfigCommand.Settings>
         public string? Action { get; init; }
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var action = settings.Action?.ToLowerInvariant() ?? "show";
 

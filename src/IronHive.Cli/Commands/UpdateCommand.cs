@@ -28,7 +28,7 @@ public class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
         public bool Force { get; init; }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var installType = _updateService.IsDotnetToolInstallation ? "dotnet tool" : "standalone";
         AnsiConsole.MarkupLine($"[grey]Current version: [cyan]v{_updateService.CurrentVersion}[/] ({installType})[/]");

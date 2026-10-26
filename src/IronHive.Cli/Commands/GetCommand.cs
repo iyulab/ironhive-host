@@ -29,7 +29,7 @@ public class GetCommand : Command<GetCommand.Settings>
         public bool Raw { get; init; }
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // If no key, show all settings
         if (string.IsNullOrWhiteSpace(settings.Key))
