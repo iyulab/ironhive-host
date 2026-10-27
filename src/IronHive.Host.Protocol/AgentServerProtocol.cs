@@ -12,6 +12,8 @@ namespace IronHive.Host.Protocol;
 [JsonDerivedType(typeof(ContextUpdateRequest), "context_update")]
 [JsonDerivedType(typeof(CancelRequest), "cancel")]
 [JsonDerivedType(typeof(ElicitationResponseRequest), "elicitation_response")]
+[JsonDerivedType(typeof(ListSessionsRequest), "list_sessions")]
+[JsonDerivedType(typeof(ReadSessionRequest), "read_session")]
 public abstract record ServerRequest;
 
 /// <summary>
@@ -124,6 +126,8 @@ public record CancelRequest() : ServerRequest;
 [JsonDerivedType(typeof(PlanCompletedServerEvent), "plan_completed")]
 [JsonDerivedType(typeof(FallbackServerEvent), "fallback")]
 [JsonDerivedType(typeof(ElicitationRequestEvent), "elicitation_request")]
+[JsonDerivedType(typeof(SessionListEvent), "session_list")]
+[JsonDerivedType(typeof(SessionPageEvent), "session_page")]
 public abstract record ServerEvent;
 
 public record SessionStartedEvent(string SessionId) : ServerEvent;
@@ -409,6 +413,17 @@ public static class ErrorCodes
     /// (<see cref="StopReasons.Suspended"/>); nothing of the message was recorded. Send it again once the server runs.
     /// </summary>
     public const string NotProcessed = "not_processed";
+
+    /// <summary>
+    /// A <see cref="ReadSessionRequest"/> named a session the server has no record of. Asking again with the same id fails
+    /// the same way; list the sessions to see which exist.
+    /// </summary>
+    public const string SessionNotFound = "session_not_found";
+
+    /// <summary>
+    /// The request is valid but this server cannot serve it (for example a session read when no session store is attached).
+    /// </summary>
+    public const string NotSupported = "not_supported";
 }
 
 /// <summary>
@@ -450,3 +465,61 @@ public record PlanStepCompletedServerEvent(string PlanId, int StepIndex, bool Su
 /// <param name="Success">Whether the plan succeeded.</param>
 /// <param name="Summary">A short account of the run.</param>
 public record PlanCompletedServerEvent(string PlanId, bool Success, string Summary) : ServerEvent;
+
+// ── Reading stored sessions (read-only; answered while a turn runs) ──
+
+/// <summary>
+/// Asks for the stored sessions, newest first — what a client shows as «earlier conversations». Read-only: it changes
+/// nothing and does not wait for or disturb a running turn. Answered with a <see cref="SessionListEvent"/> carrying the same
+/// <paramref name="Id"/>.
+/// </summary>
+/// <param name="Id">Echoed in the answer, so a client with several requests in flight pairs them. Optional.</param>
+/// <param name="ProjectPath">The project whose sessions to list; null lists the server's own project.</param>
+/// <param name="Limit">At most this many sessions in the page (1–100); null is 20.</param>
+/// <param name="Cursor">The <see cref="SessionListEvent.NextCursor"/> of the previous page; null starts at the newest.</param>
+public record ListSessionsRequest(string? Id = null, string? ProjectPath = null, int? Limit = null, string? Cursor = null) : ServerRequest;
+
+/// <summary>
+/// Asks for one stored session's conversation, oldest entry first. Read-only, like <see cref="ListSessionsRequest"/>.
+/// Answered with a <see cref="SessionPageEvent"/>, or an <see cref="ErrorEvent"/> coded
+/// <see cref="ErrorCodes.SessionNotFound"/> when the session does not exist.
+/// </summary>
+/// <param name="SessionId">The <see cref="SessionSummaryItem.Id"/> to read.</param>
+/// <param name="Id">Echoed in the answer. Optional.</param>
+/// <param name="Cursor">The <see cref="SessionPageEvent.NextCursor"/> of the previous page; null starts at the first entry.</param>
+/// <param name="Limit">At most this many entries in the page (1–500); null is 100.</param>
+public record ReadSessionRequest(string SessionId, string? Id = null, string? Cursor = null, int? Limit = null) : ServerRequest;
+
+/// <summary>One page of stored sessions.</summary>
+/// <param name="Id">The request's <see cref="ListSessionsRequest.Id"/>, as sent.</param>
+/// <param name="Sessions">Newest first.</param>
+/// <param name="NextCursor">Pass it as <see cref="ListSessionsRequest.Cursor"/> for the next page; null when this was the last.</param>
+public record SessionListEvent(string? Id, IReadOnlyList<SessionSummaryItem> Sessions, string? NextCursor) : ServerEvent;
+
+/// <summary>A stored session, as a list shows it.</summary>
+/// <param name="Id">The session id (what <c>--session-id</c> takes to continue it).</param>
+/// <param name="StartedAt">When the session was created.</param>
+/// <param name="LastActiveAt">When it last had activity.</param>
+/// <param name="Status"><c>active</c>, <c>ended</c>, <c>error</c> or <c>forked</c>.</param>
+/// <param name="Model">The model the session ran with.</param>
+/// <param name="MessageCount">How many conversation messages it holds.</param>
+/// <param name="Preview">A short text to show in place of a title — the opening of the first user message; null when none.</param>
+public record SessionSummaryItem(
+    string Id, DateTimeOffset StartedAt, DateTimeOffset LastActiveAt, string Status, string Model, int MessageCount, string? Preview);
+
+/// <summary>One page of a stored session's conversation.</summary>
+/// <param name="Id">The request's <see cref="ReadSessionRequest.Id"/>, as sent.</param>
+/// <param name="SessionId">The session read.</param>
+/// <param name="Entries">In the order they happened.</param>
+/// <param name="NextCursor">Pass it as <see cref="ReadSessionRequest.Cursor"/> for the next page; null when this was the last.
+/// A session that is still being written can have more entries by then.</param>
+public record SessionPageEvent(string? Id, string SessionId, IReadOnlyList<SessionEntryItem> Entries, string? NextCursor) : ServerEvent;
+
+/// <summary>
+/// One thing in a stored conversation. <paramref name="Kind"/> is <c>user</c> or <c>assistant</c> (<paramref name="Text"/>),
+/// <c>tool_use</c> (<paramref name="Tool"/>, <paramref name="Input"/>, <paramref name="CallId"/>) or <c>tool_result</c>
+/// (<paramref name="CallId"/>, <paramref name="Text"/>, <paramref name="IsError"/>). The shape is this protocol's own; the
+/// stored transcript format behind it can change without changing it.
+/// </summary>
+public record SessionEntryItem(
+    string Kind, string? Text = null, string? Tool = null, JsonElement? Input = null, string? CallId = null, bool? IsError = null);

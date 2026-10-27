@@ -438,6 +438,11 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
             var logger = NullLogger<AgentServerRunner>.Instance;
             var runner = new AgentServerRunner(ProcessMessage, logger, hitlBridge: _hitlBridge);
+            if (_sessionManager is not null)
+            {
+                // Earlier conversations: a client lists the stored sessions and reads one, beside the running turn
+                runner.SessionReader = new StoredSessionReader(_sessionManager, Directory.GetCurrentDirectory());
+            }
             if (_errorRecovery is not null)
             {
                 // The same classifier error recovery uses (with the gateways' failure readers), so ErrorEvent.Code agrees with it.

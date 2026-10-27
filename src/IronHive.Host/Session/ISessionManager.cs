@@ -46,6 +46,16 @@ public interface ISessionManager
     Task<Session?> GetLatestSessionAsync(string projectPath, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads a session's transcript entries in the order they were recorded — the conversation as it was stored, before it
+    /// is turned into model context. Read-only. An implementation that cannot read its store back throws
+    /// <see cref="NotSupportedException"/> (the default).
+    /// </summary>
+    /// <param name="session">The session to read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IReadOnlyList<TranscriptEntry>> ReadTranscriptAsync(Session session, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException($"{GetType().Name} cannot read a session transcript back.");
+
+    /// <summary>
     /// Lists all sessions for a project.
     /// </summary>
     /// <param name="projectPath">The project root directory</param>

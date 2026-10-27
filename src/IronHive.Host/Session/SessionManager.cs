@@ -395,6 +395,13 @@ public class SessionManager : ISessionManager
         await File.AppendAllTextAsync(transcriptPath, json + Environment.NewLine);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<TranscriptEntry>> ReadTranscriptAsync(Session session, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return await ReadEntriesAsync(session.TranscriptPath);
+    }
+
     private async Task<List<TranscriptEntry>> ReadEntriesAsync(string transcriptPath)
     {
         var entries = new List<TranscriptEntry>();

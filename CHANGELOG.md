@@ -7,10 +7,8 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
-### Fixed
-- **A prompt that starts with a dash no longer ends `run -p "<prompt>"` with «Option does not have a name».** The command-line parser read a prompt such as `- You are given a file ...` (a markdown bullet list) as an option before the agent started. `-p` / `--prompt` followed by text that starts with a dash and contains whitespace now takes that text as its value.
-
 ### Added
+- **`run --server` can list the stored sessions and read one session's conversation** (`list_sessions` / `read_session` requests, answered by `session_list` / `session_page`). A client that re-attaches a user shows the earlier conversations without reading the transcript files itself. Read-only, answered while a turn runs, paged by an opaque cursor; the entries are the protocol's own shape (`user`, `assistant`, `tool_use`, `tool_result`), so the transcript format stays internal. An unknown session answers an `error` coded `session_not_found`; a server with no session store answers `not_supported`. New: `StoredSessionReader`, `AgentServerRunner.SessionReader`, `ISessionManager.ReadTranscriptAsync` (a default member that throws `NotSupportedException`; `SessionManager` implements it).
 - **`run --server` writes one line on standard error for each MCP plugin attempt that fails and each plugin that connects**
   (`ironhive: MCP plugin 'name' is not connected: <reason>` / `... connected`), so an operator can see that a server is still not attached.
   Until now the CLI said nothing: the state was visible only on the server's own side.

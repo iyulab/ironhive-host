@@ -27,6 +27,9 @@ public partial class AgentServerRunner
     [LoggerMessage(Level = LogLevel.Warning, Message = "Unreadable request line skipped ({ErrorType})")]
     private partial void LogUnreadableRequest(string errorType);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A session read failed")]
+    private partial void LogSessionReadFailed(Exception ex);
+
     internal static readonly JsonSerializerOptions DefaultJsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -46,6 +49,13 @@ public partial class AgentServerRunner
     /// Optional callback invoked when a context update is received.
     /// </summary>
     public Action<ContextUpdateRequest>? OnContextUpdate { get; set; }
+
+    /// <summary>
+    /// Answers <see cref="ListSessionsRequest"/> and <see cref="ReadSessionRequest"/> from the session store. The answers are
+    /// written as soon as they are ready, without waiting for or disturbing a running turn (they only read). Without it the
+    /// server answers those requests with an <see cref="ErrorEvent"/> coded <see cref="ErrorCodes.NotSupported"/>.
+    /// </summary>
+    public Session.StoredSessionReader? SessionReader { get; set; }
 
     /// <summary>
     /// A turn to run before any message is read - the turn a previous process left waiting for approval
@@ -207,6 +217,8 @@ public partial class AgentServerRunner
             await _hitl.ReofferDeferredAsync(ct);
         }
 
+        // Session reads answer beside the turns, not through their queue; the loop waits for the ones still running when it ends.
+        var reads = new List<Task>();
         try
         {
             await foreach (var request in channel.Reader.ReadAllAsync(ct))
@@ -214,6 +226,13 @@ public partial class AgentServerRunner
                 if (request is ShutdownRequest)
                 {
                     break;
+                }
+
+                if (request is ListSessionsRequest || request is ReadSessionRequest)
+                {
+                    reads.RemoveAll(task => task.IsCompleted);
+                    reads.Add(AnswerSessionReadAsync(request, output, writeLock, ct));
+                    continue;
                 }
 
                 if (request is CancelRequest)
@@ -263,6 +282,9 @@ public partial class AgentServerRunner
             // timeout. A wait that begins while the remaining turns run is treated the same way.
             StopWaits(_hitl, turns, () => _suspending = true);
 
+            // A read already received is answered before the server stops (it only reads, and ends with the cancellation token).
+            await Task.WhenAll(reads);
+
             // Run the turns already received so each one's TurnEndEvent is written.
             await turns.DisposeAsync();
             if (_hitl is not null)
@@ -282,6 +304,34 @@ public partial class AgentServerRunner
     {
         ArgumentNullException.ThrowIfNull(processMessage);
         return (msg, context, ct) => processMessage(msg with { Content = ContextEnrichment.Apply(context, msg.Content) }, ct);
+    }
+
+    // Never throws: a failed read is answered as an ErrorEvent, as a failed turn is.
+    private async Task AnswerSessionReadAsync(ServerRequest request, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)
+    {
+        ServerEvent answer;
+        try
+        {
+            answer = SessionReader is not { } reader
+                ? new ErrorEvent("This server has no session store to read.") { Code = ErrorCodes.NotSupported }
+                : request switch
+                {
+                    ListSessionsRequest list => await reader.ListAsync(list, ct),
+                    ReadSessionRequest read => await reader.ReadAsync(read, ct),
+                    _ => new ErrorEvent("Not a session read.") { Code = ErrorCodes.Internal },
+                };
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            LogSessionReadFailed(ex);
+            answer = new ErrorEvent("The session store could not be read.") { Code = ErrorCodes.Internal };
+        }
+
+        await WriteSerializedAsync(output, writeLock, answer, CancellationToken.None);
     }
 
     private async Task HandleTurnAsync(
