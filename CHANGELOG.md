@@ -15,6 +15,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.71.0 -> 0.72.0, `IronHive.Core` 0.71.0 -> 0.72.0, `IronHive.Extensions.AI` 0.71.0 -> 0.72.0, `IronHive.Providers.Anthropic` 0.71.0 -> 0.72.0, `IronHive.Providers.GoogleAI` 0.71.0 -> 0.72.0, `IronHive.Providers.OpenAI` 0.71.0 -> 0.72.0, `IronHive.Providers.OpenAI.Compatible` 0.71.0 -> 0.72.0.
+- Re-pinned sibling package(s) `IronHive.Agent` 0.77.0 -> 0.78.0, `IronHive.Agent.Ironbees` 0.77.0 -> 0.78.0, `IronHive.DeepResearch` 0.77.0 -> 0.78.0.
 
 ## 0.72.0 — 2026-10-26
 
