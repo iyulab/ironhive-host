@@ -13,6 +13,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   (`ironhive: MCP plugin 'name' is not connected: <reason>` / `... connected`), so an operator can see that a server is still not attached.
   Until now the CLI said nothing: the state was visible only on the server's own side.
 
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.71.0 -> 0.72.0, `IronHive.Core` 0.71.0 -> 0.72.0, `IronHive.Extensions.AI` 0.71.0 -> 0.72.0, `IronHive.Providers.Anthropic` 0.71.0 -> 0.72.0, `IronHive.Providers.GoogleAI` 0.71.0 -> 0.72.0, `IronHive.Providers.OpenAI` 0.71.0 -> 0.72.0, `IronHive.Providers.OpenAI.Compatible` 0.71.0 -> 0.72.0.
+
 ## 0.72.0 — 2026-10-26
 
 ### Added
