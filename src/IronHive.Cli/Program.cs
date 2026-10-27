@@ -74,7 +74,8 @@ try
             .WithExample("sessions", "delete", "<session-id>");
     });
 
-    return await app.RunAsync(args);
+    // A prompt that starts with a dash (a bullet list) is a value, not an option - see PromptArguments.
+    return await app.RunAsync(PromptArguments.Normalize(args));
 }
 catch (Exception ex) when (args.Contains("--json") && args.Contains("run"))
 {

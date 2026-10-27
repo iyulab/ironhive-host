@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Fixed
+- **A prompt that starts with a dash no longer ends `run -p "<prompt>"` with «Option does not have a name».** The command-line parser read a prompt such as `- You are given a file ...` (a markdown bullet list) as an option before the agent started. `-p` / `--prompt` followed by text that starts with a dash and contains whitespace now takes that text as its value.
+
 ### Added
 - **`run --server` writes one line on standard error for each MCP plugin attempt that fails and each plugin that connects**
   (`ironhive: MCP plugin 'name' is not connected: <reason>` / `... connected`), so an operator can see that a server is still not attached.
