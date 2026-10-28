@@ -13,6 +13,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   host probes a newer request by sending it. This was already the behaviour; it is now the documented contract, and a test pins it
   for both runners.
 
+### Dependencies
+- Re-pinned sibling package(s) `LMSupply.Generator` 0.138.0 -> 0.139.0.
+
 ## 0.75.0 — 2026-10-28
 
 ### Added
