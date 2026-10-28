@@ -15,12 +15,10 @@
 
   <ItemGroup>
     <!-- Microsoft.Extensions.AI -->
-    <PackageReference Include="Ironbees.Core" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="ModelContextProtocol" />
-    <PackageReference Include="NetEscapades.Configuration.Yaml" />
 
     <!-- OpenAI SDK -->
     <PackageReference Include="OpenAI" />

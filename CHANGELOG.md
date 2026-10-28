@@ -9,6 +9,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Removed
 - **`DiffPlex` is no longer a dependency of `IronHive.Host`**: no code in the package used it. Consumers that took it transitively and use DiffPlex types must reference it themselves.
+- **`IronHive.Host` no longer depends on `NetEscapades.Configuration.Yaml` or `Ironbees.Core`, and `IronHive.Cli` no longer depends on `NetEscapades.Configuration.Yaml`**: neither project's source used them (YAML configuration loading lives in `IronHive.Agent`). A consumer that took them transitively through these packages and uses their types must reference them themselves.
 
 ### Changed
 - **The README states how the `run --server` protocol evolves**: new requests and events are added without removing what shipped,
