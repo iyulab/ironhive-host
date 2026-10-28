@@ -125,6 +125,31 @@ public class AgentServerRunnerTests
         error.Code.Should().Be(ErrorCodes.UnreadableRequest);
     }
 
+    // The protocol grows by addition (README «Evolving the protocol»): a request type this server does not know is
+    // answered like any unreadable line - an error coded unreadable_request - and the session keeps serving.
+    [Fact]
+    public async Task RunAsync_UnknownRequestType_ReportsUnreadableRequestAndKeepsServing()
+    {
+        var messages = new List<string>();
+        var runner = CreateRunner(content =>
+        {
+            messages.Add(content);
+            return SingleEvent(new TextDeltaEvent("ok"));
+        });
+
+        var input = BuildInput(
+            """{"type":"a_request_from_a_newer_protocol","id":"r1"}""",
+            """{"type":"user_message","content":"still here"}""",
+            """{"type":"shutdown"}""");
+        using var output = new StringWriter();
+
+        await runner.RunAsync(input, output, CancellationToken.None);
+
+        messages.Should().Equal("still here");
+        var error = ParseEvents(output).OfType<ErrorEvent>().Should().ContainSingle().Which;
+        error.Code.Should().Be(ErrorCodes.UnreadableRequest);
+    }
+
     [Fact]
     public async Task ReadNextRequest_ContextUpdate_ReturnsContextUpdateRequest()
     {

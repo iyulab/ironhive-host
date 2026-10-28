@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Changed
+- **The README states how the `run --server` protocol evolves**: new requests and events are added without removing what shipped,
+  and a request the server does not know is answered with an `error` coded `unreadable_request` while the session continues - a
+  host probes a newer request by sending it. This was already the behaviour; it is now the documented contract, and a test pins it
+  for both runners.
+
 ## 0.75.0 — 2026-10-28
 
 ### Added

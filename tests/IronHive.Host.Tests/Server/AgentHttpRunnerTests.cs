@@ -86,6 +86,22 @@ public class AgentHttpRunnerTests
             && e.Contains("\"code\":\"unreadable_request\"", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task UnknownInboxRequestType_IsReportedAsUnreadableAndSkipped()
+    {
+        var host = new FakeHost(Inbox(
+            """data: {"type":"a_request_from_a_newer_protocol","id":"r1"}""",
+            """data: {"type":"user_message","content":"ok"}""",
+            """data: {"type":"shutdown"}"""));
+        var messages = new ConcurrentQueue<string>();
+        using var runner = CreateRunner(host, messages);
+
+        await runner.RunAsync(TestContext.Current.CancellationToken);
+
+        messages.Should().Equal("ok");
+        host.PostedEvents.Should().Contain(e => e.Contains("\"code\":\"unreadable_request\"", StringComparison.Ordinal));
+    }
+
     // A provider call's timeout surfaces as a cancellation the client never asked for; it was posted like a cancel —
     // no error, a bare turn end.
     [Fact]

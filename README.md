@@ -780,6 +780,13 @@ the stop waited for the approval timeout).
 may accept them but should not wait for them. In the plan step events, `stepIndex` is the step's 1-based number: its position in the
 last `plan_created`'s `stepDescriptions` plus one.
 
+**Evolving the protocol.** The protocol grows by addition: new request and event types, and new optional fields on existing ones,
+arrive without removing or renaming what a release already shipped. A host should ignore event types and fields it does not know.
+A request this server does not know, or any line it cannot read, is answered with an `error` coded `unreadable_request` and the
+session carries on - the line is skipped and nothing else is affected (the stdio and the HTTP runner behave the same). So a host
+that wants a newer request against a server of unknown age sends it and reads the answer; there is no version or capability
+negotiation, and none is planned until a host needs to know before it asks.
+
 **Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
 the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |
 `require:<tool>`), `reasoning_effort` (`none` | `low` | `medium` | `high` | `extra_high`),
