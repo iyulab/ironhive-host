@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## [Unreleased]
 
+### Removed
+- **`DiffPlex` is no longer a dependency of `IronHive.Host`**: no code in the package used it. Consumers that took it transitively and use DiffPlex types must reference it themselves.
+
 ### Changed
 - **The README states how the `run --server` protocol evolves**: new requests and events are added without removing what shipped,
   and a request the server does not know is answered with an `error` coded `unreadable_request` while the session continues - a
