@@ -187,8 +187,11 @@ public sealed class StoredSessionReadTests : IDisposable
 
         input.Enqueue($$"""{"type":"read_session","session_id":"{{session.Id}}","id":"r9","limit":2}""");
         input.Enqueue("""{"type":"list_sessions","id":"l9"}""");
-        var read = (SessionPageEvent)await Next(output);
-        var list = (SessionListEvent)await Next(output);
+        // The runner answers a read as soon as it is ready (AgentServerRunner.SessionReader), so two reads sent together may be
+        // answered in either order; each answer carries its request's id, which is what a host matches on.
+        var answers = new[] { await Next(output), await Next(output) };
+        var read = answers.OfType<SessionPageEvent>().Should().ContainSingle().Subject;
+        var list = answers.OfType<SessionListEvent>().Should().ContainSingle().Subject;
 
         read.Id.Should().Be("r9");
         read.Entries.Should().HaveCount(2);
