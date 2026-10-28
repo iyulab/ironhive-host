@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## 0.76.0 — 2026-10-29
 
 ### Fixed
 - **Security: a declared provider (a `providers` entry built from a declaration) no longer sends the machine's own credential to its address.**
@@ -26,6 +26,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ### Dependencies
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.138.0 -> 0.139.0.
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.73.0 -> 0.74.0, `IronHive.Core` 0.73.0 -> 0.74.0, `IronHive.Extensions.AI` 0.73.0 -> 0.74.0, `IronHive.Providers.Anthropic` 0.73.0 -> 0.74.0, `IronHive.Providers.Declarations` 0.73.0 -> 0.74.0, `IronHive.Providers.GoogleAI` 0.73.0 -> 0.74.0, `IronHive.Providers.OpenAI` 0.73.0 -> 0.74.0, `IronHive.Providers.OpenAI.Compatible` 0.73.0 -> 0.74.0.
 
 ## 0.75.0 — 2026-10-28
 
