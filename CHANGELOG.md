@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.75.0 — 2026-10-28
 
 ### Added
 - **An `error` that answers a `list_sessions` or `read_session` request carries that request's `id`** (`ErrorEvent.Id`), as the successful
@@ -16,6 +16,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   arguments, or with unreadable ones, still has none. A client that asks a person to approve a call can show what is being approved.
 - **`elicitation_request` names the call it holds up**: `call_id` (the call's `tool_start.call_id`) and `tool`, when the MCP server was
   running exactly one call; absent with none or several, so a client never has to guess. Needs IronHive.Agent 0.79.0.
+
+### Dependencies
+- IronHive.Agent / Agent.Ironbees / DeepResearch 0.79.0 (call-aware MCP elicitation handler).
 
 ## 0.74.0 — 2026-10-28
 
