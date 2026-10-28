@@ -507,7 +507,20 @@ public static class ServiceCollectionExtensions
     /// How each <see cref="ProviderBlocks"/> entry becomes a chat client provider, keyed by block name. Every block has one
     /// (a test holds this); a block is built only when it is configured.
     /// </summary>
-    internal static Dictionary<string, Func<IChatClientProvider>> ProviderFactories(IronHiveConfig config) => new(StringComparer.OrdinalIgnoreCase)
+    internal static Dictionary<string, Func<IChatClientProvider>> ProviderFactories(IronHiveConfig config)
+    {
+        var factories = BlockProviderFactories(config);
+        foreach (var entry in ProviderBlocks.DeclaredEntries(config).Where(e => e.IsConfigured))
+        {
+            var captured = entry;
+            // A declared provider is built per model by the factory, so a model reached over another wire gets its own adapter.
+            factories[captured.Id!.Trim()] = () => new DeclaredChatClientProvider(captured.ToDeclaration(), captured.Model!);
+        }
+
+        return factories;
+    }
+
+    private static Dictionary<string, Func<IChatClientProvider>> BlockProviderFactories(IronHiveConfig config) => new(StringComparer.OrdinalIgnoreCase)
     {
         // GPUStack's API path (/v1/) is GpuStackConfig's to append; the model finder uses
         // the OpenAI-shaped view it derives.
@@ -568,6 +581,12 @@ public static class ServiceCollectionExtensions
         // IHiveService itself was only ever used here as a lookup for the raw generator/finder instances
         // this method registered a few lines above -- nothing else in this codebase consumes it -- so
         // providers are now constructed directly instead of round-tripping through IHiveServiceBuilder.
+        var declaredProblems = ProviderBlocks.Problems(config);
+        if (declaredProblems.Count > 0)
+        {
+            throw new InvalidOperationException("config.yaml providers: " + string.Join("; ", declaredProblems) + ".");
+        }
+
         var providersDict = new Dictionary<string, IChatClientProvider>(StringComparer.OrdinalIgnoreCase);
 
         // One registration per configured block, in ProviderBlocks order; the first configured one is the default

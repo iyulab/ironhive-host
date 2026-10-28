@@ -356,6 +356,28 @@ compatible endpoint — use `openaiCompatible`. When several providers are confi
 in this order: `gpustack`, `openaiCompatible`, `openai`, `anthropic`, `google`, `xai`, `ollama`, `lmstudio` (then
 `lmsupply`); a provider block in `~/.ironhive/config.yaml` counts as configured, so pass `--provider` to choose another.
 
+#### Any number of providers: the `providers:` list
+
+Besides the named blocks, `config.yaml` takes a **list** of providers declared as data - any number, each named by its `id`
+(`--provider <id>`), reached over the wire format it declares. They come after the named blocks in the default order.
+
+```yaml
+providers:
+  - id: corp-gateway
+    wire: OpenAIChatCompletions        # OpenAIChatCompletions | OpenAIResponses | Anthropic | GoogleAI
+    baseUrl: https://gateway.example.com/v1   # the endpoint as documented, version segment included
+    apiKey: "..."                       # omit for a server that takes none
+    keyHeader: api-key                  # optional: the header that carries the key (default: the wire's own)
+    model: llama-3.3
+    models:                             # optional: models reached another way
+      claude-x: { wire: Anthropic, baseUrl: https://gateway.example.com/anthropic }
+```
+
+`id`, `wire`, `baseUrl` and `model` are required. An entry that is incomplete, repeats an `id`, or takes a built-in provider's name
+(`openai`, `claude`, `lmsupply`, ...) stops the start-up with the entry named; `ironhive doctor` reports the same. A key placement the wire cannot
+carry (`x-api-key` or a non-Bearer `Authorization` on `Anthropic`, `Authorization` on `GoogleAI`) is refused when the client is created. Edit the file
+directly - `ironhive set` does not write lists. The format is `ProviderDeclaration` of the `IronHive.Providers.Declarations` package.
+
 ## Configuration
 
 Configuration is merged in order (later overrides earlier):

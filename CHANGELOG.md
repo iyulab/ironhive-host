@@ -7,7 +7,16 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **`config.yaml` takes a `providers:` list: any number of providers declared as data, each named by its `id`.** An entry (`id`, `wire` -
+  `OpenAIChatCompletions`, `OpenAIResponses`, `Anthropic` or `GoogleAI` -, `baseUrl`, `apiKey`, `keyHeader`/`keyScheme`, `headers`, `model`, and
+  `models` for a model reached over another wire or endpoint) becomes a provider selectable with `--provider <id>`, built on
+  `IronHive.Providers.Declarations`; the named blocks are unchanged and come first in the default order. An incomplete entry, a repeated `id` or an
+  `id` that is a built-in provider's name stops the start-up with the entry named, and `ironhive doctor` lists the same problems. Written by
+  editing the file - `ironhive set` does not write lists.
+
 ### Dependencies
+- IronHive 0.73.0 (adds `IronHive.Providers.Declarations`).
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.137.0 -> 0.138.0.
 
 ## 0.73.0 — 2026-10-28

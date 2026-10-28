@@ -32,8 +32,54 @@ internal static class ProviderBlocks
         new("lmstudio", "lmstudio", [], c => c.LMStudio.IsConfigured, c => c.LMStudio.Model),
     ];
 
-    /// <summary>The configured blocks, in default order.</summary>
-    public static IEnumerable<ProviderBlock> Configured(IronHiveConfig config) => All.Where(p => p.IsConfigured(config));
+    /// <summary>The configured blocks, in default order: the named blocks, then the declared providers in list order.</summary>
+    public static IEnumerable<ProviderBlock> Configured(IronHiveConfig config) => All.Where(p => p.IsConfigured(config)).Concat(Declared(config));
+
+    /// <summary>
+    /// The complete entries of the <c>providers:</c> list, each as a block named by its id. An entry <see cref="Problems"/> reports
+    /// is still listed here when complete - the registration refuses the whole list, so nothing is dropped silently.
+    /// </summary>
+    public static IEnumerable<ProviderBlock> Declared(IronHiveConfig config) =>
+        config.Providers.Where(e => e.IsConfigured).Select(e => new ProviderBlock(e.Id!.Trim(), "providers", [], _ => true, _ => e.Model)).ToList();
+
+    /// <summary>The entries of the <c>providers:</c> list as configured, for the registration to build from.</summary>
+    internal static IReadOnlyList<DeclaredProviderConfig> DeclaredEntries(IronHiveConfig config) => config.Providers;
+
+    /// <summary>
+    /// What is wrong with the <c>providers:</c> list, by entry: an incomplete entry (id, baseUrl and model are needed), an
+    /// id used twice, an id that is a built-in block's name or alias (or <c>lmsupply</c> / <c>local</c>), an unknown wire. Nothing is dropped silently.
+    /// </summary>
+    public static IReadOnlyList<string> Problems(IronHiveConfig config)
+    {
+        var problems = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < config.Providers.Count; i++)
+        {
+            var entry = config.Providers[i];
+            if (!entry.IsConfigured)
+            {
+                problems.Add($"providers[{i}] needs id, baseUrl and model");
+                continue;
+            }
+
+            var id = entry.Id!.Trim();
+            if (Find(id) is not null || id.Equals("lmsupply", StringComparison.OrdinalIgnoreCase) || id.Equals("local", StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add($"providers[{i}].id '{id}' is the name of a built-in provider");
+            }
+            else if (!seen.Add(id))
+            {
+                problems.Add($"providers[{i}].id '{id}' is used twice");
+            }
+
+            if (!Enum.IsDefined(entry.Wire))
+            {
+                problems.Add($"providers[{i}].wire is missing or not a wire format ({string.Join(", ", Enum.GetNames<IronHive.Providers.Declarations.WireFormat>())})");
+            }
+        }
+
+        return problems;
+    }
 
     /// <summary>The block a name or alias names, or <c>null</c>.</summary>
     public static ProviderBlock? Find(string name) => All.FirstOrDefault(p =>

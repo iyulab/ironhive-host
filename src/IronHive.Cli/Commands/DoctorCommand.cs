@@ -100,8 +100,16 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         var configuredCount = 0;
 
         // Check each provider
+        var providerProblems = ProviderBlocks.Problems(_config);
+        foreach (var problem in providerProblems)
+        {
+            hasErrors = true;
+            PrintCheck(false, $"providers: {problem}");
+        }
+
         var providers = ProviderBlocks.All
             .Select(p => (name: p.Name, configured: p.IsConfigured(_config), model: p.Model(_config)))
+            .Concat(providerProblems.Count > 0 ? [] : ProviderBlocks.Declared(_config).Select(p => (name: p.Name, configured: true, model: p.Model(_config))))
             .Append(("lmsupply", _config.LMSupply.Enabled, _config.LMSupply.GeneratorModel))
             .ToArray();
 

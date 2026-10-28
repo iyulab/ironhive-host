@@ -65,6 +65,13 @@ public class IronHiveConfig
     public OpenAICompatibleHostConfig OpenAICompatible { get; set; } = new();
 
     /// <summary>
+    /// Providers declared as data: any number of them, each named by its <c>id</c> and reached over the wire format it
+    /// declares (<c>OpenAIChatCompletions</c>, <c>OpenAIResponses</c>, <c>Anthropic</c>, <c>GoogleAI</c>). They come after the
+    /// named blocks above in the default order. Edit <c>config.yaml</c>; <c>ironhive set</c> does not write lists.
+    /// </summary>
+    public List<DeclaredProviderConfig> Providers { get; set; } = [];
+
+    /// <summary>
     /// Permission configuration for pattern-based allow/deny/ask rules.
     /// </summary>
     public PermissionConfig Permissions { get; set; } = PermissionConfig.CreateDefault();
