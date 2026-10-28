@@ -7,6 +7,13 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## [Unreleased]
 
+### Fixed
+- **Security: a declared provider (a `providers` entry built from a declaration) no longer sends the machine's own credential to its address.**
+  With no `apiKey` on the entry (on Anthropic also with the key in a header of its own), the vendor SDK filled the empty credential slot
+  from `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` (`GOOGLE_API_KEY` / `GEMINI_API_KEY` on Gemini) and sent it to the declared
+  endpoint. Taken from `IronHive 0.74.0`: the entry is now the whole credential decision. **Breaking** for an entry that relied on
+  the ambient key: set `apiKey`. Earlier hosts may have exposed an environment key to a third-party endpoint - rotate it if so.
+
 ### Removed
 - **`DiffPlex` is no longer a dependency of `IronHive.Host`**: no code in the package used it. Consumers that took it transitively and use DiffPlex types must reference it themselves.
 - **`IronHive.Host` no longer depends on `NetEscapades.Configuration.Yaml` or `Ironbees.Core`, and `IronHive.Cli` no longer depends on `NetEscapades.Configuration.Yaml`**: neither project's source used them (YAML configuration loading lives in `IronHive.Agent`). A consumer that took them transitively through these packages and uses their types must reference them themselves.
