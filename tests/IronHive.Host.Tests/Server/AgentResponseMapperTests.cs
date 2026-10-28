@@ -282,6 +282,27 @@ public class AgentResponseMapperTests
     }
 
     [Fact]
+    public async Task ToServerEvents_CompleteToolCall_CarriesTheArgumentsTheModelSent()
+    {
+        var chunks = ToAsyncEnumerable(
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-7", NameDelta = "message.send", ArgumentsDelta = """{"to":"a@b.c","body":"hi"}""" } },
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-8", NameDelta = "ping" } },
+            new AgentResponseChunk { ToolCallDelta = new ToolCallChunk { Id = "tc-9", NameDelta = "broken", ArgumentsDelta = "{not json" } });
+        var events = new List<ServerEvent>();
+        await foreach (var evt in chunks.ToServerEvents(ct: TestContext.Current.CancellationToken))
+        {
+            events.Add(evt);
+        }
+
+        var starts = events.OfType<ToolStartEvent>().ToList();
+        starts[0].CallId.Should().Be("tc-7");
+        starts[0].Input!.Value.GetProperty("to").GetString().Should().Be("a@b.c");
+        starts[0].Input!.Value.GetProperty("body").GetString().Should().Be("hi");
+        starts[1].Input.Should().BeNull("a call without arguments has none to show");
+        starts[2].Input.Should().BeNull("unreadable arguments are left out, the stream goes on");
+    }
+
+    [Fact]
     public async Task ToServerEvents_ToolCallArgumentsOnly_YieldsOnlyTurnEndEvent()
     {
         var chunks = ToAsyncEnumerable(new AgentResponseChunk

@@ -99,6 +99,21 @@ public sealed class StoredSessionReadTests : IDisposable
         var error = answer.Should().BeOfType<ErrorEvent>().Subject;
         error.Code.Should().Be(ErrorCodes.SessionNotFound);
         error.Message.Should().Contain("no-such-session");
+        error.Id.Should().BeNull("a request without an id has nothing to echo");
+    }
+
+    [Fact]
+    public async Task AnErrorAnsweringARequestWithAnId_EchoesIt()
+    {
+        var session = await StoredConversation();
+
+        var unknown = await _reader.ReadAsync(new ReadSessionRequest("no-such-session", Id: "rs2"), Ct);
+        var cursor = await _reader.ReadAsync(new ReadSessionRequest(session.Id, Id: "rs3", Cursor: "not-a-cursor"), Ct);
+        var listCursor = await _reader.ListAsync(new ListSessionsRequest(Id: "ls4", Cursor: "not-a-cursor"), Ct);
+
+        unknown.Should().BeOfType<ErrorEvent>().Which.Id.Should().Be("rs2");
+        cursor.Should().BeOfType<ErrorEvent>().Which.Id.Should().Be("rs3");
+        listCursor.Should().BeOfType<ErrorEvent>().Which.Id.Should().Be("ls4");
     }
 
     [Fact]
@@ -198,12 +213,14 @@ public sealed class StoredSessionReadTests : IDisposable
             (msg, token) => AsyncEnumerable.Empty<ServerEvent>(), Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts);
         var run = runner.RunAsync(input, output, Ct);
 
-        input.Enqueue("""{"type":"list_sessions"}""");
+        input.Enqueue("""{"type":"list_sessions","id":"ls9"}""");
         var answer = await Next(output);
         input.Complete();
         await run;
 
-        answer.Should().BeOfType<ErrorEvent>().Which.Code.Should().Be(ErrorCodes.NotSupported);
+        var error = answer.Should().BeOfType<ErrorEvent>().Subject;
+        error.Code.Should().Be(ErrorCodes.NotSupported);
+        error.Id.Should().Be("ls9");
     }
 
     private static async Task<ServerEvent> Next(LineOutput output) =>

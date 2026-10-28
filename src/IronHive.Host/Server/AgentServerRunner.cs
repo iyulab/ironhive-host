@@ -310,15 +310,21 @@ public partial class AgentServerRunner
     private async Task AnswerSessionReadAsync(ServerRequest request, TextWriter output, SemaphoreSlim writeLock, CancellationToken ct)
     {
         ServerEvent answer;
+        var requestId = request switch
+        {
+            ListSessionsRequest list => list.Id,
+            ReadSessionRequest read => read.Id,
+            _ => null,
+        };
         try
         {
             answer = SessionReader is not { } reader
-                ? new ErrorEvent("This server has no session store to read.") { Code = ErrorCodes.NotSupported }
+                ? new ErrorEvent("This server has no session store to read.") { Code = ErrorCodes.NotSupported, Id = requestId }
                 : request switch
                 {
                     ListSessionsRequest list => await reader.ListAsync(list, ct),
                     ReadSessionRequest read => await reader.ReadAsync(read, ct),
-                    _ => new ErrorEvent("Not a session read.") { Code = ErrorCodes.Internal },
+                    _ => new ErrorEvent("Not a session read.") { Code = ErrorCodes.Internal, Id = requestId },
                 };
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -328,7 +334,7 @@ public partial class AgentServerRunner
         catch (Exception ex)
         {
             LogSessionReadFailed(ex);
-            answer = new ErrorEvent("The session store could not be read.") { Code = ErrorCodes.Internal };
+            answer = new ErrorEvent("The session store could not be read.") { Code = ErrorCodes.Internal, Id = requestId };
         }
 
         await WriteSerializedAsync(output, writeLock, answer, CancellationToken.None);

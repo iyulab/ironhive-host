@@ -258,13 +258,19 @@ public record HitlRequestEvent(
 /// <param name="Message">The server's message for the person.</param>
 /// <param name="Url">Where the person completes the step (approve, pay, sign in).</param>
 /// <param name="ElicitationId">The server's own id for the request, when it gave one.</param>
+/// <param name="CallId">The model's id for the tool call this request is about — the <see cref="ToolStartEvent.CallId"/> of its
+/// <c>tool_start</c> — when the plugin was running exactly one call; absent when it was running none or several, so a client
+/// never has to guess which call a question belongs to.</param>
+/// <param name="Tool">The tool of that call, present with <paramref name="CallId"/> (and when the call had no id).</param>
 public record ElicitationRequestEvent(
     string Id,
     string Plugin,
     string Mode,
     string Message,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Url = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ElicitationId = null) : ServerEvent;
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ElicitationId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tool = null) : ServerEvent;
 
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;
 
@@ -351,10 +357,16 @@ public static class StopReasons
 
 /// <summary>
 /// A turn failed, or a request could not be read. <see cref="Message"/> is for people and may be reworded at any release;
-/// <see cref="Code"/> is for code to branch on.
+/// <see cref="Code"/> is for code to branch on. An error that answers a request carrying an <c>id</c> (a
+/// <see cref="ListSessionsRequest"/> or <see cref="ReadSessionRequest"/>) echoes it in <see cref="Id"/>, as the successful
+/// answer does; a failure of a turn, or of a line that could not be read, belongs to no request and has none.
 /// </summary>
 public record ErrorEvent(string Message) : ServerEvent
 {
+    /// <summary>The <c>id</c> of the request this error answers; null for an error that answers no request with an id.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; init; }
+
     /// <summary>
     /// The class of the failure, as one of the <see cref="ErrorCodes"/> — or a value of the producer's own when it is not one
     /// of them. Null when the producer did not classify it (an older producer, or a host-written event without a code).

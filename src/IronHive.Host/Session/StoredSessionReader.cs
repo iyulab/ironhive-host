@@ -43,7 +43,7 @@ public sealed class StoredSessionReader
         ArgumentNullException.ThrowIfNull(request);
         if (!TryReadCursor(request.Cursor, out var offset))
         {
-            return Unreadable("cursor");
+            return Unreadable("cursor", request.Id);
         }
 
         var limit = Math.Clamp(request.Limit ?? DefaultListLimit, 1, MaxListLimit);
@@ -62,13 +62,13 @@ public sealed class StoredSessionReader
         ArgumentNullException.ThrowIfNull(request);
         if (!TryReadCursor(request.Cursor, out var offset))
         {
-            return Unreadable("cursor");
+            return Unreadable("cursor", request.Id);
         }
 
         var session = await _sessions.LoadSessionAsync(request.SessionId, cancellationToken);
         if (session is null)
         {
-            return new ErrorEvent($"No stored session '{request.SessionId}'.") { Code = ErrorCodes.SessionNotFound };
+            return new ErrorEvent($"No stored session '{request.SessionId}'.") { Code = ErrorCodes.SessionNotFound, Id = request.Id };
         }
 
         var limit = Math.Clamp(request.Limit ?? DefaultReadLimit, 1, MaxReadLimit);
@@ -142,6 +142,6 @@ public sealed class StoredSessionReader
             || (int.TryParse(cursor, NumberStyles.None, CultureInfo.InvariantCulture, out offset) && offset >= 0);
     }
 
-    private static ErrorEvent Unreadable(string what) =>
-        new($"The {what} in the request is not one this server issued.") { Code = ErrorCodes.UnreadableRequest };
+    private static ErrorEvent Unreadable(string what, string? requestId) =>
+        new($"The {what} in the request is not one this server issued.") { Code = ErrorCodes.UnreadableRequest, Id = requestId };
 }

@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mode;
-
 using IronHive.Host.Protocol;
 
 namespace IronHive.Host.Server;
@@ -80,7 +80,7 @@ public static class AgentResponseMapper
             // streams tool arguments) are progress, and the complete call that follows names the tool again.
             if (chunk.ToolCallDelta is { IsComplete: true, NameDelta: { } toolName } started)
             {
-                yield return new ToolStartEvent(toolName, CallId: started.Id);
+                yield return new ToolStartEvent(toolName, ArgumentsOf(started.ArgumentsDelta), started.Id);
             }
 
             // A tool's outcome, the moment it arrives — a client's step timeline shows each result as the tool
@@ -143,6 +143,27 @@ public static class AgentResponseMapper
             DurationMs = clock.ElapsedMilliseconds,
             CostUsd = hasUsage ? cost : null,
         };
+    }
+
+    // The arguments the model sent, as the JSON it sent: a client that asks a person to approve a call needs to show them.
+    // A complete call carries parseable JSON (or none for a call without arguments); anything unreadable is left out rather
+    // than failing the stream.
+    private static JsonElement? ArgumentsOf(string? arguments)
+    {
+        if (string.IsNullOrWhiteSpace(arguments))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(arguments);
+            return document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static bool RemoveRelayed(List<ToolCallResult> relayed, ToolCallResult call)
