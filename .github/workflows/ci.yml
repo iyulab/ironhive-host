@@ -29,8 +29,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
+      # A red macOS job must not hide the Linux result. The release workflow waits on the 'build (ubuntu-latest)' check
+      # only, so the macOS lane reports without gating a release.
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v5
