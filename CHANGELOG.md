@@ -18,6 +18,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
   of its own labelled as written by the model and not checked, with the model's text printed as plain text. Needs `IronHive.Agent`
   with `ModelProposal` support.
 
+### Dependencies
+- `IronHive.Agent`, `IronHive.Agent.Ironbees` and `IronHive.DeepResearch` 0.79.0 -> 0.81.0 (the release that carries the model-proposal support).
+
 ## 0.76.0 — 2026-10-29
 
 ### Fixed
