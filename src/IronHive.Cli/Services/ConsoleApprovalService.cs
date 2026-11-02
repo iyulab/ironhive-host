@@ -117,7 +117,42 @@ public class ConsoleApprovalService : IHumanApprovalService
             AnsiConsole.Write(table);
         }
 
+        // What the model proposed is its own claim, not something this host checked: its own panel, plainly labelled,
+        // apart from the tool, risk and arguments above - and every character of it escaped as plain text.
+        if (request.ModelProposal is { } proposal)
+        {
+            AnsiConsole.Write(new Panel(new Markup(ProposalMarkup(proposal)))
+                .Header("[grey]MODEL'S PROPOSAL - written by the model, not checked[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderColor(Color.Grey));
+        }
+
         AnsiConsole.WriteLine();
+    }
+
+    /// <summary>The model's proposal as Spectre markup: the model's text is escaped, never read as markup.</summary>
+    internal static string ProposalMarkup(ModelAuthoredProposal proposal)
+    {
+        var lines = new List<string>();
+        if (proposal.RecommendedOptionId is { } recommended
+            && proposal.Options.FirstOrDefault(o => o.Id == recommended) is { } chosen)
+        {
+            lines.Add($"[bold]Recommends:[/] {Markup.Escape(chosen.Label)} [grey]({Markup.Escape(chosen.Id)})[/]");
+        }
+
+        foreach (var option in proposal.Options)
+        {
+            lines.Add(option.Rationale.Length == 0
+                ? $"[grey]{Markup.Escape(option.Id)}[/] {Markup.Escape(option.Label)}"
+                : $"[grey]{Markup.Escape(option.Id)}[/] {Markup.Escape(option.Label)} - {Markup.Escape(option.Rationale)}");
+        }
+
+        if (proposal.CriterionQuestion is { } question)
+        {
+            lines.Add($"[bold]Asks:[/] {Markup.Escape(question)}");
+        }
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private static ApprovalResult PromptForApproval(ApprovalRequest request, CancellationToken cancellationToken)

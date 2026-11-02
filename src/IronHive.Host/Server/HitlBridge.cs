@@ -608,8 +608,17 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
             Arguments: args is null ? null : JsonSerializer.SerializeToElement(args),
             CallId: request.CallId,
             Level: request.RiskAssessment.Level.ToString().ToLowerInvariant(),
-            DelegatedBy: request.DelegatedBy);
+            DelegatedBy: request.DelegatedBy)
+        {
+            ModelProposal = request.ModelProposal is { } proposal ? ToWire(proposal) : null,
+        };
     }
+
+    /// <summary>The model's proposal as the wire carries it - the same bounded text, as its own field.</summary>
+    private static ModelProposalInfo ToWire(ModelAuthoredProposal proposal) => new(
+        [.. proposal.Options.Select(o => new ModelProposalOptionInfo(o.Id, o.Label, o.Rationale))],
+        proposal.RecommendedOptionId,
+        proposal.CriterionQuestion);
 
     private static string? FirstArgument(IDictionary<string, object?>? args, params string[] keys)
     {

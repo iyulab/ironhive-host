@@ -103,6 +103,23 @@ public class LoopContextWiringTests
         loop.Tools.Any(t => t.Name == IronHive.Agent.Context.CompactedResultTool.ToolName).Should().Be(on);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ApprovalProposals_OffersTheProposalTool_OnlyWhenOn(bool on)
+    {
+        var loop = await CreateLoopAsync(Substitute.For<IChatClientFactory>(), new HistorySummaryConfig(),
+            new ChatBehaviorConfig { ApprovalProposals = on });
+
+        loop.Tools.Any(t => t.Name == IronHive.Agent.Mode.ApprovalProposalTool.ToolName).Should().Be(on);
+    }
+
+    [Fact]
+    public void TheApprovalProposalsSetting_LoadsFromConfigYaml()
+    {
+        ConfigurationManager.FindUnknownKeys("chatBehavior:\n  approvalProposals: true\n").Should().BeEmpty();
+    }
+
     [Fact]
     public void TheSection_LoadsFromConfigYaml()
     {

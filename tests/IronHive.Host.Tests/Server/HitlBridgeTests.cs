@@ -7,6 +7,7 @@ using IronHive.Agent.Mode;
 using IronHive.Agent.Permissions;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
+using IronHive.Host.Session;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using NSubstitute;
@@ -241,6 +242,146 @@ public class HitlBridgeTests
             nameof(ToolStartEvent), nameof(HitlRequestEvent), nameof(ToolEndEvent), nameof(TurnEndEvent));
         events.OfType<ToolEndEvent>().Single().Success.Should().Be(approve);
         bridge.IsAttached.Should().BeFalse("the runner detaches when it stops");
+    }
+
+    // ── The model's own proposal ──────────────────────────────────────
+
+    private static ModelAuthoredProposal Proposal(string? question = null)
+    {
+        ModelAuthoredProposal.TryCreate([new ProposalOption("a", "Write it", "keeps the file")], "a", question, out var proposal).Should().BeTrue();
+        return proposal!;
+    }
+
+    [Fact]
+    public async Task AModelProposal_RidesAsItsOwnField_AndTheVerifiedFieldsAreUntouched()
+    {
+        var (bridge, sent, attachment) = Attached();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.RequestApprovalAsync(Request() with { ModelProposal = Proposal("Is a backup needed?") }, ct);
+        var evt = await sent.Reader.ReadAsync(ct);
+
+        var proposal = evt.ModelProposal!;
+        proposal.Options.Should().ContainSingle().Which.Should().Be(new ModelProposalOptionInfo("a", "Write it", "keeps the file"));
+        proposal.RecommendedOptionId.Should().Be("a");
+        proposal.CriterionQuestion.Should().Be("Is a backup needed?");
+        evt.Description.Should().Be("Allow this operation?", "the description stays the policy's, never the model's");
+        evt.Action.Should().Be("Configuration file");
+        evt.ToolName.Should().Be("WriteFile");
+        evt.Level.Should().Be("medium");
+        evt.Arguments!.Value.GetProperty("path").GetString().Should().Be("app.json");
+    }
+
+    [Fact]
+    public async Task ACallWithoutAProposal_SendsNoModelProposalField()
+    {
+        var (bridge, sent, attachment) = Attached();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.RequestApprovalAsync(Request(), ct);
+        var evt = await sent.Reader.ReadAsync(ct);
+
+        pending.IsCompleted.Should().BeFalse();
+        evt.ModelProposal.Should().BeNull();
+        JsonSerializer.Serialize<ServerEvent>(evt, JsonOpts).Should().NotContain("model_proposal", "an event without a proposal is what it was before the field existed");
+    }
+
+    [Fact]
+    public void TheProposalIsWrittenInSnakeCase_WithoutTheFieldsItDoesNotHave_AndReadsBack()
+    {
+        var evt = new HitlRequestEvent("h1", "act", "t", "d", ToolName: "WriteFile")
+        {
+            ModelProposal = new ModelProposalInfo([new ModelProposalOptionInfo("a", "Write it", "keeps the file")], RecommendedOptionId: "a"),
+        };
+
+        var json = JsonSerializer.Serialize<ServerEvent>(evt, JsonOpts);
+
+        json.Should().Contain("\"model_proposal\":{\"options\":[{\"id\":\"a\",\"label\":\"Write it\",\"rationale\":\"keeps the file\"}],\"recommended_option_id\":\"a\"}");
+        json.Should().NotContain("criterion_question", "an absent question is not written");
+        var back = (HitlRequestEvent)JsonSerializer.Deserialize<ServerEvent>(json, JsonOpts)!;
+        back.ModelProposal!.Options.Should().Equal(evt.ModelProposal.Options);
+        back.ModelProposal.RecommendedOptionId.Should().Be("a");
+        back.ModelProposal.CriterionQuestion.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AWaitOfferedAgainAfterARestart_CarriesNoProposal_BecauseTheWaitRecordKeepsOnlyTheVerifiedFields()
+    {
+        var (bridge, sent, attachment) = Attached();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+        var wait = new ApprovalWaitEntry
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            RequestId = "r-1",
+            ToolUseId = "call-1",
+            Tool = "WriteFile",
+            Action = "Configuration file",
+            Target = "app.json",
+            Description = "Allow this operation?",
+            Level = "medium",
+        };
+
+        var pending = bridge.ReofferAsync(wait, ct);
+        var evt = await sent.Reader.ReadAsync(ct);
+
+        pending.IsCompleted.Should().BeFalse();
+        evt.Id.Should().Be("r-1");
+        evt.ModelProposal.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StdioRunner_TheClientsLineCarriesTheProposal_BesideTheVerifiedCall_AndTheAnswerStillDecides()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var bridge = new HitlBridge(TimeSpan.FromSeconds(30));
+        var gate = new ApprovalGate(new ToolCallPolicy(PermissionConfig.CreateDefault()), bridge);   // *.json edits are an Ask rule
+
+        async IAsyncEnumerable<ServerEvent> Process(UserMessageRequest msg, [EnumeratorCancellation] CancellationToken token)
+        {
+            var args = new Dictionary<string, object?> { ["path"] = "app.json", ["content"] = "{}" };
+            yield return new ToolStartEvent("WriteFile", CallId: "call-9");
+            var decision = await gate.DecideAsync("WriteFile", args, "call-9", _ => ValueTask.FromResult<ModelAuthoredProposal?>(Proposal()), token);
+            yield return new ToolEndEvent("WriteFile", decision.ShouldProceed, decision.ShouldProceed ? "wrote" : "refused", "call-9");
+            yield return new TurnEndEvent();
+        }
+
+        var input = new LineInput();
+        var output = new LineOutput();
+        var runner = new AgentServerRunner(Process, Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts, hitlBridge: bridge);
+        var run = runner.RunAsync(input, output, ct);
+
+        input.Enqueue("""{"type":"user_message","content":"write it"}""");
+        string requestLine;
+        HitlRequestEvent? request = null;
+        do
+        {
+            requestLine = await output.Lines.ReadAsync(ct);
+            request = JsonSerializer.Deserialize<ServerEvent>(requestLine, JsonOpts) as HitlRequestEvent;
+        }
+        while (request is null);
+
+        requestLine.Should().Contain("\"type\":\"hitl_request\"")
+            .And.Contain("\"model_proposal\":{\"options\":[{\"id\":\"a\",\"label\":\"Write it\",\"rationale\":\"keeps the file\"}],\"recommended_option_id\":\"a\"}");
+        request.Description.Should().NotContain("keeps the file");
+
+        // The proposal recommends going ahead, and the person says no: the call does not run.
+        input.Enqueue(JsonSerializer.Serialize<ServerRequest>(new HitlResponseRequest(false, "no", request.Id), JsonOpts));
+        ToolEndEvent? end = null;
+        while (end is null)
+        {
+            end = JsonSerializer.Deserialize<ServerEvent>(await output.Lines.ReadAsync(ct), JsonOpts) as ToolEndEvent;
+        }
+
+        input.Complete();
+        await run;
+
+        end.Success.Should().BeFalse();
     }
 
     // ── MCP URL-mode elicitation ──────────────────────────────────────

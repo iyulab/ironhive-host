@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Added
+- **A `hitl_request` can carry what the model weighed, as a field of its own.** New optional `model_proposal` (`ModelProposalInfo`:
+  up to 5 `options` with `id`, `label` and `rationale`, a `recommended_option_id`, or one `criterion_question`) is sent when the
+  model proposed something in the same step as the asked call, and omitted otherwise - an event without one is unchanged. It is the
+  model's claim, not something the host verified, so a client shows it apart from `tool_name`, `arguments` and `level`, as plain
+  text, and never lets it stand in for the answer; it is bounded and changes no verdict. Opt in with `chatBehavior.approvalProposals:
+  true`, which offers the model the `propose_for_approval` tool (default off: no tool, no field). It is not stored in the session's
+  approval-wait record, so a request re-offered after a restart carries none. A model uses the tool when its instructions name the tools whose calls need approval (it cannot know which they are). The interactive terminal prompt shows it too, in a panel
+  of its own labelled as written by the model and not checked, with the model's text printed as plain text. Needs `IronHive.Agent`
+  with `ModelProposal` support.
+
 ## 0.76.0 — 2026-10-29
 
 ### Fixed

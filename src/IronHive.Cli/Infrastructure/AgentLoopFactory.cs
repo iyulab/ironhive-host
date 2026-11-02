@@ -220,6 +220,13 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
             tools.Add(IronHive.Agent.Context.CompactedResultTool.Create(contextManager));
         }
 
+        // The tool a model uses to tell the approver what it weighed; the approval gate reads the proposal from the step that
+        // holds both calls, and the server runners carry it on the hitl_request.
+        if (_chatBehavior.ApprovalProposals)
+        {
+            tools.Add(IronHive.Agent.Mode.ApprovalProposalTool.Create());
+        }
+
         var agentOptions = new IronHive.Agent.Loop.AgentOptions
         {
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,

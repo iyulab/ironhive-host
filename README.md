@@ -502,6 +502,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 | `MaximumIterationsPerRequest` | 10 | Lower (5–7) for small 4K-window models; raise (15–20) for large-context models |
 | `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back tool errors; rarely hit in the CLI, where argument errors become recovery hints and the same error three times in a row ends the turn first |
 | `RetrieveToolResults` | false | Offers `retrieve_tool_result`: a tool result that was masked or shortened is kept, and its placeholder tells the model to read it back by id instead of repeating the call (which a tool with side effects cannot). Read-only for planning mode and approval rules |
+| `ApprovalProposals` | false | Offers `propose_for_approval`: the model can tell the person approving a call what it weighed - up to 5 options, the one it recommends, or one question - in the same step as the call. `run --server` carries it as `model_proposal` on the `hitl_request`, a field of its own that is the model's claim, not something the host verified (see [Human approval over the wire](#human-approval-over-the-wire)). Information only; read-only for planning mode and approval rules |
 | `ToolCallTimeoutSeconds` | none | Longest one tool call may run. Past it the call is stopped and the model reads which tool ran out of time; the same slow call three times in a row ends the turn. An approval prompt in front of the call is not timed. `run --tool-timeout <SECONDS>` overrides it for one run |
 
 ```yaml
@@ -514,6 +515,7 @@ chatBehavior:
   maximumConsecutiveErrorsPerRequest: 3
   toolCallTimeoutSeconds: 60          # stop a tool call (a huge folder walk, a hung request) after a minute; unset = no limit
   retrieveToolResults: true           # masked/shortened tool results can be read back by id (retrieve_tool_result)
+  approvalProposals: true             # the model can tell the approver what it weighed (propose_for_approval -> hitl_request.model_proposal)
 ```
 
 ### Context Compaction
@@ -691,6 +693,17 @@ each is a rejection, never a pass. Session rules of your own (trust lists, "alre
 `IHumanApprovalService` that decorates the bridge. `ironhive run --server` does this for you; in an interactive CLI
 session the terminal answers.
 
+**What the model weighed (opt-in).** With `chatBehavior.approvalProposals: true` (or `ApprovalProposalTool.Create()` in a loop of
+your own) the model can propose, in the same step as an asked call, the alternatives it weighed, the one it recommends, or one
+question. The model cannot know which of its calls ask for approval, so say it in your instructions ("Every WriteFile call needs the user's approval. In the same step as each WriteFile call, also call propose_for_approval with tool set to WriteFile, the alternatives you weighed and your recommendation"): measured against a real model it proposed for every call when told this, and for none when told only that approval may be needed or nothing at all; the order of the two calls within the step does not matter.
+The `hitl_request` then carries it as `model_proposal` - `options` (`id`, `label`, `rationale`),
+`recommended_option_id?`, `criterion_question?` - and omits the field when the model made none. It is the model's claim, and
+unlike `tool_name`, `arguments` and `level` nothing verified it: text planted in a tool result or a fetched document can steer
+it. Show it apart from the call, as plain text - never as markup or a link - and never let it stand in for the answer; it is
+information only and changes no verdict. It is bounded (at most 5 options; id 32, label 80, rationale 400, question 200
+characters) and is not written to the session's approval-wait record, so a request re-offered after a restart carries none.
+In an interactive terminal session the prompt shows it in a panel of its own, labelled as written by the model and not checked, below the tool, risk and arguments - its text printed as plain text, never read as markup.
+
 **Resuming a session in a host of your own.** `run --server --session-id <ID>` restores the conversation when the same id
 starts again. A host of your own (its own `AgentServerRunner` or `AgentHttpRunner` around an `IAgentLoop`) does the same
 with three calls: open the session by its id, restore it into the loop, and pass each turn's stream through a
@@ -765,7 +778,7 @@ the stop waited for the approval timeout).
 | `SessionListEvent` | `session_list` | `Id?`, `Sessions` (`Id`, `StartedAt`, `LastActiveAt`, `Status` (`active`\|`ended`\|`error`\|`forked`), `Model`, `MessageCount`, `Preview?` — the opening of the first user message), `NextCursor?` (null on the last page). A server with no session store answers `error` coded `not_supported` |
 | `SessionPageEvent` | `session_page` | `Id?`, `SessionId`, `Entries` (`Kind`: `user` · `assistant` (`Text`) · `tool_use` (`Tool`, `Input?`, `CallId`) · `tool_result` (`CallId`, `Text`, `IsError`) — the protocol's own shape, not the transcript file's), `NextCursor?` |
 | `ToolStartEvent` | `tool_start` | `Tool`, `Input?` (the arguments the model sent, as JSON; absent for a call without arguments), `CallId?` |
-| `HitlRequestEvent` | `hitl_request` | `Id`, `Action`, `Target`, `Description`, `ToolName?`, `Arguments?`, `CallId?` (matches the `tool_start`), `Level?`, `DelegatedBy?` (the `delegation:` agent that asked; absent for the session's own calls) — a call waiting for approval; answer with `hitl_response` |
+| `HitlRequestEvent` | `hitl_request` | `Id`, `Action`, `Target`, `Description`, `ToolName?`, `Arguments?`, `CallId?` (matches the `tool_start`), `Level?`, `DelegatedBy?` (the `delegation:` agent that asked; absent for the session's own calls), `ModelProposal?` (the model's own proposal for the call - a field of its own, unverified, absent unless `chatBehavior.approvalProposals` is on and the model made one) — a call waiting for approval; answer with `hitl_response` |
 | `ElicitationRequestEvent` | `elicitation_request` | `Id`, `Plugin` (the MCP server asking), `Mode` (`url`), `Message`, `Url?`, `ElicitationId?` (the server's own id), `CallId?` and `Tool?` (the tool call the server was running when it asked, matching its `tool_start` — present only when the server had exactly one call in flight, so a client never has to guess) — an MCP server needs a person before a tool call can finish (it answered the call with `input_required`, or sent `elicitation/create`): show the message and the link, answer with `elicitation_response`. `accept` sends the same call again with the server's state and it completes; the wait stays inside the turn (it is never deferred) and ends as `cancel` after `approval.timeoutSeconds`. Only URL mode is advertised; a form-mode request is declined. On the terminal the CLI shows the message and the link and asks «Done» / «Decline» |
 | `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` — one per tool call once its outcome is known, before `turn_end`; `CallId` matches the `tool_start`. A call the permission gate refused arrives with `Success: false` and the refusal as `Output` (`Permission denied: …` / `Approval rejected: …`). `Refusal?` says why without the text (`ToolRefusalCodes`: `denied` · `approval_unavailable` · `rejected` · `result_withheld` · `invalid_arguments` · `repeated_call` · `repeated_error` · `repeated_result` · `timed_out` · `awaiting_approval` — not run yet, a later `tool_end` for the same `CallId` carries the outcome · `unknown_tool` — the call named a tool the turn did not offer); null when the tool ran. `Stats?` is what the tool reported about its own work (`ToolCallStats.Report` in IronHive.Agent — counts, flags, short labels, keyed by the tool; ≤ 16 keys), omitted when it reported nothing; client-only, never in `Output` or sent to the model |
 | `ThinkingDeltaEvent` | `thinking_delta` | `Content` — extended-thinking text, its own stream, never folded into `text_delta` |

@@ -478,6 +478,15 @@ public class ChatBehaviorConfig
     /// nothing kept, placeholders ask for the same call again.
     /// </summary>
     public bool RetrieveToolResults { get; set; }
+
+    /// <summary>
+    /// Whether the loop offers <c>propose_for_approval</c> (IronHive.Agent <c>ApprovalProposalTool</c>): the model can tell the
+    /// person approving a call what it weighed - up to 5 options, the one it recommends, or one question - in the same step as
+    /// the call. A client of <c>run --server</c> then receives it as <c>model_proposal</c> on the <c>hitl_request</c>, a field of
+    /// its own that is the model's claim, not something the host verified. Information only: it changes no verdict and
+    /// approves nothing. Default <c>false</c>: no tool, and a <c>hitl_request</c> never carries <c>model_proposal</c>.
+    /// </summary>
+    public bool ApprovalProposals { get; set; }
 }
 
 /// <summary>

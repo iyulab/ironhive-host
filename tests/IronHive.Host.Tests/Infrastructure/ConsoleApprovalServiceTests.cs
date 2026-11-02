@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using IronHive.Agent.Mode;
 using IronHive.Agent.Permissions;
 using IronHive.Cli.Services;
@@ -18,6 +19,35 @@ public class ConsoleApprovalServiceTests
         Arguments = new Dictionary<string, object?> { ["path"] = "app.json" },
         RiskAssessment = RiskAssessment.Risky(RiskLevel.Medium, "Configuration file", "Allow this operation?")
     };
+
+    [Fact]
+    public void TheModelsProposal_IsShownAsPlainText_NeverReadAsMarkup()
+    {
+        ModelAuthoredProposal.TryCreate(
+            [new ProposalOption("a", "[red]Write[/] it", "keeps [bold]the[/] file"), new ProposalOption("b", "Skip")],
+            "a",
+            "Is [link=https://example.test]a backup[/] needed?",
+            out var proposal).Should().BeTrue();
+
+        var markup = ConsoleApprovalService.ProposalMarkup(proposal!);
+
+        // The model's brackets are escaped, so they print as brackets; the markup that remains is the host's own.
+        markup.Should().Contain("[[red]]Write[[/]] it").And.Contain("keeps [[bold]]the[[/]] file")
+            .And.Contain("[[link=https://example.test]]a backup[[/]]");
+        markup.Should().Contain("[bold]Recommends:[/] [[red]]Write[[/]] it").And.Contain("[bold]Asks:[/]");
+        // It must still be valid markup: Spectre parses it without throwing and shows the model's brackets literally.
+        new Spectre.Console.Markup(markup).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AProposalWithOnlyAQuestion_ShowsTheQuestion_AndNoRecommendation()
+    {
+        ModelAuthoredProposal.TryCreate(null, null, "Which environment?", out var proposal).Should().BeTrue();
+
+        var markup = ConsoleApprovalService.ProposalMarkup(proposal!);
+
+        markup.Should().Be("[bold]Asks:[/] Which environment?");
+    }
 
     [Fact]
     public async Task WithoutAnInteractiveConsole_RejectsWithAReason_InsteadOfPrompting()

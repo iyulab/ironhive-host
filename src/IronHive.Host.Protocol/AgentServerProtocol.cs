@@ -244,7 +244,43 @@ public record HitlRequestEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] JsonElement? Arguments = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Level = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DelegatedBy = null) : ServerEvent;
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DelegatedBy = null) : ServerEvent
+{
+    /// <summary>
+    /// What the <b>model</b> proposed for this call - the alternatives it weighed and the one it recommends, or the one question
+    /// it would ask - when the model made a proposal in the same step as the call; absent otherwise (a call without one is
+    /// byte-for-byte what it was before this property existed). <b>Unlike every other field of this event, nothing verified
+    /// it</b>: <see cref="ToolName"/>, <see cref="Arguments"/> and <see cref="Level"/> are what the host checked, this is the
+    /// model's own claim, which text planted in a tool result or a fetched document can steer. Show it apart from them and as
+    /// <b>plain text</b> - never as markup, never as a link, whatever it contains - and never let it stand in for the answer:
+    /// it is information only, it changes no verdict and approves nothing. It is bounded (see <see cref="ModelProposalInfo"/>).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelProposalInfo? ModelProposal { get; init; }
+}
+
+/// <summary>
+/// What the model proposed for a call that needs approval (<see cref="HitlRequestEvent.ModelProposal"/>): the alternatives it
+/// weighed, the one it recommends, or - when it could not recommend - the one question it would put to the person. The
+/// model's own claim, not a verified fact; render every string as plain text. The shape is closed: at most 5 options, an
+/// option id up to 32 characters, a label up to 80, a rationale up to 400, the question up to 200 (control and formatting
+/// characters are already removed).
+/// </summary>
+/// <param name="Options">The alternatives the model weighed; may be empty when there is only a question.</param>
+/// <param name="RecommendedOptionId">The <see cref="ModelProposalOptionInfo.Id"/> of the option the model recommends; absent
+/// when it makes no recommendation.</param>
+/// <param name="CriterionQuestion">The one question the model would put to the person when it cannot recommend; absent
+/// otherwise.</param>
+public record ModelProposalInfo(
+    IReadOnlyList<ModelProposalOptionInfo> Options,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RecommendedOptionId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CriterionQuestion = null);
+
+/// <summary>One alternative in a <see cref="ModelProposalInfo"/>.</summary>
+/// <param name="Id">A short identifier, unique within the proposal.</param>
+/// <param name="Label">A short name for the alternative.</param>
+/// <param name="Rationale">Why the model weighed it; may be empty.</param>
+public record ModelProposalOptionInfo(string Id, string Label, string Rationale);
 
 /// <summary>
 /// An MCP server needs a person before a tool call can finish (URL-mode elicitation — the server answered the call with
