@@ -7,8 +7,14 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **The model's proposal also reaches the person when the approval is an MCP server's question.** `elicitation_request` gains the same optional `model_proposal` as `hitl_request` (`ModelProposalInfo`), for the call it holds up - set only when the plugin was running exactly one call and the model made a proposal for it in the same step; absent otherwise (byte-for-byte what it was). The terminal shows it under the question in a block labelled as written by the model and not checked. Needs the same opt-in (`chatBehavior.approvalProposals`).
+
 ### Changed
 - **The protocol messages of `IronHive.Host.Protocol` are documented**: `ServerRequest`, `ServerEvent` and the requests and events that had no summary (shutdown, context update, session started, text delta, tool start, agent selected).
+
+### Fixed
+- **`IronHive.Cli`'s `HostElicitationHandler` dropped the call.** It implemented only the call-less overload, so an elicitation asked through the CLI never carried `call_id` / `tool` on the wire; it now forwards the call-aware overload to the bridge and the terminal.
 
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.74.0 -> 0.75.0, `IronHive.Core` 0.74.0 -> 0.75.0, `IronHive.Extensions.AI` 0.74.0 -> 0.75.0, `IronHive.Providers.Anthropic` 0.74.0 -> 0.75.0, `IronHive.Providers.Declarations` 0.74.0 -> 0.75.0, `IronHive.Providers.GoogleAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI.Compatible` 0.74.0 -> 0.75.0.

@@ -313,7 +313,19 @@ public record ElicitationRequestEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Url = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ElicitationId = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tool = null) : ServerEvent;
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tool = null) : ServerEvent
+{
+    /// <summary>
+    /// What the <b>model</b> proposed for the call this request holds up (<see cref="CallId"/> / <see cref="Tool"/>) - the same
+    /// shape, bounds and rule as <see cref="HitlRequestEvent.ModelProposal"/>: the alternatives it weighed and the one it
+    /// recommends, or the one question it would ask, when it made a proposal in the same step as the call. Absent otherwise,
+    /// and absent whenever the request cannot be tied to one call. <b>Nothing verified it</b>: the plugin's own
+    /// <see cref="Message"/> and <see cref="Url"/> are what the server said, this is the model's claim - show it apart from them
+    /// as <b>plain text</b>, never as markup or a link, and never let it stand in for the answer; it approves nothing.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelProposalInfo? ModelProposal { get; init; }
+}
 
 /// <summary>The agent chosen for the turn, with how confident the choice was.</summary>
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;

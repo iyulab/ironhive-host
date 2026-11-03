@@ -1,4 +1,6 @@
 using AwesomeAssertions;
+using IronHive.Agent.Mcp;
+using IronHive.Agent.Mode;
 using IronHive.Cli.Services;
 using IronHive.Host.Protocol;
 using IronHive.Host.Server;
@@ -45,6 +47,61 @@ public class HostElicitationHandlerTests
 
         result.Action.Should().Be(action);
         shown.Should().Contain("payments").And.Contain("Approve the payment.").And.Contain("https://approvals.example.test/apr_1");
+    }
+
+    private static ModelAuthoredProposal Proposal()
+    {
+        ModelAuthoredProposal.TryCreate([new ProposalOption("a", "Pay now", "matches the order")], "a", null, out var proposal).Should().BeTrue();
+        return proposal!;
+    }
+
+    [Fact]
+    public async Task AtATerminal_TheModelsProposalForTheCall_IsShownApartAndLabelled_AsPlainText()
+    {
+        using var bridge = new HitlBridge();
+        string? shown = null;
+        var handler = new HostElicitationHandler(bridge, new ConsoleElicitationHandler(() => true, title => { shown = title; return ConsoleElicitationHandler.Done; }));
+        ModelAuthoredProposal.TryCreate([new ProposalOption("a", "Pay [red]now[/]", "matches the order")], "a", null, out var markupy).Should().BeTrue();
+
+        await handler.ElicitAsync("payments", new McpCallInfo("send_payment", "call_42") { ModelProposal = markupy }, Request(), TestContext.Current.CancellationToken);
+
+        shown.Should().Contain("Approve the payment.", "the server's own words are still there")
+            .And.Contain("written by the model, not checked")
+            .And.Contain("Recommends:")
+            .And.Contain("Pay [[red]]now[[/]]", "the model's text is escaped, never read as markup");
+    }
+
+    [Fact]
+    public async Task AtATerminal_WithoutAProposal_ThePromptIsWhatItWas()
+    {
+        using var bridge = new HitlBridge();
+        string? shown = null;
+        var handler = new HostElicitationHandler(bridge, new ConsoleElicitationHandler(() => true, title => { shown = title; return ConsoleElicitationHandler.Done; }));
+
+        await handler.ElicitAsync("payments", new McpCallInfo("send_payment", "call_42"), Request(), TestContext.Current.CancellationToken);
+
+        shown.Should().NotContain("MODEL'S PROPOSAL");
+    }
+
+    [Fact]
+    public async Task WithAClientAttached_TheCallAndItsProposalReachTheClient()
+    {
+        using var bridge = new HitlBridge();
+        ElicitationRequestEvent? seen = null;
+        using var attachment = bridge.Attach((evt, _) =>
+        {
+            seen = (ElicitationRequestEvent)evt;
+            bridge.ResolveElicitation(new ElicitationResponseRequest("accept", seen.Id));
+            return Task.CompletedTask;
+        });
+        var handler = new HostElicitationHandler(bridge, new ConsoleElicitationHandler(() => true, _ => ConsoleElicitationHandler.Decline));
+
+        await handler.ElicitAsync("payments", new McpCallInfo("send_payment", "call_42") { ModelProposal = Proposal() }, Request(), TestContext.Current.CancellationToken);
+
+        seen.Should().NotBeNull();
+        seen!.CallId.Should().Be("call_42", "the CLI handler used to forward only the call-less overload and dropped the call");
+        seen.Tool.Should().Be("send_payment");
+        seen.ModelProposal.Should().NotBeNull();
     }
 
     [Fact]

@@ -431,6 +431,47 @@ public class HitlBridgeTests
     }
 
     [Fact]
+    public async Task Elicitation_AModelProposalForTheCall_RidesAsItsOwnField_ApartFromTheServersMessage()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.ElicitAsync("payments", new IronHive.Agent.Mcp.McpCallInfo("send_payment", "call_42") { ModelProposal = Proposal() }, UrlElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        evt.CallId.Should().Be("call_42");
+        evt.Tool.Should().Be("send_payment");
+        evt.Message.Should().Be("This action needs approval before it runs.", "the server's words are not mixed with the model's");
+        evt.ModelProposal.Should().NotBeNull();
+        evt.ModelProposal!.Options.Should().ContainSingle().Which.Should().Be(new ModelProposalOptionInfo("a", "Write it", "keeps the file"));
+        evt.ModelProposal.RecommendedOptionId.Should().Be("a");
+        JsonSerializer.Serialize<ServerEvent>(evt, JsonOpts)
+            .Should().Contain("\"model_proposal\":{\"options\":[{\"id\":\"a\",\"label\":\"Write it\",\"rationale\":\"keeps the file\"}],\"recommended_option_id\":\"a\"}");
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id)).Should().BeTrue();
+        (await pending).Action.Should().Be("accept");
+    }
+
+    [Fact]
+    public async Task Elicitation_WithoutAProposal_SendsNoModelProposalField()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.ElicitAsync("payments", new IronHive.Agent.Mcp.McpCallInfo("send_payment", "call_42"), UrlElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        evt.ModelProposal.Should().BeNull();
+        JsonSerializer.Serialize<ServerEvent>(evt, JsonOpts).Should().NotContain("model_proposal", "an event without a proposal is what it was before the field existed");
+        bridge.ResolveElicitation(new ElicitationResponseRequest("cancel", evt.Id)).Should().BeTrue();
+        await pending;
+    }
+
+    [Fact]
     public async Task Elicitation_AnAnswerWithoutId_ResolvesTheOnlyWait_AndAnUnknownActionIsDropped()
     {
         var (bridge, sent, attachment) = AttachedAnyEvent();

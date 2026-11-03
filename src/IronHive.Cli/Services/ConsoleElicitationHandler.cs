@@ -34,7 +34,13 @@ public sealed class ConsoleElicitationHandler : IMcpElicitationHandler
     }
 
     /// <inheritdoc />
-    public ValueTask<ElicitResult> ElicitAsync(string pluginName, ElicitRequestParams request, CancellationToken cancellationToken)
+    public ValueTask<ElicitResult> ElicitAsync(string pluginName, ElicitRequestParams request, CancellationToken cancellationToken) =>
+        ElicitAsync(pluginName, null, request, cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>With the call the plugin is running, what the model proposed for it is shown under the question, in its own labelled
+    /// block and escaped as plain text - the model's claim, not something the plugin or this host checked.</remarks>
+    public ValueTask<ElicitResult> ElicitAsync(string pluginName, McpCallInfo? call, ElicitRequestParams request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
@@ -50,7 +56,10 @@ public sealed class ConsoleElicitationHandler : IMcpElicitationHandler
         }
 
         var title = $"[yellow]{Markup.Escape(pluginName)}[/] needs you: {Markup.Escape(request.Message ?? string.Empty)}"
-            + (request.Url is { Length: > 0 } url ? $"\n[link]{Markup.Escape(url)}[/]" : string.Empty);
+            + (request.Url is { Length: > 0 } url ? $"\n[link]{Markup.Escape(url)}[/]" : string.Empty)
+            + (call?.ModelProposal is { } proposal
+                ? "\n[grey]MODEL'S PROPOSAL - written by the model, not checked:[/]\n" + ConsoleApprovalService.ProposalMarkup(proposal)
+                : string.Empty);
         var choice = _choose(title);
         return ValueTask.FromResult(new ElicitResult { Action = choice == Done ? "accept" : "decline" });
     }

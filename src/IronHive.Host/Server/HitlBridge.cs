@@ -215,7 +215,8 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
 
     /// <inheritdoc />
     /// <remarks>As above, with the tool call the plugin is running (when exactly one) named on the event, so a client can tie the
-    /// question to the <c>tool_start</c> of the call it holds up.</remarks>
+    /// question to the <c>tool_start</c> of the call it holds up - and, when the model made a proposal for that call, the proposal
+    /// as its own <c>model_proposal</c> field.</remarks>
     public async ValueTask<ElicitResult> ElicitAsync(string pluginName, McpCallInfo? call, ElicitRequestParams request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -242,7 +243,10 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
 
             // Registered above, published here: an answer cannot outrun its wait.
             await publish(
-                new ElicitationRequestEvent(id, pluginName, "url", request.Message ?? string.Empty, request.Url, request.ElicitationId, call?.CallId, call?.ToolName),
+                new ElicitationRequestEvent(id, pluginName, "url", request.Message ?? string.Empty, request.Url, request.ElicitationId, call?.CallId, call?.ToolName)
+                {
+                    ModelProposal = call?.ModelProposal is { } proposal ? ToWire(proposal) : null,
+                },
                 cancellationToken);
 
             try
