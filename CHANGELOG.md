@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## Unreleased
+
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.74.0 -> 0.75.0, `IronHive.Core` 0.74.0 -> 0.75.0, `IronHive.Extensions.AI` 0.74.0 -> 0.75.0, `IronHive.Providers.Anthropic` 0.74.0 -> 0.75.0, `IronHive.Providers.Declarations` 0.74.0 -> 0.75.0, `IronHive.Providers.GoogleAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI.Compatible` 0.74.0 -> 0.75.0.
+
 ## 0.77.0 — 2026-11-03
 
 ### Added
