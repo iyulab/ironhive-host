@@ -19,18 +19,29 @@ public sealed class ConsoleElicitationHandler : IMcpElicitationHandler
 
     private readonly Func<bool> _hasInteractiveConsole;
     private readonly Func<string, string> _choose;
+    private readonly bool _showProposalRecommendation;
 
     /// <summary>Creates the handler, asking on the process console.</summary>
     public ConsoleElicitationHandler()
-        : this(static () => !Console.IsInputRedirected && !Console.IsOutputRedirected, Prompt)
+        : this(showProposalRecommendation: false)
+    {
+    }
+
+    /// <summary>
+    /// Creates the handler asking on the process console, and says whether a model's proposal shows the option the model
+    /// recommends (<c>chatBehavior.showProposalRecommendation</c>; off by default).
+    /// </summary>
+    public ConsoleElicitationHandler(bool showProposalRecommendation)
+        : this(static () => !Console.IsInputRedirected && !Console.IsOutputRedirected, Prompt, showProposalRecommendation)
     {
     }
 
     /// <summary>Creates the handler with an explicit «can I prompt here» test and chooser (for tests).</summary>
-    internal ConsoleElicitationHandler(Func<bool> hasInteractiveConsole, Func<string, string> choose)
+    internal ConsoleElicitationHandler(Func<bool> hasInteractiveConsole, Func<string, string> choose, bool showProposalRecommendation = false)
     {
         _hasInteractiveConsole = hasInteractiveConsole ?? throw new ArgumentNullException(nameof(hasInteractiveConsole));
         _choose = choose ?? throw new ArgumentNullException(nameof(choose));
+        _showProposalRecommendation = showProposalRecommendation;
     }
 
     /// <inheritdoc />
@@ -58,7 +69,7 @@ public sealed class ConsoleElicitationHandler : IMcpElicitationHandler
         var title = $"[yellow]{Markup.Escape(pluginName)}[/] needs you: {Markup.Escape(request.Message ?? string.Empty)}"
             + (request.Url is { Length: > 0 } url ? $"\n[link]{Markup.Escape(url)}[/]" : string.Empty)
             + (call?.ModelProposal is { } proposal
-                ? "\n[grey]MODEL'S PROPOSAL - written by the model, not checked:[/]\n" + ConsoleApprovalService.ProposalMarkup(proposal)
+                ? "\n[grey]MODEL'S PROPOSAL - written by the model, not checked:[/]\n" + ConsoleApprovalService.ProposalMarkup(proposal, _showProposalRecommendation)
                 : string.Empty);
         var choice = _choose(title);
         return ValueTask.FromResult(new ElicitResult { Action = choice == Done ? "accept" : "decline" });

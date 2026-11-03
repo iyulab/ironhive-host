@@ -17,6 +17,7 @@ public class ConsoleApprovalService : IHumanApprovalService
 {
     private readonly HashSet<string> _autoApproved = [];
     private readonly Func<bool> _hasInteractiveConsole;
+    private readonly bool _showProposalRecommendation;
 
     /// <summary>
     /// Creates the service, asking on the process console.
@@ -31,8 +32,24 @@ public class ConsoleApprovalService : IHumanApprovalService
     /// surface better than the process streams do, and for tests.
     /// </summary>
     public ConsoleApprovalService(Func<bool> hasInteractiveConsole)
+        : this(hasInteractiveConsole, showProposalRecommendation: false)
+    {
+    }
+
+    /// <summary>
+    /// Creates the service asking on the process console, and says whether a model's proposal shows the option the model
+    /// recommends (<c>chatBehavior.showProposalRecommendation</c>; off by default).
+    /// </summary>
+    public ConsoleApprovalService(bool showProposalRecommendation)
+        : this(static () => !Console.IsInputRedirected && !Console.IsOutputRedirected, showProposalRecommendation)
+    {
+    }
+
+    /// <summary>Creates the service with an explicit "can I prompt here" test and the proposal display choice.</summary>
+    public ConsoleApprovalService(Func<bool> hasInteractiveConsole, bool showProposalRecommendation)
     {
         _hasInteractiveConsole = hasInteractiveConsole ?? throw new ArgumentNullException(nameof(hasInteractiveConsole));
+        _showProposalRecommendation = showProposalRecommendation;
     }
 
     /// <inheritdoc />
@@ -66,7 +83,7 @@ public class ConsoleApprovalService : IHumanApprovalService
         return Task.FromResult(result);
     }
 
-    private static void DisplayApprovalRequest(ApprovalRequest request)
+    private void DisplayApprovalRequest(ApprovalRequest request)
     {
         AnsiConsole.WriteLine();
 
@@ -121,7 +138,7 @@ public class ConsoleApprovalService : IHumanApprovalService
         // apart from the tool, risk and arguments above - and every character of it escaped as plain text.
         if (request.ModelProposal is { } proposal)
         {
-            AnsiConsole.Write(new Panel(new Markup(ProposalMarkup(proposal)))
+            AnsiConsole.Write(new Panel(new Markup(ProposalMarkup(proposal, _showProposalRecommendation)))
                 .Header("[grey]MODEL'S PROPOSAL - written by the model, not checked[/]")
                 .Border(BoxBorder.Rounded)
                 .BorderColor(Color.Grey));
@@ -130,11 +147,16 @@ public class ConsoleApprovalService : IHumanApprovalService
         AnsiConsole.WriteLine();
     }
 
-    /// <summary>The model's proposal as Spectre markup: the model's text is escaped, never read as markup.</summary>
-    internal static string ProposalMarkup(ModelAuthoredProposal proposal)
+    /// <summary>
+    /// The model's proposal as Spectre markup: the model's text is escaped, never read as markup. The option the model
+    /// recommends is named only when <paramref name="showRecommendation"/> is set - by default the options and their
+    /// reasons are listed in the order the model gave them and the person decides before reading which one it prefers.
+    /// </summary>
+    internal static string ProposalMarkup(ModelAuthoredProposal proposal, bool showRecommendation = false)
     {
         var lines = new List<string>();
-        if (proposal.RecommendedOptionId is { } recommended
+        if (showRecommendation
+            && proposal.RecommendedOptionId is { } recommended
             && proposal.Options.FirstOrDefault(o => o.Id == recommended) is { } chosen)
         {
             lines.Add($"[bold]Recommends:[/] {Markup.Escape(chosen.Label)} [grey]({Markup.Escape(chosen.Id)})[/]");

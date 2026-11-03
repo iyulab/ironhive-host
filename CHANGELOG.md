@@ -11,6 +11,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **The model's proposal also reaches the person when the approval is an MCP server's question.** `elicitation_request` gains the same optional `model_proposal` as `hitl_request` (`ModelProposalInfo`), for the call it holds up - set only when the plugin was running exactly one call and the model made a proposal for it in the same step; absent otherwise (byte-for-byte what it was). The terminal shows it under the question in a block labelled as written by the model and not checked. Needs the same opt-in (`chatBehavior.approvalProposals`).
 
 ### Changed
+- **The terminal prompts no longer name the option the model recommends, unless asked.** When the model made a proposal, the approval panel (0.77.0) and an MCP server's question list the options and the model's reasons in the order the model gave them, under the same "written by the model, not checked" label - the "Recommends:" line that 0.77.0 showed before the question is gone, so the person decides from the call itself before reading what the model prefers. To get the line back set `chatBehavior.showProposalRecommendation: true`. `run --server` is unchanged: `recommended_option_id` is still on the wire and the client decides how to show it.
 - **The protocol messages of `IronHive.Host.Protocol` are documented**: `ServerRequest`, `ServerEvent` and the requests and events that had no summary (shutdown, context update, session started, text delta, tool start, agent selected).
 
 ### Fixed

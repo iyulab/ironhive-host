@@ -503,6 +503,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 | `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back tool errors; rarely hit in the CLI, where argument errors become recovery hints and the same error three times in a row ends the turn first |
 | `RetrieveToolResults` | false | Offers `retrieve_tool_result`: a tool result that was masked or shortened is kept, and its placeholder tells the model to read it back by id instead of repeating the call (which a tool with side effects cannot). Read-only for planning mode and approval rules |
 | `ApprovalProposals` | false | Offers `propose_for_approval`: the model can tell the person approving a call what it weighed - up to 5 options, the one it recommends, or one question - in the same step as the call. `run --server` carries it as `model_proposal` on the `hitl_request`, a field of its own that is the model's claim, not something the host verified (see [Human approval over the wire](#human-approval-over-the-wire)). Information only; read-only for planning mode and approval rules |
+| `ShowProposalRecommendation` | false | Whether the terminal prompts (the approval panel and an MCP server's question) name the option the model recommends in its proposal. Off: the options and the model's reasons are listed in the order the model gave them, so the person decides from the call itself before reading what the model prefers. `run --server` is not affected - `recommended_option_id` is always on the wire and the client decides how to show it |
 | `ToolCallTimeoutSeconds` | none | Longest one tool call may run. Past it the call is stopped and the model reads which tool ran out of time; the same slow call three times in a row ends the turn. An approval prompt in front of the call is not timed. `run --tool-timeout <SECONDS>` overrides it for one run |
 
 ```yaml
@@ -516,6 +517,7 @@ chatBehavior:
   toolCallTimeoutSeconds: 60          # stop a tool call (a huge folder walk, a hung request) after a minute; unset = no limit
   retrieveToolResults: true           # masked/shortened tool results can be read back by id (retrieve_tool_result)
   approvalProposals: true             # the model can tell the approver what it weighed (propose_for_approval -> hitl_request.model_proposal)
+  showProposalRecommendation: true    # the terminal prompts also name the option the model recommends (default: options and reasons only)
 ```
 
 ### Context Compaction

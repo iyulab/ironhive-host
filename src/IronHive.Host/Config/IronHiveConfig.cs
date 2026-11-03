@@ -487,6 +487,16 @@ public class ChatBehaviorConfig
     /// approves nothing. Default <c>false</c>: no tool, and a <c>hitl_request</c> never carries <c>model_proposal</c>.
     /// </summary>
     public bool ApprovalProposals { get; set; }
+
+    /// <summary>
+    /// Whether the terminal prompts show the option the model recommends in a proposal (<see cref="ApprovalProposals"/>).
+    /// Default <c>false</c>: the options and the model's reasons are listed in the order the model gave them, with no
+    /// recommendation line, so the person decides from the call itself before reading what the model prefers - a model's
+    /// stated preference placed in front of the question tends to be followed rather than weighed. Turn it on to see the
+    /// recommendation. Only the terminal's display changes; <c>run --server</c> always carries <c>recommended_option_id</c> on
+    /// the wire and the client decides how to show it.
+    /// </summary>
+    public bool ShowProposalRecommendation { get; set; }
 }
 
 /// <summary>

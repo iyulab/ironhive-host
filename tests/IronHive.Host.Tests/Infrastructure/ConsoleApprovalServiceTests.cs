@@ -29,7 +29,7 @@ public class ConsoleApprovalServiceTests
             "Is [link=https://example.test]a backup[/] needed?",
             out var proposal).Should().BeTrue();
 
-        var markup = ConsoleApprovalService.ProposalMarkup(proposal!);
+        var markup = ConsoleApprovalService.ProposalMarkup(proposal!, showRecommendation: true);
 
         // The model's brackets are escaped, so they print as brackets; the markup that remains is the host's own.
         markup.Should().Contain("[[red]]Write[[/]] it").And.Contain("keeps [[bold]]the[[/]] file")
@@ -37,6 +37,27 @@ public class ConsoleApprovalServiceTests
         markup.Should().Contain("[bold]Recommends:[/] [[red]]Write[[/]] it").And.Contain("[bold]Asks:[/]");
         // It must still be valid markup: Spectre parses it without throwing and shows the model's brackets literally.
         new Spectre.Console.Markup(markup).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ByDefault_TheRecommendationIsNotShown_AndTheOptionsKeepTheModelsOrder()
+    {
+        ModelAuthoredProposal.TryCreate(
+            [new ProposalOption("b", "Skip it", "nothing changes"), new ProposalOption("a", "Write it", "keeps the file")],
+            "a",
+            "Is a backup needed?",
+            out var proposal).Should().BeTrue();
+
+        var markup = ConsoleApprovalService.ProposalMarkup(proposal!);
+
+        // The person reads the options and the model's reasons, in the order the model gave them, and decides from the call
+        // itself - the model's preference is not placed in front of the question. The question it asks is still shown.
+        markup.Should().NotContain("Recommends:");
+        markup.Should().Contain("Skip it").And.Contain("Write it").And.Contain("[bold]Asks:[/]");
+        markup.IndexOf("Skip it", StringComparison.Ordinal).Should().BeLessThan(markup.IndexOf("Write it", StringComparison.Ordinal));
+        // Turning it on adds the line and changes nothing else.
+        ConsoleApprovalService.ProposalMarkup(proposal!, showRecommendation: true)
+            .Should().Be("[bold]Recommends:[/] Write it [grey](a)[/]" + Environment.NewLine + markup);
     }
 
     [Fact]

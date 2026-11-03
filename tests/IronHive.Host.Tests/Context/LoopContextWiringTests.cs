@@ -121,6 +121,13 @@ public class LoopContextWiringTests
     }
 
     [Fact]
+    public void TheProposalRecommendationSetting_IsOffByDefault_AndLoadsFromConfigYaml()
+    {
+        new ChatBehaviorConfig().ShowProposalRecommendation.Should().BeFalse();
+        ConfigurationManager.FindUnknownKeys("chatBehavior:\n  showProposalRecommendation: true\n").Should().BeEmpty();
+    }
+
+    [Fact]
     public void TheSection_LoadsFromConfigYaml()
     {
         ConfigurationManager.FindUnknownKeys("historySummary:\n  provider: gpustack\n  model: small-model\n").Should().BeEmpty();

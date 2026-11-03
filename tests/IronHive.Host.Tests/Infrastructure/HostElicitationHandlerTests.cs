@@ -67,8 +67,21 @@ public class HostElicitationHandlerTests
 
         shown.Should().Contain("Approve the payment.", "the server's own words are still there")
             .And.Contain("written by the model, not checked")
-            .And.Contain("Recommends:")
+            .And.NotContain("Recommends:", "the model's preference is not put in front of the question unless asked for")
             .And.Contain("Pay [[red]]now[[/]]", "the model's text is escaped, never read as markup");
+    }
+
+    [Fact]
+    public async Task AtATerminal_WithTheRecommendationSettingOn_TheRecommendedOptionIsNamed()
+    {
+        using var bridge = new HitlBridge();
+        string? shown = null;
+        var handler = new HostElicitationHandler(bridge, new ConsoleElicitationHandler(
+            () => true, title => { shown = title; return ConsoleElicitationHandler.Done; }, showProposalRecommendation: true));
+
+        await handler.ElicitAsync("payments", new McpCallInfo("send_payment", "call_42") { ModelProposal = Proposal() }, Request(), TestContext.Current.CancellationToken);
+
+        shown.Should().Contain("Recommends:").And.Contain("Pay now");
     }
 
     [Fact]

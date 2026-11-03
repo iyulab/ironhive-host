@@ -126,7 +126,8 @@ public static class ServiceCollectionExtensions
         // Register MCP plugin manager for external tool integration
         // An MCP server that needs a person before a call can finish (URL-mode elicitation) asks the client on the wire while
         // `run --server` has one attached, otherwise the terminal.
-        services.AddSingleton<Services.ConsoleElicitationHandler>();
+        services.AddSingleton(sp => new Services.ConsoleElicitationHandler(
+            sp.GetRequiredService<IronHiveConfig>().ChatBehavior.ShowProposalRecommendation));
         services.AddSingleton<IMcpElicitationHandler, Services.HostElicitationHandler>();
         services.AddSingleton<IMcpPluginManager>(sp =>
         {
@@ -202,7 +203,8 @@ public static class ServiceCollectionExtensions
                 TimeSpan.FromSeconds(approval.TimeoutSeconds),
                 deferAfter: approval.DeferAfterSeconds is { } defer ? TimeSpan.FromSeconds(defer) : null);
         });
-        services.AddSingleton<Services.ConsoleApprovalService>();
+        services.AddSingleton(sp => new Services.ConsoleApprovalService(
+            sp.GetRequiredService<IronHiveConfig>().ChatBehavior.ShowProposalRecommendation));
         services.AddSingleton<IHumanApprovalService, Services.HostApprovalService>();
         services.AddSingleton<IReplanningService, ReplanningService>();
 
