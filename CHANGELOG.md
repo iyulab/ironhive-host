@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Changed
+- **The protocol messages of `IronHive.Host.Protocol` are documented**: `ServerRequest`, `ServerEvent` and the requests and events that had no summary (shutdown, context update, session started, text delta, tool start, agent selected).
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.74.0 -> 0.75.0, `IronHive.Core` 0.74.0 -> 0.75.0, `IronHive.Extensions.AI` 0.74.0 -> 0.75.0, `IronHive.Providers.Anthropic` 0.74.0 -> 0.75.0, `IronHive.Providers.Declarations` 0.74.0 -> 0.75.0, `IronHive.Providers.GoogleAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI.Compatible` 0.74.0 -> 0.75.0.
 - Re-pinned third-party packages: `ModelContextProtocol` 2.3.0 -> 2.3.1.

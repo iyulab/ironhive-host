@@ -5,6 +5,7 @@ namespace IronHive.Host.Protocol;
 
 // ── Requests (stdin → agent) ────────────────────────────────────────
 
+/// <summary>The base of every message a client sends to the agent server (a user turn, an answer to an approval or elicitation, a cancel, a context update, a session listing or read, a shutdown). The concrete type is chosen by a type discriminator in the JSON.</summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(UserMessageRequest), "user_message")]
 [JsonDerivedType(typeof(HitlResponseRequest), "hitl_response")]
@@ -97,8 +98,10 @@ public static class ElicitationActions
     public const string Cancel = "cancel";
 }
 
+/// <summary>Asks the server to stop reading requests and end the run.</summary>
 public record ShutdownRequest() : ServerRequest;
 
+/// <summary>The client's current context: its working path and the items the user has selected. The server keeps the latest one and can put it in front of the next user message.</summary>
 public record ContextUpdateRequest(string? WorkingPath, string[]? SelectedItems = null) : ServerRequest;
 
 /// <summary>
@@ -109,6 +112,7 @@ public record CancelRequest() : ServerRequest;
 
 // ── Events (agent → stdout) ─────────────────────────────────────────
 
+/// <summary>The base of every event the agent server sends to a client while it handles a request. The concrete type is chosen by a type discriminator in the JSON.</summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(SessionStartedEvent), "session_started")]
 [JsonDerivedType(typeof(TextDeltaEvent), "text_delta")]
@@ -130,8 +134,10 @@ public record CancelRequest() : ServerRequest;
 [JsonDerivedType(typeof(SessionPageEvent), "session_page")]
 public abstract record ServerEvent;
 
+/// <summary>Announces the id of the session the events that follow belong to.</summary>
 public record SessionStartedEvent(string SessionId) : ServerEvent;
 
+/// <summary>A fragment of the model's reply text; the fragments of a turn are in order.</summary>
 public record TextDeltaEvent(string Content) : ServerEvent;
 
 /// <summary>
@@ -148,6 +154,7 @@ public record AddendumEvent(string Content) : ServerEvent;
 /// </summary>
 public record ThinkingDeltaEvent(string Content) : ServerEvent;
 
+/// <summary>A tool call began: the tool's name, its input when known, and the call id that pairs it with the event that reports its completion.</summary>
 public record ToolStartEvent(string Tool, JsonElement? Input = null, string? CallId = null) : ServerEvent;
 
 /// <summary>
@@ -308,6 +315,7 @@ public record ElicitationRequestEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tool = null) : ServerEvent;
 
+/// <summary>The agent chosen for the turn, with how confident the choice was.</summary>
 public record AgentSelectedEvent(string AgentName, double Confidence) : ServerEvent;
 
 /// <summary>
