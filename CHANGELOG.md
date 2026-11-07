@@ -13,6 +13,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.74.0 -> 0.75.0, `IronHive.Core` 0.74.0 -> 0.75.0, `IronHive.Extensions.AI` 0.74.0 -> 0.75.0, `IronHive.Providers.Anthropic` 0.74.0 -> 0.75.0, `IronHive.Providers.Declarations` 0.74.0 -> 0.75.0, `IronHive.Providers.GoogleAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI` 0.74.0 -> 0.75.0, `IronHive.Providers.OpenAI.Compatible` 0.74.0 -> 0.75.0.
 - Re-pinned third-party packages: `ModelContextProtocol` 2.3.0 -> 2.3.1.
+- Re-pinned third-party packages: `ModelContextProtocol` 2.3.1 -> 2.4.0, `OpenAI` 2.14.0 -> 2.15.0.
 
 ## 0.77.0 — 2026-11-03
 
