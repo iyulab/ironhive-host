@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.78.0 — 2026-11-09
 
 ### Added
 - **The model's proposal also reaches the person when the approval is an MCP server's question.** `elicitation_request` gains the same optional `model_proposal` as `hitl_request` (`ModelProposalInfo`), for the call it holds up - set only when the plugin was running exactly one call and the model made a proposal for it in the same step; absent otherwise (byte-for-byte what it was). The terminal shows it under the question in a block labelled as written by the model and not checked. Needs the same opt-in (`chatBehavior.approvalProposals`).
