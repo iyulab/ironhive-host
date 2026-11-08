@@ -140,17 +140,19 @@ public class WebSearchToolTests : IDisposable
     }
 
     [Fact]
-    public async Task WebSearch_WhenProviderThrows_ReturnsErrorMessage()
+    public async Task WebSearch_WhenEveryProviderFails_ThrowsInsteadOfReportingNoResults()
     {
         // Arrange
         _fakeProvider.ThrowException = new HttpRequestException("Network error");
 
         // Act
-        var result = await _tool.WebSearch("query", cancellationToken: TestContext.Current.CancellationToken);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _tool.WebSearch("query", cancellationToken: TestContext.Current.CancellationToken));
 
-        // Assert — WebSearchClient catches provider exceptions and returns empty,
-        // so WebSearchTool should report "No results found"
-        Assert.Equal("No results found for: query", result);
+        // Assert - WebLookup 0.4.0 throws when every provider fails (it returned an empty
+        // list before), so a refused search is a tool failure the model can see, not
+        // "No results found" - which would read as "the web has nothing on this".
+        Assert.StartsWith("Web search failed:", ex.Message, StringComparison.Ordinal);
     }
 
     // ================================================================

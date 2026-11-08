@@ -15,6 +15,8 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 - **The protocol messages of `IronHive.Host.Protocol` are documented**: `ServerRequest`, `ServerEvent` and the requests and events that had no summary (shutdown, context update, session started, text delta, tool start, agent selected).
 
 ### Fixed
+- **Breaking** (observable): **a tool call whose MCP result is an error (`isError: true`) ends with `tool_end.success: false`, not `true`.** The engine (`IronHive.Agent` 0.82.0) now reports such a call as failed, so `run --server` sends `success: false` for it and `run` counts it in `failed_tool_calls`. A client that treated every `tool_end` without a refusal as a success must read `success`.
+- **A web search that every provider refused is a tool failure, not "No results found".** With `WebLookup` 0.4.0 `WebSearchClient` throws when all its providers fail (it returned an empty list), so the `WebSearch` tool now ends with `Web search failed: ...` and the model can tell a blocked search from an empty one.
 - **`IronHive.Cli`'s `HostElicitationHandler` dropped the call.** It implemented only the call-less overload, so an elicitation asked through the CLI never carried `call_id` / `tool` on the wire; it now forwards the call-aware overload to the bridge and the terminal.
 
 ### Dependencies
