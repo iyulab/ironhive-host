@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **A turn can carry its own cap on tool rounds: `user_message.options.max_iterations`** (`TurnOptions.MaxIterations`, at least 1). After that many rounds the turn gets one more model call without tools and ends on its text answer with `stop_reason: step_limit` (and the wrap-up, when configured, applies); the agent's configured cap (`chatBehavior.maximumIterationsPerRequest`, `--max-iterations`) stays the ceiling, so a larger value changes nothing, and two turns running at the same time keep their own caps. A value below 1 is answered with an `error`. Embedding hosts get it from `HostChatPipeline.Decorate`; a pipeline built by hand adds `UseTurnLimits()` under function invocation.
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.75.0 -> 0.76.0, `IronHive.Core` 0.75.0 -> 0.76.0, `IronHive.Extensions.AI` 0.75.0 -> 0.76.0, `IronHive.Providers.Anthropic` 0.75.0 -> 0.76.0, `IronHive.Providers.Declarations` 0.75.0 -> 0.76.0, `IronHive.Providers.GoogleAI` 0.75.0 -> 0.76.0, `IronHive.Providers.OpenAI` 0.75.0 -> 0.76.0, `IronHive.Providers.OpenAI.Compatible` 0.75.0 -> 0.76.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.139.0 -> 0.140.0.

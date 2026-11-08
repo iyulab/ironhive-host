@@ -775,7 +775,7 @@ the stop waited for the approval timeout).
 
 | Type | Discriminator | Key fields |
 |------|---------------|-----------|
-| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions` — see below) |
+| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions`, `max_iterations` — see below) |
 | `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` — the runners put the last update in front of each later `user_message`: `[WorkingPath: …]` and `[Selected: a, b]` (a handler that takes the context gets the message as sent — see [AgentServerRunner](#agentserverrunner--agenthttprunner)) |
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?`, `Id?` (the request being answered), `ModifiedArguments?`, `AlwaysApprove?` |
 | `ElicitationResponseRequest` | `elicitation_response` | `Action` (`accept` — the person finished at the URL · `decline` · `cancel`; `ElicitationActions`), `Id?` (the `elicitation_request` being answered; without it, the only one waiting) |
@@ -812,7 +812,10 @@ negotiation, and none is planned until a host needs to know before it asks.
 **Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
 the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |
 `require:<tool>`), `reasoning_effort` (`none` | `low` | `medium` | `high` | `extra_high`),
-`temperature`, `max_output_tokens`. The merge is field by field: a set field replaces the agent's
+`temperature`, `max_output_tokens`, `max_iterations` (a cap on the turn's tool rounds, at least 1: after that many rounds the
+turn gets one more model call without tools and ends on its text answer with `stop_reason: step_limit`; the agent's configured
+cap - `chatBehavior.maximumIterationsPerRequest`, `--max-iterations` - stays the ceiling, so a larger value changes nothing, and
+a value below 1 is answered with an `error`). The merge is field by field: a set field replaces the agent's
 configured value for this turn only, an unset field keeps it, and the next request without `options`
 is back on the agent's configuration — nothing is remembered across turns. A tool name that is not
 registered, or an unknown mode/effort, is answered with an `error` event, never silently dropped. A

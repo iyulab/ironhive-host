@@ -1,5 +1,6 @@
 using IronHive.Agent.Context;
 using IronHive.Agent.Invocation;
+using IronHive.Agent.Loop;
 using IronHive.Agent.Mode;
 using IronHive.Agent.Tracking;
 using IronHive.Host.Config;
@@ -17,7 +18,8 @@ public static class HostChatPipeline
 {
     /// <summary>
     /// Wraps a provider's client (outer → inner): function invocation through <paramref name="toolInvocationPipeline"/>
-    /// (see <see cref="CreateToolInvocationPipeline"/>) with text tool-call recovery directly under it, an unbound
+    /// (see <see cref="CreateToolInvocationPipeline"/>) with the per-turn cap on tool rounds
+    /// (<c>TurnOptions.MaxIterations</c>) and text tool-call recovery under it, an unbound
     /// <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own <see cref="ContextManager"/>, an unbound
     /// <see cref="UsageLimitChatClient"/> the loop binds to its own usage limiter (when a budget is set), then
     /// <see cref="TokenBudgetChatClient"/>.
@@ -64,6 +66,10 @@ public static class HostChatPipeline
                 client.MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest;
                 client.MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest;
             })
+            // Under the function-invoking client and above the recovery step: a turn that carries its own cap on tool rounds
+            // (TurnOptions.MaxIterations) gets a request without tools once the cap is used up, and the recovery step below
+            // then sees no tools to recover a text-written call for.
+            .UseTurnLimits()
             // Directly under the function-invoking client: a call a local model wrote as text (its server's parser
             // missed it) becomes the call that client runs, instead of a reply that ends the turn as completed.
             .UseTextToolCallRecovery();

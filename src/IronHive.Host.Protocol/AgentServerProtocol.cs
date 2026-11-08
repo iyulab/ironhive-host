@@ -49,13 +49,18 @@ public record UserMessageRequest(
 /// <c>ChatOptions.Instructions</c> — the providers send them as system text alongside the agent's system prompt — and
 /// are never added to the conversation history, so a later turn without them does not carry them and a guard that reads
 /// the user's text does not read them. Send them again with every turn that should have them.</param>
+/// <param name="MaxIterations">Cap on the tool rounds (model calls with tools) this turn may use, at least 1. At the cap the
+/// turn gets one more model call without tools and ends on its text answer, with <c>stop_reason: step_limit</c>. The agent's
+/// configured cap (<c>chatBehavior.maximumIterationsPerRequest</c>, <c>--max-iterations</c>) stays the ceiling: a larger value
+/// here does not raise it. A value below 1 is rejected with an <see cref="ErrorEvent"/>.</param>
 public record TurnOptions(
     string[]? ToolNames = null,
     string? ToolMode = null,
     string? ReasoningEffort = null,
     float? Temperature = null,
     int? MaxOutputTokens = null,
-    string? Instructions = null);
+    string? Instructions = null,
+    int? MaxIterations = null);
 
 /// <summary>
 /// A client's answer to a <see cref="HitlRequestEvent"/>.

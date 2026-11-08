@@ -1,3 +1,4 @@
+using IronHive.Agent.Loop;
 using IronHive.Host.Config;
 using IronHive.Host.Protocol;
 using Microsoft.Extensions.AI;
@@ -67,6 +68,18 @@ public static class TurnOptionsMapper
         if (options.ReasoningEffort is not null)
         {
             chatOptions.Reasoning = new ReasoningOptions { Effort = ReasoningEffortName.Parse(options.ReasoningEffort, nameof(options)) };
+        }
+
+        if (options.MaxIterations is { } maxIterations)
+        {
+            if (maxIterations < 1)
+            {
+                throw new ArgumentException(
+                    $"Turn options set max_iterations to {maxIterations}; it must be at least 1.", nameof(options));
+            }
+
+            // A copy carrying the cap; the pipeline's TurnLimitChatClient enforces it and the process cap stays the ceiling.
+            chatOptions = chatOptions.WithMaxIterations(maxIterations);
         }
 
         return chatOptions;
