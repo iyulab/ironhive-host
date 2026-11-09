@@ -98,7 +98,7 @@ IChatClient client = HostChatPipeline.Decorate(providerClient, config.ChatBehavi
 ```
 
 `CreateToolInvocationPipeline` gives every tool call the CLI's steps (unparseable arguments, repeated call / result / error
-guards, the approval gate, argument recovery); `Decorate` adds function invocation with text tool-call recovery, per-round
+guards, the approval gate, argument recovery); `Decorate` adds function invocation with provider-safe tool names (a tool called `message.send` is offered under an alias and mapped back) and text tool-call recovery, per-round
 context compaction and usage-limit hooks the agent loop binds, and the context-window guard.
 
 ## As a CLI (IronHive.Cli)

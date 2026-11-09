@@ -12,13 +12,13 @@ namespace IronHive.Host.Tools;
 /// <summary>
 /// The runtime composition the CLI and <c>run --server</c> run every model call and tool call through. A host that embeds
 /// the agent runtime calls the same two methods to get the same behaviour — loop guards, approval, argument recovery, text
-/// tool-call recovery, context-window guard — instead of copying the list.
+/// tool-call recovery, provider-safe tool names, context-window guard — instead of copying the list.
 /// </summary>
 public static class HostChatPipeline
 {
     /// <summary>
     /// Wraps a provider's client (outer → inner): function invocation through <paramref name="toolInvocationPipeline"/>
-    /// (see <see cref="CreateToolInvocationPipeline"/>) with the per-turn cap on tool rounds
+    /// (see <see cref="CreateToolInvocationPipeline"/>) with the tool-name alias (<see cref="ToolNameAliasChatClient"/>), the per-turn cap on tool rounds
     /// (<c>TurnOptions.MaxIterations</c>) and text tool-call recovery under it, an unbound
     /// <see cref="ToolRoundContextChatClient"/> the agent loop binds to its own <see cref="ContextManager"/>, an unbound
     /// <see cref="UsageLimitChatClient"/> the loop binds to its own usage limiter (when a budget is set), then
@@ -66,6 +66,10 @@ public static class HostChatPipeline
                 client.MaximumIterationsPerRequest = behavior.MaximumIterationsPerRequest;
                 client.MaximumConsecutiveErrorsPerRequest = behavior.MaximumConsecutiveErrorsPerRequest;
             })
+            // Directly under the function-invoking client: a tool whose name the provider refuses (an MCP server's
+            // `message.send`) is offered under a safe alias and the model's call is mapped back, so the loop, the approval
+            // gate and the events keep the real name. Above the text recovery, which then reads the names the model saw.
+            .UseToolNameAlias()
             // Under the function-invoking client and above the recovery step: a turn that carries its own cap on tool rounds
             // (TurnOptions.MaxIterations) gets a request without tools once the cap is used up, and the recovery step below
             // then sees no tools to recover a text-written call for.
