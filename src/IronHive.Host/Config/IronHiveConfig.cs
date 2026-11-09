@@ -509,6 +509,17 @@ public class ChatBehaviorConfig
     /// for those in URL mode.
     /// </summary>
     public bool ElicitationForms { get; set; }
+
+    /// <summary>
+    /// Whether the loop offers <c>ask_user</c> (IronHive.Agent <c>AskUserTool</c>): the model can ask the person a short question
+    /// with a few choices - and, when it allows, an answer of their own - and carry on with the answer in the same turn. A client of
+    /// <c>run --server</c> receives it as an <c>elicitation_request</c> with <c>mode: "form"</c> and <c>plugin: "model"</c> (the
+    /// model asking, not an MCP server), the same card as a server's form question. Turning it on also turns on form mode
+    /// (<see cref="ElicitationForms"/>), since the client that shows this card shows the other. With no client attached - a
+    /// scheduled or background run, or a terminal session - the tool refuses and the model decides itself. Default <c>false</c>:
+    /// no tool.
+    /// </summary>
+    public bool AskUser { get; set; }
 }
 
 /// <summary>

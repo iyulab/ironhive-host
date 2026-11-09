@@ -177,7 +177,9 @@ public static class ServiceCollectionExtensions
                 plainClients: sp.GetRequiredService<PlainChatClients>().Factory,
                 chatBehavior: config.ChatBehavior,
                 historySummary: config.HistorySummary,
-                shell: config.Shell);
+                shell: config.Shell,
+                askUserHandler: sp.GetService<IMcpElicitationHandler>(),
+                askUserAvailable: () => sp.GetRequiredService<HitlBridge>().IsAttached);
         });
 
         // Error recovery for the loops the factory builds. TryAdd keeps an embedder's own registration.
@@ -204,7 +206,7 @@ public static class ServiceCollectionExtensions
                 TimeSpan.FromSeconds(approval.TimeoutSeconds),
                 deferAfter: approval.DeferAfterSeconds is { } defer ? TimeSpan.FromSeconds(defer) : null)
             {
-                SupportsForms = config.ChatBehavior.ElicitationForms,
+                SupportsForms = config.ChatBehavior.ElicitationForms || config.ChatBehavior.AskUser,
             };
         });
         services.AddSingleton(sp => new Services.ConsoleApprovalService(

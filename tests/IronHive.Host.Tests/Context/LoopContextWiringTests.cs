@@ -114,6 +114,27 @@ public class LoopContextWiringTests
         loop.Tools.Any(t => t.Name == IronHive.Agent.Mode.ApprovalProposalTool.ToolName).Should().Be(on);
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task AskUser_OffersTheTool_OnlyWhenOnAndAHandlerIsGiven(bool on, bool withHandler)
+    {
+        var handler = withHandler ? Substitute.For<IronHive.Agent.Mcp.IMcpElicitationHandler>() : null;
+        var loop = await CreateLoopAsync(Substitute.For<IChatClientFactory>(), new HistorySummaryConfig(),
+            new ChatBehaviorConfig { AskUser = on }, askUserHandler: handler);
+
+        loop.Tools.Any(t => t.Name == IronHive.Agent.Tools.AskUserTool.ToolName).Should().Be(on && withHandler);
+    }
+
+    [Fact]
+    public void TheAskUserAndElicitationFormsSettings_AreOffByDefault_AndLoadFromConfigYaml()
+    {
+        new ChatBehaviorConfig().AskUser.Should().BeFalse();
+        new ChatBehaviorConfig().ElicitationForms.Should().BeFalse();
+        ConfigurationManager.FindUnknownKeys("chatBehavior:\n  askUser: true\n  elicitationForms: true\n").Should().BeEmpty();
+    }
+
     [Fact]
     public void TheApprovalProposalsSetting_LoadsFromConfigYaml()
     {
@@ -134,7 +155,8 @@ public class LoopContextWiringTests
     }
 
     private static async Task<IAgentLoop> CreateLoopAsync(
-        IChatClientFactory plain, HistorySummaryConfig historySummary, ChatBehaviorConfig? chatBehavior = null)
+        IChatClientFactory plain, HistorySummaryConfig historySummary, ChatBehaviorConfig? chatBehavior = null,
+        IronHive.Agent.Mcp.IMcpElicitationHandler? askUserHandler = null)
     {
         var session = Substitute.For<IChatClient>();
         var sessionFactory = Substitute.For<IChatClientFactory>();
@@ -143,7 +165,7 @@ public class LoopContextWiringTests
         services.AddIndexThinkingAgents();
         services.AddIndexThinkingInMemoryStorage();
         var loops = new AgentLoopFactory(sessionFactory, services.BuildServiceProvider().GetRequiredService<IThinkingTurnManager>(),
-            plainClients: plain, historySummary: historySummary, chatBehavior: chatBehavior);
+            plainClients: plain, historySummary: historySummary, chatBehavior: chatBehavior, askUserHandler: askUserHandler);
 
         return await loops.CreateAsync(new AgentLoopFactoryOptions { WorkingDirectory = Path.GetTempPath() }, TestContext.Current.CancellationToken);
     }
