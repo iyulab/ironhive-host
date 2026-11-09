@@ -577,15 +577,16 @@ public class HitlBridgeTests
         var pending = bridge.ElicitAsync("reports", FormElicitation(), ct).AsTask();
         var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
 
-        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("gamma") }, out var problem)
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("gamma") }, out var refusal)
             .Should().BeFalse();
-        problem.Should().Contain("'account'");
+        refusal!.Problem.Should().Contain("'account'");
+        refusal.Id.Should().Be(evt.Id);
         pending.IsCompleted.Should().BeFalse("the person can fix the answer while the question is open");
         bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("gamma") })
             .Should().BeFalse("the one-argument form drops it the same way");
 
-        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("alpha") }, out problem).Should().BeTrue();
-        problem.Should().BeNull();
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("alpha") }, out refusal).Should().BeTrue();
+        refusal.Should().BeNull();
         (await pending).Content!["account"].GetString().Should().Be("alpha");
     }
 
@@ -636,6 +637,127 @@ public class HitlBridgeTests
         var response = request.Should().BeOfType<ElicitationResponseRequest>().Subject;
         response.Content!["account"].GetString().Should().Be("beta");
         response.Content["count"].GetInt32().Should().Be(2);
+    }
+
+    [Fact]
+    public async Task FormElicitation_ARefusedAnswerWithoutAnId_StillNamesTheQuestion()
+    {
+        var (bridge, sent, attachment) = AttachedForms();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+        var pending = bridge.ElicitAsync("reports", FormElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept") { Content = Account("gamma") }, out var refusal).Should().BeFalse();
+
+        refusal!.Id.Should().Be(evt.Id, "the client answered without an id; the refusal must still say which question it is about");
+        bridge.ResolveElicitation(new ElicitationResponseRequest("cancel", evt.Id)).Should().BeTrue();
+        await pending;
+    }
+
+    [Fact]
+    public async Task UrlElicitation_ThatCarriesASchema_IsStillAUrlStep_AndAcceptNeedsNoContent()
+    {
+        var (bridge, sent, attachment) = AttachedForms();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+        var request = UrlElicitation();
+        request.RequestedSchema = FormElicitation().RequestedSchema;
+        var pending = bridge.ElicitAsync("payments", request, ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        evt.Mode.Should().Be("url");
+        evt.RequestedSchema.Should().BeNull();
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id)).Should().BeTrue("the mode decides, not a stray schema");
+        (await pending).Action.Should().Be("accept");
+    }
+
+    [Fact]
+    public async Task FormElicitation_TheWireSchemaKeepsTitledChoicesMultiSelectsAndBounds()
+    {
+        var (bridge, sent, attachment) = AttachedForms();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+        var request = new ElicitRequestParams
+        {
+            Mode = "form",
+            Message = "m",
+            RequestedSchema = new ElicitRequestParams.RequestSchema
+            {
+                Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
+                {
+                    ["one"] = new ElicitRequestParams.TitledSingleSelectEnumSchema
+                    {
+                        Title = "One",
+                        OneOf = [new ElicitRequestParams.EnumSchemaOption { Const = "a", Title = "A" }],
+                    },
+                    ["many"] = new ElicitRequestParams.TitledMultiSelectEnumSchema
+                    {
+                        Items = new ElicitRequestParams.TitledEnumItemsSchema { AnyOf = [new ElicitRequestParams.EnumSchemaOption { Const = "x", Title = "X" }] },
+                        MinItems = 1,
+                    },
+                    ["note"] = new ElicitRequestParams.StringSchema { MaxLength = 10 },
+                },
+                Required = ["one"],
+            },
+        };
+        var pending = bridge.ElicitAsync("model", request, ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        var schema = evt.RequestedSchema!.Value;
+        schema.GetProperty("type").GetString().Should().Be("object");
+        schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).Should().Equal("one");
+        var one = schema.GetProperty("properties").GetProperty("one").GetProperty("oneOf")[0];
+        one.GetProperty("const").GetString().Should().Be("a");
+        one.GetProperty("title").GetString().Should().Be("A");
+        var many = schema.GetProperty("properties").GetProperty("many");
+        many.GetProperty("type").GetString().Should().Be("array");
+        many.GetProperty("minItems").GetInt32().Should().Be(1);
+        many.GetProperty("items").GetProperty("anyOf")[0].GetProperty("const").GetString().Should().Be("x");
+        schema.GetProperty("properties").GetProperty("note").GetProperty("maxLength").GetInt32().Should().Be(10);
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("cancel", evt.Id)).Should().BeTrue();
+        await pending;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StdioRunner_AShutdownWhileAQuestionIsOpen_EndsItInsteadOfWaitingForItsTimeout(bool withASession)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var bridge = new HitlBridge(TimeSpan.FromSeconds(60)) { SupportsForms = true };
+        if (withASession)
+        {
+            bridge.WaitLog = Substitute.For<IApprovalWaitLog>();
+        }
+
+        async IAsyncEnumerable<ServerEvent> Process(UserMessageRequest msg, [EnumeratorCancellation] CancellationToken token)
+        {
+            yield return new ToolStartEvent("ask_user", CallId: "call-9");
+            var answer = await bridge.ElicitAsync("model", FormElicitation(), token);
+            yield return new ToolEndEvent("ask_user", false, answer.Action, "call-9");
+            yield return new TurnEndEvent();
+        }
+
+        var input = new LineInput();
+        var output = new LineOutput();
+        var runner = new AgentServerRunner(Process, Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts, hitlBridge: bridge);
+        var run = runner.RunAsync(input, output, ct);
+        input.Enqueue("""{"type":"user_message","content":"ask"}""");
+        ElicitationRequestEvent? request = null;
+        while (request is null)
+        {
+            request = JsonSerializer.Deserialize<ServerEvent>(await output.Lines.ReadAsync(ct), JsonOpts) as ElicitationRequestEvent;
+        }
+
+        input.Enqueue("""{"type":"shutdown"}""");
+
+        // Before the fix the turn waited out the 60 s approval timeout for an answer nobody could still give.
+        await run.WaitAsync(TimeSpan.FromSeconds(15), ct);
     }
 
     [Fact]

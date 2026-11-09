@@ -257,10 +257,10 @@ public partial class AgentServerRunner
                 if (request is ElicitationResponseRequest elicitation)
                 {
                     // A form answer that breaks the schema is refused with its reason; the question stays open.
-                    if (_hitl is not null && !_hitl.ResolveElicitation(elicitation, out var invalid) && invalid is not null)
+                    if (_hitl is not null && !_hitl.ResolveElicitation(elicitation, out var refusal) && refusal is not null)
                     {
                         await WriteSerializedAsync(
-                            output, writeLock, new ErrorEvent(invalid) { Code = ErrorCodes.InvalidElicitationContent, Id = elicitation.Id }, CancellationToken.None);
+                            output, writeLock, new ErrorEvent(refusal.Problem) { Code = ErrorCodes.InvalidElicitationContent, Id = refusal.Id }, CancellationToken.None);
                     }
 
                     continue;
@@ -406,6 +406,10 @@ public partial class AgentServerRunner
 
         void Stop()
         {
+            // An open elicitation (a server's question or the model's own) is never suspended: it ends as cancel, so the
+            // turn holding it can end.
+            bridge.CancelElicitations();
+
             if (bridge.WaitLog is null)
             {
                 bridge.RejectWaitsInTurn(StoppedReason);
