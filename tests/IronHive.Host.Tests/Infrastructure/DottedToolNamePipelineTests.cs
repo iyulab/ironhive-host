@@ -46,8 +46,15 @@ public sealed class DottedToolNamePipelineTests
             return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Sent.")) { FinishReason = ChatFinishReason.Stop });
         }
 
-        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var response = await GetResponseAsync(messages, options, cancellationToken);
+            foreach (var message in response.Messages)
+            {
+                yield return new ChatResponseUpdate(message.Role, message.Contents.ToList()) { FinishReason = response.FinishReason };
+            }
+        }
 
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
@@ -82,5 +89,40 @@ public sealed class DottedToolNamePipelineTests
         evaluated.Should().Contain("message.send").And.NotContain(alias);
         response.ToolCalls.Should().ContainSingle().Which.ToolName.Should().Be("message.send");
         response.Content.Should().Contain("Sent.");
+    }
+
+    [Fact]
+    public async Task ADottedTool_IsUsable_WhenStreaming_AndTheChunksCarryTheRealName()
+    {
+        var evaluated = new List<string>();
+        var policy = Substitute.For<IToolCallPolicy>();
+        policy.Evaluate(Arg.Do<string>(evaluated.Add), Arg.Any<IDictionary<string, object?>?>())
+            .Returns(new RiskAssessment { Verdict = PermissionAction.Allow });
+        var ran = new List<string>();
+        var provider = new StrictProvider();
+        var client = HostChatPipeline.Decorate(
+            provider,
+            new ChatBehaviorConfig(),
+            HostChatPipeline.CreateToolInvocationPipeline(policy, approvalService: null, loggerFactory: null));
+        var loop = new AgentLoop(client);
+        var tools = new ChatOptions
+        {
+            Tools = [AIFunctionFactory.Create((string to) => { ran.Add(to); return "sent to " + to; }, "message.send")],
+        };
+
+        var chunks = new List<AgentResponseChunk>();
+        await foreach (var chunk in loop.RunStreamingAsync("tell ann", tools, Ct))
+        {
+            chunks.Add(chunk);
+        }
+
+        var alias = ToolNameAliasChatClient.AliasFor("message.send");
+        provider.OfferedNames.Should().OnlyContain(n => n == alias);
+        provider.HistoryCallNames.Should().Equal([alias]);
+        ran.Should().Equal("ann");
+        evaluated.Should().Contain("message.send").And.NotContain(alias);
+        chunks.Select(c => c.ToolCallDelta?.NameDelta).Where(n => n is not null).Should().OnlyContain(n => n == "message.send");
+        chunks.Select(c => c.ToolResult?.ToolName).Where(n => n is not null).Should().ContainSingle().Which.Should().Be("message.send");
+        string.Concat(chunks.Select(c => c.TextDelta)).Should().Contain("Sent.");
     }
 }
