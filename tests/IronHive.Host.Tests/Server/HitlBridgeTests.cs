@@ -511,6 +511,195 @@ public class HitlBridgeTests
         sent.Reader.TryRead(out var none).Should().BeFalse("nothing is sent for a mode the host does not advertise");
     }
 
+    // ── MCP form-mode elicitation (opt-in: HitlBridge.SupportsForms) ─────────
+
+    private static ElicitRequestParams FormElicitation() => new()
+    {
+        Mode = "form",
+        Message = "Which account should the report be filed under?",
+        RequestedSchema = new ElicitRequestParams.RequestSchema
+        {
+            Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
+            {
+                ["account"] = new ElicitRequestParams.UntitledSingleSelectEnumSchema { Enum = ["alpha", "beta"] },
+            },
+            Required = ["account"],
+        },
+    };
+
+    private static (HitlBridge Bridge, Channel<ServerEvent> Sent, IDisposable Attachment) AttachedForms(TimeSpan? timeout = null)
+    {
+        var bridge = new HitlBridge(timeout) { SupportsForms = true };
+        var sent = Channel.CreateUnbounded<ServerEvent>();
+        var attachment = bridge.Attach((evt, _) =>
+        {
+            sent.Writer.TryWrite(evt);
+            return Task.CompletedTask;
+        });
+        return (bridge, sent, attachment);
+    }
+
+    private static Dictionary<string, JsonElement> Account(string value) => new() { ["account"] = JsonSerializer.SerializeToElement(value) };
+
+    [Fact]
+    public async Task FormElicitation_TheEventCarriesTheSchema_AndTheAnswersContentIsReturned()
+    {
+        var (bridge, sent, attachment) = AttachedForms();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.ElicitAsync("reports", FormElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        evt.Mode.Should().Be("form");
+        evt.Plugin.Should().Be("reports", "the person is told which side is asking");
+        evt.Message.Should().Contain("Which account");
+        evt.Url.Should().BeNull();
+        var options = evt.RequestedSchema!.Value.GetProperty("properties").GetProperty("account").GetProperty("enum");
+        options.EnumerateArray().Select(o => o.GetString()).Should().Equal("alpha", "beta");
+        var line = JsonSerializer.Serialize<ServerEvent>(evt, JsonOpts);
+        line.Should().Contain("\"requested_schema\":{").And.Contain("\"mode\":\"form\"");
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("beta") }).Should().BeTrue();
+        var result = await pending;
+        result.Action.Should().Be("accept");
+        result.Content!["account"].GetString().Should().Be("beta");
+    }
+
+    [Fact]
+    public async Task FormElicitation_AnAnswerThatBreaksTheSchema_IsRefusedWithAReason_AndTheRequestKeepsWaiting()
+    {
+        var (bridge, sent, attachment) = AttachedForms();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+        var pending = bridge.ElicitAsync("reports", FormElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("gamma") }, out var problem)
+            .Should().BeFalse();
+        problem.Should().Contain("'account'");
+        pending.IsCompleted.Should().BeFalse("the person can fix the answer while the question is open");
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("gamma") })
+            .Should().BeFalse("the one-argument form drops it the same way");
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest("accept", evt.Id) { Content = Account("alpha") }, out problem).Should().BeTrue();
+        problem.Should().BeNull();
+        (await pending).Content!["account"].GetString().Should().Be("alpha");
+    }
+
+    [Theory]
+    [InlineData("decline")]
+    [InlineData("cancel")]
+    public async Task FormElicitation_ADeclineOrCancel_NeedsNoContent(string action)
+    {
+        var (bridge, sent, attachment) = AttachedForms();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+        var pending = bridge.ElicitAsync("reports", FormElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest(action, evt.Id)).Should().BeTrue();
+
+        var result = await pending;
+        result.Action.Should().Be(action);
+        result.Content.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task FormElicitation_NotEnabled_StaysDeclined_AndTheUrlEventHasNoSchemaField()
+    {
+        var (bridge, sent, attachment) = AttachedAnyEvent();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        bridge.SupportsForms.Should().BeFalse("off unless the host sets it");
+        (await bridge.ElicitAsync("reports", FormElicitation(), ct)).Action.Should().Be("decline");
+
+        var pending = bridge.ElicitAsync("payments", UrlElicitation(), ct).AsTask();
+        var evt = (ElicitationRequestEvent)await sent.Reader.ReadAsync(ct);
+        evt.RequestedSchema.Should().BeNull();
+        JsonSerializer.Serialize<ServerEvent>(evt, JsonOpts).Should().NotContain("requested_schema");
+        bridge.ResolveElicitation(new ElicitationResponseRequest("cancel", evt.Id)).Should().BeTrue();
+        await pending;
+    }
+
+    [Fact]
+    public void FormElicitation_TheResponseLineCarriesContent()
+    {
+        var request = JsonSerializer.Deserialize<ServerRequest>(
+            """{"type":"elicitation_response","id":"e1","action":"accept","content":{"account":"beta","count":2}}""", JsonOpts);
+
+        var response = request.Should().BeOfType<ElicitationResponseRequest>().Subject;
+        response.Content!["account"].GetString().Should().Be("beta");
+        response.Content["count"].GetInt32().Should().Be(2);
+    }
+
+    [Fact]
+    public void FormElicitation_TheHostHandlerFollowsTheBridge()
+    {
+        using var on = new HitlBridge { SupportsForms = true };
+        using var off = new HitlBridge();
+        var console = new IronHive.Cli.Services.ConsoleElicitationHandler();
+
+        new IronHive.Cli.Services.HostElicitationHandler(on, console).SupportsForms.Should().BeTrue();
+        new IronHive.Cli.Services.HostElicitationHandler(off, console).SupportsForms.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task StdioRunner_AFormAnswerThatBreaksTheSchema_IsAnErrorLine_AndTheRequestStaysOpenForACorrection()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var bridge = new HitlBridge(TimeSpan.FromSeconds(30)) { SupportsForms = true };
+
+        async IAsyncEnumerable<ServerEvent> Process(UserMessageRequest msg, [EnumeratorCancellation] CancellationToken token)
+        {
+            yield return new ToolStartEvent("file_report", CallId: "call-9");
+            var answer = await bridge.ElicitAsync("reports", FormElicitation(), token);
+            yield return new ToolEndEvent("file_report", answer.Action == "accept", answer.Content?["account"].GetString() ?? answer.Action, "call-9");
+            yield return new TurnEndEvent();
+        }
+
+        var input = new LineInput();
+        var output = new LineOutput();
+        var runner = new AgentServerRunner(Process, Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts, hitlBridge: bridge);
+        var run = runner.RunAsync(input, output, ct);
+
+        input.Enqueue("""{"type":"user_message","content":"file it"}""");
+        ElicitationRequestEvent? request = null;
+        while (request is null)
+        {
+            var evt = JsonSerializer.Deserialize<ServerEvent>(await output.Lines.ReadAsync(ct), JsonOpts)!;
+            request = evt as ElicitationRequestEvent;
+        }
+
+        input.Enqueue($$$"""{"type":"elicitation_response","id":"{{{request.Id}}}","action":"accept","content":{"account":"gamma"}}""");
+        ErrorEvent? error = null;
+        while (error is null)
+        {
+            error = JsonSerializer.Deserialize<ServerEvent>(await output.Lines.ReadAsync(ct), JsonOpts) as ErrorEvent;
+        }
+
+        error.Code.Should().Be(ErrorCodes.InvalidElicitationContent);
+        error.Id.Should().Be(request.Id, "the refusal names the question it is about");
+        error.Message.Should().Contain("'account'");
+
+        input.Enqueue($$$"""{"type":"elicitation_response","id":"{{{request.Id}}}","action":"accept","content":{"account":"beta"}}""");
+        ToolEndEvent? end = null;
+        while (end is null)
+        {
+            end = JsonSerializer.Deserialize<ServerEvent>(await output.Lines.ReadAsync(ct), JsonOpts) as ToolEndEvent;
+        }
+
+        end.Success.Should().BeTrue();
+        end.Output.Should().Be("beta");
+        input.Complete();
+        await run;
+    }
+
     [Fact]
     public async Task Elicitation_NotAnsweredInTime_IsCancelled()
     {

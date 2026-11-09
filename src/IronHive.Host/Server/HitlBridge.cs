@@ -5,6 +5,7 @@ using IronHive.Agent.Mcp;
 using IronHive.Agent.Mode;
 using IronHive.Host.Protocol;
 using IronHive.Host.Session;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace IronHive.Host.Server;
@@ -38,9 +39,14 @@ namespace IronHive.Host.Server;
 /// <para>
 /// The bridge also carries an MCP server's URL-mode elicitation (<see cref="IMcpElicitationHandler"/>): an
 /// <see cref="ElicitationRequestEvent"/> goes to the client and the call waits for the matching
-/// <see cref="ElicitationResponseRequest"/> (<see cref="ResolveElicitation"/>). That wait always stays inside its turn — the
+/// <see cref="ElicitationResponseRequest"/> (<see cref="ResolveElicitation(ElicitationResponseRequest)"/>). That wait always stays inside its turn — the
 /// MCP client holds the retry in-process — and ends as <c>cancel</c> after <see cref="Timeout"/>, when no runner is attached,
 /// when the runner detaches, or when the server stops.
+/// </para>
+/// <para>
+/// Form-mode elicitation (a few non-sensitive values with a flat schema) is off until <see cref="SupportsForms"/> is set; the
+/// event then carries the schema (<see cref="ElicitationRequestEvent.RequestedSchema"/>) and the answer carries
+/// <see cref="ElicitationResponseRequest.Content"/>, checked against that schema before the server hears it.
 /// </para>
 /// </remarks>
 public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, IDisposable
@@ -51,7 +57,7 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
     private readonly ConcurrentDictionary<string, TaskCompletionSource<HitlResponseRequest>> _pending = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, HitlResponseRequest> _preanswered = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DeferredWait> _deferred = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _elicitations = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, ElicitationWait> _elicitations = new(StringComparer.Ordinal);
     private readonly Func<ApprovalRequest, string, HitlRequestEvent> _format;
     private Func<ServerEvent, CancellationToken, Task>? _publish;
     private Action<DeferredApproval>? _onDeferredAnswer;
@@ -85,6 +91,13 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
 
     /// <summary>How long a request waits for an answer before it is rejected.</summary>
     public TimeSpan Timeout { get; }
+
+    /// <summary>
+    /// Whether a client of this host can show a form-mode elicitation (<c>chatBehavior.elicitationForms</c>): when true the host
+    /// advertises form mode to MCP servers and relays their form requests as <see cref="ElicitationRequestEvent"/>s with a
+    /// schema; when false (the default) a form request is answered <c>decline</c> and nothing is sent, as before.
+    /// </summary>
+    public bool SupportsForms { get; init; }
 
     /// <summary>
     /// How long a request holds its turn before it is deferred; null never defers. Deferring needs a runner that opens a turn
@@ -182,33 +195,67 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
 
     /// <summary>
     /// Delivers a client's answer to an <see cref="ElicitationRequestEvent"/>. Returns false when it matches no waiting request
-    /// (an unknown id, or no id while several wait) or its action is not one of <see cref="ElicitationActions"/> — the answer
-    /// is then dropped and the request keeps waiting.
+    /// (an unknown id, or no id while several wait), its action is not one of <see cref="ElicitationActions"/>, or it accepts a
+    /// form with content that breaks the request's schema (<see cref="ResolveElicitation(ElicitationResponseRequest, out string?)"/>
+    /// says why) — the answer is then dropped and the request keeps waiting.
     /// </summary>
-    public bool ResolveElicitation(ElicitationResponseRequest response)
+    public bool ResolveElicitation(ElicitationResponseRequest response) => ResolveElicitation(response, out _);
+
+    /// <summary>
+    /// As the one-argument form, and says why an <c>accept</c> was refused: <paramref name="problem"/> names the first field of
+    /// the answer that breaks the form's schema, and is null when the answer was taken or was dropped for another reason. A
+    /// runner sends it to the client as an <see cref="ErrorEvent"/> coded <see cref="ErrorCodes.InvalidElicitationContent"/>.
+    /// </summary>
+    public bool ResolveElicitation(ElicitationResponseRequest response, out string? problem)
     {
         ArgumentNullException.ThrowIfNull(response);
+        problem = null;
         if (response.Action is not (ElicitationActions.Accept or ElicitationActions.Decline or ElicitationActions.Cancel))
         {
             return false;
         }
 
+        string? key = null;
         if (response.Id is { Length: > 0 } id)
         {
-            return _elicitations.TryRemove(id, out var waiter) && waiter.TrySetResult(response.Action);
+            key = id;
+        }
+        else
+        {
+            var waiting = _elicitations.ToArray();
+            if (waiting.Length == 1)
+            {
+                key = waiting[0].Key;
+            }
         }
 
-        var waiting = _elicitations.ToArray();
-        return waiting.Length == 1
-            && _elicitations.TryRemove(waiting[0].Key, out var only)
-            && only.TrySetResult(response.Action);
+        if (key is null || !_elicitations.TryGetValue(key, out var wait))
+        {
+            return false;
+        }
+
+        // The question stays open for a correction: nothing is removed until the answer is one the server can read.
+        var isForm = wait.Request.RequestedSchema is not null;
+        if (response.Action == ElicitationActions.Accept && isForm
+            && ElicitationFormContent.Validate(wait.Request, response.Content) is { } invalid)
+        {
+            problem = invalid;
+            return false;
+        }
+
+        var result = response.Action == ElicitationActions.Accept && isForm
+            ? new ElicitResult { Action = response.Action, Content = response.Content }
+            : new ElicitResult { Action = response.Action };
+
+        return _elicitations.TryRemove(key, out var taken) && taken.Source.TrySetResult(result);
     }
 
     /// <inheritdoc />
     /// <remarks>
     /// Sends an <see cref="ElicitationRequestEvent"/> and waits inside the turn for its <see cref="ElicitationResponseRequest"/>.
-    /// Answers <c>cancel</c> without asking when no runner is attached, and after <see cref="Timeout"/>; a request that is not
-    /// URL mode is answered <c>decline</c> (only URL mode is advertised). Cancelling the turn cancels the wait.
+    /// Answers <c>cancel</c> without asking when no runner is attached, and after <see cref="Timeout"/>; a form request is
+    /// answered <c>decline</c> unless <see cref="SupportsForms"/> is set (only URL mode is advertised then). Cancelling the turn
+    /// cancels the wait.
     /// </remarks>
     public ValueTask<ElicitResult> ElicitAsync(string pluginName, ElicitRequestParams request, CancellationToken cancellationToken)
         => ElicitAsync(pluginName, null, request, cancellationToken);
@@ -221,7 +268,9 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!string.Equals(request.Mode, "url", StringComparison.Ordinal))
+        var url = string.Equals(request.Mode, "url", StringComparison.Ordinal);
+        var form = !url && request.RequestedSchema is not null && SupportsForms;
+        if (!url && !form)
         {
             return new ElicitResult { Action = ElicitationActions.Decline };
         }
@@ -233,8 +282,8 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
         }
 
         var id = Guid.NewGuid().ToString("N");
-        var waiter = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _elicitations[id] = waiter;
+        var waiter = new TaskCompletionSource<ElicitResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _elicitations[id] = new ElicitationWait(request, waiter);
         try
         {
             using var timeoutCts = new CancellationTokenSource(Timeout);
@@ -243,15 +292,17 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
 
             // Registered above, published here: an answer cannot outrun its wait.
             await publish(
-                new ElicitationRequestEvent(id, pluginName, "url", request.Message ?? string.Empty, request.Url, request.ElicitationId, call?.CallId, call?.ToolName)
+                new ElicitationRequestEvent(
+                    id, pluginName, form ? "form" : "url", request.Message ?? string.Empty, request.Url, request.ElicitationId, call?.CallId, call?.ToolName)
                 {
+                    RequestedSchema = form ? JsonSerializer.SerializeToElement(request.RequestedSchema, McpJsonUtilities.DefaultOptions) : null,
                     ModelProposal = call?.ModelProposal is { } proposal ? ToWire(proposal) : null,
                 },
                 cancellationToken);
 
             try
             {
-                return new ElicitResult { Action = await waiter.Task };
+                return await waiter.Task;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -557,12 +608,15 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
         {
             if (_elicitations.TryRemove(id, out var elicitation))
             {
-                elicitation.TrySetResult(ElicitationActions.Cancel);
+                elicitation.Source.TrySetResult(new ElicitResult { Action = ElicitationActions.Cancel });
             }
         }
     }
 
     private const string NoClientReason = "no client is attached to answer approval requests";
+
+    // The question as asked (its schema is what an answer is checked against) and what completes the wait.
+    private sealed record ElicitationWait(ElicitRequestParams Request, TaskCompletionSource<ElicitResult> Source);
 
     private string TimedOutReason() =>
         string.Create(CultureInfo.InvariantCulture, $"no answer to the approval request within {Timeout.TotalSeconds:F0}s");

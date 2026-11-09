@@ -198,10 +198,14 @@ public static class ServiceCollectionExtensions
         // The terminal answers approvals, except while `run --server` has a client attached to the bridge.
         services.AddSingleton<HitlBridge>(sp =>
         {
-            var approval = sp.GetRequiredService<IronHiveConfig>().Approval;
+            var config = sp.GetRequiredService<IronHiveConfig>();
+            var approval = config.Approval;
             return new HitlBridge(
                 TimeSpan.FromSeconds(approval.TimeoutSeconds),
-                deferAfter: approval.DeferAfterSeconds is { } defer ? TimeSpan.FromSeconds(defer) : null);
+                deferAfter: approval.DeferAfterSeconds is { } defer ? TimeSpan.FromSeconds(defer) : null)
+            {
+                SupportsForms = config.ChatBehavior.ElicitationForms,
+            };
         });
         services.AddSingleton(sp => new Services.ConsoleApprovalService(
             sp.GetRequiredService<IronHiveConfig>().ChatBehavior.ShowProposalRecommendation));

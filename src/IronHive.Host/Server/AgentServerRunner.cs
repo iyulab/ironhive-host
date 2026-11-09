@@ -256,7 +256,13 @@ public partial class AgentServerRunner
 
                 if (request is ElicitationResponseRequest elicitation)
                 {
-                    _hitl?.ResolveElicitation(elicitation);
+                    // A form answer that breaks the schema is refused with its reason; the question stays open.
+                    if (_hitl is not null && !_hitl.ResolveElicitation(elicitation, out var invalid) && invalid is not null)
+                    {
+                        await WriteSerializedAsync(
+                            output, writeLock, new ErrorEvent(invalid) { Code = ErrorCodes.InvalidElicitationContent, Id = elicitation.Id }, CancellationToken.None);
+                    }
+
                     continue;
                 }
 
