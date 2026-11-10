@@ -55,7 +55,7 @@
     <PackageVersion Include="TokenMeter" Version="0.16.0" />
     <!-- Testing (xUnit v3 on Microsoft.Testing.Platform) -->
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
-    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.2" />
     <!-- coverlet.MTP is coverlet.collector's MTP-native successor -->
