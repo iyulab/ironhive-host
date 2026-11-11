@@ -309,7 +309,7 @@ the stream; running again later can succeed) or `"run"` (configuration, another 
 `null` otherwise. A prompt that is missing, or a failure before the command runs, prints only
 `{ "error": "…", "error_kind": "run", "stop_reason": "error", "duration_ms": … }`. A call a local model writes as text (its server's tool
 parser missed it — `<tool_call>…</tool_call>` or `<function=…>`) is run like a structured call, through the same guards and
-permission rules, instead of ending the turn. Log output goes to stderr. A non-interactive
+permission rules, instead of ending the turn. Log output goes to stderr (warnings and above; `IRONHIVE_LOG_LEVEL=Information|Debug|Trace|Error|Critical|None` changes the level). A non-interactive
 run cannot ask for approval, so calls the rules mark `Ask` are refused — allow them in
 `.ironhive/permissions.yaml` when the run is meant to act unattended. The rules sit under a top-level `permissions:`
 section; to allow named tools and refuse everything else:

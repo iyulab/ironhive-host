@@ -82,6 +82,10 @@ public static class ServiceCollectionExtensions
     internal static ToolCallPolicy CreateToolCallPolicy(IronHive.Agent.Permissions.PermissionConfig permissions, IMcpPluginManager? mcp) =>
         mcp is null ? new ToolCallPolicy(permissions) : new ToolCallPolicy(permissions, mcp.IsMcpTool);
 
+    /// <summary>Warning and above unless <c>IRONHIVE_LOG_LEVEL</c> names a level (<c>Trace</c> .. <c>None</c>, any case); an unknown value keeps the default.</summary>
+    internal static LogLevel ResolveLogLevel(string? value)
+        => Enum.TryParse<LogLevel>(value, ignoreCase: true, out var level) && Enum.IsDefined(level) ? level : LogLevel.Warning;
+
     public static IServiceCollection AddIronHiveServices(this IServiceCollection services)
     {
         // Load configuration (config.yaml, 4-scope merge; migrate legacy settings.json once)
@@ -99,6 +103,11 @@ public static class ServiceCollectionExtensions
         // The commands that read and write config.yaml later (`get`, `set`, `config`, `doctor`) get a manager that logs
         // through the application's logging; the bootstrap factory above is disposed when this method returns.
         services.AddSingleton(sp => new ConfigurationManager(projectRoot, globalConfigPath, sp.GetService<ILogger<ConfigurationManager>>()));
+
+        // Log output goes to stderr (stdout is the command's output: a `run --json` document, server-mode JSON Lines). Without a
+        // provider every ILogger message of the host - an MCP plugin that failed to load, a skill discovery refused - was dropped.
+        services.AddLogging(b => b.SetMinimumLevel(ResolveLogLevel(Environment.GetEnvironmentVariable("IRONHIVE_LOG_LEVEL")))
+            .AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace));
 
         // Register HttpClient factory with named clients
         services.AddHttpClient();
