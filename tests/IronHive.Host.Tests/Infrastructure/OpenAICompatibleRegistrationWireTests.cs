@@ -156,6 +156,43 @@ public class OpenAICompatibleRegistrationWireTests
                 }
             }
 
+            else if (headers.TryGetValue("transfer-encoding", out var encoding)
+                && encoding.Contains("chunked", StringComparison.OrdinalIgnoreCase))
+            {
+                // JsonContent has no known length, so the client streams the body chunked. A server that answers and
+                // closes before consuming it resets the connection mid-send - how many bytes are in flight depends on
+                // how the serializer flushes, so the race only shows when that changes. Read to the final chunk.
+                while (true)
+                {
+                    var sizeLine = await reader.ReadLineAsync() ?? string.Empty;
+                    var size = int.Parse(sizeLine.Split(';')[0].Trim(), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture);
+                    if (size == 0)
+                    {
+                        while (!string.IsNullOrEmpty(await reader.ReadLineAsync()))
+                        {
+                            // trailer lines, up to the blank line that ends the message
+                        }
+
+                        break;
+                    }
+
+                    var chunk = new char[size];
+                    var read = 0;
+                    while (read < size)
+                    {
+                        var n = await reader.ReadAsync(chunk.AsMemory(read));
+                        if (n == 0)
+                        {
+                            break;
+                        }
+
+                        read += n;
+                    }
+
+                    await reader.ReadLineAsync(); // the CRLF after the chunk data
+                }
+            }
+
             var payload = Encoding.UTF8.GetBytes(Body);
             var head = Encoding.ASCII.GetBytes(
                 $"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {payload.Length}\r\nConnection: close\r\n\r\n");
