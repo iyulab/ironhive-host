@@ -115,6 +115,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _toolRetrieval = toolRetrieval;
         _instructionContributors = instructionContributors?.ToArray() ?? [];
         _skills = skills;
+        ReportSkillDiagnostics(skills, logger);
         _fileToolOptions = fileToolOptions;
         _permissions = permissions;
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
@@ -398,6 +399,33 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _mcpTools?.Track(tools, byPlugin);
     }
 
+    // A skill file the agent layer refused is invisible otherwise: the loader drops it and the agent just lacks the skill. The path and the
+    // reason come from the operator's own skill folders and the discovery diagnostic about them, not from a model or a sender.
+    private static void ReportSkillDiagnostics(IronHive.Agent.Skills.SkillsLoader? skills, ILogger? logger)
+    {
+        if (skills is null)
+        {
+            return;
+        }
+
+        foreach (var diagnostic in skills.Diagnostics)
+        {
+            if (SkillDiagnosticsReport.LevelFor(diagnostic) == LogLevel.Warning)
+            {
+                LogSkillRefused(logger, diagnostic.Path, diagnostic.Message);
+            }
+            else
+            {
+                LogSkillNote(logger, diagnostic.Path, diagnostic.Message);
+            }
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Skill '{Path}' was not used: {Problem}")]
+    private static partial void LogSkillRefused(ILogger? logger, string path, string problem);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Skills: '{Path}': {Problem}")]
+    private static partial void LogSkillNote(ILogger? logger, string path, string problem);
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to load MCP plugins from configuration")]
     private static partial void LogMcpPluginLoadFailed(ILogger? logger, Exception ex);
 

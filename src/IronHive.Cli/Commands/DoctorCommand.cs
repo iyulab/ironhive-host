@@ -59,7 +59,15 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         AnsiConsole.MarkupLine("[bold]Connectivity[/]");
         hasErrors |= !await CheckConnectivityAsync(recommendations, settings.Verbose, cancellationToken);
 
-        // 4. Check environment
+        // 4. Check skills (only when `skills.roots` names a directory - nothing to say otherwise)
+        if (_config.Skills.Roots.Count > 0)
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[bold]Skills[/]");
+            hasWarnings |= !CheckSkills(recommendations);
+        }
+
+        // 5. Check environment
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[bold]Environment[/]");
         hasWarnings |= !CheckEnvironment(recommendations, settings.Verbose);
@@ -150,6 +158,26 @@ public class DoctorCommand : AsyncCommand<DoctorCommand.Settings>
         }
 
         return (hasErrors, hasWarnings);
+    }
+
+    // The same discovery the agent runs at start, so a SKILL.md the agent will silently drop is named here with its reason.
+    private bool CheckSkills(List<string> recommendations)
+    {
+        var result = IronHive.Agent.Skills.SkillDiscovery.Discover(_config.Skills.ToSkillsConfig(Directory.GetCurrentDirectory()));
+        foreach (var line in Infrastructure.SkillDiagnosticsReport.DoctorLines(result))
+        {
+            PrintCheck(line.Ok, line.Text, line.IsWarning);
+        }
+
+        // A configured root that does not exist is listed above but is not a finding: the documented example roots name
+        // directories many projects do not have.
+        var findings = result.Diagnostics.Any(d => d.Code != IronHive.Agent.Skills.SkillDiagnosticCode.RootNotFound);
+        if (findings)
+        {
+            recommendations.Add("Fix or remove the SKILL.md files named under Skills (the agent does not use them)");
+        }
+
+        return !findings;
     }
 
     private bool HasAnyRemoteProvider() => ProviderBlocks.Configured(_config).Any();

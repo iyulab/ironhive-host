@@ -8,6 +8,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ## Unreleased
 
 ### Added
+- **A skill the agent refused is now named instead of silently missing.** When `skills.roots` is configured, the start-up log gives a warning for every `SKILL.md` discovery rejected (path and reason, e.g. a frontmatter key outside the specification or a `name` that does not match its directory) and `ironhive doctor` has a **Skills** section with the same findings; a configured root that does not exist is information, not a warning, and `doctor`'s exit code is unchanged.
 - **The background update check can be turned off.** `update.check: false` in `config.yaml`, or `IRONHIVE_UPDATE_CHECK=false` in the environment (which wins over the file), stops the default command from asking a release source - GitHub releases, or nuget.org for a dotnet tool install - for a newer version at the start of every run, so a run then contacts only the endpoints you configured. The default is unchanged (on). `ironhive --update` and `ironhive update` still check when asked, and `run` / `run --server` never made the background check. The README lists what the CLI contacts by default.
 
 ### Dependencies
