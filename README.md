@@ -510,6 +510,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 |----------|---------|-------|
 | `MaximumIterationsPerRequest` | 10 | Lower (5–7) for small 4K-window models; raise (15–20) for large-context models |
 | `MaximumConsecutiveErrorsPerRequest` | 3 | Backstop on back-to-back tool errors; rarely hit in the CLI, where argument errors become recovery hints and the same error three times in a row ends the turn first |
+| `Temperature` | none | Sampling temperature on every model call. Unset sends no temperature, so the model's own default applies (some models accept nothing else and answer HTTP 400 to any other value). A `user_message` turn's `options.temperature` replaces it for that turn |
 | `RetrieveToolResults` | false | Offers `retrieve_tool_result`: a tool result that was masked or shortened is kept, and its placeholder tells the model to read it back by id instead of repeating the call (which a tool with side effects cannot). Read-only for planning mode and approval rules |
 | `ApprovalProposals` | false | Offers `propose_for_approval`: the model can tell the person approving a call what it weighed - up to 5 options, the one it recommends, or one question - in the same step as the call. `run --server` carries it as `model_proposal` on the `hitl_request`, a field of its own that is the model's claim, not something the host verified (see [Human approval over the wire](#human-approval-over-the-wire)). Information only; read-only for planning mode and approval rules |
 | `ShowProposalRecommendation` | false | Whether the terminal prompts (the approval panel and an MCP server's question) name the option the model recommends in its proposal. Off: the options and the model's reasons are listed in the order the model gave them, so the person decides from the call itself before reading what the model prefers. `run --server` is not affected - `recommended_option_id` is always on the wire and the client decides how to show it |
@@ -520,6 +521,7 @@ Controls how `FunctionInvokingChatClient` orchestrates the tool-call iteration l
 chatBehavior:
   maximumIterationsPerRequest: 7      # tune down for small/quantized models
   maxOutputTokens: 16384              # per model call (default 4096); a reasoning model spends part of it thinking
+  temperature: 0.7                    # sent on every model call; unset = no temperature sent (the model's own default)
   reasoningEffort: low                # none | low | medium | high | extra_high; unset = the model's default.
                                       # none turns thinking off; the other levels are requests a server may hold loosely
   maximumConsecutiveErrorsPerRequest: 3

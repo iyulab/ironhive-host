@@ -79,7 +79,6 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         - Be concise and direct in your responses.
         - After using tools, summarize what was done without repeating tool output verbatim.
         """;
-    private const float DefaultTemperature = 0.7f;
 
     public AgentLoopFactory(
         IChatClientFactory clientFactory,
@@ -244,7 +243,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         var agentOptions = new IronHive.Agent.Loop.AgentOptions
         {
             SystemPrompt = options.SystemPrompt ?? DefaultSystemPrompt,
-            Temperature = options.Temperature ?? DefaultTemperature,
+            // Unset sends no temperature at all: the model's own default applies (some models accept nothing else).
+            Temperature = options.Temperature ?? _chatBehavior.Temperature,
             // Read when the loop is created, so `run --max-output-tokens` (which sets it first) applies.
             MaxTokens = options.MaxTokens ?? _chatBehavior.MaxOutputTokens,
             // Read here for the same reason: `run --reasoning-effort` sets it first.

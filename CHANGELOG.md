@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Added
+- **`chatBehavior.temperature` sets the sampling temperature of every model call.** `ChatBehaviorConfig.Temperature` is a nullable number, unset by default; a `user_message` turn's `options.temperature` still replaces it for that turn.
+
+### Changed
+- **Breaking** (observable): **the CLI and `run --server` no longer send `temperature: 0.7` when nothing sets one.** The loop forced 0.7 on every model call, so a model that accepts only its own default sampling answered every turn with HTTP 400 and no setting could change it. An unset temperature is now left out of the request and the model's default applies. To keep the previous behaviour set `chatBehavior.temperature: 0.7`.
+
 ## 0.79.0 — 2026-11-16
 
 ### Added

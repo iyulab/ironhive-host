@@ -462,6 +462,13 @@ public class ChatBehaviorConfig
     public int MaxOutputTokens { get; set; } = 4096;
 
     /// <summary>
+    /// Sampling temperature sent on every model call. Null (the default) sends nothing, so the model uses its own
+    /// default — the only value some models accept (a server answers HTTP 400 to any other). A server turn's
+    /// <c>options.temperature</c> replaces it for that turn.
+    /// </summary>
+    public float? Temperature { get; set; }
+
+    /// <summary>
     /// How much the model reasons on every call: <c>none</c>, <c>low</c>, <c>medium</c>, <c>high</c> or
     /// <c>extra_high</c> (<see cref="ReasoningEffortName"/>). Null (the default) sends nothing, so a reasoning model
     /// uses its own default — which can be tens of thousands of thinking tokens on one call. <c>none</c> turns thinking
