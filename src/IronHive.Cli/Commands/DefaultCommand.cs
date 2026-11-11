@@ -3,6 +3,7 @@ using System.Text.Json;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mode;
 using IronHive.Agent.Tracking;
+using IronHive.Host.Config;
 using IronHive.Host.Session;
 using IronHive.Host.Update;
 using Spectre.Console;
@@ -20,6 +21,7 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     private readonly IModeManager _modeManager;
     private readonly IUpdateService _updateService;
     private readonly ISessionManager _sessionManager;
+    private readonly IronHiveConfig _config;
     private SessionTurnRecorder? _recorder;
 
     public DefaultCommand(
@@ -27,13 +29,15 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
         IUsageTracker usageTracker,
         IModeManager modeManager,
         IUpdateService updateService,
-        ISessionManager sessionManager)
+        ISessionManager sessionManager,
+        IronHiveConfig config)
     {
         _factory = factory;
         _usageTracker = usageTracker;
         _modeManager = modeManager;
         _updateService = updateService;
         _sessionManager = sessionManager;
+        _config = config;
     }
 
     public class Settings : CommandSettings
@@ -98,9 +102,10 @@ public class DefaultCommand : AsyncCommand<DefaultCommand.Settings>
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         // Start background update check (unless --update flag is used, which will check after execution)
+        // (update.check: false / IRONHIVE_UPDATE_CHECK=false skips it - no release source is contacted then.)
         if (!settings.CheckUpdate)
         {
-            UpdateChecker.StartBackgroundCheck(_updateService);
+            UpdateChecker.StartBackgroundCheck(_updateService, _config.Update);
         }
 
         // Handle session resumption

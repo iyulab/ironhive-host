@@ -421,6 +421,7 @@ Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai
 | `webSearch` | camelCase |
 | `deepResearch` | camelCase |
 | `chatBehavior` | camelCase — CLI / `run --server` loops only |
+| `update` | `check` (default true) — the background check for a newer release at the start of every run of the default command (interactive and `-p`); `false` contacts no release source. `IRONHIVE_UPDATE_CHECK=false` does the same and wins over the file. See **What the CLI contacts** |
 | `advisor` | `provider`, `model`, `maxCalls` (per session, default 5) — off until `model` is set; CLI / `run --server` loops only |
 | `historySummary` | `provider`, `model` — when compaction drops older messages, this model writes a summary of them (tool calls and results included) instead of the omission note; one model call per compaction, sent without tools or the token budget guard. Off until `model` is set; CLI / `run --server` loops only (`AddIronHive`: `IronHiveOptions.HistorySummarizer`) |
 | `approval` | `timeoutSeconds` (default 300) — how long `run --server` waits for the client's `hitl_response` before closing the request as a denial; `deferAfterSeconds` (unset) — how long a request may hold its turn before the turn goes on without the call (see «A wait need not hold the session») |
@@ -430,6 +431,14 @@ Every provider block the CLI wires (`gpuStack`, `openai`, `anthropic`, `googleai
 | `delegation` | `agentsDirectory` (default `agents`, relative to the working directory), `agents` (list of `name` · `provider` · `model` · `description` · `maxToolTurns`; empty = off), `maxDepth` (default 2), `maxConcurrent` (default 3) — each listed Ironbees agent (`agents/<name>/agent.yaml` + `system-prompt.md`) becomes a tool the working model can hand a task to. The `agent.yaml` needs a `model:` section (Ironbees refuses to load one without it); leave `deployment` out to run on the session's model. A delegated run calls its tools through the session's own approval path (permission rules, planning mode, the approval prompt) and spends the session budget; delegation tools are left out in planning mode; CLI / `run --server` loops only |
 | `skills` | `roots`, `enabled`, `exclude`, `maxMetadataCharacters` (default 12,000), `acceptUnknownFields` — off until `roots` names a directory (see **Skills**) |
 | `shell` | `environment.remove`, `environment.passthrough` — the commands the model runs through the shell tool (`ExecuteCommand`) do not see the provider API keys the host reads (`GPUSTACK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLEAI_API_KEY`, `GOOGLE_API_KEY`, `XAI_API_KEY`, `OPENAI_COMPATIBLE_API_KEY` — `ConfigurationManager.ProviderCredentialVariables`); `remove` hides more variables, `passthrough` keeps a listed one. Everything else (`PATH`, `HOME`, your own variables) is inherited. Hiding a variable does not confine the command — it can still read any file the host can |
+
+### What the CLI contacts
+
+By default a run reaches only the endpoints you configured, plus one request of its own:
+
+- **Your model provider(s)** - the `gpuStack` / `openai` / `anthropic` / `googleai` / `xai` / `ollama` / `lmstudio` / `openaiCompatible` endpoint of the provider in use (and the `advisor` / `historySummary` / delegated-agent models when you set them).
+- **A release source, once per run of the default command** (the interactive session and `-p`): GitHub releases, or nuget.org for a dotnet tool install, asking for the latest version. The request carries no conversation content. Turn it off with `update.check: false` or `IRONHIVE_UPDATE_CHECK=false`; `ironhive update` and `--update` check when you ask. `run` and `run --server` do not make it.
+- **Only when you use them**: MCP servers you configure, the web search / research tools, and LMSupply local inference (on when no API provider is configured, unless `LMSUPPLY_ENABLED=false`), which downloads model files on first use.
 
 ```yaml
 # ~/.ironhive/config.yaml

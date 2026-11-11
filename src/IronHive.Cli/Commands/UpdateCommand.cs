@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using IronHive.Host.Config;
 using IronHive.Host.Update;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -177,10 +178,19 @@ public static class UpdateChecker
     private static readonly SemaphoreSlim Lock = new(1, 1);
 
     /// <summary>
-    /// Starts a background check for updates.
+    /// Starts a background check for updates, unless <c>update.check</c> is off - then no release source is contacted at all.
     /// </summary>
-    public static void StartBackgroundCheck(IUpdateService updateService)
+    /// <returns><c>true</c> when a check was started.</returns>
+    public static bool StartBackgroundCheck(IUpdateService updateService, UpdateHostConfig settings)
     {
+        ArgumentNullException.ThrowIfNull(updateService);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (!settings.Check)
+        {
+            return false;
+        }
+
         _checkTask = Task.Run(async () =>
         {
             try
@@ -193,6 +203,7 @@ public static class UpdateChecker
                 return null;
             }
         });
+        return true;
     }
 
     /// <summary>

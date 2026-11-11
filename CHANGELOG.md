@@ -7,6 +7,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 
 ## Unreleased
 
+### Added
+- **The background update check can be turned off.** `update.check: false` in `config.yaml`, or `IRONHIVE_UPDATE_CHECK=false` in the environment (which wins over the file), stops the default command from asking a release source - GitHub releases, or nuget.org for a dotnet tool install - for a newer version at the start of every run, so a run then contacts only the endpoints you configured. The default is unchanged (on). `ironhive --update` and `ironhive update` still check when asked, and `run` / `run --server` never made the background check. The README lists what the CLI contacts by default.
+
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.75.0 -> 0.76.0, `IronHive.Core` 0.75.0 -> 0.76.0, `IronHive.Extensions.AI` 0.75.0 -> 0.76.0, `IronHive.Providers.Anthropic` 0.75.0 -> 0.76.0, `IronHive.Providers.Declarations` 0.75.0 -> 0.76.0, `IronHive.Providers.GoogleAI` 0.75.0 -> 0.76.0, `IronHive.Providers.OpenAI` 0.75.0 -> 0.76.0, `IronHive.Providers.OpenAI.Compatible` 0.75.0 -> 0.76.0.
 - Re-pinned sibling package(s) `LMSupply.Generator` 0.139.0 -> 0.140.0.

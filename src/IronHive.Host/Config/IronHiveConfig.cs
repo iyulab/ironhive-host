@@ -125,6 +125,12 @@ public class IronHiveConfig
     public ChatBehaviorConfig ChatBehavior { get; set; } = new();
 
     /// <summary>
+    /// The <c>update</c> section: whether the interactive / <c>-p</c> command asks a release source for a newer version in
+    /// the background on every run.
+    /// </summary>
+    public UpdateHostConfig Update { get; set; } = new();
+
+    /// <summary>
     /// Advisor configuration — a stronger model the working model can consult through the <c>advisor</c> tool.
     /// Off until <see cref="AdvisorConfig.Model"/> is set.
     /// </summary>
@@ -923,6 +929,24 @@ public sealed class ToolRetrievalHostConfig
     /// names and aliases change the set whatever this is.
     /// </summary>
     public float? StickyChangeScore { get; set; }
+}
+
+/// <summary>
+/// The <c>update</c> section: the background check for a newer release.
+/// </summary>
+/// <remarks>
+/// The check is one request per run of the default command (the interactive session and <c>-p</c>) to the release source of
+/// the installation - GitHub releases, or nuget.org for a dotnet tool install - and carries no conversation content. It is
+/// skipped when <c>ironhive --update</c> or <c>ironhive update</c> asks for the check itself. <c>run</c> and
+/// <c>run --server</c> do not make it.
+/// </remarks>
+public sealed class UpdateHostConfig
+{
+    /// <summary>
+    /// <c>false</c> turns the background check off, so the default command contacts no release source (the environment
+    /// variable <c>IRONHIVE_UPDATE_CHECK=false</c> does the same and wins over the file). Default <c>true</c>.
+    /// </summary>
+    public bool Check { get; set; } = true;
 }
 
 /// <summary>

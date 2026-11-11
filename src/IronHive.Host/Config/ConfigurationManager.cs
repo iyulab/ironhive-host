@@ -403,6 +403,13 @@ public class ConfigurationManager
             config.LMSupply.Enabled = bool.TryParse(lmSupplyEnabled, out var enabled) && enabled;
         }
 
+        // The background update check: IRONHIVE_UPDATE_CHECK=false turns it off (anything that is not "false" leaves the file's value).
+        var updateCheck = Environment.GetEnvironmentVariable("IRONHIVE_UPDATE_CHECK");
+        if (bool.TryParse(updateCheck, out var checkForUpdates))
+        {
+            config.Update.Check = checkForUpdates;
+        }
+
         // OpenAI from environment
         var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         if (!string.IsNullOrEmpty(openAiApiKey))
