@@ -643,6 +643,12 @@ async IAsyncEnumerable<ServerEvent> ProcessWithContext(
 var runner = new AgentServerRunner(ProcessWithContext, logger, hitlBridge: hitlBridge);
 ```
 
+A large selection rides every turn in full, so the handler can bound it: `ContextEnrichment.Apply(context, msg.Content, new ContextEnrichmentOptions { MaxSelectedItems = 40 })`
+writes the first 40 items and ends the line with how many more there are and, when they share one, their folder
+(`[Selected: a, b (and 297 more in /w/reports)]`). `null` (the default) writes every item; the number is the caller's
+policy, the tail's wording the library's — the tail does not name a tool, so say in your own prompt how the model can get
+the rest. The runners' own plain-handler constructors apply no limit.
+
 **AgentHttpRunner** expects these host endpoints:
 
 | Endpoint | Method | Purpose |

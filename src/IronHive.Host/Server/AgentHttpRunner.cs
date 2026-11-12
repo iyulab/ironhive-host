@@ -149,7 +149,7 @@ public sealed partial class AgentHttpRunner : IDisposable
     /// <param name="processMessage">Processes a user message and yields server events. It receives the message as sent
     /// and the last <see cref="ContextUpdateRequest"/> read before it (null before any), and the runner puts nothing in
     /// front of the content: the handler can check the user's own text, then apply the context with
-    /// <see cref="ContextEnrichment.Apply"/> or not at all.</param>
+    /// <see cref="ContextEnrichment.Apply(ContextUpdateRequest?, string)"/> or not at all.</param>
     /// <param name="logger">Logger instance.</param>
     /// <param name="jsonOptions">Custom JSON options. Defaults to snake_case.</param>
     /// <param name="typeInfoModifiers">Optional modifiers applied to the polymorphic type resolver (see the other
