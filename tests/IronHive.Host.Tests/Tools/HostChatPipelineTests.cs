@@ -58,6 +58,7 @@ public sealed class HostChatPipelineTests
 
         plain.GetService<FunctionInvokingChatClient>()!.MaximumIterationsPerRequest.Should().Be(20);
         plain.GetService<ToolRoundContextChatClient>().Should().NotBeNull();
+        plain.GetService<IronHive.Agent.Loop.TurnLimitChatClient>().Should().NotBeNull("a turn can carry its own cap on tool rounds");
         plain.GetService<TokenBudgetChatClient>().Should().NotBeNull();
         plain.GetService<OpenTelemetryChatClient>().Should().BeNull();
         traced.GetService<OpenTelemetryChatClient>().Should().NotBeNull();

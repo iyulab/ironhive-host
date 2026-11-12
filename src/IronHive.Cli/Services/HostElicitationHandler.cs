@@ -10,6 +10,12 @@ namespace IronHive.Cli.Services;
 /// </summary>
 public sealed class HostElicitationHandler(HitlBridge bridge, ConsoleElicitationHandler console) : IMcpElicitationHandler
 {
+    /// <summary>
+    /// Whether form-mode elicitation is advertised: the bridge's <see cref="HitlBridge.SupportsForms"/> (<c>chatBehavior.elicitationForms</c>,
+    /// off by default). Only a client on the wire answers a form - the terminal declines it.
+    /// </summary>
+    public bool SupportsForms => bridge.SupportsForms;
+
     /// <inheritdoc />
     public ValueTask<ElicitResult> ElicitAsync(string pluginName, ElicitRequestParams request, CancellationToken cancellationToken) =>
         ElicitAsync(pluginName, null, request, cancellationToken);

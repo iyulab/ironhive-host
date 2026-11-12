@@ -39,6 +39,8 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     private readonly SkillsLoader? _skills;
     private readonly FileToolOptions? _fileToolOptions;
     private readonly IronHive.Agent.Tools.ShellToolOptions _shellToolOptions;
+    private readonly IronHive.Agent.Mcp.IMcpElicitationHandler? _askUserHandler;
+    private readonly Func<bool>? _askUserAvailable;
     private readonly PermissionConfig? _permissions;
     private readonly UsageLimitsConfig? _budget;
     private readonly AgentsMdHostConfig? _agentsMd;
@@ -102,8 +104,12 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         IChatClientFactory? plainClients = null,
         ChatBehaviorConfig? chatBehavior = null,
         HistorySummaryConfig? historySummary = null,
-        ShellHostConfig? shell = null)
+        ShellHostConfig? shell = null,
+        IronHive.Agent.Mcp.IMcpElicitationHandler? askUserHandler = null,
+        Func<bool>? askUserAvailable = null)
     {
+        _askUserHandler = askUserHandler;
+        _askUserAvailable = askUserAvailable;
         // The shell tool's commands do not see the provider API keys this host reads unless the config keeps them.
         _shellToolOptions = (shell ?? new ShellHostConfig()).ToToolOptions();
         _chatBehavior = chatBehavior ?? new ChatBehaviorConfig();
@@ -226,6 +232,13 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         if (_chatBehavior.ApprovalProposals)
         {
             tools.Add(IronHive.Agent.Mode.ApprovalProposalTool.Create());
+        }
+
+        // The tool a model uses to ask the person a question with choices: the question rides the same form bridge as an MCP
+        // server's form-mode question, and the tool refuses when no client is attached to answer.
+        if (_chatBehavior.AskUser && _askUserHandler is not null)
+        {
+            tools.Add(IronHive.Agent.Tools.AskUserTool.Create(_askUserHandler, _askUserAvailable));
         }
 
         var agentOptions = new IronHive.Agent.Loop.AgentOptions

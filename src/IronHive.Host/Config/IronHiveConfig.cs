@@ -503,6 +503,29 @@ public class ChatBehaviorConfig
     /// the wire and the client decides how to show it.
     /// </summary>
     public bool ShowProposalRecommendation { get; set; }
+
+    /// <summary>
+    /// Whether a client of <c>run --server</c> can show a form: when true the host advertises MCP form-mode elicitation next to
+    /// URL mode, and a server that needs a few non-sensitive values (a choice of account, a missing argument) sends the client an
+    /// <c>elicitation_request</c> with <c>mode: "form"</c> and a <c>requested_schema</c>; the client answers with an
+    /// <c>elicitation_response</c> whose <c>content</c> the host checks against that schema before the server hears it (a wrong
+    /// answer comes back as an <c>error</c> coded <c>invalid_elicitation_content</c> and the question stays open). Default
+    /// <c>false</c>: form mode is not advertised, a form request is answered <c>decline</c>, and no event carries a schema. The
+    /// terminal does not show forms - only a client on the wire answers them. A form is never a place for secrets: servers ask
+    /// for those in URL mode.
+    /// </summary>
+    public bool ElicitationForms { get; set; }
+
+    /// <summary>
+    /// Whether the loop offers <c>ask_user</c> (IronHive.Agent <c>AskUserTool</c>): the model can ask the person a short question
+    /// with a few choices - and, when it allows, an answer of their own - and carry on with the answer in the same turn. A client of
+    /// <c>run --server</c> receives it as an <c>elicitation_request</c> with <c>mode: "form"</c> and <c>plugin: "model"</c> (the
+    /// model asking, not an MCP server), the same card as a server's form question. Turning it on also turns on form mode
+    /// (<see cref="ElicitationForms"/>), since the client that shows this card shows the other. With no client attached - a
+    /// scheduled or background run, or a terminal session - the tool refuses and the model decides itself. Default <c>false</c>:
+    /// no tool.
+    /// </summary>
+    public bool AskUser { get; set; }
 }
 
 /// <summary>

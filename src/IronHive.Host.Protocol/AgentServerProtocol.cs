@@ -49,13 +49,18 @@ public record UserMessageRequest(
 /// <c>ChatOptions.Instructions</c> — the providers send them as system text alongside the agent's system prompt — and
 /// are never added to the conversation history, so a later turn without them does not carry them and a guard that reads
 /// the user's text does not read them. Send them again with every turn that should have them.</param>
+/// <param name="MaxIterations">Cap on the tool rounds (model calls with tools) this turn may use, at least 1. At the cap the
+/// turn gets one more model call without tools and ends on its text answer, with <c>stop_reason: step_limit</c>. The agent's
+/// configured cap (<c>chatBehavior.maximumIterationsPerRequest</c>, <c>--max-iterations</c>) stays the ceiling: a larger value
+/// here does not raise it. A value below 1 is rejected with an <see cref="ErrorEvent"/>.</param>
 public record TurnOptions(
     string[]? ToolNames = null,
     string? ToolMode = null,
     string? ReasoningEffort = null,
     float? Temperature = null,
     int? MaxOutputTokens = null,
-    string? Instructions = null);
+    string? Instructions = null,
+    int? MaxIterations = null);
 
 /// <summary>
 /// A client's answer to a <see cref="HitlRequestEvent"/>.
@@ -83,7 +88,19 @@ public record HitlResponseRequest(
 /// only when exactly one is waiting.</param>
 public record ElicitationResponseRequest(
     string Action,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Id = null) : ServerRequest;
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Id = null) : ServerRequest
+{
+    /// <summary>
+    /// The values the person gave, by field name, for a <see cref="ElicitationRequestEvent.Mode"/> <c>form</c> request answered
+    /// with <c>accept</c> - what <see cref="ElicitationRequestEvent.RequestedSchema"/> asked for (strings, numbers, booleans,
+    /// arrays of strings for a multi-select), the defaults included. The host checks it against the schema before it reaches the
+    /// server: an answer that breaks the schema is refused with an <see cref="ErrorEvent"/> coded
+    /// <see cref="ErrorCodes.InvalidElicitationContent"/> and the request keeps waiting, so the person can correct it. Ignored
+    /// for a URL-mode request and for <c>decline</c> / <c>cancel</c>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, JsonElement>? Content { get; init; }
+}
 
 /// <summary>The <see cref="ElicitationResponseRequest.Action"/> values (MCP elicitation result actions).</summary>
 public static class ElicitationActions
@@ -290,14 +307,17 @@ public record ModelProposalInfo(
 public record ModelProposalOptionInfo(string Id, string Label, string Rationale);
 
 /// <summary>
-/// An MCP server needs a person before a tool call can finish (URL-mode elicitation — the server answered the call with
-/// <c>input_required</c>, or sent <c>elicitation/create</c>): show <see cref="Message"/> and <see cref="Url"/> to the person
-/// and answer with an <see cref="ElicitationResponseRequest"/> carrying this <see cref="Id"/>. The call waits inside its turn;
-/// without an answer within the approval timeout it ends as <c>cancel</c>.
+/// An MCP server needs a person before a tool call can finish (the server answered the call with <c>input_required</c>, or sent
+/// <c>elicitation/create</c>): in URL mode show <see cref="Message"/> and <see cref="Url"/> to the person; in form mode (only
+/// when the host enables it, <c>chatBehavior.elicitationForms</c>) show <see cref="Message"/> and a form built from
+/// <see cref="RequestedSchema"/>, with the defaults filled in and the answer open to review before it is sent. Answer with an
+/// <see cref="ElicitationResponseRequest"/> carrying this <see cref="Id"/>. The call waits inside its turn; without an answer
+/// within the approval timeout it ends as <c>cancel</c>. A form is never a place for secrets - a server asks for those in URL
+/// mode.
 /// </summary>
 /// <param name="Id">The host's id for this request — echo it in the answer.</param>
 /// <param name="Plugin">The MCP server asking (its name in the configuration).</param>
-/// <param name="Mode">Always <c>url</c> (the only mode the host advertises).</param>
+/// <param name="Mode"><c>url</c>, or <c>form</c> when the host has form mode enabled (<see cref="RequestedSchema"/> is then set).</param>
 /// <param name="Message">The server's message for the person.</param>
 /// <param name="Url">Where the person completes the step (approve, pay, sign in).</param>
 /// <param name="ElicitationId">The server's own id for the request, when it gave one.</param>
@@ -315,6 +335,17 @@ public record ElicitationRequestEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CallId = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tool = null) : ServerEvent
 {
+    /// <summary>
+    /// For a <see cref="Mode"/> <c>form</c> request, what the person is asked for: the MCP form schema as the server sent it - a
+    /// flat object (<c>type</c>, <c>properties</c>, <c>required</c>) whose properties are strings (with an optional
+    /// <c>format</c> of <c>email</c>, <c>uri</c>, <c>date</c> or <c>date-time</c>, <c>minLength</c> / <c>maxLength</c>), numbers
+    /// or integers (<c>minimum</c> / <c>maximum</c>), booleans, or single- and multi-select enums (<c>enum</c> or
+    /// <c>oneOf</c> / <c>anyOf</c> with <c>const</c> and <c>title</c>), each with an optional <c>title</c>, <c>description</c> and
+    /// <c>default</c>. Absent for a URL-mode request.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? RequestedSchema { get; init; }
+
     /// <summary>
     /// What the <b>model</b> proposed for the call this request holds up (<see cref="CallId"/> / <see cref="Tool"/>) - the same
     /// shape, bounds and rule as <see cref="HitlRequestEvent.ModelProposal"/>: the alternatives it weighed and the one it
@@ -475,6 +506,13 @@ public static class ErrorCodes
 
     /// <summary>A request line could not be read; it was skipped and the server kept running.</summary>
     public const string UnreadableRequest = "unreadable_request";
+
+    /// <summary>
+    /// An <see cref="ElicitationResponseRequest"/> accepted a form with <see cref="ElicitationResponseRequest.Content"/> that
+    /// does not satisfy the request's schema (a required field missing, a value of the wrong type, outside its list or range).
+    /// The answer was dropped and the question is still open: correct it and answer again.
+    /// </summary>
+    public const string InvalidElicitationContent = "invalid_elicitation_content";
 
     /// <summary>
     /// The server stopped before this message's turn started, while an earlier turn was suspended

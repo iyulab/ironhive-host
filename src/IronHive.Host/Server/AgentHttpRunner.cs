@@ -365,7 +365,12 @@ public sealed partial class AgentHttpRunner : IDisposable
 
             if (serverRequest is ElicitationResponseRequest elicitation)
             {
-                _hitl?.ResolveElicitation(elicitation);
+                // A form answer that breaks the schema is refused with its reason; the question stays open.
+                if (_hitl is not null && !_hitl.ResolveElicitation(elicitation, out var refusal) && refusal is not null)
+                {
+                    await PostEventAsync(new ErrorEvent(refusal.Problem) { Code = ErrorCodes.InvalidElicitationContent, Id = refusal.Id }, CancellationToken.None);
+                }
+
                 continue;
             }
 

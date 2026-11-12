@@ -98,7 +98,7 @@ IChatClient client = HostChatPipeline.Decorate(providerClient, config.ChatBehavi
 ```
 
 `CreateToolInvocationPipeline` gives every tool call the CLI's steps (unparseable arguments, repeated call / result / error
-guards, the approval gate, argument recovery); `Decorate` adds function invocation with text tool-call recovery, per-round
+guards, the approval gate, argument recovery); `Decorate` adds function invocation with provider-safe tool names (a tool called `message.send` is offered under an alias and mapped back) and text tool-call recovery, per-round
 context compaction and usage-limit hooks the agent loop binds, and the context-window guard.
 
 ## As a CLI (IronHive.Cli)
@@ -527,6 +527,8 @@ chatBehavior:
   retrieveToolResults: true           # masked/shortened tool results can be read back by id (retrieve_tool_result)
   approvalProposals: true             # the model can tell the approver what it weighed (propose_for_approval -> hitl_request.model_proposal)
   showProposalRecommendation: true    # the terminal prompts also name the option the model recommends (default: options and reasons only)
+  elicitationForms: true              # `run --server` clients can answer an MCP server's form-mode question (default: only URL mode is advertised)
+  askUser: true                       # the model can ask the person a question with choices (ask_user -> elicitation_request, mode form, plugin `model`); also turns on form mode
 ```
 
 ### Context Compaction
@@ -790,10 +792,10 @@ the stop waited for the approval timeout).
 
 | Type | Discriminator | Key fields |
 |------|---------------|-----------|
-| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions` — see below) |
+| `UserMessageRequest` | `user_message` | `Content`, `Model?`, `Options?` (`TurnOptions`: `tool_names`, `tool_mode`, `reasoning_effort`, `temperature`, `max_output_tokens`, `instructions`, `max_iterations` — see below) |
 | `ContextUpdateRequest` | `context_update` | `WorkingPath?`, `SelectedItems?` — the runners put the last update in front of each later `user_message`: `[WorkingPath: …]` and `[Selected: a, b]` (a handler that takes the context gets the message as sent — see [AgentServerRunner](#agentserverrunner--agenthttprunner)) |
 | `HitlResponseRequest` | `hitl_response` | `Approved`, `Reason?`, `Id?` (the request being answered), `ModifiedArguments?`, `AlwaysApprove?` |
-| `ElicitationResponseRequest` | `elicitation_response` | `Action` (`accept` — the person finished at the URL · `decline` · `cancel`; `ElicitationActions`), `Id?` (the `elicitation_request` being answered; without it, the only one waiting) |
+| `ElicitationResponseRequest` | `elicitation_response` | `Action` (`accept` — the person finished at the URL · `decline` · `cancel`; `ElicitationActions`), `Id?` (the `elicitation_request` being answered; without it, the only one waiting), `Content?` (`content` - for a `form` request answered with `accept`: the values by field name, defaults included; the host checks it against the request's schema, and a wrong answer comes back as an `error` coded `invalid_elicitation_content` while the question stays open) |
 | `ListSessionsRequest` | `list_sessions` | `Id?` (echoed), `ProjectPath?` (default: the server's project), `Limit?` (1–100, default 20), `Cursor?` — the stored sessions, newest first; read-only, answered at once even while a turn runs |
 | `ReadSessionRequest` | `read_session` | `SessionId`, `Id?` (echoed), `Cursor?`, `Limit?` (1–500, default 100) — one stored conversation, oldest entry first; an unknown session answers an `error` coded `session_not_found` |
 | `CancelRequest` | `cancel` | — |
@@ -803,7 +805,7 @@ the stop waited for the approval timeout).
 | `SessionPageEvent` | `session_page` | `Id?`, `SessionId`, `Entries` (`Kind`: `user` · `assistant` (`Text`) · `tool_use` (`Tool`, `Input?`, `CallId`) · `tool_result` (`CallId`, `Text`, `IsError`) — the protocol's own shape, not the transcript file's), `NextCursor?` |
 | `ToolStartEvent` | `tool_start` | `Tool`, `Input?` (the arguments the model sent, as JSON; absent for a call without arguments), `CallId?` |
 | `HitlRequestEvent` | `hitl_request` | `Id`, `Action`, `Target`, `Description`, `ToolName?`, `Arguments?`, `CallId?` (matches the `tool_start`), `Level?`, `DelegatedBy?` (the `delegation:` agent that asked; absent for the session's own calls), `ModelProposal?` (the model's own proposal for the call - a field of its own, unverified, absent unless `chatBehavior.approvalProposals` is on and the model made one) — a call waiting for approval; answer with `hitl_response` |
-| `ElicitationRequestEvent` | `elicitation_request` | `Id`, `Plugin` (the MCP server asking), `Mode` (`url`), `Message`, `Url?`, `ElicitationId?` (the server's own id), `CallId?` and `Tool?` (the tool call the server was running when it asked, matching its `tool_start` — present only when the server had exactly one call in flight, so a client never has to guess) — an MCP server needs a person before a tool call can finish (it answered the call with `input_required`, or sent `elicitation/create`): show the message and the link, answer with `elicitation_response`. `accept` sends the same call again with the server's state and it completes; the wait stays inside the turn (it is never deferred) and ends as `cancel` after `approval.timeoutSeconds`. `ModelProposal?` (`model_proposal` — what the model weighed for that call, the model's own claim, as on `hitl_request`; absent unless it made one for the one call this request holds up). Only URL mode is advertised; a form-mode request is declined. On the terminal the CLI shows the message and the link and asks «Done» / «Decline» |
+| `ElicitationRequestEvent` | `elicitation_request` | `Id`, `Plugin` (the MCP server asking), `Mode` (`url`, or `form` when `chatBehavior.elicitationForms` is on), `Message`, `Url?`, `RequestedSchema?` (`requested_schema` - for `form`: the flat MCP schema the person is asked for, with strings / numbers / booleans / single- and multi-select enums, titles and defaults), `ElicitationId?` (the server's own id), `CallId?` and `Tool?` (the tool call the server was running when it asked, matching its `tool_start` — present only when the server had exactly one call in flight, so a client never has to guess) — an MCP server needs a person before a tool call can finish (it answered the call with `input_required`, or sent `elicitation/create`): show the message and the link, answer with `elicitation_response`. `accept` sends the same call again with the server's state and it completes; the wait stays inside the turn (it is never deferred) and ends as `cancel` after `approval.timeoutSeconds`. `ModelProposal?` (`model_proposal` — what the model weighed for that call, the model's own claim, as on `hitl_request`; absent unless it made one for the one call this request holds up). Only URL mode is advertised unless `chatBehavior.elicitationForms` is on; a form-mode request is declined otherwise. A form is for a few non-sensitive values - never secrets (a server asks for those in URL mode): show which server asks (`plugin`), fill in the defaults, and let the person review the answer before it is sent. On the terminal the CLI shows the message and the link and asks «Done» / «Decline»; it does not show forms (only a client on the wire answers them). With `chatBehavior.askUser` the **model** asks the same way: `plugin` is `model` (never a server's name), `tool` is `ask_user`, and `call_id` ties the question to the model's call; `ask_user` refuses when no client is attached (the model decides itself) |
 | `ToolEndEvent` | `tool_end` | `Tool`, `Success`, `Output?` (≤ 8 KB), `CallId?` — one per tool call once its outcome is known, before `turn_end`; `CallId` matches the `tool_start`. A call the permission gate refused arrives with `Success: false` and the refusal as `Output` (`Permission denied: …` / `Approval rejected: …`). `Refusal?` says why without the text (`ToolRefusalCodes`: `denied` · `approval_unavailable` · `rejected` · `result_withheld` · `invalid_arguments` · `repeated_call` · `repeated_error` · `repeated_result` · `timed_out` · `awaiting_approval` — not run yet, a later `tool_end` for the same `CallId` carries the outcome · `unknown_tool` — the call named a tool the turn did not offer); null when the tool ran. `Stats?` is what the tool reported about its own work (`ToolCallStats.Report` in IronHive.Agent — counts, flags, short labels, keyed by the tool; ≤ 16 keys), omitted when it reported nothing; client-only, never in `Output` or sent to the model |
 | `ThinkingDeltaEvent` | `thinking_delta` | `Content` — extended-thinking text, its own stream, never folded into `text_delta` |
 | `FallbackServerEvent` | `fallback` | `Kind` (`retry`\|`fallback`\|`exhausted`), `Category`, `Message`, `ProviderIndex`, `TotalProviders`, `Attempt`, `MaxAttempts` |
@@ -827,7 +829,10 @@ negotiation, and none is planned until a host needs to know before it asks.
 **Per-turn options.** `UserMessageRequest.Options` narrows or tunes one turn: `tool_names` (a subset of
 the agent's registered tools; `[]` = no tools this turn), `tool_mode` (`auto` | `none` | `require_any` |
 `require:<tool>`), `reasoning_effort` (`none` | `low` | `medium` | `high` | `extra_high`),
-`temperature`, `max_output_tokens`. The merge is field by field: a set field replaces the agent's
+`temperature`, `max_output_tokens`, `max_iterations` (a cap on the turn's tool rounds, at least 1: after that many rounds the
+turn gets one more model call without tools and ends on its text answer with `stop_reason: step_limit`; the agent's configured
+cap - `chatBehavior.maximumIterationsPerRequest`, `--max-iterations` - stays the ceiling, so a larger value changes nothing, and
+a value below 1 is answered with an `error`). The merge is field by field: a set field replaces the agent's
 configured value for this turn only, an unset field keeps it, and the next request without `options`
 is back on the agent's configuration — nothing is remembered across turns. A tool name that is not
 registered, or an unknown mode/effort, is answered with an `error` event, never silently dropped. A
