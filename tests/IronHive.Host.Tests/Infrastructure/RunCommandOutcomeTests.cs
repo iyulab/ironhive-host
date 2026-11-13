@@ -90,7 +90,7 @@ public sealed class RunCommandOutcomeTests
     {
         using var stdout = new StringWriter();
         var exit = await command.RunOnceAsync(settings, stdout, Ct);
-        return (exit, JsonDocument.Parse(stdout.ToString()).RootElement.Clone());
+        return (exit, JsonElement.Parse(stdout.ToString()));
     }
 
     [Theory]
@@ -164,7 +164,7 @@ public sealed class RunCommandOutcomeTests
         using var stdout = new StringWriter();
         var code = await command.RunOnceAsync(
             new RunCommand.Settings { PromptOption = "task", Json = true, TimeoutSeconds = 60 }, stdout, caller.Token);
-        var json = JsonDocument.Parse(stdout.ToString()).RootElement;
+        var json = JsonElement.Parse(stdout.ToString());
 
         code.Should().Be(130);
         json.GetProperty("stop_reason").GetString().Should().Be("cancelled");
@@ -222,7 +222,7 @@ public sealed class RunCommandOutcomeTests
 
         using var stdout = new StringWriter();
         var code = await command.RunOnceAsync(new RunCommand.Settings { PromptOption = "task", Json = true }, stdout, caller.Token);
-        var json = JsonDocument.Parse(stdout.ToString()).RootElement;
+        var json = JsonElement.Parse(stdout.ToString());
 
         code.Should().Be(130);
         json.GetProperty("stop_reason").GetString().Should().Be("cancelled");
