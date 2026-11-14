@@ -9,6 +9,7 @@ on:
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
       - 'Directory.Build.targets'
+      - 'global.json'
       - '*.slnx'
       - '.github/workflows/ci.yml'
   pull_request:
