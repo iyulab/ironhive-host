@@ -322,6 +322,8 @@ permissions:
       action: allow
 ```
 
+The `read` rules also decide what the directory tools show: a folder they deny (`read: .config-folder/** deny`) is left out of what `ListDirectory`, `GlobFiles` and `GrepFiles` list, match and search, not only refused for `ReadFile`.
+
 ### Model Configuration
 
 ```bash

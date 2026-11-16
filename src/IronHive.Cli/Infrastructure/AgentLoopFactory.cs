@@ -121,7 +121,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _instructionContributors = instructionContributors?.ToArray() ?? [];
         _skills = skills;
         ReportSkillDiagnostics(skills, logger);
-        _fileToolOptions = fileToolOptions;
+        _fileToolOptions = WithReadFilterFromRules(fileToolOptions, permissions);
         _permissions = permissions;
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
@@ -138,6 +138,24 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
     }
 
     private readonly IronHive.Agent.Context.ISystemInstructionContributor[] _instructionContributors;
+
+    // The permission rules judge a directory tool by the folder it is pointed at, so a Read rule that closes a folder says nothing
+    // about the working directory above it and a search from there would walk in. The directory tools leave out what the same rules
+    // refuse for ReadFile: the rules' own verdicts become the tools' filter. A filter the host passed itself is the one in force.
+    private static FileToolOptions? WithReadFilterFromRules(FileToolOptions? options, PermissionConfig? permissions)
+    {
+        if (permissions is null || options?.ReadFilter is not null)
+        {
+            return options;
+        }
+
+        return new FileToolOptions
+        {
+            AllowedRoots = options?.AllowedRoots ?? [],
+            WriteInterceptor = options?.WriteInterceptor,
+            ReadFilter = new PermissionEvaluator(permissions).ToReadFilter(),
+        };
+    }
 
     /// <inheritdoc />
     public Task<IAgentLoop> CreateAsync(CancellationToken cancellationToken = default)

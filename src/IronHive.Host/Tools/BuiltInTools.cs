@@ -53,7 +53,8 @@ public static class BuiltInTools
 
     /// <summary>
     /// The full set, with the host's decisions about the file tools and the shell tool. <paramref name="fileToolOptions"/>
-    /// carries <c>AllowedRoots</c> and, if set, a write interceptor; when it names none, versioning through
+    /// carries <c>AllowedRoots</c>, the <c>ReadFilter</c> that hides paths from the directory tools and, if set, a write
+    /// interceptor; when it names none, versioning through
     /// <paramref name="oopsService"/> is attached as before, so passing roots does not cost the snapshots.
     /// <paramref name="shellToolOptions"/> names the environment variables the shell tool's commands do not see; null
     /// leaves them the whole environment.
@@ -73,6 +74,7 @@ public static class BuiltInTools
             : new IronHive.Agent.Tools.FileToolOptions
             {
                 AllowedRoots = fileToolOptions?.AllowedRoots ?? [],
+                ReadFilter = fileToolOptions?.ReadFilter,
                 WriteInterceptor = interceptor
             };
 

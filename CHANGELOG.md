@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Fixed
+- **A folder the `read` permission rules deny is no longer walked into by a search that starts above it.** The rules judge `ListDirectory`, `GlobFiles` and `GrepFiles` by the folder they are pointed at, so `read: .config-folder/** deny` said nothing about `.` and a search from the working directory listed the denied folder's files and returned its lines. The host now hands the rules' verdicts to the agent's tools as `FileToolOptions.ReadFilter` (a filter the host sets itself on the options it passes is the one in force; `BuiltInTools.GetAll` carries it). **Breaking** (observable): listings, matches and search results omit the paths the `read` rules deny - the default rules deny `**/secrets/**` - and a recursive `ListDirectory` lists a directory link without entering it; migration: widen the `read` rule if the model should see the folder. (Already in 0.80.0, not named in its notes: through IronHive.Agent 0.84.0 the host's tool gate refuses a call a `tools:` rule denies for a file tool, a directory tool or the shell - **Breaking** (observable) for a config that relied on such a denial being ignored.)
+
 ## 0.80.0 — 2026-11-23
 
 ### Added
