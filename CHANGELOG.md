@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## Unreleased
+## 0.79.0 — 2026-11-16
 
 ### Added
 - **A turn can carry its own cap on tool rounds: `user_message.options.max_iterations`** (`TurnOptions.MaxIterations`, at least 1). After that many rounds the turn gets one more model call without tools and ends on its text answer with `stop_reason: step_limit` (and the wrap-up, when configured, applies); the agent's configured cap (`chatBehavior.maximumIterationsPerRequest`, `--max-iterations`) stays the ceiling, so a larger value changes nothing, and two turns running at the same time keep their own caps. A value below 1 is answered with an `error`. Embedding hosts get it from `HostChatPipeline.Decorate`; a pipeline built by hand adds `UseTurnLimits()` under function invocation.
