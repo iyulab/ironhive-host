@@ -13,6 +13,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Changed
 - **Breaking** (observable): **the CLI and `run --server` no longer send `temperature: 0.7` when nothing sets one.** The loop forced 0.7 on every model call, so a model that accepts only its own default sampling answered every turn with HTTP 400 and no setting could change it. An unset temperature is now left out of the request and the model's default applies. To keep the previous behaviour set `chatBehavior.temperature: 0.7`.
 
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.76.0 -> 0.77.0, `IronHive.Core` 0.76.0 -> 0.77.0, `IronHive.Extensions.AI` 0.76.0 -> 0.77.0, `IronHive.Providers.Anthropic` 0.76.0 -> 0.77.0, `IronHive.Providers.Declarations` 0.76.0 -> 0.77.0, `IronHive.Providers.GoogleAI` 0.76.0 -> 0.77.0, `IronHive.Providers.OpenAI` 0.76.0 -> 0.77.0, `IronHive.Providers.OpenAI.Compatible` 0.76.0 -> 0.77.0.
+
 ## 0.79.0 — 2026-11-16
 
 ### Added
