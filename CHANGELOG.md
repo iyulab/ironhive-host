@@ -16,6 +16,7 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Dependencies
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.76.0 -> 0.77.0, `IronHive.Core` 0.76.0 -> 0.77.0, `IronHive.Extensions.AI` 0.76.0 -> 0.77.0, `IronHive.Providers.Anthropic` 0.76.0 -> 0.77.0, `IronHive.Providers.Declarations` 0.76.0 -> 0.77.0, `IronHive.Providers.GoogleAI` 0.76.0 -> 0.77.0, `IronHive.Providers.OpenAI` 0.76.0 -> 0.77.0, `IronHive.Providers.OpenAI.Compatible` 0.76.0 -> 0.77.0.
 - Re-pinned sibling package(s) `IronHive.Abstractions` 0.77.0 -> 0.78.0, `IronHive.Core` 0.77.0 -> 0.78.0, `IronHive.Extensions.AI` 0.77.0 -> 0.78.0, `IronHive.Providers.Anthropic` 0.77.0 -> 0.78.0, `IronHive.Providers.Declarations` 0.77.0 -> 0.78.0, `IronHive.Providers.GoogleAI` 0.77.0 -> 0.78.0, `IronHive.Providers.OpenAI` 0.77.0 -> 0.78.0, `IronHive.Providers.OpenAI.Compatible` 0.77.0 -> 0.78.0.
+- Re-pinned third-party packages: `OpenTelemetry` 1.20.1 -> 1.21.0, `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.20.1 -> 1.21.0.
 
 ## 0.79.0 — 2026-11-16
 
