@@ -354,6 +354,23 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
 
     private async Task<int> RunServerModeAsync(Settings settings, CancellationToken ct)
     {
+        // Before the plugins connect (the loop factory below connects them: the plugin manager reads the handler's DeferAfter
+        // then): with mcp.elicitation.deferAfterSeconds a tool call that holds its turn too long while the client answers a
+        // server's question is released, and the bridge keeps the question open for its answer
+        IDisposable? releasedCalls = null;
+        if (_hitlBridge is not null && _pluginManager is not null && _config?.Mcp.Elicitation.DeferAfterSeconds is { } deferSeconds)
+        {
+            if (deferSeconds < 0)
+            {
+                throw new InvalidOperationException("mcp.elicitation.deferAfterSeconds must not be negative; leave it unset to keep a call in its turn.");
+            }
+
+            _hitlBridge.ElicitationDeferAfter = TimeSpan.FromSeconds(deferSeconds);
+            releasedCalls = _hitlBridge.Observe(_pluginManager);
+        }
+
+        using var releasedCallsSubscription = releasedCalls;
+
         // Before the loop is built: a server that is not ready at start fails inside that call, and the engine may run for days.
         if (_pluginManager is not null)
         {
@@ -376,6 +393,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
             // conversation it had (each turn, and each tool call as it completes, is written as it happens).
             SessionTurnRecorder? recorder = null;
             IReadOnlyList<ApprovalWaitEntry> pending = [];
+            IReadOnlyList<AwaitingInputEntry> pendingInputs = [];
             var sessionId = settings.SessionId ?? Guid.NewGuid().ToString("N");
             if (_sessionManager is not null)
             {
@@ -392,7 +410,9 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 {
                     // Approval waits are written to the session, so a restart can offer them again and finish the turn
                     _hitlBridge.WaitLog = recorder;
+                    _hitlBridge.AwaitingLog = recorder;
                     pending = await _sessionManager.GetPendingApprovalsAsync(session, ct);
+                    pendingInputs = await _sessionManager.GetPendingAwaitingInputsAsync(session, ct);
                 }
             }
 
@@ -415,6 +435,9 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 await healthCheck.StartAsync(ct);
             }
 
+            // A call released to wait for the person's answer is reported as awaiting_input, not as a finished tool
+            Func<string?, bool>? awaitingInput = _hitlBridge is { } released ? released.IsAwaitingInput : null;
+
             async IAsyncEnumerable<ServerEvent> ProcessMessage(
                 UserMessageRequest msg,
                 [EnumeratorCancellation] CancellationToken token)
@@ -430,7 +453,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                     turn = recorder.RecordAsync(msg.Content, turn, token);
                 }
 
-                await foreach (var evt in turn.ToServerEvents(pricing, executionLog, token))
+                await foreach (var evt in turn.ToServerEvents(pricing, executionLog, awaitingInput, token))
                 {
                     yield return evt;
                 }
@@ -454,7 +477,40 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // the bridge never defers and this is never called
                 runner.DeferredAnswerTurn = (answer, token) => DeferredApprovalTurn
                     .RunAsync(agentLoop, answer, hitl, recorder, created.Loop.Tools, created.Pipeline, token)
-                    .ToServerEvents(pricing, executionLog, token);
+                    .ToServerEvents(pricing, executionLog, awaitingInput, token);
+
+                // The answer to a released call's question sends the call again and tells the model; with
+                // mcp.elicitation.deferAfterSeconds unset no call is released and this is never called
+                if (_pluginManager is { } manager)
+                {
+                    runner.AwaitingInputTurn = (answer, token) => AwaitingInputTurn
+                        .RunAsync(
+                            agentLoop, answer, hitl, manager, recorder,
+                            ex => Console.Error.WriteLine($"awaiting input: the released call was not sent again ({ex.GetType().Name}: {ex.Message})"),
+                            token)
+                        .ToServerEvents(pricing, executionLog, awaitingInput, token);
+                }
+            }
+            if (pendingInputs.Count > 0 && _hitlBridge is { } inputBridge)
+            {
+                // Released calls hold no turn: their questions are sent again and wait for the answer
+                foreach (var entry in pendingInputs)
+                {
+                    if (!AwaitingInputWait.TryFromTranscript(entry, out var wait))
+                    {
+                        // An entry this host cannot read (a newer or damaged one) must not keep the session from starting: it is
+                        // closed, and the person is not asked about a call that cannot be sent again
+                        await Console.Error.WriteLineAsync($"awaiting input: the logged call {entry.ToolUseId} cannot be read and is closed");
+                        if (recorder is not null)
+                        {
+                            await ((IAwaitingInputLog)recorder).SettledAsync(entry.RequestId, ct);
+                        }
+
+                        continue;
+                    }
+
+                    inputBridge.RestoreAwaitingInput(wait!);
+                }
             }
             if (pending.Count > 0 && recorder is not null && _hitlBridge is not null)
             {
@@ -471,7 +527,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 {
                     runner.ResumeTurn = token => SuspendedTurnResumer
                         .ResumeAsync(agentLoop, inTurn, bridge, recorder, created.Loop.Tools, created.Pipeline, token)
-                        .ToServerEvents(pricing, executionLog, token);
+                        .ToServerEvents(pricing, executionLog, awaitingInput, token);
                 }
             }
             await runner.RunAsync(ct);

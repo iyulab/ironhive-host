@@ -32,10 +32,30 @@ public static class AgentResponseMapper
     /// unknown.</param>
     /// <param name="logger">Records tool calls when set.</param>
     /// <param name="ct">Cancels the enumeration.</param>
-    public static async IAsyncEnumerable<ServerEvent> ToServerEvents(
+    public static IAsyncEnumerable<ServerEvent> ToServerEvents(
         this IAsyncEnumerable<AgentResponseChunk> chunks,
         TokenMeter.ModelInfo? pricing,
         IExecutionLogger? logger = null,
+        CancellationToken ct = default)
+        => chunks.ToServerEvents(pricing, logger, awaitingInput: null, ct);
+
+    /// <summary>
+    /// <see cref="ToServerEvents(IAsyncEnumerable{AgentResponseChunk}, TokenMeter.ModelInfo?, IExecutionLogger?, CancellationToken)"/>
+    /// for a host that releases MCP calls to wait for the person (<see cref="HitlBridge.ElicitationDeferAfter"/>): a call
+    /// <paramref name="awaitingInput"/> says waits for an answer is reported with <see cref="ToolRefusalCodes.AwaitingInput"/>
+    /// and <see cref="ToolEndEvent.Success"/> false - the tool has not finished.
+    /// </summary>
+    /// <param name="chunks">The turn's chunks.</param>
+    /// <param name="pricing">The model's catalog entry; null leaves the cost unknown.</param>
+    /// <param name="logger">Records tool calls when set.</param>
+    /// <param name="awaitingInput">Whether the call with this model call id is released and waits for the person's answer
+    /// (<see cref="HitlBridge.IsAwaitingInput"/>); null means none is.</param>
+    /// <param name="ct">Cancels the enumeration.</param>
+    public static async IAsyncEnumerable<ServerEvent> ToServerEvents(
+        this IAsyncEnumerable<AgentResponseChunk> chunks,
+        TokenMeter.ModelInfo? pricing,
+        IExecutionLogger? logger,
+        Func<string?, bool>? awaitingInput,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         long inputTokens = 0;
@@ -88,9 +108,10 @@ public static class AgentResponseMapper
             if (chunk.ToolResult is { Success: { } arrivedSuccess } arrived)
             {
                 relayed.Add(arrived);
-                yield return new ToolEndEvent(arrived.ToolName, arrivedSuccess, arrived.Result, arrived.CallId)
+                var waitingForInput = awaitingInput?.Invoke(arrived.CallId) == true;
+                yield return new ToolEndEvent(arrived.ToolName, arrivedSuccess && !waitingForInput, arrived.Result, arrived.CallId)
                 {
-                    Refusal = arrived.RefusalKind is { } refused ? WireName(refused) : null,
+                    Refusal = waitingForInput ? ToolRefusalCodes.AwaitingInput : arrived.RefusalKind is { } refused ? WireName(refused) : null,
                     Stats = arrived.Stats,
                 };
             }
@@ -108,9 +129,10 @@ public static class AgentResponseMapper
                     }
                     if (call.Success is { } success)
                     {
-                        yield return new ToolEndEvent(call.ToolName, success, call.Result, call.CallId)
+                        var waitingForInput = awaitingInput?.Invoke(call.CallId) == true;
+                        yield return new ToolEndEvent(call.ToolName, success && !waitingForInput, call.Result, call.CallId)
                         {
-                            Refusal = call.RefusalKind is { } refused ? WireName(refused) : null,
+                            Refusal = waitingForInput ? ToolRefusalCodes.AwaitingInput : call.RefusalKind is { } refused ? WireName(refused) : null,
                             Stats = call.Stats,
                         };
                     }

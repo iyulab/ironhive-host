@@ -104,6 +104,23 @@ public interface ISessionManager
     Task<IReadOnlyList<ApprovalWaitEntry>> GetPendingApprovalsAsync(Session session, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Writes a call that is waiting for a person's answer to an MCP server's question (<see cref="AwaitingInputEntry"/>), so a
+    /// restarted host can offer the question again. A manager that keeps no such entries loses them on restart (the default).
+    /// </summary>
+    /// <param name="session">The session.</param>
+    /// <param name="awaiting">The released call.</param>
+    /// <param name="cancellationToken">Cancels the write.</param>
+    Task SaveAwaitingInputAsync(Session session, AwaitingInputEntry awaiting, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    /// <summary>
+    /// The session's released calls that were not settled (<see cref="SaveApprovalClosedAsync"/> with their request id).
+    /// </summary>
+    /// <param name="session">The session.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    Task<IReadOnlyList<AwaitingInputEntry>> GetPendingAwaitingInputsAsync(Session session, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<AwaitingInputEntry>>([]);
+
+    /// <summary>
     /// Restores the conversation context from a session.
     /// </summary>
     /// <param name="session">The session to restore</param>

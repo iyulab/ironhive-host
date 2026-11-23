@@ -41,7 +41,10 @@ namespace IronHive.Host.Server;
 /// <see cref="ElicitationRequestEvent"/> goes to the client and the call waits for the matching
 /// <see cref="ElicitationResponseRequest"/> (<see cref="ResolveElicitation(ElicitationResponseRequest)"/>). That wait always stays inside its turn — the
 /// MCP client holds the retry in-process — and ends as <c>cancel</c> after <see cref="Timeout"/>, when no runner is attached,
-/// when the runner detaches, or when the server stops.
+/// when the runner detaches, or when the server stops. With <see cref="ElicitationDeferAfter"/> set
+/// (<c>mcp.elicitation.deferAfterSeconds</c>, <c>run --server</c> only) that wait may be released instead (see
+/// <see cref="Observe"/>): the call goes on without its answer, the question stays open to the client until its answer or
+/// <see cref="Timeout"/>, and the answer sends the call again.
 /// </para>
 /// <para>
 /// Form-mode elicitation (a few non-sensitive values with a flat schema) is off until <see cref="SupportsForms"/> is set; the
@@ -49,7 +52,7 @@ namespace IronHive.Host.Server;
 /// <see cref="ElicitationResponseRequest.Content"/>, checked against that schema before the server hears it.
 /// </para>
 /// </remarks>
-public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, IDisposable
+public sealed partial class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, IDisposable
 {
     /// <summary>The default time a request waits for an answer before it is rejected.</summary>
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
@@ -161,7 +164,19 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
     /// requests still waiting in their turn are then rejected, and deferred ones are dropped (with a <see cref="WaitLog"/>
     /// they stay on record for a restarted host).
     /// </summary>
-    public IDisposable Attach(Func<ServerEvent, CancellationToken, Task> publish, Action<DeferredApproval>? onDeferredAnswer)
+    public IDisposable Attach(Func<ServerEvent, CancellationToken, Task> publish, Action<DeferredApproval>? onDeferredAnswer) =>
+        Attach(publish, onDeferredAnswer, onAwaitingInputAnswer: null);
+
+    /// <summary>
+    /// <see cref="Attach(Func{ServerEvent, CancellationToken, Task}, Action{DeferredApproval}?)"/> with the runner's way to open
+    /// a turn for the answer to a released call's question (<paramref name="onAwaitingInputAnswer"/>): called once per released
+    /// call, when its question is answered or expires, and must not block (it queues the turn). Without it a released call
+    /// cannot be completed - set <see cref="ElicitationDeferAfter"/> only for a runner that gives it.
+    /// </summary>
+    public IDisposable Attach(
+        Func<ServerEvent, CancellationToken, Task> publish,
+        Action<DeferredApproval>? onDeferredAnswer,
+        Action<AwaitingInputAnswer>? onAwaitingInputAnswer)
     {
         ArgumentNullException.ThrowIfNull(publish);
         if (Interlocked.CompareExchange(ref _publish, publish, null) is not null)
@@ -170,6 +185,7 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
         }
 
         Volatile.Write(ref _onDeferredAnswer, onDeferredAnswer);
+        Volatile.Write(ref _onAwaitingInputAnswer, onAwaitingInputAnswer);
         return new Detacher(this, publish);
     }
 
@@ -239,15 +255,25 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
         else
         {
             var waiting = _elicitations.ToArray();
-            if (waiting.Length == 1)
+            if (waiting.Length == 1 && !HasAwaitingInput)
             {
                 key = waiting[0].Key;
             }
+            else if (waiting.Length == 0)
+            {
+                return ResolveOnlyAwaitingInput(response, out refusal);
+            }
         }
 
-        if (key is null || !_elicitations.TryGetValue(key, out var wait))
+        if (key is null)
         {
             return false;
+        }
+
+        if (!_elicitations.TryGetValue(key, out var wait))
+        {
+            // Not a question waiting inside a turn: the question of a released call (mcp.elicitation.deferAfterSeconds)
+            return ResolveAwaitingInput(key, response, out refusal);
         }
 
         // The question stays open for a correction: nothing is removed until the answer is one the server can read.
@@ -301,14 +327,23 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
         var id = Guid.NewGuid().ToString("N");
         var waiter = new TaskCompletionSource<ElicitResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         _elicitations[id] = new ElicitationWait(request, waiter, form);
+        var released = false;
+        // Bookkeeping for a released call exists only when releasing is on: with the option unset nothing here changes
+        var tracked = ElicitationDeferAfter is not null;
         try
         {
             using var timeoutCts = new CancellationTokenSource(Timeout);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
             await using var registration = linked.Token.Register(() => waiter.TrySetCanceled(linked.Token));
 
-            // Registered above, published here: an answer cannot outrun its wait.
-            // (the call below tells a stopping runner about it)
+            // Registered above, published here: an answer cannot outrun its wait (the call below tells a stopping runner about it).
+            // What was asked is remembered too: a call the plugin manager releases (the token is cancelled) is tied to this request
+            // by it.
+            if (tracked)
+            {
+                TrackSent(id, pluginName, call, request);
+            }
+
             await publish(
                 new ElicitationRequestEvent(
                     id, pluginName, form ? "form" : "url", request.Message ?? string.Empty, request.Url, request.ElicitationId, call?.CallId, call?.ToolName)
@@ -328,9 +363,22 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
                 return new ElicitResult { Action = ElicitationActions.Cancel };
             }
         }
+        catch (OperationCanceledException) when (tracked && cancellationToken.IsCancellationRequested)
+        {
+            // The wait was cancelled from outside: the call was released (or the turn ended). The question stays open to the
+            // client until the plugin manager says which call it held up (CallAwaitingInput); when it never does (the turn
+            // ended instead) the record is dropped after a short grace, so a late answer is not parked for ever.
+            released = true;
+            ReleaseUnclaimedSent(id);
+            throw;
+        }
         finally
         {
             _elicitations.TryRemove(id, out _);
+            if (!released)
+            {
+                _sentElicitations.TryRemove(id, out _);
+            }
         }
     }
 
@@ -433,8 +481,9 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
     }
 
     /// <summary>
-    /// Sends again, with their original ids, the deferred requests registered with <see cref="RestoreDeferred"/> - what a
-    /// runner does right after it attaches, so the client sees what still waits for an answer.
+    /// Sends again, with their original ids, the deferred requests registered with <see cref="RestoreDeferred"/> and the
+    /// questions of released calls registered with <see cref="RestoreAwaitingInput"/> - what a runner does right after it
+    /// attaches, so the client sees what still waits for an answer.
     /// </summary>
     public async Task ReofferDeferredAsync(CancellationToken cancellationToken = default)
     {
@@ -462,6 +511,8 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
             await publish(ToEvent(deferred.Wait), cancellationToken);
             deferred.StartExpiry(remaining, () => Expire(deferred.Wait.RequestId));
         }
+
+        await ReofferAwaitingInputAsync(publish, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -540,8 +591,10 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
     {
         Volatile.Write(ref _publish, null);
         Volatile.Write(ref _onDeferredAnswer, null);
+        Volatile.Write(ref _onAwaitingInputAnswer, null);
         RejectAllPending("the approval bridge was shut down");
         DropDeferred();
+        DropAwaitingInput();
     }
 
     // Waits for the answer until DeferAfter; when none came and deferring is possible, moves the wait out of the turn.
@@ -744,8 +797,10 @@ public sealed class HitlBridge : IHumanApprovalService, IMcpElicitationHandler, 
             if (Interlocked.CompareExchange(ref bridge._publish, null, publish) == publish)
             {
                 Volatile.Write(ref bridge._onDeferredAnswer, null);
+                Volatile.Write(ref bridge._onAwaitingInputAnswer, null);
                 bridge.RejectAllPending("the client connection closed before answering");
                 bridge.DropDeferred();
+                bridge.DropAwaitingInput();
             }
         }
     }

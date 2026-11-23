@@ -16,6 +16,7 @@ namespace IronHive.Host.Session;
 [JsonDerivedType(typeof(ToolResultEntry), "tool_result")]
 [JsonDerivedType(typeof(ApprovalWaitEntry), "approval_wait")]
 [JsonDerivedType(typeof(ApprovalClosedEntry), "approval_closed")]
+[JsonDerivedType(typeof(AwaitingInputEntry), "awaiting_input")]
 public abstract record TranscriptEntry
 {
     /// <summary>
@@ -220,4 +221,46 @@ public record ApprovalClosedEntry : TranscriptEntry
     /// <summary>The request id of the settled <see cref="ApprovalWaitEntry"/>.</summary>
     [JsonPropertyName("request_id")]
     public required string RequestId { get; init; }
+}
+
+/// <summary>
+/// An MCP tool call that did not finish because a server asked the person something and the person had not answered when the
+/// turn went on (<c>mcp.elicitation.deferAfterSeconds</c>): everything needed to send the call again with the answer. Written
+/// when the call is released, so a process that restarts before the answer can offer the question again; closed by an
+/// <see cref="ApprovalClosedEntry"/> carrying the same <see cref="RequestId"/> when the answer (or its expiry) settles it. The
+/// call's own placeholder result is an ordinary <see cref="ToolResultEntry"/>.
+/// </summary>
+public record AwaitingInputEntry : TranscriptEntry
+{
+    /// <summary>The id of the <c>elicitation_request</c> the client answers with. <see cref="TranscriptEntry.Timestamp"/> is when it was first sent.</summary>
+    [JsonPropertyName("request_id")]
+    public required string RequestId { get; init; }
+
+    /// <summary>The tool call the question holds up (its <see cref="ToolUseEntry.ToolUseId"/>).</summary>
+    [JsonPropertyName("tool_use_id")]
+    public required string ToolUseId { get; init; }
+
+    /// <summary>The MCP plugin (server) the call went to.</summary>
+    [JsonPropertyName("plugin")]
+    public required string Plugin { get; init; }
+
+    /// <summary>The tool the call runs.</summary>
+    [JsonPropertyName("tool")]
+    public required string Tool { get; init; }
+
+    /// <summary>The call's arguments exactly as they were sent.</summary>
+    [JsonPropertyName("arguments")]
+    public System.Text.Json.JsonElement? Arguments { get; init; }
+
+    /// <summary>The server's opaque state to send back with the answer; null when it sent none.</summary>
+    [JsonPropertyName("request_state")]
+    public string? RequestState { get; init; }
+
+    /// <summary>What the server asked, by the key an answer must carry (each value is the MCP request as JSON).</summary>
+    [JsonPropertyName("requests")]
+    public required Dictionary<string, System.Text.Json.JsonElement> Requests { get; init; }
+
+    /// <summary>The key of the request the client was asked (the others are answered <c>cancel</c>); null when it could not be told.</summary>
+    [JsonPropertyName("asked_key")]
+    public string? AskedKey { get; init; }
 }

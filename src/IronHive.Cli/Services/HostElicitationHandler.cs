@@ -17,6 +17,12 @@ public sealed class HostElicitationHandler(HitlBridge bridge, ConsoleElicitation
     public bool SupportsForms => bridge.SupportsForms;
 
     /// <inheritdoc />
+    /// <remarks>The bridge's <see cref="HitlBridge.ElicitationDeferAfter"/> (<c>mcp.elicitation.deferAfterSeconds</c>, set for
+    /// <c>run --server</c> only): a call that holds its turn longer than that while the client answers is released and its
+    /// question stays open. The terminal never releases a call.</remarks>
+    public TimeSpan? DeferAfter => bridge.ElicitationDeferAfter;
+
+    /// <inheritdoc />
     public ValueTask<ElicitResult> ElicitAsync(string pluginName, ElicitRequestParams request, CancellationToken cancellationToken) =>
         ElicitAsync(pluginName, null, request, cancellationToken);
 

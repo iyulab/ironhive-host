@@ -52,6 +52,16 @@ public class ConfigurationScopeMergeTests
     }
 
     [Fact]
+    public void TheMcpElicitationSection_IsRead_AndOffByDefault()
+    {
+        using var tmp = new TempConfigDirs();
+        new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load().Mcp.Elicitation.DeferAfterSeconds.Should().BeNull();
+
+        tmp.WriteGlobal("mcp:\n  elicitation:\n    deferAfterSeconds: 30\n");
+        new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load().Mcp.Elicitation.DeferAfterSeconds.Should().Be(30);
+    }
+
+    [Fact]
     public void EverySection_ReachesTheConfig_FromTheGlobalFile()
     {
         // A non-default value for one member of every section: a section the loader forgets reads as its default.
@@ -76,6 +86,7 @@ public class ConfigurationScopeMergeTests
             skills: { maxMetadataCharacters: 4321 }
             delegation: { maxDepth: 4 }
             approval: { timeoutSeconds: 42 }
+            mcp: { elicitation: { deferAfterSeconds: 31 } }
             """);
 
         var config = new ConfigurationManager(tmp.ProjectRoot, tmp.GlobalConfigPath).Load();
@@ -99,6 +110,7 @@ public class ConfigurationScopeMergeTests
         config.Skills.MaxMetadataCharacters.Should().Be(4321);
         config.Delegation.MaxDepth.Should().Be(4);
         config.Approval.TimeoutSeconds.Should().Be(42);
+        config.Mcp.Elicitation.DeferAfterSeconds.Should().Be(31);
     }
 
     [Fact]

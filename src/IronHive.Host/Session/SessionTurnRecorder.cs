@@ -19,8 +19,10 @@ namespace IronHive.Host.Session;
 /// human answer, before the request is sent: the call (<see cref="ToolUseEntry"/>) and the request
 /// (<see cref="ApprovalWaitEntry"/>). A turn that stops while such a wait is open is suspended, not interrupted - nothing
 /// more is written, and a restarted host offers the wait again (<see cref="SuspendedTurnResumer"/>) and finishes the turn.
+/// As the <see cref="HitlBridge.AwaitingLog"/> it also writes each MCP call released while its server's question was
+/// unanswered (<see cref="AwaitingInputEntry"/>) and closes it with an <see cref="ApprovalClosedEntry"/> when settled.
 /// </remarks>
-public sealed class SessionTurnRecorder : IApprovalWaitLog
+public sealed class SessionTurnRecorder : IApprovalWaitLog, IAwaitingInputLog
 {
     /// <summary>
     /// Appended to the assistant text of a turn that did not finish.
@@ -170,6 +172,35 @@ public sealed class SessionTurnRecorder : IApprovalWaitLog
         }, cancellationToken);
     }
 
+    // Request id -> model call id of the released calls that wait: the result written for such a call is its placeholder, which
+    // is not a finished tool (the wire says awaiting_input; the transcript records an error result, not a success)
+    private readonly Dictionary<string, string> _awaitingCalls = new(StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    Task IAwaitingInputLog.AwaitingAsync(AwaitingInputWait wait, CancellationToken cancellationToken)
+    {
+        if (wait.Entry.CallId is { } callId)
+        {
+            lock (_state)
+            {
+                _awaitingCalls[wait.RequestId] = callId;
+            }
+        }
+
+        return _sessions.SaveAwaitingInputAsync(Session, wait.ToTranscript(), cancellationToken);
+    }
+
+    /// <inheritdoc />
+    Task IAwaitingInputLog.SettledAsync(string requestId, CancellationToken cancellationToken)
+    {
+        lock (_state)
+        {
+            _awaitingCalls.Remove(requestId);
+        }
+
+        return _sessions.SaveApprovalClosedAsync(Session, requestId, cancellationToken);
+    }
+
     /// <inheritdoc />
     async Task IApprovalWaitLog.SettledAsync(string requestId, CancellationToken cancellationToken)
     {
@@ -274,7 +305,14 @@ public sealed class SessionTurnRecorder : IApprovalWaitLog
             await _sessions.SaveToolUseAsync(Session, call.ToolName, call.Arguments, toolUseId, cancellationToken);
         }
 
-        // Success is null when the outcome is unknown (no function-invocation middleware) — only an explicit false is an error
-        await _sessions.SaveToolResultAsync(Session, toolUseId, call.Result, call.Success == false, cancellationToken);
+        // Success is null when the outcome is unknown (no function-invocation middleware) — only an explicit false is an error;
+        // the placeholder of a released call is not a finished tool either
+        bool waitingForInput;
+        lock (_state)
+        {
+            waitingForInput = _awaitingCalls.ContainsValue(toolUseId);
+        }
+
+        await _sessions.SaveToolResultAsync(Session, toolUseId, call.Result, call.Success == false || waitingForInput, cancellationToken);
     }
 }

@@ -160,6 +160,9 @@ public class IronHiveConfig
     /// </summary>
     public ApprovalHostConfig Approval { get; set; } = new();
 
+    /// <summary>MCP servers' questions to the person (<c>mcp</c> section).</summary>
+    public McpHostConfig Mcp { get; set; } = new();
+
     /// <summary>
     /// What the commands the model runs through the shell tool may see of the host's environment. By default the provider
     /// API keys the host reads (<see cref="ConfigurationManager.ProviderCredentialVariables"/>) are removed.
@@ -227,6 +230,32 @@ public class ApprovalHostConfig
     /// open until <see cref="TimeoutSeconds"/> (counted from when it was sent): its answer opens a turn that runs the call.
     /// Unset (the default) keeps the request in its turn. Set <see cref="TimeoutSeconds"/> to how long a person may take
     /// (hours) and this to how long a client should wait inline (seconds).
+    /// </summary>
+    public int? DeferAfterSeconds { get; set; }
+}
+
+/// <summary>
+/// The <c>mcp</c> section of <c>config.yaml</c>.
+/// </summary>
+public class McpHostConfig
+{
+    /// <summary>What happens when an MCP server asks the person something and the person is slow.</summary>
+    public McpElicitationHostConfig Elicitation { get; set; } = new();
+}
+
+/// <summary>
+/// An MCP server's question to the person (<c>elicitation_request</c> -> <c>elicitation_response</c>) in <c>run --server</c>.
+/// </summary>
+public class McpElicitationHostConfig
+{
+    /// <summary>
+    /// How long a tool call may hold its turn while the person answers a server's question. Past it the call does not finish,
+    /// the model reads that it waits for the person's answer (<c>awaiting_input</c>), other messages are answered, and the
+    /// question stays open until <see cref="ApprovalHostConfig.TimeoutSeconds"/> (counted from when it was sent): its answer
+    /// sends the call again to the server and opens a turn that tells the model the outcome. Unset (the default) keeps the
+    /// call in its turn, as before. Applies to a call that is the only one in flight on its server, in <c>run --server</c> only.
+    /// A value at or above <see cref="ApprovalHostConfig.TimeoutSeconds"/> never releases (the wait ends at that limit first); a
+    /// negative value is refused at start.
     /// </summary>
     public int? DeferAfterSeconds { get; set; }
 }

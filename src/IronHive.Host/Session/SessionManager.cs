@@ -249,6 +249,21 @@ public class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
+    public async Task SaveAwaitingInputAsync(Session session, AwaitingInputEntry awaiting, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(awaiting);
+        await AppendEntryAsync(session.TranscriptPath, awaiting);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AwaitingInputEntry>> GetPendingAwaitingInputsAsync(Session session, CancellationToken cancellationToken = default)
+    {
+        var entries = await ReadEntriesAsync(session.TranscriptPath);
+        var closed = entries.OfType<ApprovalClosedEntry>().Select(e => e.RequestId).ToHashSet(StringComparer.Ordinal);
+        return [.. entries.OfType<AwaitingInputEntry>().Where(w => !closed.Contains(w.RequestId))];
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ChatMessage>> RestoreContextAsync(Session session, CancellationToken cancellationToken = default)
     {
         var entries = await ReadEntriesAsync(session.TranscriptPath);
@@ -302,6 +317,11 @@ public class SessionManager : ISessionManager
         var entriesToCopy = forkPoint.HasValue
             ? entries.Take(forkPoint.Value + 1).ToList()
             : entries;
+
+        // A call released to wait for the person's answer belongs to the session it was released in: a fork that copied the
+        // open entry would ask the person again and send the call a second time
+        var settledInputs = entriesToCopy.OfType<ApprovalClosedEntry>().Select(e => e.RequestId).ToHashSet(StringComparer.Ordinal);
+        entriesToCopy = [.. entriesToCopy.Where(e => e is not AwaitingInputEntry open || settledInputs.Contains(open.RequestId))];
 
         // Create new session
         var newSessionId = GenerateSessionId();

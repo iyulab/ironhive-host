@@ -71,6 +71,14 @@ public partial class AgentServerRunner
     /// </summary>
     public Func<DeferredApproval, CancellationToken, IAsyncEnumerable<ServerEvent>>? DeferredAnswerTurn { get; set; }
 
+    /// <summary>
+    /// Opens the turn the answer to a released MCP call's question (or its expiry) asks for
+    /// (<see cref="HitlBridge.ElicitationDeferAfter"/>) - typically <see cref="Session.AwaitingInputTurn.RunAsync"/>. The turn
+    /// queues behind the others. Without it a released call cannot be completed: leave
+    /// <see cref="HitlBridge.ElicitationDeferAfter"/> unset.
+    /// </summary>
+    public Func<AwaitingInputAnswer, CancellationToken, IAsyncEnumerable<ServerEvent>>? AwaitingInputTurn { get; set; }
+
     // Set when the server stops while a turn waits for an approval the session keeps: that turn ends as suspended
     private volatile bool _suspending;
 
@@ -198,11 +206,15 @@ public partial class AgentServerRunner
         var turns = new TurnQueue(ct);
 
         var deferredTurn = DeferredAnswerTurn;
+        var inputTurn = AwaitingInputTurn;
         using var hitlAttachment = _hitl?.Attach(
             (evt, token) => WriteSerializedAsync(output, writeLock, evt, token),
             deferredTurn is null
                 ? null
-                : answer => turns.Enqueue(token => HandleTurnAsync(t => deferredTurn(answer, t), output, writeLock, token)));
+                : answer => turns.Enqueue(token => HandleTurnAsync(t => deferredTurn(answer, t), output, writeLock, token)),
+            inputTurn is null
+                ? null
+                : answer => turns.Enqueue(token => HandleTurnAsync(t => inputTurn(answer, t), output, writeLock, token)));
 
         // A turn a previous process left waiting for approval runs first, once the bridge can reach the client
         if (ResumeTurn is { } resume)

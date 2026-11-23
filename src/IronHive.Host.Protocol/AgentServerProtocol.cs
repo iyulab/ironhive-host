@@ -239,6 +239,15 @@ public static class ToolRefusalCodes
     public const string AwaitingApproval = "awaiting_approval";
 
     /// <summary>
+    /// The call waits for a person's answer to an MCP server's question (<see cref="ElicitationRequestEvent"/>) that did not
+    /// come in time, so the turn went on without it: the tool has not finished, the question is still open, and when it is
+    /// answered (<see cref="ElicitationResponseRequest"/>) - or expires - a later turn opens with another
+    /// <see cref="ToolEndEvent"/> for the same <see cref="ToolEndEvent.CallId"/> carrying the outcome. Only with
+    /// <c>mcp.elicitation.deferAfterSeconds</c> set.
+    /// </summary>
+    public const string AwaitingInput = "awaiting_input";
+
+    /// <summary>
     /// The call named a tool the turn did not offer; the model read «not found». A model that keeps calling it is stopped
     /// by the repeated-error guard (<see cref="RepeatedError"/>).
     /// </summary>
@@ -312,8 +321,11 @@ public record ModelProposalOptionInfo(string Id, string Label, string Rationale)
 /// when the host enables it, <c>chatBehavior.elicitationForms</c>) show <see cref="Message"/> and a form built from
 /// <see cref="RequestedSchema"/>, with the defaults filled in and the answer open to review before it is sent. Answer with an
 /// <see cref="ElicitationResponseRequest"/> carrying this <see cref="Id"/>. The call waits inside its turn; without an answer
-/// within the approval timeout it ends as <c>cancel</c>. A form is never a place for secrets - a server asks for those in URL
-/// mode.
+/// within the approval timeout it ends as <c>cancel</c>. With <c>mcp.elicitation.deferAfterSeconds</c> set the call is released
+/// after that time instead - its <see cref="ToolEndEvent"/> reads <c>awaiting_input</c>, this request stays open past the turn's
+/// <see cref="TurnEndEvent"/>, and its answer (a form answer checked against the schema as for a live one) sends the call again
+/// and relays a second <see cref="ToolEndEvent"/> for the same call id. A form is never a place for secrets - a server asks for
+/// those in URL mode.
 /// </summary>
 /// <param name="Id">The host's id for this request — echo it in the answer.</param>
 /// <param name="Plugin">The MCP server asking (its name in the configuration).</param>
