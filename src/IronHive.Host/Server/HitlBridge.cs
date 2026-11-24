@@ -736,6 +736,7 @@ public sealed partial class HitlBridge : IHumanApprovalService, IMcpElicitationH
         {
             Approved = true,
             AlwaysApprove = response.AlwaysApprove,
+            ThisCallOnly = response.ThisCallOnly,
             ModifiedArguments = response.ModifiedArguments?.ToDictionary(
                 kv => kv.Key, kv => (object?)kv.Value, StringComparer.Ordinal)
         };

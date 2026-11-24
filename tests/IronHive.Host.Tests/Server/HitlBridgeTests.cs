@@ -83,6 +83,47 @@ public class HitlBridgeTests
     }
 
     [Fact]
+    public async Task AnApprovalThatCoversThisCallOnly_ReachesTheApprovalServiceCallerAsSuch()
+    {
+        var (bridge, sent, attachment) = Attached();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var scoped = bridge.RequestApprovalAsync(Request(callId: "call-s"), ct);
+        var scopedEvt = await sent.Reader.ReadAsync(ct);
+        var plain = bridge.RequestApprovalAsync(Request(callId: "call-p"), ct);
+        var plainEvt = await sent.Reader.ReadAsync(ct);
+
+        bridge.Resolve(new HitlResponseRequest(true, Id: scopedEvt.Id, ThisCallOnly: true)).Should().BeTrue();
+        bridge.Resolve(new HitlResponseRequest(true, Id: plainEvt.Id)).Should().BeTrue();
+
+        var scopedResult = await scoped;
+        scopedResult.Approved.Should().BeTrue();
+        scopedResult.ThisCallOnly.Should().BeTrue();
+        scopedResult.AlwaysApprove.Should().BeFalse();
+        (await plain).ThisCallOnly.Should().BeFalse("what an approval covers stays the approver's policy unless it says this call only");
+    }
+
+    [Fact]
+    public async Task ARefusal_NeverCarriesAScope()
+    {
+        var (bridge, sent, attachment) = Attached();
+        using var _ = bridge;
+        using var __ = attachment;
+        var ct = TestContext.Current.CancellationToken;
+
+        var pending = bridge.RequestApprovalAsync(Request(), ct);
+        var evt = await sent.Reader.ReadAsync(ct);
+        bridge.Resolve(new HitlResponseRequest(false, "no", Id: evt.Id, ThisCallOnly: true)).Should().BeTrue();
+
+        var result = await pending;
+        result.Approved.Should().BeFalse();
+        result.ThisCallOnly.Should().BeFalse();
+        result.RejectionReason.Should().Be("no");
+    }
+
+    [Fact]
     public async Task ADelegatedAgentsCall_NamesTheAgentOnTheWire_AndTheSessionsOwnCallDoesNot()
     {
         var (bridge, sent, attachment) = Attached();

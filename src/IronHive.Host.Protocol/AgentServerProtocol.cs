@@ -72,12 +72,18 @@ public record TurnOptions(
 /// <param name="ModifiedArguments">Arguments to run the call with instead of the model's, when the person edited them.</param>
 /// <param name="AlwaysApprove">The person asked to approve this kind of call from now on (the approver decides what that
 /// covers).</param>
+/// <param name="ThisCallOnly">The approval covers this one call and nothing else: an approver that decides one act at a time
+/// (a classifier or judge model answering for a person) sets it so that a policy wrapped around the approval service does not
+/// widen the yes to the calls that follow. Default <see langword="false"/>: what an approval covers is the approver's own
+/// policy, as before. Meaningless on a refusal; set together with <paramref name="AlwaysApprove"/> the stricter reading
+/// holds.</param>
 public record HitlResponseRequest(
     bool Approved,
     string? Reason = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Id = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Dictionary<string, JsonElement>? ModifiedArguments = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool AlwaysApprove = false) : ServerRequest;
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool AlwaysApprove = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool ThisCallOnly = false) : ServerRequest;
 
 /// <summary>
 /// A client's answer to an <see cref="ElicitationRequestEvent"/>.

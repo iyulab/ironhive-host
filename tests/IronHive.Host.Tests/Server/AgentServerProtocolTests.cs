@@ -60,6 +60,31 @@ public class AgentServerProtocolTests
     }
 
     [Fact]
+    public void Serialize_HitlResponseRequest_ThisCallOnly_IsWrittenOnlyWhenSet()
+    {
+        ServerRequest scoped = new HitlResponseRequest(true, Id: "r1", ThisCallOnly: true);
+        ServerRequest plain = new HitlResponseRequest(true, Id: "r1");
+
+        using var scopedDoc = JsonDocument.Parse(JsonSerializer.Serialize(scoped, Options));
+        using var plainDoc = JsonDocument.Parse(JsonSerializer.Serialize(plain, Options));
+
+        scopedDoc.RootElement.GetProperty("this_call_only").GetBoolean().Should().BeTrue();
+        plainDoc.RootElement.TryGetProperty("this_call_only", out _).Should().BeFalse("an answer without a scope reads exactly as before");
+    }
+
+    [Fact]
+    public void Deserialize_HitlResponseRequest_ReadsThisCallOnly_AndDefaultsToFalse()
+    {
+        var scoped = JsonSerializer.Deserialize<ServerRequest>(
+            """{"type":"hitl_response","approved":true,"id":"r1","this_call_only":true}""", Options);
+        var older = JsonSerializer.Deserialize<ServerRequest>(
+            """{"type":"hitl_response","approved":true,"id":"r1"}""", Options);
+
+        scoped.Should().BeOfType<HitlResponseRequest>().Which.ThisCallOnly.Should().BeTrue();
+        older.Should().BeOfType<HitlResponseRequest>().Which.ThisCallOnly.Should().BeFalse();
+    }
+
+    [Fact]
     public void Serialize_ContextUpdateRequest_WithWorkingPath()
     {
         ServerRequest request = new ContextUpdateRequest("/home/user/docs");
