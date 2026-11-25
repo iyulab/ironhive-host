@@ -103,6 +103,41 @@ public class ReadFilterWiringTests : IDisposable
         listing.Should().Contain("secret.txt", "and it is the only filter: the rules' one is not added on top");
     }
 
+    // Deriving the filter must not cost the tools what the host already set on its options
+    [Fact]
+    public async Task The_filter_derived_from_the_rules_keeps_the_roots_and_the_write_interceptor_the_host_set()
+    {
+        var interceptor = Substitute.For<IFileWriteInterceptor>();
+        interceptor.InterceptAsync(Arg.Any<string>(), Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                await call.ArgAt<Func<Task>>(1)();
+                return (string?)" (seen by the interceptor)";
+            });
+        var options = new FileToolOptions { AllowedRoots = [Path.Combine(_dir, "src")], WriteInterceptor = interceptor };
+
+        var created = await Factory(options, DenyConfigFolder(_dir)).CreateWithPipelineAsync(
+            new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = _dir }, TestContext.Current.CancellationToken);
+
+        var outside = await Call(created.Loop.Tools, "ReadFile", new() { ["path"] = ".config-folder/secret.txt" });
+        var written = await Call(created.Loop.Tools, "WriteFile", new() { ["path"] = "src/new.txt", ["content"] = "x" });
+
+        outside.Should().NotContain(Needle, "the path is outside the allowed roots");
+        written.Should().Contain("seen by the interceptor");
+    }
+
+    [Fact]
+    public async Task Rules_with_no_directory_of_their_own_are_refused_for_tools_that_work_somewhere_else()
+    {
+        var rules = DenyConfigFolder(_dir);
+        rules.WorkingDirectory = null;
+
+        var act = () => Factory(permissions: rules).CreateWithPipelineAsync(
+            new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = _dir }, TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*the permission rules judge paths against*");
+    }
+
     [Fact]
     public async Task Without_permission_rules_nothing_is_hidden()
     {

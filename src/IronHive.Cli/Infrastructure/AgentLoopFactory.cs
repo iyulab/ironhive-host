@@ -349,10 +349,14 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
     private void EnsurePermissionsJudgeTheToolsDirectory(string toolsDirectory)
     {
-        if (_permissions?.WorkingDirectory is not { Length: > 0 } permissionsDirectory)
+        if (_permissions is null)
         {
             return;
         }
+
+        // Rules with no directory of their own judge against the process's: they must still be the tools' directory, or a
+        // rule such as `read: private/**` says nothing about the folder the tools list and search
+        var permissionsDirectory = _permissions.WorkingDirectory is { Length: > 0 } configured ? configured : Directory.GetCurrentDirectory();
 
         var tools = Path.TrimEndingDirectorySeparator(Path.GetFullPath(toolsDirectory));
         var rules = Path.TrimEndingDirectorySeparator(Path.GetFullPath(permissionsDirectory));
