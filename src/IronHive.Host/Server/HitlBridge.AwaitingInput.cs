@@ -16,6 +16,11 @@ public sealed partial class HitlBridge
     private readonly ConcurrentDictionary<string, AwaitingSlot> _awaitingInput = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, EarlyAnswer> _earlyAnswers = new(StringComparer.Ordinal);
 
+    // A question moves from "sent" to "released and waiting", with an answer that may arrive in between. Every such move and every
+    // claim of a waiting question happens under this lock, so an answer finds the question in exactly one place. The log write,
+    // publishing and handing an answer to the runner happen outside it.
+    private readonly Lock _handover = new();
+
     // Model call id -> request id of a released call, from the moment the manager reports it until the turn that completes it
     // starts: the call's first tool_end must read awaiting_input even when the answer arrives before it is mapped.
     private readonly ConcurrentDictionary<string, string> _awaitingCalls = new(StringComparer.Ordinal);
@@ -38,9 +43,9 @@ public sealed partial class HitlBridge
         get => Interlocked.Read(ref _elicitationDeferTicks) is var ticks and >= 0 ? TimeSpan.FromTicks(ticks) : null;
         set
         {
-            if (value is { } v && v < TimeSpan.Zero)
+            if (value is { } v && v <= TimeSpan.Zero)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), "The elicitation defer time cannot be negative.");
+                throw new ArgumentOutOfRangeException(nameof(value), "The elicitation defer time must be positive; null keeps calls in their turn.");
             }
 
             Interlocked.Exchange(ref _elicitationDeferTicks, value?.Ticks ?? -1);
@@ -95,10 +100,13 @@ public sealed partial class HitlBridge
         _ = Task.Delay(UnclaimedSentGrace).ContinueWith(
             _ =>
             {
-                if (!_awaitingInput.ContainsKey(id))
+                lock (_handover)
                 {
-                    _sentElicitations.TryRemove(id, out SentElicitation? _);
-                    _earlyAnswers.TryRemove(id, out EarlyAnswer? _);
+                    if (!_awaitingInput.ContainsKey(id))
+                    {
+                        _sentElicitations.TryRemove(id, out SentElicitation? _);
+                        _earlyAnswers.TryRemove(id, out EarlyAnswer? _);
+                    }
                 }
             },
             CancellationToken.None,
@@ -114,20 +122,65 @@ public sealed partial class HitlBridge
     public void RestoreAwaitingInput(AwaitingInputWait wait)
     {
         ArgumentNullException.ThrowIfNull(wait);
-        _awaitingInput[wait.RequestId] = new AwaitingSlot(wait, unsent: true);
+        lock (_handover)
+        {
+            _awaitingInput[wait.RequestId] = new AwaitingSlot(wait, unsent: true);
+        }
+    }
+
+    // The answer could not be used and nothing was sent: the released call waits again, and the client is asked again under the
+    // same id. Its time still counts from the first send.
+    internal void ReopenAwaitingInput(AwaitingInputWait wait)
+    {
+        var slot = new AwaitingSlot(wait, unsent: false);
+        lock (_handover)
+        {
+            if (!_awaitingInput.TryAdd(wait.RequestId, slot))
+            {
+                return;
+            }
+
+            if (wait.Entry.CallId is { } callId)
+            {
+                _awaitingCalls[callId] = wait.RequestId;
+            }
+
+            slot.StartExpiry(Remaining(wait), () => ExpireAwaitingInput(slot));
+        }
+
+        _ = PublishAwaitingAsync(wait);
+    }
+
+    private TimeSpan Remaining(AwaitingInputWait wait)
+    {
+        var remaining = Timeout - (DateTimeOffset.UtcNow - wait.SentAt);
+        return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
     }
 
     private void TrackSent(string id, string pluginName, McpCallInfo? call, ElicitRequestParams request)
     {
-        // A released question the manager never reported (the turn ended instead) must not pile up
-        var oldest = DateTimeOffset.UtcNow - Timeout;
-        foreach (var stale in _sentElicitations.Where(e => e.Value.SentAt < oldest && !_elicitations.ContainsKey(e.Key)).Select(e => e.Key).ToList())
+        lock (_handover)
         {
-            _sentElicitations.TryRemove(stale, out _);
-            _earlyAnswers.TryRemove(stale, out _);
-        }
+            // A released question the manager never reported (the turn ended instead) must not pile up
+            var oldest = DateTimeOffset.UtcNow - Timeout;
+            foreach (var stale in _sentElicitations.Where(e => e.Value.SentAt < oldest && !_elicitations.ContainsKey(e.Key)).Select(e => e.Key).ToList())
+            {
+                _sentElicitations.TryRemove(stale, out _);
+                _earlyAnswers.TryRemove(stale, out _);
+            }
 
-        _sentElicitations[id] = new SentElicitation(id, pluginName, call?.CallId, call?.ToolName, request, DateTimeOffset.UtcNow);
+            _sentElicitations[id] = new SentElicitation(id, pluginName, call?.CallId, call?.ToolName, request, DateTimeOffset.UtcNow);
+        }
+    }
+
+    // The question's turn finished with it (answered, timed out or cancelled without a release): nothing is kept for it
+    private void ForgetSent(string id)
+    {
+        lock (_handover)
+        {
+            _sentElicitations.TryRemove(id, out _);
+            _earlyAnswers.TryRemove(id, out _);
+        }
     }
 
     // Raised by the plugin manager after it released a call: tie the entry to the question the client holds, keep and log it.
@@ -154,15 +207,27 @@ public sealed partial class HitlBridge
         }
 
         var slot = new AwaitingSlot(wait, unsent: false);
-        _awaitingInput[wait.RequestId] = slot;
-        if (wait.Entry.CallId is { } callId)
+        EarlyAnswer? early;
+        lock (_handover)
         {
-            _awaitingCalls[callId] = wait.RequestId;
-        }
+            _awaitingInput[wait.RequestId] = slot;
+            if (wait.Entry.CallId is { } callId)
+            {
+                _awaitingCalls[callId] = wait.RequestId;
+            }
 
-        _sentElicitations.TryRemove(wait.RequestId, out _);
-        var remaining = Timeout - (DateTimeOffset.UtcNow - wait.SentAt);
-        slot.StartExpiry(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, () => ExpireAwaitingInput(wait.RequestId));
+            _sentElicitations.TryRemove(wait.RequestId, out _);
+
+            // An answer that arrived between the release and this registration takes the question straight away
+            if (_earlyAnswers.TryRemove(wait.RequestId, out early))
+            {
+                _awaitingInput.TryRemove(wait.RequestId, out _);
+            }
+            else
+            {
+                slot.StartExpiry(Remaining(wait), () => ExpireAwaitingInput(slot));
+            }
+        }
 
         if (sent is null)
         {
@@ -170,10 +235,9 @@ public sealed partial class HitlBridge
             _ = PublishAwaitingAsync(wait);
         }
 
-        // An answer that arrived between the release and this registration
-        if (_earlyAnswers.TryRemove(wait.RequestId, out var early))
+        if (early is not null)
         {
-            SettleAwaitingInput(wait.RequestId, early);
+            CompleteAwaitingInput(slot, early.Action, early.Content, expired: false);
         }
     }
 
@@ -190,7 +254,10 @@ public sealed partial class HitlBridge
 
             var same = entry.CallId is not null && candidate.CallId is not null
                 ? string.Equals(candidate.CallId, entry.CallId, StringComparison.Ordinal)
-                : string.Equals(candidate.Tool, entry.ToolName, StringComparison.Ordinal);
+                : candidate.Tool is not null
+                    ? string.Equals(candidate.Tool, entry.ToolName, StringComparison.Ordinal)
+                    // Asked while the server ran several calls: the record names none, so the question itself says which it is
+                    : entry.Requests.Values.Any(request => SameQuestion(request, candidate.Request));
             if (same && (best is null || candidate.SentAt > best.SentAt))
             {
                 best = candidate;
@@ -206,9 +273,7 @@ public sealed partial class HitlBridge
         {
             foreach (var (key, request) in entry.Requests)
             {
-                if (string.Equals(request.Message, asked.Message, StringComparison.Ordinal)
-                    && string.Equals(request.Url, asked.Url, StringComparison.Ordinal)
-                    && string.Equals(request.ElicitationId, asked.ElicitationId, StringComparison.Ordinal))
+                if (SameQuestion(request, asked))
                 {
                     return key;
                 }
@@ -218,56 +283,47 @@ public sealed partial class HitlBridge
         return entry.Requests.Count == 1 ? entry.Requests.Keys.Single() : null;
     }
 
+    private static bool SameQuestion(ElicitRequestParams one, ElicitRequestParams other) =>
+        string.Equals(one.Message, other.Message, StringComparison.Ordinal)
+        && string.Equals(one.Url, other.Url, StringComparison.Ordinal)
+        && string.Equals(one.ElicitationId, other.ElicitationId, StringComparison.Ordinal);
+
     // An answer to the question of a released call. An accepted form-mode answer is checked against the schema of the request
     // the client was shown before anything is settled - as for a question still inside its turn, a wrong answer is refused and
     // the question stays open for a correction.
     private bool ResolveAwaitingInput(string id, ElicitationResponseRequest response, out ElicitationRefusal? refusal)
     {
         refusal = null;
-        var asked = _awaitingInput.TryGetValue(id, out var open) ? open.Wait.ShownRequest
-            : _sentElicitations.TryGetValue(id, out var sent) ? sent.Request
-            : null;
-        var form = asked is not null && IsFormRequest(asked);
-        if (response.Action == ElicitationActions.Accept && form
-            && ElicitationFormContent.Validate(asked!, response.Content) is { } invalid)
+        AwaitingSlot? claimed;
+        EarlyAnswer answer;
+        lock (_handover)
         {
-            refusal = new ElicitationRefusal(id, invalid);
-            return false;
+            var asked = _awaitingInput.TryGetValue(id, out var open) ? open.Wait.ShownRequest
+                : _sentElicitations.TryGetValue(id, out var sent) ? sent.Request
+                : null;
+            var form = asked is not null && IsFormRequest(asked);
+            if (response.Action == ElicitationActions.Accept && form
+                && ElicitationFormContent.Validate(asked!, response.Content) is { } invalid)
+            {
+                refusal = new ElicitationRefusal(id, invalid);
+                return false;
+            }
+
+            answer = new EarlyAnswer(response.Action, response.Action == ElicitationActions.Accept && form ? response.Content : null);
+            if (!_awaitingInput.TryRemove(id, out claimed))
+            {
+                // The call was just released and the manager has not reported it yet: keep the answer for the registration. The
+                // first answer is the answer: a second one finds nothing, as it would after the wait was settled.
+                return _sentElicitations.ContainsKey(id) && _earlyAnswers.TryAdd(id, answer);
+            }
         }
 
-        return SettleAwaitingInput(id, new EarlyAnswer(response.Action, response.Action == ElicitationActions.Accept && form ? response.Content : null));
+        return CompleteAwaitingInput(claimed, answer.Action, answer.Content, expired: false);
     }
 
     // A form-mode question as this host asks it: form mode is advertised only with SupportsForms (else it was declined, never sent).
     private bool IsFormRequest(ElicitRequestParams request) =>
         !string.Equals(request.Mode, "url", StringComparison.Ordinal) && request.RequestedSchema is not null && SupportsForms;
-
-    private bool SettleAwaitingInput(string id, EarlyAnswer answer)
-    {
-        if (_awaitingInput.TryRemove(id, out var slot))
-        {
-            return CompleteAwaitingInput(slot, answer.Action, answer.Content, expired: false);
-        }
-
-        if (!_sentElicitations.ContainsKey(id))
-        {
-            return false;
-        }
-
-        // The call was just released and the manager has not reported it yet: keep the answer for the registration. The first
-        // answer is the answer: a second one finds nothing, as it would after the wait was settled.
-        if (!_earlyAnswers.TryAdd(id, answer))
-        {
-            return false;
-        }
-
-        if (_awaitingInput.ContainsKey(id) && _earlyAnswers.TryRemove(id, out var kept) && _awaitingInput.TryRemove(id, out var registered))
-        {
-            return CompleteAwaitingInput(registered, kept.Action, kept.Content, expired: false);
-        }
-
-        return true;
-    }
 
     private bool ResolveOnlyAwaitingInput(ElicitationResponseRequest response, out ElicitationRefusal? refusal)
     {
@@ -276,12 +332,18 @@ public sealed partial class HitlBridge
         return waiting.Length == 1 && ResolveAwaitingInput(waiting[0].Key, response, out refusal);
     }
 
-    private void ExpireAwaitingInput(string requestId)
+    // Only the slot whose time ran out: a timer outliving its slot must not end a question that waits again under the same id
+    private void ExpireAwaitingInput(AwaitingSlot slot)
     {
-        if (_awaitingInput.TryRemove(requestId, out var slot))
+        lock (_handover)
         {
-            CompleteAwaitingInput(slot, ElicitationActions.Cancel, content: null, expired: true);
+            if (!_awaitingInput.TryRemove(new KeyValuePair<string, AwaitingSlot>(slot.Wait.RequestId, slot)))
+            {
+                return;
+            }
         }
+
+        CompleteAwaitingInput(slot, ElicitationActions.Cancel, content: null, expired: true);
     }
 
     private bool CompleteAwaitingInput(AwaitingSlot slot, string action, IDictionary<string, JsonElement>? content, bool expired)
@@ -310,12 +372,12 @@ public sealed partial class HitlBridge
             var remaining = Timeout - (DateTimeOffset.UtcNow - slot.Wait.SentAt);
             if (remaining <= TimeSpan.Zero)
             {
-                ExpireAwaitingInput(slot.Wait.RequestId);
+                ExpireAwaitingInput(slot);
                 continue;
             }
 
             await publish(ToEvent(slot.Wait), cancellationToken);
-            slot.StartExpiry(remaining, () => ExpireAwaitingInput(slot.Wait.RequestId));
+            slot.StartExpiry(remaining, () => ExpireAwaitingInput(slot));
         }
     }
 
@@ -338,17 +400,18 @@ public sealed partial class HitlBridge
 
     private void DropAwaitingInput()
     {
-        foreach (var id in _awaitingInput.Keys)
+        lock (_handover)
         {
-            if (_awaitingInput.TryRemove(id, out var slot))
+            foreach (var slot in _awaitingInput.Values)
             {
                 slot.StopExpiry();
             }
-        }
 
-        _sentElicitations.Clear();
-        _earlyAnswers.Clear();
-        _awaitingCalls.Clear();
+            _awaitingInput.Clear();
+            _sentElicitations.Clear();
+            _earlyAnswers.Clear();
+            _awaitingCalls.Clear();
+        }
     }
 
     // The question offered again (a restarted host, or a call released with no question open): in the mode it was asked in.

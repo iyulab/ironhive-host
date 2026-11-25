@@ -290,7 +290,13 @@ public sealed partial class HitlBridge : IHumanApprovalService, IMcpElicitationH
             ? new ElicitResult { Action = response.Action, Content = response.Content }
             : new ElicitResult { Action = response.Action };
 
-        return _elicitations.TryRemove(key, out var taken) && taken.Source.TrySetResult(result);
+        if (_elicitations.TryRemove(key, out var taken) && taken.Source.TrySetResult(result))
+        {
+            return true;
+        }
+
+        // The wait was cancelled under this answer - the call is being released - so it answers the released call's question
+        return ResolveAwaitingInput(key, response, out refusal);
     }
 
     /// <inheritdoc />
@@ -377,7 +383,7 @@ public sealed partial class HitlBridge : IHumanApprovalService, IMcpElicitationH
             _elicitations.TryRemove(id, out _);
             if (!released)
             {
-                _sentElicitations.TryRemove(id, out _);
+                ForgetSent(id);
             }
         }
     }

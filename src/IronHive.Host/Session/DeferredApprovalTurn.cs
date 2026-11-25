@@ -48,7 +48,7 @@ public static class DeferredApprovalTurn
             await log.SettledAsync(wait.RequestId, CancellationToken.None);
         }
 
-        var (result, output, isError) = await ApprovedCall.RunAsync(wait, outcome.Answer, bridge, tools, pipeline, cancellationToken);
+        var (result, output, isError, awaitingInput) = await ApprovedCall.RunAsync(wait, outcome.Answer, bridge, tools, pipeline, cancellationToken);
         var refusal = result as ToolCallRefusal;
         yield return new AgentResponseChunk
         {
@@ -63,7 +63,7 @@ public static class DeferredApprovalTurn
             }
         };
 
-        var note = Note(wait, outcome, output, isError, refusal is not null);
+        var note = Note(wait, outcome, output, isError, refusal is not null, awaitingInput);
         var turn = loop.RunStreamingAsync(note, cancellationToken);
         if (recorder is not null)
         {
@@ -77,9 +77,11 @@ public static class DeferredApprovalTurn
     }
 
     /// <summary>The message that tells the model what became of its deferred call.</summary>
-    internal static string Note(ApprovalWaitEntry wait, DeferredApproval outcome, string output, bool isError, bool notRun)
+    internal static string Note(ApprovalWaitEntry wait, DeferredApproval outcome, string output, bool isError, bool notRun, bool awaitingInput = false)
     {
-        var what = outcome.Expired
+        var what = awaitingInput
+            ? "It was approved and started, and now waits for the person to answer a question from the server. It has not finished."
+            : outcome.Expired
             ? "No answer came in time, so it did not run."
             : notRun
                 ? "It did not run."

@@ -64,9 +64,49 @@ public static class AwaitingInputTurn
 
         var wait = answer.Wait;
         var entry = wait.Entry;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            // Nothing was sent, so the answer is not used up. An expiry is left on record only: asking again with no time left
+            // would hand the same expiry straight back
+            if (!answer.Expired)
+            {
+                bridge.ReopenAwaitingInput(wait);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        if (!answer.Expired && !manager.ConnectedPlugins.Contains(entry.PluginName, StringComparer.Ordinal))
+        {
+            // The call cannot leave this host (the server has not connected yet, or dropped): the question stays open
+            bridge.ReopenAwaitingInput(wait);
+            yield return new AgentResponseChunk
+            {
+                ToolResult = new ToolCallResult
+                {
+                    CallId = entry.CallId ?? wait.RequestId,
+                    ToolName = entry.ToolName,
+                    Arguments = entry.Arguments is null ? "{}" : JsonSerializer.Serialize(entry.Arguments),
+                    Result = $"The plugin '{entry.PluginName}' is not connected, so the call was not sent and the answer was not used. "
+                        + "The question stays open: answer it again once the plugin is connected.",
+                    Success = false,
+                }
+            };
+            yield break;
+        }
+
         if (bridge.AwaitingLog is { } log)
         {
-            await log.SettledAsync(wait.RequestId, CancellationToken.None);
+            try
+            {
+                await log.SettledAsync(wait.RequestId, CancellationToken.None);
+            }
+            catch
+            {
+                // Not closed on record, and not sent: it still waits
+                bridge.ReopenAwaitingInput(wait);
+                throw;
+            }
         }
 
         // The call's first tool_end has been mapped (turns run one at a time): from here it reads as finished or as awaiting
@@ -88,7 +128,7 @@ public static class AwaitingInputTurn
         }
 
         var callId = entry.CallId ?? wait.RequestId;
-        yield return new AgentResponseChunk
+        var result = new AgentResponseChunk
         {
             ToolResult = new ToolCallResult
             {
@@ -104,29 +144,60 @@ public static class AwaitingInputTurn
         if (awaitingAgain)
         {
             // The server asked another question: the call waits again, nothing changed for the model
+            yield return result;
             yield break;
         }
 
         var note = Note(entry, callId, answer, output, isError, cancelled);
-        if (cancelled)
+        var told = false;
+        try
         {
-            // The turn that would tell the model was cancelled too: the note goes into the loop's history, so the model reads it
-            // with the next message instead of believing the call is still waiting
-            var history = (await loop.GetHistoryAsync(CancellationToken.None)).ToList();
+            // Written as soon as the outcome is known, before anything that can be cancelled or abandoned: the wait is closed
+            // on record, so without it a restarted host would read the call's placeholder - "has not run yet" - for a call that
+            // may have run
+            if (recorder is not null)
+            {
+                await recorder.WriteOutcomeNoteAsync(note);
+            }
+
+            yield return result;
+
+            if (cancelled || cancellationToken.IsCancellationRequested)
+            {
+                yield break;
+            }
+
+            var turn = loop.RunStreamingAsync(note, cancellationToken);
+            if (recorder is not null)
+            {
+                turn = recorder.RecordContinuationAsync(turn, cancellationToken);
+            }
+
+            await foreach (var chunk in turn.WithCancellation(cancellationToken))
+            {
+                yield return chunk;
+            }
+
+            told = true;
+        }
+        finally
+        {
+            // The turn that would tell the model did not finish (cancelled, failed, or the caller stopped reading): the note
+            // stays in the loop's history, so the model reads it with the next message instead of believing the call waits
+            if (!told)
+            {
+                await KeepInHistoryAsync(loop, note);
+            }
+        }
+    }
+
+    private static async Task KeepInHistoryAsync(IAgentLoop loop, string note)
+    {
+        var history = (await loop.GetHistoryAsync(CancellationToken.None)).ToList();
+        if (!history.Any(m => m.Role == ChatRole.User && string.Equals(m.Text, note, StringComparison.Ordinal)))
+        {
             history.Add(new ChatMessage(ChatRole.User, note));
             await loop.InitializeHistoryAsync(history, CancellationToken.None);
-            yield break;
-        }
-
-        var turn = loop.RunStreamingAsync(note, cancellationToken);
-        if (recorder is not null)
-        {
-            turn = recorder.RecordAsync(note, turn, cancellationToken);
-        }
-
-        await foreach (var chunk in turn.WithCancellation(cancellationToken))
-        {
-            yield return chunk;
         }
     }
 

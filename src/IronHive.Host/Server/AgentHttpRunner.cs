@@ -208,7 +208,7 @@ public sealed partial class AgentHttpRunner : IDisposable
         using var hitlAttachment = _hitl?.Attach(
             PostEventAsync,
             deferredTurn is null ? null : answer => _turns?.Enqueue(token => HandleTurnAsync(t => deferredTurn(answer, t), token)),
-            inputTurn is null ? null : answer => _turns?.Enqueue(token => HandleTurnAsync(t => inputTurn(answer, t), token)));
+            inputTurn is null ? null : answer => _turns?.Enqueue(token => HandleTurnAsync(t => inputTurn(answer, t), token, deliverToolEnds: true)));
         await PostReadyAsync(ct);
         await ProcessInboxAsync(ct);
     }
@@ -442,7 +442,10 @@ public sealed partial class AgentHttpRunner : IDisposable
         }
     }
 
-    private async Task HandleTurnAsync(Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, CancellationToken ct)
+    // deliverToolEnds: the turn's tool_end reports a call that was already sent (a released call sent again), so a cancel that
+    // arrives meanwhile must not keep the client from hearing what became of it
+    private async Task HandleTurnAsync(
+        Func<CancellationToken, IAsyncEnumerable<ServerEvent>> turn, CancellationToken ct, bool deliverToolEnds = false)
     {
         var turnEndSent = false;
         var failed = false;
@@ -450,12 +453,13 @@ public sealed partial class AgentHttpRunner : IDisposable
         {
             await foreach (var evt in turn(ct))
             {
+                await PostEventAsync(evt, deliverToolEnds && evt is ToolEndEvent ? CancellationToken.None : ct);
+
+                // Set once posted: a post the cancel interrupted leaves the fallback below to end the turn
                 if (evt is TurnEndEvent)
                 {
                     turnEndSent = true;
                 }
-
-                await PostEventAsync(evt, ct);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

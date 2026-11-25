@@ -62,7 +62,7 @@ public static class SuspendedTurnResumer
                 continue;
             }
 
-            var (result, output, isError) = await ApprovedCall.RunAsync(wait, answer, bridge, tools, pipeline, cancellationToken);
+            var (result, output, isError, _) = await ApprovedCall.RunAsync(wait, answer, bridge, tools, pipeline, cancellationToken);
             await recorder.WriteResumedResultAsync(wait, output, isError, cancellationToken);
             results.Add(new FunctionResultContent(wait.ToolUseId, result));
         }

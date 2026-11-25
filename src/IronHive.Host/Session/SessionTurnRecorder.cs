@@ -107,6 +107,10 @@ public sealed class SessionTurnRecorder : IApprovalWaitLog, IAwaitingInputLog
         await _sessions.SaveAssistantMessageAsync(Session, response.Content, cancellationToken);
     }
 
+    // The message that tells the model what became of a released call, written before the turn that carries it to the model:
+    // not cancellable, since the call's wait is already closed on record
+    internal Task WriteOutcomeNoteAsync(string note) => _sessions.SaveUserMessageAsync(Session, note, CancellationToken.None);
+
     /// <summary>
     /// Writes the result of a call a previous process left waiting for approval and settles its request - what a resumed
     /// turn writes before it continues.

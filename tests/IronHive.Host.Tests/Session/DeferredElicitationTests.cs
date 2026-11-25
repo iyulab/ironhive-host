@@ -115,7 +115,11 @@ public sealed class DeferredElicitationTests : IDisposable
         {
             _bridge = bridge;
             Manager = Substitute.For<IMcpPluginManager>();
+            Manager.ConnectedPlugins.Returns(_ => (IReadOnlyCollection<string>)(Connected ? ["conn"] : Array.Empty<string>()));
         }
+
+        /// <summary>Whether the plugin whose call was released is connected.</summary>
+        public bool Connected { get; set; } = true;
 
         public IMcpPluginManager Manager { get; }
 
@@ -129,8 +133,8 @@ public sealed class DeferredElicitationTests : IDisposable
 
         public bool ThrowOnReissue { get; set; }
 
-        /// <summary>The next reissue is cancelled by the caller's token while it is being sent.</summary>
-        public bool CancelOnReissue { get; set; }
+        /// <summary>The next reissue is cancelled by the caller while it is being sent: this source is cancelled mid-send.</summary>
+        public CancellationTokenSource? CancelOnReissue { get; set; }
 
         public async Task<string> RunToolAsync(string what, CancellationToken ct)
         {
@@ -148,8 +152,9 @@ public sealed class DeferredElicitationTests : IDisposable
                     var entry = call.ArgAt<McpAwaitingInput>(0);
                     var answers = call.ArgAt<IReadOnlyDictionary<string, ElicitResult>>(1);
                     Reissued.Add((entry, answers));
-                    if (CancelOnReissue)
+                    if (CancelOnReissue is { } cancel)
                     {
+                        await cancel.CancelAsync();
                         throw new OperationCanceledException(call.ArgAt<CancellationToken>(2));
                     }
 
@@ -201,6 +206,8 @@ public sealed class DeferredElicitationTests : IDisposable
         public required IReadOnlyList<AwaitingInputEntry> PendingInputs { get; init; }
         public required Model Model { get; init; }
         public required IDisposable Observation { get; init; }
+        public required List<AITool> Tools { get; init; }
+        public required IronHive.Agent.Invocation.ToolInvocationPipeline Pipeline { get; init; }
     }
 
     private async Task<Process> StartAsync(TimeSpan timeout, bool recorded, CancellationToken ct, bool deferEnabled = true)
@@ -241,7 +248,18 @@ public sealed class DeferredElicitationTests : IDisposable
             pending = await sessions.GetPendingAwaitingInputsAsync(session, ct);
         }
 
-        return new Process { Loop = loop, Recorder = recorder, Bridge = bridge, Plugins = plugins, Model = model, PendingInputs = pending, Observation = observation };
+        return new Process
+        {
+            Loop = loop,
+            Recorder = recorder,
+            Bridge = bridge,
+            Plugins = plugins,
+            Model = model,
+            PendingInputs = pending,
+            Observation = observation,
+            Tools = tools,
+            Pipeline = pipeline,
+        };
     }
 
     // The CLI's own wiring (RunCommand.RunServerModeAsync), over test I/O
@@ -265,8 +283,8 @@ public sealed class DeferredElicitationTests : IDisposable
 
         var runner = new AgentServerRunner(ProcessMessage, Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts, hitlBridge: p.Bridge)
         {
-            AwaitingInputTurn = (answer, token) => IronHive.Host.Session.AwaitingInputTurn
-                .RunAsync(p.Loop, answer, p.Bridge, p.Plugins.Manager, p.Recorder, cancellationToken: token)
+            AwaitingInputTurn = (answer, token) => IronHive.Cli.Commands.ReleasedCallWiring
+                .Turn(p.Loop, p.Bridge, p.Plugins.Manager, p.Recorder, TextWriter.Null)(answer, token)
                 .ToServerEvents(null, null, awaiting, token),
         };
 
@@ -353,6 +371,63 @@ public sealed class DeferredElicitationTests : IDisposable
 
         var restarted = await StartAsync(TimeSpan.FromMinutes(5), recorded: true, ct);
         restarted.PendingInputs.Should().BeEmpty("the answer settled the question");
+    }
+
+    // A deferred approval's call runs outside the model's loop: released there, it is still the model's call - awaiting, not
+    // finished, and answered under the call id the client knows
+    [Fact]
+    public async Task ADeferredApprovalsCall_ThatIsReleased_ReadsAwaitingInput_UnderTheModelsCallId()
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: false, ct);
+        var answers = new List<AwaitingInputAnswer>();
+        var events = new List<ServerEvent>();
+        using var attached = p.Bridge.Attach(
+            (evt, _) =>
+            {
+                lock (events)
+                {
+                    events.Add(evt);
+                }
+
+                return Task.CompletedTask;
+            },
+            null,
+            answers.Add);
+        var approval = new ApprovalWaitEntry
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            RequestId = "approval-1",
+            ToolUseId = "call-d",
+            Tool = "connect_account",
+            Arguments = JsonSerializer.SerializeToElement(new { what = "the bank" }),
+        };
+
+        var chunks = new List<AgentResponseChunk>();
+        await foreach (var chunk in IronHive.Host.Session.DeferredApprovalTurn.RunAsync(
+            p.Loop, new DeferredApproval(approval, new HitlResponseRequest(true, Id: "approval-1"), Expired: false),
+            p.Bridge, null, p.Tools, p.Pipeline, ct))
+        {
+            chunks.Add(chunk);
+        }
+
+        var result = chunks.First(c => c.ToolResult is not null).ToolResult!;
+        result.CallId.Should().Be("call-d");
+        result.Success.Should().BeFalse("the tool has not finished");
+        p.Bridge.IsAwaitingInput("call-d").Should().BeTrue("the released call is known by the model's call id");
+        var note = p.Model.Requests[^1].Last(m => m.Role == ChatRole.User).Text;
+        note.Should().Contain("It has not finished").And.NotContain("has now run");
+
+        ElicitationRequestEvent asked;
+        lock (events)
+        {
+            asked = events.OfType<ElicitationRequestEvent>().Should().ContainSingle("one question, under one id").Subject;
+        }
+
+        p.Bridge.ResolveElicitation(new ElicitationResponseRequest(ElicitationActions.Accept, asked.Id)).Should().BeTrue();
+        var answered = answers.Should().ContainSingle().Subject;
+        answered.Wait.RequestId.Should().Be(asked.Id);
+        answered.Wait.Entry.CallId.Should().Be("call-d");
     }
 
     [Fact]
@@ -937,13 +1012,12 @@ public sealed class DeferredElicitationTests : IDisposable
     {
         var ct = WithTimeout();
         var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: false, ct);
-        p.Plugins.CancelOnReissue = true;
+        using var cancelled = new CancellationTokenSource();
+        p.Plugins.CancelOnReissue = cancelled;
         var entry = new McpAwaitingInput(
             "conn", "connect_account", new Dictionary<string, object?> { ["what"] = "x" }, "s",
             new Dictionary<string, ElicitRequestParams> { ["r1"] = Question() }, "call-1");
         var wait = new AwaitingInputWait("req-1", DateTimeOffset.UtcNow, entry, "r1");
-        using var cancelled = new CancellationTokenSource();
-        await cancelled.CancelAsync();
 
         var chunks = new List<AgentResponseChunk>();
         await foreach (var chunk in IronHive.Host.Session.AwaitingInputTurn.RunAsync(
@@ -961,6 +1035,289 @@ public sealed class DeferredElicitationTests : IDisposable
         var told = history[^1];
         told.Role.Should().Be(ChatRole.User);
         told.Text.Should().StartWith("[Input outcome]").And.Contain("not confirmed");
+    }
+
+    // The wait is closed on record before the call is sent: whatever then happens to the turn, a restarted host must read what
+    // became of the call, not the placeholder's "has not run yet"
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AnOutcomeTheModelWasNotToldInItsOwnTurn_SurvivesARestart(bool cancelledMidSend)
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: true, ct);
+        using var turn = new CancellationTokenSource();
+        p.Plugins.CancelOnReissue = cancelledMidSend ? turn : null;
+        var entry = new McpAwaitingInput(
+            "conn", "connect_account", new Dictionary<string, object?> { ["what"] = "x" }, "s",
+            new Dictionary<string, ElicitRequestParams> { ["r1"] = Question() }, "call-1");
+        var wait = new AwaitingInputWait("req-1", DateTimeOffset.UtcNow, entry, "r1");
+
+        await foreach (var _ in IronHive.Host.Session.AwaitingInputTurn.RunAsync(
+            p.Loop, new AwaitingInputAnswer(wait, ElicitationActions.Accept, Expired: false), p.Bridge, p.Plugins.Manager,
+            p.Recorder, cancellationToken: turn.Token))
+        {
+            // A caller that stops reading at the call's result: the turn that tells the model never starts
+            break;
+        }
+
+        var expected = cancelledMidSend ? "not confirmed" : "connected (accept)";
+        (await p.Loop.GetHistoryAsync(ct)).Should().ContainSingle(m => m.Role == ChatRole.User && m.Text.StartsWith("[Input outcome]", StringComparison.Ordinal))
+            .Which.Text.Should().Contain(expected);
+
+        var sessions = new SessionManager(_dir);
+        var restored = await sessions.RestoreContextAsync(await sessions.OpenSessionAsync("worker-1", "/proj", "m", ct), ct);
+        restored.Should().ContainSingle(m => m.Role == ChatRole.User && m.Text.StartsWith("[Input outcome]", StringComparison.Ordinal))
+            .Which.Text.Should().Contain(expected);
+    }
+
+    [Fact]
+    public async Task OverHttp_ACancelDuringTheResend_StillDeliversTheCallsOutcomeAndEndsTheTurn()
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: false, ct);
+        var sending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        p.Plugins.Manager.ReissueAsync(Arg.Any<McpAwaitingInput>(), Arg.Any<IReadOnlyDictionary<string, ElicitResult>>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                sending.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, call.ArgAt<CancellationToken>(2));
+                return McpToolResult.Success("unreachable");
+            });
+        p.Bridge.RestoreAwaitingInput(new AwaitingInputWait("req-1", DateTimeOffset.UtcNow, BridgeRig.Entry("call-1"), "r1"));
+
+        var outcomeSeen = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var host = new ScriptedHost(
+            () => Task.FromResult(Send(new ElicitationResponseRequest(ElicitationActions.Accept, "req-1"))),
+            async () =>
+            {
+                await sending.Task.WaitAsync(ct);
+                return Send(new CancelRequest());
+            },
+            async () =>
+            {
+                await outcomeSeen.Task.WaitAsync(ct);
+                return Send(new ShutdownRequest());
+            });
+        host.Posted += posted =>
+        {
+            if (posted.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal))
+            {
+                outcomeSeen.TrySetResult();
+            }
+        };
+
+        using var runner = new AgentHttpRunner(
+            "http://agent-host.test", "s1", (_, _) => AsyncEnumerable.Empty<ServerEvent>(),
+            Substitute.For<ILogger<AgentHttpRunner>>(), httpHandler: host, hitlBridge: p.Bridge)
+        {
+            InitialReconnectDelay = TimeSpan.FromMilliseconds(1),
+            MaxReconnectDelay = TimeSpan.FromMilliseconds(5),
+            AwaitingInputTurn = (answer, token) => IronHive.Host.Session.AwaitingInputTurn
+                .RunAsync(p.Loop, answer, p.Bridge, p.Plugins.Manager, null, cancellationToken: token)
+                .ToServerEvents(null, null, p.Bridge.IsAwaitingInput, token),
+        };
+
+        await runner.RunAsync(ct);
+
+        var posted = host.Events.ToList();
+        var outcome = posted.FindIndex(e => e.Contains("\"type\":\"tool_end\"", StringComparison.Ordinal) && e.Contains("not confirmed", StringComparison.Ordinal));
+        outcome.Should().BeGreaterThanOrEqualTo(0, "the client hears what became of the call: {0}", string.Join(" | ", posted));
+        posted.Skip(outcome + 1).Should().Contain(e => e.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal));
+    }
+
+    /// <summary>An agent host whose inbox hands out one scripted request per connection; records every posted event.</summary>
+    private sealed class ScriptedHost(params Func<Task<string>>[] inbox) : HttpMessageHandler
+    {
+        private int _next;
+
+        public System.Collections.Concurrent.ConcurrentQueue<string> Events { get; } = new();
+
+        public event Action<string>? Posted;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Method == HttpMethod.Post)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+                Events.Enqueue(body);
+                Posted?.Invoke(body);
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            }
+
+            var index = Interlocked.Increment(ref _next) - 1;
+            if (index >= inbox.Length)
+            {
+                return new HttpResponseMessage(System.Net.HttpStatusCode.Gone);
+            }
+
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("data: " + await inbox[index]() + "\n\n", Encoding.UTF8, "text/event-stream"),
+            };
+        }
+    }
+
+    // The server is not there (not connected yet after a restart, or dropped): nothing can be sent, so the answer is not spent
+    [Fact]
+    public async Task AnAnswerThatArrivesWhileThePluginIsNotConnected_LeavesTheQuestionOpen_AndTheNextAnswerSendsTheCall()
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: true, ct);
+        var input = new LineInput();
+        var output = new LineOutput();
+        var run = Runner(p).RunAsync(input, output, ct);
+        var seen = new List<ServerEvent>();
+
+        input.Enqueue("""{"type":"user_message","content":"connect: the bank"}""");
+        var asked = await NextAsync<ElicitationRequestEvent>(output, seen, ct);
+        await NextAsync<TurnEndEvent>(output, seen, ct);
+        var requestsBefore = p.Model.Requests.Count;
+
+        p.Plugins.Connected = false;
+        var from = seen.Count;
+        input.Enqueue(Send(new ElicitationResponseRequest(ElicitationActions.Accept, asked.Id)));
+        await NextAsync<TurnEndEvent>(output, seen, ct);
+        // The question is published on its own task: it may arrive after the turn's end
+        if (!seen.Skip(from).OfType<ElicitationRequestEvent>().Any())
+        {
+            await NextAsync<ElicitationRequestEvent>(output, seen, ct);
+        }
+
+        var refused = seen.Skip(from).OfType<ToolEndEvent>().Should().ContainSingle().Subject;
+        refused.Refusal.Should().Be(ToolRefusalCodes.AwaitingInput);
+        refused.Output.Should().Contain("not connected");
+        seen.Skip(from).OfType<ElicitationRequestEvent>().Should().ContainSingle().Which.Id.Should().Be(asked.Id);
+        p.Plugins.Reissued.Should().BeEmpty();
+        p.Model.Requests.Count.Should().Be(requestsBefore, "nothing changed for the model");
+
+        p.Plugins.Connected = true;
+        input.Enqueue(Send(new ElicitationResponseRequest(ElicitationActions.Accept, asked.Id)));
+        var done = await NextAsync<ToolEndEvent>(output, seen, ct);
+        done.Success.Should().BeTrue();
+        await NextAsync<TurnEndEvent>(output, seen, ct);
+        input.Complete();
+        await run;
+
+        p.Plugins.Reissued.Should().ContainSingle();
+    }
+
+    // A session that stops runs its queued turns with a cancelled token: an answer queued there must still be waiting afterwards
+    [Fact]
+    public async Task ATurnThatStartsCancelled_DoesNotSpendTheAnswer()
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: true, ct);
+        var input = new LineInput();
+        var output = new LineOutput();
+        var run = Runner(p).RunAsync(input, output, ct);
+        var seen = new List<ServerEvent>();
+        input.Enqueue("""{"type":"user_message","content":"connect: the bank"}""");
+        var asked = await NextAsync<ElicitationRequestEvent>(output, seen, ct);
+        await NextAsync<TurnEndEvent>(output, seen, ct);
+        input.Complete();
+        await run;
+
+        var sessions = new SessionManager(_dir);
+        var session = await sessions.OpenSessionAsync("worker-1", "/proj", "m", ct);
+        var entry = (await sessions.GetPendingAwaitingInputsAsync(session, ct)).Should().ContainSingle().Subject;
+        using var stopped = new CancellationTokenSource();
+        await stopped.CancelAsync();
+
+        var act = async () =>
+        {
+            await foreach (var _ in IronHive.Host.Session.AwaitingInputTurn.RunAsync(
+                p.Loop, new AwaitingInputAnswer(AwaitingInputWait.FromTranscript(entry), ElicitationActions.Accept, Expired: false),
+                p.Bridge, p.Plugins.Manager, p.Recorder, cancellationToken: stopped.Token))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        p.Plugins.Reissued.Should().BeEmpty();
+        (await new SessionManager(_dir).GetPendingAwaitingInputsAsync(session, ct)).Should().ContainSingle("it still waits").Which.RequestId.Should().Be(asked.Id);
+        p.Bridge.IsAwaitingInput("call-1").Should().BeTrue("this process still takes its answer");
+    }
+
+    // The release cancels the question's wait before the manager reports it: an answer that lands in between is the answer
+    [Fact]
+    public async Task AnAnswerThatLandsOnAWaitBeingReleased_ReachesTheReleasedCall()
+    {
+        using var rig = new BridgeRig(defer: true);
+        using var other = new HitlBridge(TimeSpan.FromMinutes(5)) { ElicitationDeferAfter = ReleaseAfter };
+        var manager = Substitute.For<IMcpPluginManager>();
+        var published = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answers = new List<AwaitingInputAnswer>();
+        string? id = null;
+        using var attached = other.Attach(
+            (evt, _) =>
+            {
+                id = ((ElicitationRequestEvent)evt).Id;
+                return published.Task;
+            },
+            null,
+            answers.Add);
+        using var observed = other.Observe(manager);
+        using var release = new CancellationTokenSource();
+        // The handler is still publishing when the release comes: its wait is cancelled and not yet taken down
+        var asking = other.ElicitAsync("conn", new McpCallInfo("connect_account", "call-r"), Question(), release.Token).AsTask();
+        await release.CancelAsync();
+
+        other.ResolveElicitation(new ElicitationResponseRequest(ElicitationActions.Accept, id!)).Should().BeTrue();
+
+        published.SetResult();
+        await asking.Invoking(t => t).Should().ThrowAsync<OperationCanceledException>();
+        manager.CallAwaitingInput += Raise.EventWith(manager, new McpAwaitingInputEventArgs(BridgeRig.Entry("call-r")));
+        answers.Should().ContainSingle().Which.Wait.RequestId.Should().Be(id);
+    }
+
+    // Asked while the server ran several calls, the question names none of them; the call released later is still that one
+    [Fact]
+    public async Task AQuestionAskedWithSeveralCallsInFlight_KeepsItsIdWhenItsCallIsReleased()
+    {
+        using var rig = new BridgeRig(defer: true);
+        using var release = new CancellationTokenSource();
+        var asking = rig.Bridge.ElicitAsync("conn", null, Question(), release.Token).AsTask();
+        var id = rig.RequestId();
+        await release.CancelAsync();
+        await asking.Invoking(t => t).Should().ThrowAsync<OperationCanceledException>();
+
+        rig.Report(BridgeRig.Entry("call-m"));
+
+        rig.Requests().Should().Be(1, "the client is not asked a second time under a new id");
+        rig.Bridge.ResolveElicitation(new ElicitationResponseRequest(ElicitationActions.Accept, id)).Should().BeTrue();
+        rig.Answers.Should().ContainSingle().Which.Wait.RequestId.Should().Be(id);
+    }
+
+    // The server mode's own wiring: a delay that could never release is refused instead of half turning the feature on
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ADelayThatIsNotPositive_IsRefusedBeforeAnythingIsWired(int seconds)
+    {
+        using var bridge = new HitlBridge(TimeSpan.FromMinutes(5));
+        var plugins = Substitute.For<IMcpPluginManager>();
+
+        var act = () => IronHive.Cli.Commands.ReleasedCallWiring.Observe(bridge, plugins, seconds);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*must be positive*");
+        bridge.ElicitationDeferAfter.Should().BeNull();
+    }
+
+    [Fact]
+    public void TheDelayTurnsReleasingOn_AndLeftUnsetWiresNothing()
+    {
+        using var bridge = new HitlBridge(TimeSpan.FromMinutes(5));
+        var plugins = Substitute.For<IMcpPluginManager>();
+
+        IronHive.Cli.Commands.ReleasedCallWiring.Observe(bridge, plugins, null).Should().BeNull();
+        bridge.ElicitationDeferAfter.Should().BeNull();
+
+        using var observed = IronHive.Cli.Commands.ReleasedCallWiring.Observe(bridge, plugins, 30);
+        observed.Should().NotBeNull();
+        bridge.ElicitationDeferAfter.Should().Be(TimeSpan.FromSeconds(30));
+        plugins.Received(1).CallAwaitingInput += Arg.Any<EventHandler<McpAwaitingInputEventArgs>>();
     }
 
     [Fact]

@@ -357,19 +357,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         // Before the plugins connect (the loop factory below connects them: the plugin manager reads the handler's DeferAfter
         // then): with mcp.elicitation.deferAfterSeconds a tool call that holds its turn too long while the client answers a
         // server's question is released, and the bridge keeps the question open for its answer
-        IDisposable? releasedCalls = null;
-        if (_hitlBridge is not null && _pluginManager is not null && _config?.Mcp.Elicitation.DeferAfterSeconds is { } deferSeconds)
-        {
-            if (deferSeconds < 0)
-            {
-                throw new InvalidOperationException("mcp.elicitation.deferAfterSeconds must not be negative; leave it unset to keep a call in its turn.");
-            }
-
-            _hitlBridge.ElicitationDeferAfter = TimeSpan.FromSeconds(deferSeconds);
-            releasedCalls = _hitlBridge.Observe(_pluginManager);
-        }
-
-        using var releasedCallsSubscription = releasedCalls;
+        using var releasedCalls = ReleasedCallWiring.Observe(_hitlBridge, _pluginManager, _config?.Mcp.Elicitation.DeferAfterSeconds);
 
         // Before the loop is built: a server that is not ready at start fails inside that call, and the engine may run for days.
         if (_pluginManager is not null)
@@ -483,34 +471,14 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // mcp.elicitation.deferAfterSeconds unset no call is released and this is never called
                 if (_pluginManager is { } manager)
                 {
-                    runner.AwaitingInputTurn = (answer, token) => AwaitingInputTurn
-                        .RunAsync(
-                            agentLoop, answer, hitl, manager, recorder,
-                            ex => Console.Error.WriteLine($"awaiting input: the released call was not sent again ({ex.GetType().Name}: {ex.Message})"),
-                            token)
+                    var releasedCallTurn = ReleasedCallWiring.Turn(agentLoop, hitl, manager, recorder, Console.Error);
+                    runner.AwaitingInputTurn = (answer, token) => releasedCallTurn(answer, token)
                         .ToServerEvents(pricing, executionLog, awaitingInput, token);
                 }
             }
             if (pendingInputs.Count > 0 && _hitlBridge is { } inputBridge)
             {
-                // Released calls hold no turn: their questions are sent again and wait for the answer
-                foreach (var entry in pendingInputs)
-                {
-                    if (!AwaitingInputWait.TryFromTranscript(entry, out var wait))
-                    {
-                        // An entry this host cannot read (a newer or damaged one) must not keep the session from starting: it is
-                        // closed, and the person is not asked about a call that cannot be sent again
-                        await Console.Error.WriteLineAsync($"awaiting input: the logged call {entry.ToolUseId} cannot be read and is closed");
-                        if (recorder is not null)
-                        {
-                            await ((IAwaitingInputLog)recorder).SettledAsync(entry.RequestId, ct);
-                        }
-
-                        continue;
-                    }
-
-                    inputBridge.RestoreAwaitingInput(wait!);
-                }
+                await ReleasedCallWiring.RestoreAsync(inputBridge, recorder, pendingInputs, Console.Error, ct);
             }
             if (pending.Count > 0 && recorder is not null && _hitlBridge is not null)
             {
