@@ -56,7 +56,7 @@ public static class AgentResponseMapper
         TokenMeter.ModelInfo? pricing,
         IExecutionLogger? logger,
         Func<string?, bool>? awaitingInput,
-        [EnumeratorCancellation] CancellationToken ct = default)
+        [EnumeratorCancellation] CancellationToken ct)
     {
         long inputTokens = 0;
         long outputTokens = 0;

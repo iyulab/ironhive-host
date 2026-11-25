@@ -768,7 +768,7 @@ arrive meanwhile queue behind it); the answer runs the call through the session'
 and tool as in a live turn — and the model finishes the turn. The timeout counts from when the request was first sent:
 a wait older than `approval.timeoutSeconds` resumes as a denial without asking. A host of your own gets the same with
 `hitlBridge.WaitLog = recorder` (a `SessionTurnRecorder`), `ISessionManager.GetPendingApprovalsAsync` at start, and
-`runner.ResumeTurn = token => SuspendedTurnResumer.ResumeAsync(loop, pending, hitlBridge, recorder, tools, pipeline, token).ToServerEvents(ct: token)` — on `AgentServerRunner` or `AgentHttpRunner`; it runs once.
+`runner.ResumeTurn = token => SuspendedTurnResumer.ResumeAsync(loop, pending, hitlBridge, recorder, tools, pipeline, token).ToServerEvents(null, null, hitlBridge.IsAwaitingInput, token)` — on `AgentServerRunner` or `AgentHttpRunner`; it runs once.
 
 **A wait need not hold the session.** With `approval.deferAfterSeconds` set (unset by default — the request waits in its
 turn), a request not answered within that time is deferred: the call does not run, its `tool_end` arrives with
@@ -780,13 +780,13 @@ outcome, and the model gets a message telling it what became of the call and goe
 how long a person may take (hours) and `deferAfterSeconds` to how long a client should wait inline (seconds). With a
 recorded session a deferred request survives a restart: the next process sends it again with the same `id` and it holds no
 turn. A host of your own gets the same with `new HitlBridge(timeout, deferAfter: …)` and
-`runner.DeferredAnswerTurn = (answer, token) => DeferredApprovalTurn.RunAsync(loop, answer, hitlBridge, recorder, tools, pipeline, token).ToServerEvents(ct: token)`,
+`runner.DeferredAnswerTurn = (answer, token) => DeferredApprovalTurn.RunAsync(loop, answer, hitlBridge, recorder, tools, pipeline, token).ToServerEvents(null, null, hitlBridge.IsAwaitingInput, token)`,
 and at start `hitlBridge.RestoreDeferred(wait)` for each pending wait with `Deferred` set (the others go to `ResumeTurn`).
 
 **A question need not hold the session.** (`run --server` only; the interactive CLI and one-shot `run` ignore the option. Turn it on
 only with a client that handles an `elicitation_request` that outlives the `turn_end` of the turn that raised it, and a second
 `tool_end` for a `CallId` it has already seen; a client that does not would show the call as failed and the question as stuck.
-The host half needs the agent runtime that carries `IMcpElicitationHandler.DeferAfter` and `IMcpPluginManager.ReissueAsync`.)
+It needs IronHive.Agent 0.84.0 or later.)
 An MCP server that needs a person before a call can finish (an approval link, a first-use
 sign-in) holds the call - and its turn - until the `elicitation_response` arrives. With `mcp.elicitation.deferAfterSeconds` set
 (unset by default - the call waits in its turn), a call that has waited that long for the answer is released: its `tool_end`
@@ -798,10 +798,16 @@ state, so a refusal of a state it no longer honours is that outcome - and the mo
 call. A server that asks again ends the call as awaiting again, with a new `elicitation_request` and no message to the model. The
 question expires `approval.timeoutSeconds` after it was first sent (set that to how long a person may take; a
 `deferAfterSeconds` at or above it never releases, because the wait ends at that limit first); an expired call is
-not sent again, its second `tool_end` carries `Refusal: timed_out`, and the model is told. Only a call that is the only one in flight on its server is released, and a question the
+not sent again, its second `tool_end` carries `Refusal: timed_out`, and the model is told. An answer that cannot be used is not
+spent: while the call's plugin is not connected (not yet connected after a restart, or dropped), the second `tool_end` carries
+`Refusal: awaiting_input` with the reason and the same `elicitation_request` is sent again under the same `Id` — answer it again
+once the plugin is back. Before the call is sent again the permission rules are asked once more (nobody is asked to approve it
+again); a call they now deny is not sent and its `tool_end` carries `Refusal: denied`. If the process stops while the call is
+being sent, the restored conversation still reads that the call has not run, and whether the server received it is not known.
+`deferAfterSeconds` must be positive. Only a call that is the only one in flight on its server is released, and a question the
 server asks on its own is never. With a recorded session a released call survives a restart: the next process sends the question
 again with the same `Id`. A host of your own sets `hitlBridge.ElicitationDeferAfter` before the plugins connect, calls
-`hitlBridge.Observe(pluginManager)`, sets `runner.AwaitingInputTurn = (answer, token) => AwaitingInputTurn.RunAsync(loop, answer, hitlBridge, pluginManager, recorder, token).ToServerEvents(null, null, hitlBridge.IsAwaitingInput, token)`,
+`hitlBridge.Observe(pluginManager)`, sets `runner.AwaitingInputTurn = (answer, token) => AwaitingInputTurn.RunAsync(loop, answer, hitlBridge, pluginManager, recorder, policy: toolCallPolicy, cancellationToken: token).ToServerEvents(null, null, hitlBridge.IsAwaitingInput, token)`,
 and at start `hitlBridge.RestoreAwaitingInput(AwaitingInputWait.FromTranscript(entry))` for each
 `ISessionManager.GetPendingAwaitingInputsAsync` entry.
 

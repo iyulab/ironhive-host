@@ -16,6 +16,8 @@ namespace IronHive.Host.Session;
 /// own state), the outcome is relayed as the call's result (a second <c>tool_end</c> for the same call id), and the model is
 /// told the outcome in a message and goes on from there. A server that asks again ends the call as awaiting again: the
 /// question is sent to the client under a new id and no message goes to the model. An expired wait is not sent again.
+/// An answer that cannot be sent - the plugin is not connected, or the turn starts cancelled - is not used: the call keeps
+/// waiting under the same id (<c>tool_end</c> reads <c>awaiting_input</c> and says why, and the question is sent again).
 /// </summary>
 /// <remarks>
 /// <para>
