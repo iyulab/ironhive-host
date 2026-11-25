@@ -111,10 +111,12 @@ public class SkillsAndPermissionWiringTests : IDisposable
     }
 
     [Fact]
-    public async Task PermissionsWithoutAWorkingDirectory_AreNotJudged()
+    public async Task PermissionsWithoutAWorkingDirectory_BuildTheLoop_ForToolsThatWorkInTheProcessDirectory()
     {
+        // Rules with no directory of their own judge against the process's, so tools that work there agree with them
         var created = await Factory(permissions: PermissionConfig.CreateDefault()).CreateWithPipelineAsync(
-            new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = _dir }, TestContext.Current.CancellationToken);
+            new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = Directory.GetCurrentDirectory() },
+            TestContext.Current.CancellationToken);
 
         created.Loop.Should().NotBeNull();
     }
