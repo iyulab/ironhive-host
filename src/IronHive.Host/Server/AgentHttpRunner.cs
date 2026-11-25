@@ -453,12 +453,19 @@ public sealed partial class AgentHttpRunner : IDisposable
         {
             await foreach (var evt in turn(ct))
             {
-                await PostEventAsync(evt, deliverToolEnds && evt is ToolEndEvent ? CancellationToken.None : ct);
-
-                // Set once posted: a post the cancel interrupted leaves the fallback below to end the turn
                 if (evt is TurnEndEvent)
                 {
+                    // A cancel that arrives during this post must neither lose the end nor have it sent twice
                     turnEndSent = true;
+                    await PostDeliveryAsync(evt);
+                }
+                else if (deliverToolEnds && evt is ToolEndEvent)
+                {
+                    await PostDeliveryAsync(evt);
+                }
+                else
+                {
+                    await PostEventAsync(evt, ct);
                 }
             }
         }
@@ -484,8 +491,25 @@ public sealed partial class AgentHttpRunner : IDisposable
                 var stopReason = failed || !ct.IsCancellationRequested ? null
                     : _suspending ? StopReasons.Suspended
                     : StopReasons.Cancelled;
-                await PostEventAsync(new TurnEndEvent { StopReason = stopReason }, CancellationToken.None);
+                await PostDeliveryAsync(new TurnEndEvent { StopReason = stopReason });
             }
+        }
+    }
+
+    // How long a post that no cancel may interrupt waits for the host: a stalled host must not hold the turn for ever
+    internal TimeSpan DeliveryTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
+    private async Task PostDeliveryAsync(ServerEvent evt)
+    {
+        using var limit = new CancellationTokenSource(DeliveryTimeout);
+        try
+        {
+            await PostEventAsync(evt, limit.Token);
+        }
+        catch (OperationCanceledException) when (limit.IsCancellationRequested)
+        {
+            await Console.Error.WriteLineAsync(
+                $"[AgentHttpRunner] Failed to post event: the host did not answer within {DeliveryTimeout.TotalSeconds:0.###} s");
         }
     }
 

@@ -1126,6 +1126,202 @@ public sealed class DeferredElicitationTests : IDisposable
         posted.Skip(outcome + 1).Should().Contain(e => e.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal));
     }
 
+    // The client can answer while the question is still being published; a release that then cuts the publish must not lose it
+    [Fact]
+    public async Task AnAnswerTakenWhileTheQuestionIsStillBeingPublished_ReachesTheReleasedCall()
+    {
+        using var bridge = new HitlBridge(TimeSpan.FromMinutes(5)) { ElicitationDeferAfter = ReleaseAfter };
+        var manager = Substitute.For<IMcpPluginManager>();
+        var answers = new List<AwaitingInputAnswer>();
+        string? id = null;
+        using var attached = bridge.Attach(
+            async (evt, token) =>
+            {
+                id = ((ElicitationRequestEvent)evt).Id;
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            },
+            null,
+            answers.Add);
+        using var observed = bridge.Observe(manager);
+        using var release = new CancellationTokenSource();
+        var asking = bridge.ElicitAsync("conn", new McpCallInfo("connect_account", "call-p"), Question(), release.Token).AsTask();
+
+        bridge.ResolveElicitation(new ElicitationResponseRequest(ElicitationActions.Accept, id!)).Should().BeTrue();
+        await release.CancelAsync();
+        await asking.Invoking(t => t).Should().ThrowAsync<OperationCanceledException>();
+        manager.CallAwaitingInput += Raise.EventWith(manager, new McpAwaitingInputEventArgs(BridgeRig.Entry("call-p")));
+
+        var answer = answers.Should().ContainSingle("the client was told its answer was taken").Subject;
+        answer.Wait.RequestId.Should().Be(id);
+        answer.Action.Should().Be(ElicitationActions.Accept);
+        answer.Expired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnExpiryInATurnThatStartsCancelled_IsStillReported()
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: false, ct);
+        var wait = new AwaitingInputWait("req-1", DateTimeOffset.UtcNow, BridgeRig.Entry("call-1"), "r1");
+        using var stopped = new CancellationTokenSource();
+        await stopped.CancelAsync();
+
+        var chunks = new List<AgentResponseChunk>();
+        await foreach (var chunk in IronHive.Host.Session.AwaitingInputTurn.RunAsync(
+            p.Loop, new AwaitingInputAnswer(wait, ElicitationActions.Cancel, Expired: true), p.Bridge, p.Plugins.Manager, null,
+            cancellationToken: stopped.Token))
+        {
+            chunks.Add(chunk);
+        }
+
+        chunks.Should().ContainSingle().Which.ToolResult!.RefusalKind.Should().Be(ToolCallRefusalKind.TimedOut);
+        var told = (await p.Loop.GetHistoryAsync(ct))[^1];
+        told.Text.Should().StartWith("[Input outcome]").And.Contain("No answer came in time");
+        p.Plugins.Reissued.Should().BeEmpty();
+        p.Model.Requests.Should().BeEmpty("no model call runs under a cancelled token");
+    }
+
+    // The note that records the outcome cannot always be written (the file is being read, the disk refuses): the client hears
+    // the outcome either way
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ATranscriptThatCannotBeWritten_DoesNotKeepTheOutcomeFromTheClient(bool passing)
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: true, ct);
+        string? transcript = null;
+        p.Plugins.Manager.ReissueAsync(Arg.Any<McpAwaitingInput>(), Arg.Any<IReadOnlyDictionary<string, ElicitResult>>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                transcript = Directory.GetFiles(_dir, "*.jsonl", SearchOption.AllDirectories).Should().ContainSingle().Subject;
+                File.SetAttributes(transcript, FileAttributes.ReadOnly);
+                return Task.FromResult(McpToolResult.Success("connected the bank"));
+            });
+        var wait = new AwaitingInputWait("req-1", DateTimeOffset.UtcNow, BridgeRig.Entry("call-1"), "r1");
+        var chunks = new List<AgentResponseChunk>();
+        try
+        {
+            var run = async () =>
+            {
+                await foreach (var chunk in IronHive.Host.Session.AwaitingInputTurn.RunAsync(
+                    p.Loop, new AwaitingInputAnswer(wait, ElicitationActions.Accept, Expired: false), p.Bridge, p.Plugins.Manager,
+                    p.Recorder, cancellationToken: ct))
+                {
+                    chunks.Add(chunk);
+                    if (passing && chunks.Count == 1)
+                    {
+                        File.SetAttributes(transcript!, FileAttributes.Normal);
+                    }
+                }
+            };
+
+            if (passing)
+            {
+                await run();
+                (await File.ReadAllTextAsync(transcript!, ct)).Should().Contain("[Input outcome]", "the second try recorded it");
+            }
+            else
+            {
+                await run.Should().ThrowAsync<UnauthorizedAccessException>("a record that cannot be written is not silent");
+            }
+        }
+        finally
+        {
+            if (transcript is not null)
+            {
+                File.SetAttributes(transcript, FileAttributes.Normal);
+            }
+        }
+
+        chunks[0].ToolResult!.Result.Should().Contain("connected the bank");
+        (await p.Loop.GetHistoryAsync(ct)).Should().Contain(m => m.Text.StartsWith("[Input outcome]", StringComparison.Ordinal));
+    }
+
+    // A cancel that arrives while the turn's end is being posted: the host already has it, so it must not get a second one
+    [Fact]
+    public async Task OverHttp_ACancelDuringTheTurnEndPost_DoesNotEndTheTurnTwice()
+    {
+        var ct = WithTimeout();
+        var posting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var host = new ScriptedHost(
+            () => Task.FromResult(Send(new UserMessageRequest("hello"))),
+            async () =>
+            {
+                await posting.Task.WaitAsync(ct);
+                return Send(new CancelRequest());
+            },
+            () =>
+            {
+                answered.TrySetResult();
+                return Task.FromResult(Send(new ShutdownRequest()));
+            })
+        {
+            Answering = (body, token) =>
+            {
+                if (!body.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal))
+                {
+                    return Task.CompletedTask;
+                }
+
+                posting.TrySetResult();
+                return answered.Task.WaitAsync(token);
+            },
+        };
+        using var runner = new AgentHttpRunner(
+            "http://agent-host.test", "s1", (_, _) => new ServerEvent[] { new TurnEndEvent() }.ToAsyncEnumerable(),
+            Substitute.For<ILogger<AgentHttpRunner>>(), httpHandler: host)
+        {
+            InitialReconnectDelay = TimeSpan.FromMilliseconds(1),
+            MaxReconnectDelay = TimeSpan.FromMilliseconds(5),
+        };
+
+        await runner.RunAsync(ct);
+
+        host.Events.Where(e => e.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal)).Should().ContainSingle();
+    }
+
+    // The end of a turn is not posted under the turn's token, so the post has its own limit: a host that never answers it
+    // must not keep the runner from stopping
+    [Fact]
+    public async Task OverHttp_AHostThatNeverAnswersTheTurnEndPost_DoesNotHoldTheRunner()
+    {
+        var ct = WithTimeout();
+        var posting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var host = new ScriptedHost(
+            () => Task.FromResult(Send(new UserMessageRequest("hello"))),
+            async () =>
+            {
+                await posting.Task.WaitAsync(ct);
+                return Send(new ShutdownRequest());
+            })
+        {
+            Answering = (body, token) =>
+            {
+                if (!body.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal))
+                {
+                    return Task.CompletedTask;
+                }
+
+                posting.TrySetResult();
+                return Task.Delay(Timeout.InfiniteTimeSpan, token);
+            },
+        };
+        using var runner = new AgentHttpRunner(
+            "http://agent-host.test", "s1", (_, _) => new ServerEvent[] { new TurnEndEvent() }.ToAsyncEnumerable(),
+            Substitute.For<ILogger<AgentHttpRunner>>(), httpHandler: host)
+        {
+            InitialReconnectDelay = TimeSpan.FromMilliseconds(1),
+            MaxReconnectDelay = TimeSpan.FromMilliseconds(5),
+            DeliveryTimeout = TimeSpan.FromMilliseconds(200),
+        };
+
+        await runner.RunAsync(ct).WaitAsync(TimeSpan.FromSeconds(20), ct);
+
+        host.Events.Where(e => e.Contains("\"type\":\"turn_end\"", StringComparison.Ordinal)).Should().ContainSingle();
+    }
+
     /// <summary>An agent host whose inbox hands out one scripted request per connection; records every posted event.</summary>
     private sealed class ScriptedHost(params Func<Task<string>>[] inbox) : HttpMessageHandler
     {
@@ -1135,6 +1331,9 @@ public sealed class DeferredElicitationTests : IDisposable
 
         public event Action<string>? Posted;
 
+        /// <summary>What the host does with a posted event before it answers the post; it has the event by then.</summary>
+        public Func<string, CancellationToken, Task>? Answering { get; init; }
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request.Method == HttpMethod.Post)
@@ -1143,6 +1342,11 @@ public sealed class DeferredElicitationTests : IDisposable
                 var body = await request.Content!.ReadAsStringAsync(cancellationToken);
                 Events.Enqueue(body);
                 Posted?.Invoke(body);
+                if (Answering is { } answering)
+                {
+                    await answering(body, cancellationToken);
+                }
+
                 return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
             }
 

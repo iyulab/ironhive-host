@@ -375,6 +375,16 @@ public sealed partial class HitlBridge : IHumanApprovalService, IMcpElicitationH
             // client until the plugin manager says which call it held up (CallAwaitingInput); when it never does (the turn
             // ended instead) the record is dropped after a short grace, so a late answer is not parked for ever.
             released = true;
+
+            // An answer can be taken while the question is still being published: this handler will not return it, so it goes
+            // to the released call
+            if (waiter.Task.IsCompletedSuccessfully)
+            {
+                var taken = waiter.Task.Result;
+                var content = taken.Content is null ? null : new Dictionary<string, JsonElement>(taken.Content);
+                ResolveAwaitingInput(id, new ElicitationResponseRequest(taken.Action, id) { Content = content }, out _);
+            }
+
             ReleaseUnclaimedSent(id);
             throw;
         }
