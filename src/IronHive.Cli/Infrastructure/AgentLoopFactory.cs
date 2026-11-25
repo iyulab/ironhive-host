@@ -141,9 +141,10 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
     // The permission rules judge a directory tool by the folder it is pointed at, so a Read rule says nothing about what lies
     // under a search from the working directory. The rules' own verdicts become the tools' read rules: what they refuse for
-    // ReadFile is not listed or searched, and a search returns no line of a file ReadFile would ask a person about. That second
-    // part relies on the search having passed the approval gate, which every loop built here has. Read rules the host passed
-    // itself are the ones in force.
+    // ReadFile is not listed or searched, and a search returns no line of a file ReadFile would ask a person about, unless the
+    // search itself was asked about on the same terms. That exception relies on the search having passed the approval gate:
+    // the host's DI setup gives every loop one, while a caller that builds this factory over an ungated client factory does
+    // not get the question. Read rules the host passed itself are the ones in force.
     private static FileToolOptions? WithReadRulesFromPermissions(FileToolOptions? options, PermissionConfig? permissions)
     {
         if (permissions is null || options?.ReadRules is not null)

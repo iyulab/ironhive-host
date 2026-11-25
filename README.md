@@ -322,7 +322,7 @@ permissions:
       action: allow
 ```
 
-The `read` rules also decide what the directory tools show: a folder they deny (`read: .config-folder/** deny`) is left out of what `ListDirectory`, `GlobFiles` and `GrepFiles` list, match and search, not only refused for `ReadFile`. A file the rules would ask about stays listed, but a search does not return its lines; it names the file so the model can ask for it with `ReadFile`. These rules govern the file tools only - a shell command reads whatever the process can.
+The `read` rules also decide what the directory tools show: a folder they deny (`read: .config-folder/** deny`) is left out of what `ListDirectory`, `GlobFiles` and `GrepFiles` list, match and search, not only refused for `ReadFile`. A file the rules would ask about stays listed, but a search does not return its lines unless the search itself was asked about on the same terms (the same rule, or an outside folder no rule covers); it names up to five such files and counts the rest, so the model can ask for one with `ReadFile`. These rules govern the file tools only - a shell command reads whatever the process can.
 
 ### Model Configuration
 
