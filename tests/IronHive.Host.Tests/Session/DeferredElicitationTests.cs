@@ -284,7 +284,7 @@ public sealed class DeferredElicitationTests : IDisposable
         var runner = new AgentServerRunner(ProcessMessage, Substitute.For<ILogger<AgentServerRunner>>(), JsonOpts, hitlBridge: p.Bridge)
         {
             AwaitingInputTurn = (answer, token) => IronHive.Cli.Commands.ReleasedCallWiring
-                .Turn(p.Loop, p.Bridge, p.Plugins.Manager, p.Recorder, TextWriter.Null)(answer, token)
+                .Turn(p.Loop, p.Bridge, p.Plugins.Manager, p.Recorder, policy: null, TextWriter.Null)(answer, token)
                 .ToServerEvents(null, null, awaiting, token),
         };
 
@@ -1021,7 +1021,7 @@ public sealed class DeferredElicitationTests : IDisposable
 
         var chunks = new List<AgentResponseChunk>();
         await foreach (var chunk in IronHive.Host.Session.AwaitingInputTurn.RunAsync(
-            p.Loop, new AwaitingInputAnswer(wait, ElicitationActions.Accept, Expired: false), p.Bridge, p.Plugins.Manager, null, null, cancelled.Token))
+            p.Loop, new AwaitingInputAnswer(wait, ElicitationActions.Accept, Expired: false), p.Bridge, p.Plugins.Manager, null, cancellationToken: cancelled.Token))
         {
             chunks.Add(chunk);
         }
@@ -1288,6 +1288,37 @@ public sealed class DeferredElicitationTests : IDisposable
         rig.Requests().Should().Be(1, "the client is not asked a second time under a new id");
         rig.Bridge.ResolveElicitation(new ElicitationResponseRequest(ElicitationActions.Accept, id)).Should().BeTrue();
         rig.Answers.Should().ContainSingle().Which.Wait.RequestId.Should().Be(id);
+    }
+
+    // The rules a restarted host reads may no longer allow the call: an answer does not carry it past a denial
+    [Theory]
+    [InlineData(ElicitationActions.Accept)]
+    [InlineData(ElicitationActions.Decline)]
+    public async Task ACallTheRulesNowDeny_IsNotSentAgain_AndTheClientAndModelAreTold(string action)
+    {
+        var ct = WithTimeout();
+        var p = await StartAsync(TimeSpan.FromMinutes(5), recorded: false, ct);
+        var policy = Substitute.For<IToolCallPolicy>();
+        policy.Evaluate("connect_account", Arg.Is<IDictionary<string, object?>?>(a => a != null && Equals(a["what"], "x")))
+            .Returns(new RiskAssessment { Verdict = IronHive.Agent.Permissions.PermissionAction.Deny });
+        var entry = new McpAwaitingInput(
+            "conn", "connect_account", new Dictionary<string, object?> { ["what"] = "x" }, "s",
+            new Dictionary<string, ElicitRequestParams> { ["r1"] = Question() }, "call-1");
+        var wait = new AwaitingInputWait("req-1", DateTimeOffset.UtcNow, entry, "r1");
+
+        var events = new List<ServerEvent>();
+        await foreach (var evt in IronHive.Cli.Commands.ReleasedCallWiring
+            .Turn(p.Loop, p.Bridge, p.Plugins.Manager, null, policy, TextWriter.Null)(new AwaitingInputAnswer(wait, action, Expired: false), ct)
+            .ToServerEvents(null, null, p.Bridge.IsAwaitingInput, ct))
+        {
+            events.Add(evt);
+        }
+
+        p.Plugins.Reissued.Should().BeEmpty();
+        var refused = events.OfType<ToolEndEvent>().Should().ContainSingle().Subject;
+        refused.Success.Should().BeFalse();
+        refused.Refusal.Should().Be(ToolRefusalCodes.Denied);
+        p.Model.Requests[^1].Last(m => m.Role == ChatRole.User).Text.Should().Contain("now deny this call");
     }
 
     // The server mode's own wiring: a delay that could never release is refused instead of half turning the feature on

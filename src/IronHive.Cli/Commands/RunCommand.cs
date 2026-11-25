@@ -27,6 +27,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
     private readonly IronHiveConfig? _config;
     private readonly ISessionManager? _sessionManager;
     private readonly IErrorRecoveryService? _errorRecovery;
+    private readonly IronHive.Agent.Mode.IToolCallPolicy? _toolCallPolicy;
 
     public RunCommand(
         IHostAgentLoopFactory factory,
@@ -34,8 +35,10 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
         HitlBridge? hitlBridge = null,
         IronHiveConfig? config = null,
         ISessionManager? sessionManager = null,
-        IErrorRecoveryService? errorRecovery = null)
+        IErrorRecoveryService? errorRecovery = null,
+        IronHive.Agent.Mode.IToolCallPolicy? toolCallPolicy = null)
     {
+        _toolCallPolicy = toolCallPolicy;
         _factory = factory;
         _pluginManager = pluginManager;
         _hitlBridge = hitlBridge;
@@ -471,7 +474,7 @@ public class RunCommand : AsyncCommand<RunCommand.Settings>
                 // mcp.elicitation.deferAfterSeconds unset no call is released and this is never called
                 if (_pluginManager is { } manager)
                 {
-                    var releasedCallTurn = ReleasedCallWiring.Turn(agentLoop, hitl, manager, recorder, Console.Error);
+                    var releasedCallTurn = ReleasedCallWiring.Turn(agentLoop, hitl, manager, recorder, _toolCallPolicy, Console.Error);
                     runner.AwaitingInputTurn = (answer, token) => releasedCallTurn(answer, token)
                         .ToServerEvents(pricing, executionLog, awaitingInput, token);
                 }

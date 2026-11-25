@@ -3,6 +3,7 @@ using System.Text.Json;
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
 using IronHive.Agent.Mode;
+using IronHive.Agent.Permissions;
 using IronHive.Host.Server;
 using Microsoft.Extensions.AI;
 
@@ -19,7 +20,9 @@ namespace IronHive.Host.Session;
 /// <remarks>
 /// <para>
 /// The call is the one the first send already ran through the tool pipeline (permission gate, loop guards): sending it again
-/// with the person's answer is the same call continuing, so the pipeline does not run a second time.
+/// with the person's answer is the same call continuing, so the pipeline does not run a second time and nobody is asked to
+/// approve it again. The rules can have changed since (a restarted host reads its configuration again), so a policy that now
+/// denies the call keeps it from being sent.
 /// </para>
 /// <para>
 /// <b>At most once, as for deferred approvals:</b> the wait is settled before the call is sent, so a process that stops between
@@ -34,6 +37,7 @@ public static class AwaitingInputTurn
 
     private const string ExpiredText = "No answer came in time, so the call did not finish.";
     private const string SendFailedText = "The call could not be sent again.";
+    private const string DeniedText = "The permission rules now deny this call, so it was not sent again.";
     private const string CancelledText = "The turn was cancelled while the call was being sent again; it is not confirmed whether the server received it.";
 
     /// <summary>
@@ -47,6 +51,7 @@ public static class AwaitingInputTurn
     /// like any other.</param>
     /// <param name="onSendFailure">Hears the exception of a call that could not be sent again (its text is not shown to the model
     /// or the client); null drops it.</param>
+    /// <param name="policy">The session's permission policy: a call it now denies is not sent again; null checks nothing.</param>
     /// <param name="cancellationToken">Cancels the turn.</param>
     public static async IAsyncEnumerable<AgentResponseChunk> RunAsync(
         IAgentLoop loop,
@@ -55,6 +60,7 @@ public static class AwaitingInputTurn
         IMcpPluginManager manager,
         SessionTurnRecorder? recorder,
         Action<Exception>? onSendFailure = null,
+        IToolCallPolicy? policy = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(loop);
@@ -117,10 +123,17 @@ public static class AwaitingInputTurn
         bool isError;
         var awaitingAgain = false;
         var cancelled = false;
+        var denied = false;
         if (answer.Expired)
         {
             output = ExpiredText;
             isError = true;
+        }
+        else if (policy?.Evaluate(entry.ToolName, entry.Arguments?.ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal)).Verdict == PermissionAction.Deny)
+        {
+            output = DeniedText;
+            isError = true;
+            denied = true;
         }
         else
         {
@@ -137,7 +150,7 @@ public static class AwaitingInputTurn
                 Arguments = entry.Arguments is null ? "{}" : JsonSerializer.Serialize(entry.Arguments),
                 Result = output,
                 Success = !isError && !awaitingAgain,
-                RefusalKind = answer.Expired ? ToolCallRefusalKind.TimedOut : null,
+                RefusalKind = answer.Expired ? ToolCallRefusalKind.TimedOut : denied ? ToolCallRefusalKind.Denied : null,
             }
         };
 
@@ -148,7 +161,7 @@ public static class AwaitingInputTurn
             yield break;
         }
 
-        var note = Note(entry, callId, answer, output, isError, cancelled);
+        var note = Note(entry, callId, answer, output, isError, cancelled, denied);
         var told = false;
         try
         {
@@ -223,11 +236,13 @@ public static class AwaitingInputTurn
     }
 
     /// <summary>The message that tells the model what became of its released call.</summary>
-    internal static string Note(McpAwaitingInput entry, string callId, AwaitingInputAnswer answer, string output, bool isError, bool cancelled = false)
+    internal static string Note(McpAwaitingInput entry, string callId, AwaitingInputAnswer answer, string output, bool isError, bool cancelled = false, bool denied = false)
     {
         var what = answer.Expired
             ? ExpiredText
-            : cancelled
+            : denied
+                ? DeniedText
+                : cancelled
                 ? CancelledText
                 : isError
                     ? $"The person answered '{answer.Action}'; the call was sent again and failed."

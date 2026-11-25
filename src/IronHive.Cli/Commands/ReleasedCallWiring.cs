@@ -1,5 +1,6 @@
 using IronHive.Agent.Loop;
 using IronHive.Agent.Mcp;
+using IronHive.Agent.Mode;
 using IronHive.Host.Server;
 using IronHive.Host.Session;
 
@@ -32,11 +33,12 @@ internal static class ReleasedCallWiring
 
     /// <summary>The turn the answer to a released call's question opens.</summary>
     public static Func<AwaitingInputAnswer, CancellationToken, IAsyncEnumerable<AgentResponseChunk>> Turn(
-        IAgentLoop loop, HitlBridge bridge, IMcpPluginManager plugins, SessionTurnRecorder? recorder, TextWriter diagnostics) =>
+        IAgentLoop loop, HitlBridge bridge, IMcpPluginManager plugins, SessionTurnRecorder? recorder, IToolCallPolicy? policy,
+        TextWriter diagnostics) =>
         (answer, token) => AwaitingInputTurn.RunAsync(
             loop, answer, bridge, plugins, recorder,
             ex => diagnostics.WriteLine($"awaiting input: the released call was not sent again ({ex.GetType().Name}: {ex.Message})"),
-            cancellationToken: token);
+            policy, token);
 
     /// <summary>
     /// Hands the released calls a previous process recorded back to the bridge: their questions are sent again and wait for
