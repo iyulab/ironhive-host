@@ -109,6 +109,36 @@ public class ConsoleAlwaysApproveScopeTests
         (await IsAskedAsync(console, person, Call("GrepFiles", ("path", "a/")))).Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData("GlobFiles", "pattern", "../**")]
+    [InlineData("glob_files", "pattern", "sub/../../other/*.cs")]
+    [InlineData("GrepFiles", "filePattern", "..\\**\\*.env")]
+    [InlineData("grep_files", "filePattern", "../*")]
+    public async Task ASearchWhoseFilePatternClimbsOut_IsAskedEveryTime(string tool, string argument, string glob)
+    {
+        // The yes was for the folder; a ".." segment makes the call look outside it.
+        var person = new Person();
+        var console = person.Console();
+        await IsAskedAsync(console, person, Call(tool, ("path", "a")));
+
+        (await IsAskedAsync(console, person, Call(tool, ("path", "a"), (argument, glob)))).Should().BeTrue();
+        (await IsAskedAsync(console, person, Call(tool, ("path", "a"), (argument, glob)))).Should().BeTrue();
+        person.Questions[^1].Should().NotContain(c => c.Contains("always", StringComparison.OrdinalIgnoreCase));
+        // Two dots inside a name climb nowhere.
+        (await IsAskedAsync(console, person, Call(tool, ("path", "a"), (argument, "..notes/*..bak")))).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task TheTextAGrepLooksFor_IsNotAPath()
+    {
+        var person = new Person();
+        var console = person.Console();
+        await IsAskedAsync(console, person, Call("GrepFiles", ("path", "a"), ("filePattern", "*.cs"), ("pattern", "x")));
+
+        (await IsAskedAsync(console, person, Call("GrepFiles", ("path", "a"), ("filePattern", "*.cs"), ("pattern", "../.."))))
+            .Should().BeFalse();
+    }
+
     [Fact]
     public async Task NoPath_IsTheWorkingDirectory_AsThePolicyReadsIt()
     {
@@ -260,6 +290,9 @@ public class ConsoleAlwaysApproveScopeTests
     [InlineData(@"a\one.txt:stream")]
     [InlineData(@"\\?\C:\a")]
     [InlineData(@"\\.\C:\a")]
+    [InlineData(@"\??\C:\a")]
+    [InlineData("//?/C:/a")]
+    [InlineData("//./C:/a")]
     public async Task OnWindows_AStreamOrDeviceSpelling_IsNeverRemembered(string path)
     {
         // The rules rewrite these before judging them, so the folder they are judged as is not the one the text names.

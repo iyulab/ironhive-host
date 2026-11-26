@@ -18,7 +18,8 @@ namespace IronHive.Cli.Services;
 /// pointed at - a later call pointed at that folder is covered whatever it looks for, including what it reaches below it,
 /// while a call pointed at a subfolder is asked again - a file tool's is the one that holds the file, a move's is the
 /// pair of folders it goes between. A call whose path is not known, or on Windows is written with a stream name or a device
-/// prefix, is not offered the choice. Every other tool keeps one memory for the whole tool.
+/// prefix, and a search whose file pattern has a <c>..</c> segment, is asked every time and not offered the choice. Every
+/// other tool keeps one memory for the whole tool.
 /// </para>
 /// </remarks>
 public class ConsoleApprovalService : IHumanApprovalService
@@ -264,7 +265,7 @@ public class ConsoleApprovalService : IHumanApprovalService
 
     /// <summary>
     /// What «always approve» covers for a call, or <see langword="null"/> when the call cannot be remembered because the
-    /// path it is judged on is not known, or is not the one the text names.
+    /// path it is judged on is not known or is not the one the text names, or the call looks outside its folder.
     /// </summary>
     /// <remarks>
     /// A path is resolved the way the permission rules resolve it: <see cref="Path.GetFullPath(string)"/>, a relative path
@@ -281,6 +282,11 @@ public class ConsoleApprovalService : IHumanApprovalService
 
         if (DirectoryTools.Contains(toolName))
         {
+            if (ClimbsOut(toolName, arguments))
+            {
+                return null;
+            }
+
             // The rules read no path as the working directory.
             var argument = Argument(arguments, "path");
             if (Resolve(string.IsNullOrEmpty(argument) ? "." : argument, workingDirectory) is not { } full)
@@ -309,6 +315,19 @@ public class ConsoleApprovalService : IHumanApprovalService
         }
 
         return new AlwaysScope($"tool:{toolName}", choice);
+    }
+
+    // The glob that picks a search's files may climb out of the folder the call is pointed at ("../**"). (The text
+    // GrepFiles looks for is not a path.)
+    private static bool ClimbsOut(string toolName, IDictionary<string, object?>? arguments)
+    {
+        var glob = toolName switch
+        {
+            "GlobFiles" or "glob_files" => Argument(arguments, "pattern"),
+            "GrepFiles" or "grep_files" => Argument(arguments, "filePattern"),
+            _ => null,
+        };
+        return glob?.Split('/', '\\').Contains("..") == true;
     }
 
     // NUL is in no path, so the parts cannot run into each other.
