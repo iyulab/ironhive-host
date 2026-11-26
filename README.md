@@ -717,6 +717,14 @@ each is a rejection, never a pass. Session rules of your own (trust lists, "alre
 `IHumanApprovalService` that decorates the bridge. `ironhive run --server` does this for you; in an interactive CLI
 session the terminal answers.
 
+On the terminal, «Yes, always approve» lasts for that process, and the choice names what it covers. For the tools the
+permission rules judge on a path it covers a folder, not the tool: a directory tool (`ListDirectory`, `GlobFiles`,
+`GrepFiles`), later calls pointed at the same folder, whatever they look for and including what they reach below it (a
+call pointed at a subfolder asks again); a file tool (`ReadFile`, `WriteFile`, `EditFile`, `DeleteFile`), the files of
+the folder that holds the file; `MoveFile`, moves between the same two folders. A call whose path is missing, or on
+Windows is written with a stream name or a device prefix, is not offered the choice. Every other tool (the shell, MCP
+tools) is covered as a whole.
+
 **What the model weighed (opt-in).** With `chatBehavior.approvalProposals: true` (or `ApprovalProposalTool.Create()` in a loop of
 your own) the model can propose, in the same step as an asked call, the alternatives it weighed, the one it recommends, or one
 question. The model cannot know which of its calls ask for approval, so say it in your instructions ("Every WriteFile call needs the user's approval. In the same step as each WriteFile call, also call propose_for_approval with tool set to WriteFile, the alternatives you weighed and your recommendation"): measured against a real model it proposed for every call when told this, and for none when told only that approval may be needed or nothing at all; the order of the two calls within the step does not matter.

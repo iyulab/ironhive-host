@@ -218,8 +218,16 @@ public static class ServiceCollectionExtensions
                 SupportsForms = config.ChatBehavior.ElicitationForms || config.ChatBehavior.AskUser,
             };
         });
-        services.AddSingleton(sp => new Services.ConsoleApprovalService(
-            sp.GetRequiredService<IronHiveConfig>().ChatBehavior.ShowProposalRecommendation));
+        services.AddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<IronHiveConfig>();
+            // The directory the permission rules judge paths against: «always approve» resolves folders the same way.
+            return new Services.ConsoleApprovalService(
+                config.ChatBehavior.ShowProposalRecommendation,
+                () => config.Permissions.WorkingDirectory is { Length: > 0 } configured
+                    ? configured
+                    : Directory.GetCurrentDirectory());
+        });
         services.AddSingleton<IHumanApprovalService, Services.HostApprovalService>();
         services.AddSingleton<IReplanningService, ReplanningService>();
 
