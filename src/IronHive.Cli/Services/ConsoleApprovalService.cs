@@ -271,9 +271,10 @@ public class ConsoleApprovalService : IHumanApprovalService
     /// A path is resolved the way the permission rules resolve it: <see cref="Path.GetFullPath(string)"/>, a relative path
     /// against the tools' directory. The rules judge that result as it stands, a trailing separator included (a pattern
     /// such as <c>x/**</c> matches <c>x/</c> and not <c>x</c>), except that on Windows they first strip a device prefix and
-    /// stream names - such a call is not remembered. So two paths the rules judge differently never share a key; one folder
-    /// written two ways is asked about twice. The key holds the folder itself, never "everything under it": a subfolder can
-    /// be asked about by a rule of its own.
+    /// stream names - such a call is not remembered. So two folders never share a key, and neither do two directory-tool
+    /// paths the rules judge differently; one folder written two ways is asked about twice. A file tool's key is the
+    /// containing folder on purpose, so it covers every file in it, whichever rule asks about that file. The key holds the
+    /// folder itself, never "everything under it": a subfolder can be asked about by a rule of its own.
     /// </remarks>
     internal static AlwaysScope? AlwaysScopeOf(
         string toolName, IDictionary<string, object?>? arguments, string workingDirectory)

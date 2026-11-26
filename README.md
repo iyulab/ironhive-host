@@ -721,10 +721,10 @@ On the terminal, «Yes, always approve» lasts for that process, and the choice 
 permission rules judge on a path it covers a folder, not the tool: a directory tool (`ListDirectory`, `GlobFiles`,
 `GrepFiles`), later calls pointed at the same folder, whatever they look for and including what they reach below it (a
 call pointed at a subfolder asks again); a file tool (`ReadFile`, `WriteFile`, `EditFile`, `DeleteFile`), the files of
-the folder that holds the file; `MoveFile`, moves between the same two folders. A call whose path is missing, or on
-Windows is written with a stream name or a device prefix, and a `GlobFiles` / `GrepFiles` call whose file pattern has a
-`..` segment (it looks outside the folder), is asked every time and not offered the choice. Every other tool (the shell,
-MCP tools) is covered as a whole.
+the folder that holds the file; `MoveFile`, moves between the same two folders. A directory call with no path means the
+working directory. A file or move call whose path is missing, a call whose path on Windows is written with a stream name
+or a device prefix, and a `GlobFiles` / `GrepFiles` call whose file pattern has a `..` segment (it looks outside the
+folder) are asked every time and not offered the choice. Every other tool (the shell, MCP tools) is covered as a whole.
 
 **What the model weighed (opt-in).** With `chatBehavior.approvalProposals: true` (or `ApprovalProposalTool.Create()` in a loop of
 your own) the model can propose, in the same step as an asked call, the alternatives it weighed, the one it recommends, or one
