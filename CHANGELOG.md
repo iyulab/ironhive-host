@@ -13,6 +13,9 @@ and this project adheres to 0.x pre-1.0 versioning (breaking changes are expecte
 ### Fixed
 - **Breaking by observation: on the terminal, «always approve» for a file or directory tool now covers only the folder that was asked about.** It was remembered by tool name alone, so one yes for a `GrepFiles` question let every later `GrepFiles` run without one, including searches of other folders the permission rules ask about, outside the working directory too, and the lines they found went to the model. For the tools the rules judge on a path the answer now covers: a directory tool, later calls pointed at the same folder, whatever they look for and including what they reach below it (a call pointed at a subfolder asks again); a file tool, the files of the folder that holds the file; `MoveFile`, moves between the same two folders. The choice names what it covers; a call whose path is missing, or on Windows is written with a stream name or a device prefix, is not offered it. Other tools keep one memory for the whole tool, and `run --server` is unchanged (the client decides what its own «always» covers). Migration: expect one question per folder.
 
+### Dependencies
+- Re-pinned sibling package(s) `IronHive.Abstractions` 0.79.0 -> 0.80.0, `IronHive.Core` 0.79.0 -> 0.80.0, `IronHive.Extensions.AI` 0.79.0 -> 0.80.0, `IronHive.Providers.Anthropic` 0.79.0 -> 0.80.0, `IronHive.Providers.Declarations` 0.79.0 -> 0.80.0, `IronHive.Providers.GoogleAI` 0.79.0 -> 0.80.0, `IronHive.Providers.OpenAI` 0.79.0 -> 0.80.0, `IronHive.Providers.OpenAI.Compatible` 0.79.0 -> 0.80.0.
+
 ## 0.81.0 — 2026-11-26
 
 ### Security
