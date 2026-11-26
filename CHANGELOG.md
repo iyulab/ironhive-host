@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## 0.82.0 — 2026-11-27
 
 ### Added
 - **An answer to an approval request can say its yes covers this one call only.** `HitlResponseRequest.ThisCallOnly` (wire: `this_call_only`, written only when set, default `false`) reaches the code that called the approval service as `ApprovalResult.ThisCallOnly`. An approver that decides one act at a time - a classifier or judge model answering for a person - sets it so a policy wrapped around the approval service ("one yes covers the rest of this request's writes") does not widen the yes to calls the approver never saw. A refusal carries no scope. Needs IronHive.Agent 0.85.0 or later. **Breaking** for code compiled against an earlier `IronHive.Host.Protocol` or deconstructing `HitlResponseRequest` by position: the record has one more constructor parameter, at the end. Migration: rebuild, and add the member to a positional pattern.
