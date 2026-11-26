@@ -11,16 +11,16 @@ namespace IronHive.Host.Tests.Agent;
 
 /// <summary>
 /// The agent's directory tools (<c>ListDirectory</c>, <c>GlobFiles</c>, <c>GrepFiles</c>) leave out what a
-/// <see cref="FileToolOptions.ReadFilter"/> hides. The host's permission rules say which folders the model may not read;
+/// <see cref="FileToolOptions.ReadRules"/> hide, and a search returns only what they let it. The host's permission rules say which folders the model may not read;
 /// these facts pin that the host hands that decision to the tools instead of leaving a search from the working directory to
 /// walk into a folder the rules refuse for <c>ReadFile</c>. Each fact runs on a real folder.
 /// </summary>
-public class ReadFilterWiringTests : IDisposable
+public class ReadRulesWiringTests : IDisposable
 {
     private const string Needle = "needle-in-the-haystack";
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"host-read-filter-{Guid.NewGuid():N}");
 
-    public ReadFilterWiringTests()
+    public ReadRulesWiringTests()
     {
         Directory.CreateDirectory(Path.Combine(_dir, ".config-folder"));
         Directory.CreateDirectory(Path.Combine(_dir, "src"));
@@ -36,6 +36,27 @@ public class ReadFilterWiringTests : IDisposable
         }
 
         GC.SuppressFinalize(this);
+    }
+
+    private static FileReadRules Hiding(string folder) => new()
+    {
+        IsVisible = path => !path.Contains(folder, StringComparison.Ordinal),
+        MayReturnContent = (_, _) => true,
+    };
+
+    // A file the rules ask about stays listed, but a search must not hand over its lines: ReadFile would ask first.
+    [Fact]
+    public async Task A_search_returns_no_line_of_a_file_the_rules_ask_about_and_names_it()
+    {
+        File.WriteAllText(Path.Combine(_dir, ".env"), $"API_KEY={Needle}");
+        var rules = DenyConfigFolder(_dir);
+        rules.Read.Add(new PermissionRule { Pattern = ".env*", Action = PermissionAction.Ask, Priority = 10 });
+
+        var created = await Factory(permissions: rules).CreateWithPipelineAsync(
+            new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = _dir }, TestContext.Current.CancellationToken);
+        var grep = await Call(created.Loop.Tools, "GrepFiles", new() { ["pattern"] = Needle, ["filePattern"] = "**/*", ["path"] = "." });
+
+        grep.Should().Contain("ok.txt").And.NotContain("API_KEY").And.Contain(".env");
     }
 
     private static PermissionConfig DenyConfigFolder(string workingDirectory) => new()
@@ -66,7 +87,7 @@ public class ReadFilterWiringTests : IDisposable
     [Fact]
     public async Task The_hosts_built_in_tools_carry_the_filter_of_the_options_to_the_directory_tools()
     {
-        var options = new FileToolOptions { ReadFilter = path => !path.Contains(".config-folder", StringComparison.Ordinal) };
+        var options = new FileToolOptions { ReadRules = Hiding(".config-folder") };
 
         var tools = IronHive.Host.Tools.BuiltInTools.GetAll(_dir, oopsService: null, webSearchTool: null, deepResearchTool: null, options);
 
@@ -92,7 +113,7 @@ public class ReadFilterWiringTests : IDisposable
     [Fact]
     public async Task A_filter_the_host_passes_itself_is_kept_over_the_one_derived_from_the_rules()
     {
-        var own = new FileToolOptions { ReadFilter = path => !path.Contains("src", StringComparison.Ordinal) };
+        var own = new FileToolOptions { ReadRules = Hiding("src") };
 
         var created = await Factory(own, DenyConfigFolder(_dir)).CreateWithPipelineAsync(
             new AgentLoopFactoryOptions { Model = "gpt-4o", WorkingDirectory = _dir }, TestContext.Current.CancellationToken);

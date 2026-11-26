@@ -121,7 +121,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         _instructionContributors = instructionContributors?.ToArray() ?? [];
         _skills = skills;
         ReportSkillDiagnostics(skills, logger);
-        _fileToolOptions = WithReadFilterFromRules(fileToolOptions, permissions);
+        _fileToolOptions = WithReadRulesFromPermissions(fileToolOptions, permissions);
         _permissions = permissions;
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
@@ -139,12 +139,14 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
 
     private readonly IronHive.Agent.Context.ISystemInstructionContributor[] _instructionContributors;
 
-    // The permission rules judge a directory tool by the folder it is pointed at, so a Read rule that closes a folder says nothing
-    // about the working directory above it and a search from there would walk in. The directory tools leave out what the same rules
-    // refuse for ReadFile: the rules' own verdicts become the tools' filter. A filter the host passed itself is the one in force.
-    private static FileToolOptions? WithReadFilterFromRules(FileToolOptions? options, PermissionConfig? permissions)
+    // The permission rules judge a directory tool by the folder it is pointed at, so a Read rule says nothing about what lies
+    // under a search from the working directory. The rules' own verdicts become the tools' read rules: what they refuse for
+    // ReadFile is not listed or searched, and a search returns no line of a file ReadFile would ask a person about. That second
+    // part relies on the search having passed the approval gate, which every loop built here has. Read rules the host passed
+    // itself are the ones in force.
+    private static FileToolOptions? WithReadRulesFromPermissions(FileToolOptions? options, PermissionConfig? permissions)
     {
-        if (permissions is null || options?.ReadFilter is not null)
+        if (permissions is null || options?.ReadRules is not null)
         {
             return options;
         }
@@ -153,7 +155,7 @@ public sealed partial class AgentLoopFactory : IHostAgentLoopFactory
         {
             AllowedRoots = options?.AllowedRoots ?? [],
             WriteInterceptor = options?.WriteInterceptor,
-            ReadFilter = new PermissionEvaluator(permissions).ToReadFilter(),
+            ReadRules = new PermissionEvaluator(permissions).ToReadRules(),
         };
     }
 
