@@ -386,7 +386,9 @@ Configuration is merged in order (later overrides earlier):
 
 1. **Global**: `~/.ironhive/config.yaml`
 2. **Project**: `.ironhive/config.yaml`
-3. **Environment**: exactly these variables are read (there is no `IRONHIVE_*` variable):
+3. **.env file**: Project root `.env`. It supplies only variables the process does not have.
+4. **Environment**: a variable the process already has wins over the `.env` file, also when it is set to nothing - which is
+   how a host keeps the file from supplying it. Exactly these variables are read (there is no `IRONHIVE_*` variable):
    - `GPUSTACK_ENDPOINT`, `GPUSTACK_API_KEY`, `GPUSTACK_MODEL`
    - `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_ENDPOINT`
    - `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
@@ -397,7 +399,6 @@ Configuration is merged in order (later overrides earlier):
    - `OPENAI_COMPATIBLE_ENDPOINT`, `OPENAI_COMPATIBLE_MODEL`, `OPENAI_COMPATIBLE_API_KEY` (optional)
    - `LMSUPPLY_ENABLED`
    - the OpenTelemetry exporter's standard `OTEL_*` variables (`OTEL_EXPORTER_OTLP_ENDPOINT` / `_TRACES_ENDPOINT`, `_PROTOCOL`, `_HEADERS`, `OTEL_SERVICE_NAME`, `OTEL_SDK_DISABLED`) — see Features
-4. **.env file**: Project root `.env`
 
 > On first run, a legacy `~/.ironhive/settings.json` (from earlier versions) is automatically migrated to `config.yaml`.
 

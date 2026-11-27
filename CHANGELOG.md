@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
+## [Unreleased]
+
+### Fixed
+- **Breaking by observation: a variable the process already has now wins over the project `.env`.** Loading `.env` replaced it, so a file in the working folder could change what the host had exported - the provider endpoint among them, which then received the key the host gave. The configuration was already documented as «environment over `.env`» (the README's list said the opposite and is corrected). The file now supplies only variables the process does not have; a variable set to nothing counts as set. When the configuration is loaded again, or for another folder, what an earlier file supplied is taken back first, and a `${NAME}` in a file reads that file and the process, never a value from a `.env` loaded earlier. A `.env` can still set a variable the process does not have. Migration: to let the file set a value, do not export that variable.
+
 ## 0.82.0 — 2026-11-27
 
 ### Added

@@ -68,12 +68,8 @@ public class ConfigurationManager
 
         var config = merged.Children.Count == 0 ? new IronHiveConfig() : Read(merged);
 
-        // 3. Load .env file
-        var dotEnvPath = Path.Combine(_projectRoot, ".env");
-        if (File.Exists(dotEnvPath))
-        {
-            DotNetEnv.Env.Load(dotEnvPath);
-        }
+        // 3. Load .env file: it supplies only what the process environment does not have
+        ProjectEnvFile.Load(Path.Combine(_projectRoot, ".env"));
 
         // 4. Apply environment variables (highest priority)
         ApplyEnvironmentVariables(config);
