@@ -15,30 +15,39 @@ internal static class ProjectEnvFile
     private static readonly Lock Gate = new();
 
     /// <param name="path">The folder's <c>.env</c>; it need not exist.</param>
-    public static void Load(string path)
+    /// <param name="read">
+    /// Reads the environment the file has just been put into. It runs before any other load can change it: another load
+    /// takes back and supplies the same process variables.
+    /// </param>
+    public static void LoadAndRead(string path, Action read)
     {
         lock (Gate)
         {
             TakeBack();
-            if (!File.Exists(path))
+            if (File.Exists(path))
             {
-                return;
+                Supply(path);
             }
 
-            // DotNetEnv keeps the values it has parsed in a static table and reads "${NAME}" from it, also across files.
-            DotNetEnv.Env.FakeEnvVars.Clear();
+            read();
+        }
+    }
 
-            // Parsed only; with nothing clobbered, a "${NAME}" in the file reads the process's value where it has one.
-            var entries = DotNetEnv.Env.Load(path, new DotNetEnv.LoadOptions(setEnvVars: false, clobberExistingVars: false));
-            foreach (var (name, value) in entries)
+    private static void Supply(string path)
+    {
+        // DotNetEnv keeps the values it has parsed in a static table and reads "${NAME}" from it, also across files.
+        DotNetEnv.Env.FakeEnvVars.Clear();
+
+        // Parsed only; with nothing clobbered, a "${NAME}" in the file reads the process's value where it has one.
+        var entries = DotNetEnv.Env.Load(path, new DotNetEnv.LoadOptions(setEnvVars: false, clobberExistingVars: false));
+        foreach (var (name, value) in entries)
+        {
+            // A variable set to nothing is set: that is how a host keeps a file from supplying it. One this load has
+            // supplied is replaced by a later line of the same file.
+            if (Environment.GetEnvironmentVariable(name) is null || Supplied.ContainsKey(name))
             {
-                // A variable set to nothing is set: that is how a host keeps a file from supplying it. One this load has
-                // supplied is replaced by a later line of the same file.
-                if (Environment.GetEnvironmentVariable(name) is null || Supplied.ContainsKey(name))
-                {
-                    Environment.SetEnvironmentVariable(name, value);
-                    Supplied[name] = value;
-                }
+                Environment.SetEnvironmentVariable(name, value);
+                Supplied[name] = value;
             }
         }
     }

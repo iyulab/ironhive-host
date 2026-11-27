@@ -123,6 +123,29 @@ public sealed class DotEnvPrecedenceTests : IDisposable
         Environment.GetEnvironmentVariable("OPENAI_ENDPOINT").Should().BeNull();
     }
 
+    // Loads take back and supply process variables; a load running beside another must still read its own folder's.
+    [Fact]
+    public void Loads_running_beside_each_other_each_read_their_own_env_file()
+    {
+        using var other = new TempConfigDirs();
+        WriteDotEnv(_dirs, "OPENAI_ENDPOINT=http://first-project.invalid");
+        WriteDotEnv(other, "OPENAI_ENDPOINT=http://second-project.invalid");
+        var wrong = 0;
+
+        Parallel.For(0, 400, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+        {
+            var (dirs, expected) = i % 2 == 0
+                ? (_dirs, "http://first-project.invalid")
+                : (other, "http://second-project.invalid");
+            if (Manager(dirs).Load().OpenAI.Endpoint != expected)
+            {
+                Interlocked.Increment(ref wrong);
+            }
+        });
+
+        wrong.Should().Be(0);
+    }
+
     // A later line of one file still wins over an earlier one, and may refer to it.
     [Fact]
     public void Within_one_file_the_last_line_wins_and_may_refer_to_an_earlier_one()

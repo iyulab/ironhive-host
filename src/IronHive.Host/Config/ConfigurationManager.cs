@@ -68,11 +68,14 @@ public class ConfigurationManager
 
         var config = merged.Children.Count == 0 ? new IronHiveConfig() : Read(merged);
 
-        // 3. Load .env file: it supplies only what the process environment does not have
-        ProjectEnvFile.Load(Path.Combine(_projectRoot, ".env"));
-
-        // 4. Apply environment variables (highest priority)
-        ApplyEnvironmentVariables(config);
+        // 3. Load the .env file (it supplies only what the process environment does not have), and in the same step
+        // 4. apply the environment variables (highest priority).
+        var lmSupplyIsSet = false;
+        ProjectEnvFile.LoadAndRead(Path.Combine(_projectRoot, ".env"), () =>
+        {
+            ApplyEnvironmentVariables(config);
+            lmSupplyIsSet = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LMSUPPLY_ENABLED"));
+        });
 
         // 5. Permission rules, from the same project scope as config.yaml and .env (a projectRoot keeps whatever sits in
         //    the process working directory out of the config): the project's permission file when there is one;
@@ -88,7 +91,7 @@ public class ConfigurationManager
         }
 
         // 6. Auto-enable LMSupply if no API provider is configured — unless LMSUPPLY_ENABLED says otherwise.
-        if (!HasAnyApiProvider(config) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LMSUPPLY_ENABLED")))
+        if (!HasAnyApiProvider(config) && !lmSupplyIsSet)
         {
             config.LMSupply.Enabled = true;
         }
