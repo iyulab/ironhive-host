@@ -442,8 +442,7 @@ public class ConfigurationManager
         }
 
         // GoogleAI from environment (GOOGLE_API_KEY accepted as an alias for GOOGLEAI_API_KEY)
-        var googleAiApiKey = Environment.GetEnvironmentVariable("GOOGLEAI_API_KEY")
-            ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
+        var googleAiApiKey = ProjectEnvFile.ReadEither("GOOGLEAI_API_KEY", "GOOGLE_API_KEY");
         if (!string.IsNullOrEmpty(googleAiApiKey))
         {
             config.GoogleAI.ApiKey = googleAiApiKey;

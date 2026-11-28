@@ -7,10 +7,15 @@ namespace IronHive.Host.Config;
 /// </summary>
 internal static class ProjectEnvFile
 {
-    // The variables a .env file supplied to this process, each with the value it gave. A variable whose value changed since
-    // then was set by someone else and is the process's own.
+    // The variables a .env file supplied to this process, each with the value the environment then held. A variable whose
+    // value changed since then was set by someone else and is the process's own. (A value set to the very text the file
+    // gave cannot be told apart from the file's.)
     private static readonly Dictionary<string, string> Supplied =
         new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+    // Read in either case by the HTTP stack and by the tools the engine starts, the lower-case spelling often first.
+    private static readonly HashSet<string> ProxyNames =
+        new(["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"], StringComparer.OrdinalIgnoreCase);
 
     private static readonly Lock Gate = new();
 
@@ -33,21 +38,71 @@ internal static class ProjectEnvFile
         }
     }
 
-    private static void Supply(string path)
+    /// <summary>
+    /// The value of a setting that has two variable names. A name the process set itself comes before a name a
+    /// <c>.env</c> file supplied, whichever of the two it is; otherwise <paramref name="name"/> comes first. Call it only
+    /// from the read that <see cref="LoadAndRead"/> runs.
+    /// </summary>
+    public static string? ReadEither(string name, string alias)
+    {
+        var first = Environment.GetEnvironmentVariable(name);
+        var second = Environment.GetEnvironmentVariable(alias);
+        var aliasWins = first is null || (second is not null && Supplied.ContainsKey(name) && !Supplied.ContainsKey(alias));
+        return aliasWins ? second : first;
+    }
+
+    private static bool ProcessHas(string name) =>
+        Environment.GetEnvironmentVariable(name) is not null
+        || (ProxyNames.Contains(name) && Environment.GetEnvironmentVariables().Keys.Cast<string>()
+            .Any(key => string.Equals(key, name, StringComparison.OrdinalIgnoreCase) && !Supplied.ContainsKey(key)));
+
+    // The file's entries in order. A "${NAME}" reads the process's value where it has one, and otherwise the file's.
+    private static List<KeyValuePair<string, string>> Parse(string path)
+    {
+        var entries = ParseOnce(path, []);
+        var repeated = entries.Select((entry, line) => (entry.Key, line))
+            .GroupBy(x => x.Key, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .ToList();
+        if (repeated.Count == 0)
+        {
+            return entries;
+        }
+
+        // Parsing without setting variables, DotNetEnv keeps the first value of a repeated name for later references.
+        // From the line after every repeated name's last one, references must read that last value: parse again with
+        // it in place. Up to there, the first reading stands.
+        var settled = repeated.Max(group => group.Last().line);
+        var lastValues = repeated.Select(group => entries[group.Last().line]);
+        return [.. entries.Take(settled + 1), .. ParseOnce(path, lastValues).Skip(settled + 1)];
+    }
+
+    private static List<KeyValuePair<string, string>> ParseOnce(string path, IEnumerable<KeyValuePair<string, string>> known)
     {
         // DotNetEnv keeps the values it has parsed in a static table and reads "${NAME}" from it, also across files.
+        // A value already in the table is not replaced by the file's.
+        var seed = known.ToList();
         DotNetEnv.Env.FakeEnvVars.Clear();
+        foreach (var (name, value) in seed)
+        {
+            DotNetEnv.Env.FakeEnvVars[name] = value;
+        }
 
-        // Parsed only; with nothing clobbered, a "${NAME}" in the file reads the process's value where it has one.
-        var entries = DotNetEnv.Env.Load(path, new DotNetEnv.LoadOptions(setEnvVars: false, clobberExistingVars: false));
-        foreach (var (name, value) in entries)
+        // Parsed only: with nothing set or clobbered, no variable changes while the file is read.
+        return [.. DotNetEnv.Env.Load(path, new DotNetEnv.LoadOptions(setEnvVars: false, clobberExistingVars: false))];
+    }
+
+    private static void Supply(string path)
+    {
+        foreach (var (name, value) in Parse(path))
         {
             // A variable set to nothing is set: that is how a host keeps a file from supplying it. One this load has
             // supplied is replaced by a later line of the same file.
-            if (Environment.GetEnvironmentVariable(name) is null || Supplied.ContainsKey(name))
+            if (Supplied.ContainsKey(name) || !ProcessHas(name))
             {
                 Environment.SetEnvironmentVariable(name, value);
-                Supplied[name] = value;
+                // What the environment holds, not what the file said: it keeps a value only up to a NUL.
+                Supplied[name] = Environment.GetEnvironmentVariable(name) ?? value;
             }
         }
     }

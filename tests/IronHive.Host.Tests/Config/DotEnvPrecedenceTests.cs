@@ -10,7 +10,11 @@ namespace IronHive.Host.Tests.Config;
 [Collection(nameof(ProcessWorkingDirectoryScope))]
 public sealed class DotEnvPrecedenceTests : IDisposable
 {
-    private static readonly string[] Variables = ["OPENAI_API_KEY", "OPENAI_ENDPOINT"];
+    private static readonly string[] Variables =
+    [
+        "OPENAI_API_KEY", "OPENAI_ENDPOINT", "OPENAI_MODEL", "GOOGLEAI_API_KEY", "GOOGLE_API_KEY",
+        "HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "NO_PROXY", "no_proxy", "ALL_PROXY", "all_proxy",
+    ];
 
     private readonly TempConfigDirs _dirs = new();
     private readonly (string Name, string? Value)[] _before =
@@ -144,6 +148,114 @@ public sealed class DotEnvPrecedenceTests : IDisposable
         });
 
         wrong.Should().Be(0);
+    }
+
+    // Two names say one setting: the one the process set wins, whichever of the two it is and whatever the file says
+    // under the other.
+    [Theory]
+    [InlineData("GOOGLEAI_API_KEY=key-from-file")]
+    [InlineData("GOOGLEAI_API_KEY=")]
+    public void The_google_key_the_process_has_wins_over_the_other_name_in_the_env_file(string line)
+    {
+        Environment.SetEnvironmentVariable("GOOGLE_API_KEY", "key-from-host");
+        WriteDotEnv(_dirs, line);
+
+        Manager(_dirs).Load().GoogleAI.ApiKey.Should().Be("key-from-host");
+    }
+
+    // The positive control for the two names: with neither in the process, the file's name is read.
+    [Fact]
+    public void The_google_key_comes_from_the_env_file_when_the_process_has_neither_name()
+    {
+        WriteDotEnv(_dirs, "GOOGLE_API_KEY=key-from-file");
+
+        Manager(_dirs).Load().GoogleAI.ApiKey.Should().Be("key-from-file");
+    }
+
+    // The environment keeps a value only up to a NUL. What a file supplied is taken back all the same.
+    [Fact]
+    public void A_value_with_a_nul_escape_is_taken_back_with_the_rest()
+    {
+        using var other = new TempConfigDirs();
+        WriteDotEnv(_dirs, "OPENAI_ENDPOINT=\"http://first-project.invalid\\x00\"");
+        Manager(_dirs).Load();
+
+        Manager(other).Load();
+
+        Environment.GetEnvironmentVariable("OPENAI_ENDPOINT").Should().BeNull();
+    }
+
+    // Proxy names are read in either case, and the lower-case spelling first: a file must not add the other spelling
+    // beside the one the host exported. Windows has one variable for both spellings.
+    [Theory]
+    [InlineData("HTTPS_PROXY", "https_proxy")]
+    [InlineData("HTTP_PROXY", "http_proxy")]
+    [InlineData("NO_PROXY", "no_proxy")]
+    [InlineData("all_proxy", "ALL_PROXY")]
+    public void A_proxy_variable_the_process_has_is_not_added_in_the_other_case(string exported, string inFile)
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows variable names ignore case.");
+        Environment.SetEnvironmentVariable(exported, "http://from-host.invalid");
+        WriteDotEnv(_dirs, $"{inFile}=http://from-file.invalid");
+
+        Manager(_dirs).Load();
+
+        Environment.GetEnvironmentVariable(inFile).Should().BeNull();
+        Environment.GetEnvironmentVariable(exported).Should().Be("http://from-host.invalid");
+    }
+
+    // Without a proxy of its own, the process takes the file's, in both spellings if the file writes both.
+    [Fact]
+    public void A_proxy_variable_the_process_lacks_comes_from_the_env_file()
+    {
+        WriteDotEnv(_dirs, "https_proxy=http://lower.invalid", "HTTPS_PROXY=http://lower.invalid");
+
+        Manager(_dirs).Load();
+
+        Environment.GetEnvironmentVariable("https_proxy").Should().Be("http://lower.invalid");
+        Environment.GetEnvironmentVariable("HTTPS_PROXY").Should().Be("http://lower.invalid");
+    }
+
+    // Only what still has the value the file gave is taken back; a value set since then is the process's own.
+    [Fact]
+    public void A_value_the_process_set_after_a_load_is_not_taken_back()
+    {
+        WriteDotEnv(_dirs, "OPENAI_ENDPOINT=http://from-file.invalid");
+        var manager = Manager(_dirs);
+        manager.Load();
+        Environment.SetEnvironmentVariable("OPENAI_ENDPOINT", "http://set-later.invalid");
+
+        manager.Load(forceReload: true).OpenAI.Endpoint.Should().Be("http://set-later.invalid");
+        Environment.GetEnvironmentVariable("OPENAI_ENDPOINT").Should().Be("http://set-later.invalid");
+    }
+
+    // A later line of one file wins over an earlier one, and a reference reads the later line.
+    [Fact]
+    public void A_reference_after_a_repeated_name_reads_the_later_line()
+    {
+        WriteDotEnv(_dirs,
+            "OPENAI_API_KEY=first",
+            "OPENAI_API_KEY=second",
+            "OPENAI_ENDPOINT=http://${OPENAI_API_KEY}.invalid");
+
+        Manager(_dirs).Load().OpenAI.Endpoint.Should().Be("http://second.invalid");
+    }
+
+    // A reference reads what the file had said by then: the earlier line before a name is written again, the later one
+    // after it.
+    [Fact]
+    public void A_reference_between_two_lines_of_a_name_reads_the_earlier_one()
+    {
+        WriteDotEnv(_dirs,
+            "OPENAI_API_KEY=first",
+            "OPENAI_ENDPOINT=http://${OPENAI_API_KEY}.invalid",
+            "OPENAI_API_KEY=second",
+            "OPENAI_MODEL=model-${OPENAI_API_KEY}");
+
+        var config = Manager(_dirs).Load();
+
+        config.OpenAI.Endpoint.Should().Be("http://first.invalid");
+        config.OpenAI.Model.Should().Be("model-second");
     }
 
     // A later line of one file still wins over an earlier one, and may refer to it.
