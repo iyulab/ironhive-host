@@ -69,22 +69,33 @@ internal static class ProjectEnvFile
     {
         var content = File.ReadAllText(path);
 
-        // One entry at a time, each read with the entries before it already in the environment: a "${NAME}" then reads
-        // what the file had said by that entry, or the process's own value where it has one. A file that does not parse
-        // fails here, before anything is set.
-        var count = Parse(content).Count;
-        for (var entry = 0; entry < count; entry++)
+        try
         {
-            var (name, value) = Parse(content)[entry];
+            // A file that does not parse fails here, before anything is set.
+            var entries = Parse(content);
 
-            // A variable set to nothing is set: that is how a host keeps a file from supplying it. One this load has
-            // supplied is replaced by a later line of the same file.
-            if (Supplied.ContainsKey(name) || !ProcessHas(name))
+            // With a reference ("$"), one entry at a time, each read with the entries before it already in the
+            // environment: a "${NAME}" then reads what the file had said by that entry, or the process's own value
+            // where it has one. Without one, no value depends on another and one reading is enough.
+            var refers = content.Contains('$');
+            for (var entry = 0; entry < entries.Count; entry++)
             {
-                Environment.SetEnvironmentVariable(name, value);
-                // What the environment holds, not what the file said: it keeps a value only up to a NUL.
-                Supplied[name] = Environment.GetEnvironmentVariable(name) ?? value;
+                var (name, value) = refers ? Parse(content)[entry] : entries[entry];
+
+                // A variable set to nothing is set: that is how a host keeps a file from supplying it. One this load
+                // has supplied is replaced by a later line of the same file.
+                if (Supplied.ContainsKey(name) || !ProcessHas(name))
+                {
+                    Environment.SetEnvironmentVariable(name, value);
+                    // What the environment holds, not what the file said: it keeps a value only up to a NUL.
+                    Supplied[name] = Environment.GetEnvironmentVariable(name) ?? value;
+                }
             }
+        }
+        finally
+        {
+            // The library's table is process-wide and public: nothing of this file stays in it.
+            DotNetEnv.Env.FakeEnvVars.Clear();
         }
     }
 

@@ -33,7 +33,42 @@ public sealed class DotEnvParityTests : IDisposable
         { "single quotes", "PARITY_V=a\nPARITY_S='${PARITY_V}'\nPARITY_D=\"${PARITY_V}\"" },
         { "an empty line value", "PARITY_H=first\nPARITY_H=\nPARITY_U=x-${PARITY_H}" },
         { "names that differ in case", "PARITY_Host=x\nPARITY_U=${PARITY_HOST}\nPARITY_a=1\nPARITY_A=2\nPARITY_R=${PARITY_a}" },
+        {
+            "default and alternate forms",
+            "PARITY_H=1\nPARITY_U=${PARITY_H-def}\nPARITY_H=2\nPARITY_V=${PARITY_H+alt}\nPARITY_W=${PARITY_MISSING-def}"
+        },
     };
+
+    // On Windows a reference finds a name written in another case, a required one too.
+    [Fact]
+    public void A_required_reference_in_another_case_loads_as_the_ordinary_load_reads_it()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Variable names ignore case on Windows only.");
+
+        A_file_of_names_the_process_lacks_reads_as_the_ordinary_load_reads_it(
+            "required, other case", "PARITY_Host=x\nPARITY_URL=http://${PARITY_HOST?}");
+    }
+
+    // The library's table of parsed values is process-wide and public: a load leaves nothing of the file in it.
+    [Theory]
+    [InlineData("PARITY_A=value")]
+    [InlineData("PARITY_A=value\nPARITY_B=${PARITY_A}")]
+    public void A_load_leaves_none_of_the_file_in_the_librarys_table(string content)
+    {
+        try
+        {
+            File.WriteAllText(Path.Combine(_dirs.ProjectRoot, ".env"), content);
+
+            new ConfigurationManager(_dirs.ProjectRoot, _dirs.GlobalConfigPath).Load();
+
+            DotNetEnv.Env.FakeEnvVars.Should().BeEmpty();
+        }
+        finally
+        {
+            using var empty = new TempConfigDirs();
+            new ConfigurationManager(empty.ProjectRoot, empty.GlobalConfigPath).Load();
+        }
+    }
 
     [Theory]
     [MemberData(nameof(Files))]
