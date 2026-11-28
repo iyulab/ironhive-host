@@ -143,6 +143,25 @@ public class PermissionEvaluatorTests
         Assert.Equal(PermissionAction.Allow, result.Action);
     }
 
+    [Theory]
+    [InlineData("src\\file.cs", "src/file.cs")]
+    [InlineData("src\\nested\\file.cs", "src/**/file.cs")]
+    [InlineData("src/evil\\file.cs", "src/**/file.cs")]
+    public void ANameThatHoldsABackslash_IsNotInTheFolderTheRuleAllows(string path, string pattern)
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "A backslash separates names on Windows.");
+        var evaluator = new PermissionEvaluator(new PermissionConfig
+        {
+            Read = new List<PermissionRule>
+            {
+                new() { Pattern = pattern, Action = PermissionAction.Allow }
+            },
+            DefaultAction = PermissionAction.Deny
+        });
+
+        Assert.Equal(PermissionAction.Deny, evaluator.Evaluate("read", path).Action);
+    }
+
     #endregion
 
     #region Cycle 2: 우선순위 규칙
