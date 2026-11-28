@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to 0.x pre-1.0 versioning (breaking changes are expected).
 
-## [Unreleased]
+## 0.83.0 — 2026-11-28
 
 ### Fixed
 - **Breaking by observation: a variable the process already has now wins over the project `.env`.** Loading `.env` replaced it, so a file in the working folder could change what the host had exported - the provider endpoint among them, which then received the key the host gave. The configuration was already documented as «environment over `.env`» (the README's list said the opposite and is corrected). The file now supplies only variables the process does not have; a variable set to nothing counts as set. When the configuration is loaded again, or for another folder, what an earlier file supplied is taken back first, and a `${NAME}` in a file reads that file and the process, never a value from a `.env` loaded earlier. One setting under two names counts as one: a `GOOGLE_API_KEY` or `GOOGLEAI_API_KEY` the process has wins over either name in the file, and a proxy variable the process has (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`) is not added in the other letter case. A `.env` can still set any variable the process does not have, and some of those change how the host's own settings are used: an endpoint the host did not export then receives the key the host did export, and a proxy variable for one protocol takes the place of a general one the host exported. Treat the `.env` of a folder you do not trust accordingly. Migration: to let the file set a value, do not export that variable.
