@@ -179,6 +179,8 @@ public sealed class DotEnvPrecedenceTests : IDisposable
         using var other = new TempConfigDirs();
         WriteDotEnv(_dirs, "OPENAI_ENDPOINT=\"http://first-project.invalid\\x00\"");
         Manager(_dirs).Load();
+        // The positive control: the first load did set it, cut at the NUL.
+        Environment.GetEnvironmentVariable("OPENAI_ENDPOINT").Should().Be("http://first-project.invalid");
 
         Manager(other).Load();
 

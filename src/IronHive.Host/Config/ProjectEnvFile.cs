@@ -56,46 +56,27 @@ internal static class ProjectEnvFile
         || (ProxyNames.Contains(name) && Environment.GetEnvironmentVariables().Keys.Cast<string>()
             .Any(key => string.Equals(key, name, StringComparison.OrdinalIgnoreCase) && !Supplied.ContainsKey(key)));
 
-    // The file's entries in order. A "${NAME}" reads the process's value where it has one, and otherwise the file's.
-    private static List<KeyValuePair<string, string>> Parse(string path)
-    {
-        var entries = ParseOnce(path, []);
-        var repeated = entries.Select((entry, line) => (entry.Key, line))
-            .GroupBy(x => x.Key, StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .ToList();
-        if (repeated.Count == 0)
-        {
-            return entries;
-        }
-
-        // Parsing without setting variables, DotNetEnv keeps the first value of a repeated name for later references.
-        // From the line after every repeated name's last one, references must read that last value: parse again with
-        // it in place. Up to there, the first reading stands.
-        var settled = repeated.Max(group => group.Last().line);
-        var lastValues = repeated.Select(group => entries[group.Last().line]);
-        return [.. entries.Take(settled + 1), .. ParseOnce(path, lastValues).Skip(settled + 1)];
-    }
-
-    private static List<KeyValuePair<string, string>> ParseOnce(string path, IEnumerable<KeyValuePair<string, string>> known)
+    // Parsed only: nothing is set while the file is read. A "${NAME}" reads the environment, and where that lacks the
+    // name, the first line of this file that set it.
+    private static List<KeyValuePair<string, string>> Parse(string content)
     {
         // DotNetEnv keeps the values it has parsed in a static table and reads "${NAME}" from it, also across files.
-        // A value already in the table is not replaced by the file's.
-        var seed = known.ToList();
         DotNetEnv.Env.FakeEnvVars.Clear();
-        foreach (var (name, value) in seed)
-        {
-            DotNetEnv.Env.FakeEnvVars[name] = value;
-        }
-
-        // Parsed only: with nothing set or clobbered, no variable changes while the file is read.
-        return [.. DotNetEnv.Env.Load(path, new DotNetEnv.LoadOptions(setEnvVars: false, clobberExistingVars: false))];
+        return [.. DotNetEnv.Env.LoadContents(content, new DotNetEnv.LoadOptions(setEnvVars: false, clobberExistingVars: false))];
     }
 
     private static void Supply(string path)
     {
-        foreach (var (name, value) in Parse(path))
+        var content = File.ReadAllText(path);
+
+        // One entry at a time, each read with the entries before it already in the environment: a "${NAME}" then reads
+        // what the file had said by that entry, or the process's own value where it has one. A file that does not parse
+        // fails here, before anything is set.
+        var count = Parse(content).Count;
+        for (var entry = 0; entry < count; entry++)
         {
+            var (name, value) = Parse(content)[entry];
+
             // A variable set to nothing is set: that is how a host keeps a file from supplying it. One this load has
             // supplied is replaced by a later line of the same file.
             if (Supplied.ContainsKey(name) || !ProcessHas(name))
